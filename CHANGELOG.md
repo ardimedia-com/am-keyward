@@ -35,3 +35,11 @@ All notable changes to this project are documented here, following
   reference shell wired up: `AddKeyward`, startup migrate + demo tenant/project seed, a dev KEK loaded
   from a local key file outside the database, and a `/secrets` Blazor page. Verified end-to-end over
   HTTP against SQL Server (store → encrypted at rest → read).
+
+### Fixed
+
+- Storing a second per-environment value for an existing software secret failed with a 0-row
+  `DbUpdateConcurrencyException`: because entity keys are app-assigned GUIDs, EF Core's graph state
+  heuristic mis-marked the brand-new child as `Modified` (a 0-row `UPDATE`) instead of `Added`.
+  New `SecretValue` / `SecretVersion` children are now marked `Added` explicitly. Covered by a
+  regression test that stores the same key in two environments.

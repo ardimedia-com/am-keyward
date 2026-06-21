@@ -42,11 +42,21 @@ public sealed class SoftwareSecretService(
 
         var aad = Aad.ForSoftwareSecretVersion(cmd.TenantId, cmd.ProjectId, environment.Id, secret.Id, versionId, AlgVersion);
         var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(cmd.Value), aad, ct).ConfigureAwait(false);
-        secret.SetValue(valueId, environment.Id, versionId, encrypted, clock.UtcNow);
+        var secretValue = secret.SetValue(valueId, environment.Id, versionId, encrypted, clock.UtcNow);
 
+        // Keys are app-assigned Guids, so EF's graph state heuristic (IsKeySet) would mis-mark new
+        // children as Modified -> a 0-row UPDATE. Mark the genuinely-new entities Added explicitly.
         if (isNew)
         {
             db.SoftwareSecrets.Add(secret);
+        }
+        else if (existingValue is null)
+        {
+            db.SecretValues.Add(secretValue);          // new per-environment value (+ its first version)
+        }
+        else
+        {
+            db.SecretVersions.Add(secretValue.Current); // new version on an existing per-environment value
         }
 
         await audit.AppendAsync(

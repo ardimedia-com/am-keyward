@@ -82,4 +82,47 @@ public class SoftwareSecretIntegrationTests
             Assert.IsGreaterThanOrEqualTo(2, auditCount, "Store and read should both be audited.");
         }
     }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Store_two_environments_for_same_key_keeps_them_independent()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
+        await using var provider = services.BuildServiceProvider();
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        using (var scope = provider.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            if (!await db.Database.CanConnectAsync())
+            {
+                Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+                return;
+            }
+
+            db.Tenants.Add(new Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
+            var project = new Project(projectId, tenantId, OwnerType.Tenant, tenantId, "multi-env", DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Production, DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Development, DateTimeOffset.UtcNow);
+            db.Projects.Add(project);
+            await db.SaveChangesAsync();
+        }
+
+        // Both stores share one DbContext (mirrors the Blazor circuit-scoped context that triggered the bug).
+        using (var scope = provider.CreateScope())
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "ConnectionStrings:Main", "prod-value", null));
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Development", "ConnectionStrings:Main", "dev-value", null));
+        }
+
+        using (var scope = provider.CreateScope())
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            Assert.AreEqual("prod-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "ConnectionStrings:Main", null)));
+            Assert.AreEqual("dev-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Development", "ConnectionStrings:Main", null)));
+        }
+    }
 }

@@ -25,6 +25,35 @@ REM      (gitignored, kept OUTSIDE the database). Production uses a real KEK
 REM      provider (Azure Key Vault / HSM) instead -- see SECURITY.md.
 REM ============================================================================
 REM
+REM  TESTING:
+REM    Automated tests (unit + integration). The integration / end-to-end tests
+REM    talk to the local "amkeyward" SQL Server; they self-skip (Inconclusive)
+REM    when no DB is reachable, so they stay green on a machine without SQL.
+REM        dotnet test Am.Keyward.slnx
+REM
+REM    Manual UI smoke test:
+REM        Open https://localhost:7212/secrets and use the demo page to store
+REM        and read a value (the demo tenant/project below are pre-seeded).
+REM
+REM    Manual API smoke test (PowerShell). The API is UNAUTHENTICATED in v0.1.
+REM      Demo tenant  = 11111111-1111-1111-1111-111111111111
+REM      Demo project = 22222222-2222-2222-2222-222222222222
+REM    A trusted dev cert (see above) lets Invoke-RestMethod use https directly;
+REM    otherwise add -SkipCertificateCheck (PowerShell 7+).
+REM
+REM      $base   = "https://localhost:7212/keyward/api/v1"
+REM      $secret = "$base/tenants/11111111-1111-1111-1111-111111111111" +
+REM                "/projects/22222222-2222-2222-2222-222222222222" +
+REM                "/environments/Production/secrets/ConnectionStrings:Main"
+REM
+REM      # Store (PUT -> 204 No Content):
+REM      Invoke-RestMethod -Method Put -Uri $secret -ContentType "application/json" `
+REM          -Body '{ "value": "Server=db;User Id=app;Password=hunter2" }'
+REM
+REM      # Read (GET -> { key, value }):
+REM      Invoke-RestMethod -Method Get -Uri $secret
+REM ============================================================================
+REM
 REM  STILL TODO (open work -- this is a v0.1 walking skeleton, not finished):
 REM    [Slice 4] Multi-tenancy + isolation: global users + 0..n tenants, the
 REM              composite query filter + SQL Server RLS (SESSION_CONTEXT), a
