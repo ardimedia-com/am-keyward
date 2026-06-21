@@ -1,5 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <ItemGroup>
+    <ProjectReference Include="..\Am.Keyward.Core\Am.Keyward.Core.csproj" />
+    <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
+    <ProjectReference Include="..\Am.Keyward.Infrastructure\Am.Keyward.Infrastructure.csproj" />
+    <ProjectReference Include="..\Am.Keyward.Api\Am.Keyward.Api.csproj" />
+    <ProjectReference Include="..\Am.Keyward.Ui.Blazor\Am.Keyward.Ui.Blazor.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
