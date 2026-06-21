@@ -24,7 +24,13 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AmbientTenantContext>();
         services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<AmbientTenantContext>());
         services.AddScoped<ITenantScopeSetter>(sp => sp.GetRequiredService<AmbientTenantContext>());
-        services.AddScoped<ICurrentUser, AnonymousCurrentUser>();
+
+        // One ambient user context per scope, exposed as the read port (ICurrentUser) and the host-edge
+        // write port (IUserScopeSetter). The host may override ICurrentUser (e.g. an HttpContext-backed one).
+        services.AddScoped<AmbientUserContext>();
+        services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<AmbientUserContext>());
+        services.AddScoped<IUserScopeSetter>(sp => sp.GetRequiredService<AmbientUserContext>());
+
         services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
         services.AddScoped<TenantSessionContextInterceptor>();
 
@@ -48,6 +54,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();
         services.AddScoped<ISoftwareClientAuthenticator, SoftwareClientAuthenticator>();
         services.AddHostedService<SoftwareClientTokenExpiryService>();
+
+        // Human vaults (server-side encrypted).
+        services.AddScoped<IVaultService, VaultService>();
 
         return services;
     }

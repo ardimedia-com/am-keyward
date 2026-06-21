@@ -46,9 +46,6 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-// Resolve the current Keyward user from the authenticated principal (overrides the anonymous stub).
-builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
-
 // Software-client token authentication + per-token rate limiting (read API).
 builder.Services.AddKeywardSoftwareClientApi();
 builder.Services.AddRateLimiter(options =>
@@ -108,6 +105,19 @@ app.UseAntiforgery();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Establish the server-authoritative current user from the authenticated principal for this request
+// (HTTP path; the Blazor circuit sets it from its authentication state — see DemoTenantCircuitHandler).
+app.Use(async (context, next) =>
+{
+    if (Guid.TryParse(context.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var userId))
+    {
+        context.RequestServices.GetRequiredService<IUserScopeSetter>().SetUser(userId);
+    }
+
+    await next();
+});
+
 app.UseRateLimiter();
 
 app.MapStaticAssets();

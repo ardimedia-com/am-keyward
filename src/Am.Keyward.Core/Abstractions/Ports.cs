@@ -34,6 +34,16 @@ public interface ITenantScopeSetter
 }
 
 /// <summary>
+/// Sets the server-authoritative current user for the request/session. Called ONLY at the host edge
+/// (resolved from the authenticated principal), never from business logic. Drives personal-vault
+/// isolation (the user-scoped query filter and SQL Server row-level security).
+/// </summary>
+public interface IUserScopeSetter
+{
+    void SetUser(Guid? userId);
+}
+
+/// <summary>
 /// Wraps/unwraps per-secret data-encryption-keys (DEKs) using an external key-encryption-key (KEK).
 /// The KEK never leaves the provider and is never stored in the application database.
 /// </summary>

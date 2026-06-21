@@ -24,15 +24,19 @@ public sealed class KeywardDbContextFactory : IDesignTimeDbContextFactory<Keywar
                 sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
             .Options;
 
-        // Design-time only builds/queries the model for migrations; no tenant scope is needed.
-        return new KeywardDbContext(options, DesignTimeTenant.Instance);
+        // Design-time only builds/queries the model for migrations; no tenant/user scope is needed.
+        return new KeywardDbContext(options, DesignTimeScope.Instance, DesignTimeScope.Instance);
     }
 
-    /// <summary>A no-tenant context for design-time model building (migrations don't run tenant queries).</summary>
-    private sealed class DesignTimeTenant : ICurrentTenant
+    /// <summary>A no-tenant/no-user context for design-time model building (migrations don't run scoped queries).</summary>
+    private sealed class DesignTimeScope : ICurrentTenant, ICurrentUser
     {
-        public static readonly DesignTimeTenant Instance = new();
+        public static readonly DesignTimeScope Instance = new();
 
         public Guid? TenantId => null;
+
+        public Guid? UserId => null;
+
+        public bool IsAuthenticated => false;
     }
 }

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Audit;
+using Am.Keyward.Core.Domain.Human;
 using Am.Keyward.Core.Domain.Identity;
 using Am.Keyward.Core.Domain.Software;
 using Am.Keyward.Core.Domain.ValueObjects;
@@ -17,12 +18,13 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// (read per query), backed in depth by SQL Server row-level security (see the SESSION_CONTEXT
 /// interceptor and the TenancyIsolation migration).
 /// </summary>
-public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options, ICurrentTenant tenant)
+public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options, ICurrentTenant tenant, ICurrentUser user)
     : DbContext(options)
 {
     public const string Schema = "amkeyward";
 
     private readonly ICurrentTenant _tenant = tenant;
+    private readonly ICurrentUser _user = user;
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<AppUser> Users => Set<AppUser>();
@@ -32,6 +34,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SecretValue> SecretValues => Set<SecretValue>();
     public DbSet<SecretVersion> SecretVersions => Set<SecretVersion>();
     public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
+    public DbSet<Vault> Vaults => Set<Vault>();
+    public DbSet<Folder> Folders => Set<Folder>();
+    public DbSet<VaultItem> VaultItems => Set<VaultItem>();
+    public DbSet<VaultItemVersion> VaultItemVersions => Set<VaultItemVersion>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -138,6 +144,67 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             // row-level-security policy — it must be looked up by prefix BEFORE the tenant is known. The
             // record carries TenantId only to scope the request once the token is authenticated. It holds
             // no secret material (only a hash + a non-secret prefix).
+        });
+
+        // Human vaults. Isolation boundary: tenant vaults by TenantId, personal (tenant-less) vaults by
+        // OwnerUserId. (Finer per-user/group sharing via AccessGrant is layered on in the application.)
+        model.Entity<Vault>(e =>
+        {
+            e.ToTable("Vaults");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.Property(x => x.OwnerType).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.ProtectionMode).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => x.TenantId);
+            e.HasIndex(x => x.OwnerUserId);
+            e.HasMany(x => x.Folders).WithOne().HasForeignKey(x => x.VaultId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.Folders).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x =>
+                (x.TenantId != null && x.TenantId == _tenant.TenantId)
+                || (x.TenantId == null && x.OwnerUserId == _user.UserId));
+        });
+
+        model.Entity<Folder>(e =>
+        {
+            e.ToTable("Folders");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => x.VaultId);
+            e.HasIndex(x => x.TenantId);
+            e.HasIndex(x => x.OwnerUserId);
+            e.HasQueryFilter(x =>
+                (x.TenantId != null && x.TenantId == _tenant.TenantId)
+                || (x.TenantId == null && x.OwnerUserId == _user.UserId));
+        });
+
+        model.Entity<VaultItem>(e =>
+        {
+            e.ToTable("VaultItems");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => x.VaultId);
+            e.HasIndex(x => x.FolderId);
+            e.HasIndex(x => x.TenantId);
+            e.HasIndex(x => x.OwnerUserId);
+            e.HasMany(x => x.Versions).WithOne().HasForeignKey(x => x.VaultItemId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.Versions).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x =>
+                (x.TenantId != null && x.TenantId == _tenant.TenantId)
+                || (x.TenantId == null && x.OwnerUserId == _user.UserId));
+        });
+
+        model.Entity<VaultItemVersion>(e =>
+        {
+            e.ToTable("VaultItemVersions");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Encrypted).HasConversion(encryptedConverter).IsRequired();
+            e.HasIndex(x => new { x.VaultItemId, x.VersionNumber }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasIndex(x => x.OwnerUserId);
+            e.HasQueryFilter(x =>
+                (x.TenantId != null && x.TenantId == _tenant.TenantId)
+                || (x.TenantId == null && x.OwnerUserId == _user.UserId));
         });
 
         model.Entity<AuditEntry>(e =>

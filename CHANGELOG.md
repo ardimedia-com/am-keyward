@@ -7,6 +7,15 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 6b (part 1) — personal human vaults: server-side envelope-encrypted vaults owned by a user
+  (tenant-less), with folders and typed, versioned items (`IVaultService`: create vault/folder/item, read,
+  list), server-authoritative on the current user. Vault tables carry a denormalized isolation boundary
+  (`TenantId` for tenant vaults, `OwnerUserId` for personal vaults) enforced by the EF query filter AND
+  extended SQL Server row-level security — a two-column predicate over `SESSION_CONTEXT('TenantId')` /
+  `SESSION_CONTEXT('UserId')` (the connection interceptor now stamps `UserId` too). Current-user
+  resolution is unified on an ambient context set at the host edge (an HTTP middleware and the Blazor
+  circuit, from the authentication state). Tenant/group vaults, grant-based sharing and the vault UI follow.
+
 - Slice 6a — admin sign-in and protected management API: the standalone reference shell now uses
   ASP.NET Core Identity (cookie auth) for human sign-in, kept in the shell so the libraries stay
   identity-agnostic (own `amkeyward_identity` schema and migration). The first registered account becomes
