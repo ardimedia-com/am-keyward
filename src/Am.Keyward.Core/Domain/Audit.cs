@@ -44,4 +44,16 @@ public sealed class AuditEntry
         PreviousHash = previousHash;
         Hash = hash;
     }
+
+    /// <summary>
+    /// Seals the entry into the chain: its sequence number, the previous link's hash and its own hash.
+    /// Assigned by the single-writer audit-chain interceptor at commit time (not by callers), so the chain
+    /// cannot fork or collide under concurrency.
+    /// </summary>
+    public void Seal(long sequence, string previousHash, string hash)
+    {
+        Sequence = sequence;
+        PreviousHash = previousHash;
+        Hash = hash;
+    }
 }

@@ -33,11 +33,14 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
         services.AddScoped<TenantSessionContextInterceptor>();
+        services.AddScoped<AuditChainInterceptor>();
 
         services.AddDbContext<KeywardDbContext>((sp, options) =>
             options.UseSqlServer(connectionString, sql =>
                     sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
-                .AddInterceptors(sp.GetRequiredService<TenantSessionContextInterceptor>()));
+                .AddInterceptors(
+                    sp.GetRequiredService<TenantSessionContextInterceptor>(),
+                    sp.GetRequiredService<AuditChainInterceptor>()));
 
         services.AddSingleton<IKekProvider>(new StaticKekProvider(kek, kekId));
         services.AddSingleton<IClock, SystemClock>();
