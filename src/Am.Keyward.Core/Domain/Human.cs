@@ -12,16 +12,16 @@ public sealed class Vault
 {
     private readonly List<Folder> _folders = [];
 
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
     /// <summary>Null = tenant-less personal vault (must then be User-owned).</summary>
-    public Guid? TenantId { get; }
+    public Guid? TenantId { get; private set; }
 
-    public OwnerType OwnerType { get; }
-    public Guid OwnerId { get; }
-    public ProtectionMode ProtectionMode { get; }
+    public OwnerType OwnerType { get; private set; }
+    public Guid OwnerId { get; private set; }
+    public ProtectionMode ProtectionMode { get; private set; }
     public string Name { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyList<Folder> Folders => _folders;
 
     public Vault(Guid id, Guid? tenantId, OwnerType ownerType, Guid ownerId, ProtectionMode protectionMode, string name, DateTimeOffset createdAt)
@@ -61,10 +61,10 @@ public sealed class Vault
 /// <summary>Belongs to exactly one vault and inherits its tenant/owner/protection. Flat (no nesting) in v0.1.</summary>
 public sealed class Folder
 {
-    public Guid Id { get; }
-    public Guid VaultId { get; }
+    public Guid Id { get; private set; }
+    public Guid VaultId { get; private set; }
     public string Name { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public Folder(Guid id, Guid vaultId, string name, DateTimeOffset createdAt)
     {
@@ -95,14 +95,14 @@ public sealed class VaultItem
 {
     private readonly List<VaultItemVersion> _versions = [];
 
-    public Guid Id { get; }
-    public Guid VaultId { get; }
+    public Guid Id { get; private set; }
+    public Guid VaultId { get; private set; }
     public Guid? FolderId { get; private set; }
-    public ItemType Type { get; }
+    public ItemType Type { get; private set; }
     public string Name { get; private set; }
-    public Guid? CreatedBy { get; }
+    public Guid? CreatedBy { get; private set; }
     public Guid? CurrentVersionId { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyList<VaultItemVersion> Versions => _versions;
 
     public VaultItem(Guid id, Guid vaultId, Guid? folderId, ItemType type, string name, Guid? createdBy, DateTimeOffset createdAt)
@@ -140,11 +140,11 @@ public sealed class VaultItem
 /// <summary>An immutable, encrypted version of a vault item.</summary>
 public sealed class VaultItemVersion
 {
-    public Guid Id { get; }
-    public Guid VaultItemId { get; }
-    public int VersionNumber { get; }
-    public EncryptedValue Encrypted { get; }
-    public DateTimeOffset CreatedAt { get; }
+    public Guid Id { get; private set; }
+    public Guid VaultItemId { get; private set; }
+    public int VersionNumber { get; private set; }
+    public EncryptedValue Encrypted { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public VaultItemVersion(Guid id, Guid vaultItemId, int versionNumber, EncryptedValue encrypted, DateTimeOffset createdAt)
     {

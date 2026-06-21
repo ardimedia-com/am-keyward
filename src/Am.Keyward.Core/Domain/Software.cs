@@ -11,12 +11,12 @@ public sealed class Project
 {
     private readonly List<RuntimeEnvironment> _environments = [];
 
-    public Guid Id { get; }
-    public Guid TenantId { get; }
-    public OwnerType OwnerType { get; }
-    public Guid OwnerId { get; }
+    public Guid Id { get; private set; }
+    public Guid TenantId { get; private set; }
+    public OwnerType OwnerType { get; private set; }
+    public Guid OwnerId { get; private set; }
     public string Name { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyList<RuntimeEnvironment> Environments => _environments;
 
     public Project(Guid id, Guid tenantId, OwnerType ownerType, Guid ownerId, string name, DateTimeOffset createdAt)
@@ -55,10 +55,10 @@ public sealed class Project
 /// <summary>A first-class environment within a project (Development/Test/Preview/Production, configurable).</summary>
 public sealed class RuntimeEnvironment
 {
-    public Guid Id { get; }
-    public Guid ProjectId { get; }
-    public EnvironmentName Name { get; }
-    public DateTimeOffset CreatedAt { get; }
+    public Guid Id { get; private set; }
+    public Guid ProjectId { get; private set; }
+    public EnvironmentName Name { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public RuntimeEnvironment(Guid id, Guid projectId, EnvironmentName name, DateTimeOffset createdAt)
     {
@@ -77,14 +77,14 @@ public sealed class SoftwareSecret
 {
     private readonly List<SecretValue> _values = [];
 
-    public Guid Id { get; }
-    public Guid ProjectId { get; }
-    public SecretKey Key { get; }
+    public Guid Id { get; private set; }
+    public Guid ProjectId { get; private set; }
+    public SecretKey Key { get; private set; }
 
     /// <summary>Steward (the user who created/manages it); tombstoned (set null) on user deletion.</summary>
-    public Guid? CreatedBy { get; }
+    public Guid? CreatedBy { get; private set; }
 
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyList<SecretValue> Values => _values;
 
     public SoftwareSecret(Guid id, Guid projectId, SecretKey key, Guid? createdBy, DateTimeOffset createdAt)
@@ -118,9 +118,9 @@ public sealed class SecretValue
 {
     private readonly List<SecretVersion> _versions = [];
 
-    public Guid Id { get; }
-    public Guid SoftwareSecretId { get; }
-    public Guid EnvironmentId { get; }
+    public Guid Id { get; private set; }
+    public Guid SoftwareSecretId { get; private set; }
+    public Guid EnvironmentId { get; private set; }
     public Guid? CurrentVersionId { get; private set; }
     public IReadOnlyList<SecretVersion> Versions => _versions;
 
@@ -148,11 +148,11 @@ public sealed class SecretValue
 /// <summary>An immutable, encrypted version of a secret value.</summary>
 public sealed class SecretVersion
 {
-    public Guid Id { get; }
-    public Guid SecretValueId { get; }
-    public int VersionNumber { get; }
-    public EncryptedValue Encrypted { get; }
-    public DateTimeOffset CreatedAt { get; }
+    public Guid Id { get; private set; }
+    public Guid SecretValueId { get; private set; }
+    public int VersionNumber { get; private set; }
+    public EncryptedValue Encrypted { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public SecretVersion(Guid id, Guid secretValueId, int versionNumber, EncryptedValue encrypted, DateTimeOffset createdAt)
     {

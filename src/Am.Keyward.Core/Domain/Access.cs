@@ -10,14 +10,14 @@ namespace Am.Keyward.Core.Domain.Access;
 /// </summary>
 public sealed class AccessGrant
 {
-    public Guid Id { get; }
-    public Guid? TenantId { get; }
-    public PrincipalType PrincipalType { get; }
-    public Guid PrincipalId { get; }
-    public GrantScope Scope { get; }
+    public Guid Id { get; private set; }
+    public Guid? TenantId { get; private set; }
+    public PrincipalType PrincipalType { get; private set; }
+    public Guid PrincipalId { get; private set; }
+    public GrantScope Scope { get; private set; }
     public Permission Permission { get; private set; }
-    public Guid? CreatedBy { get; }
-    public DateTimeOffset CreatedAt { get; }
+    public Guid? CreatedBy { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public AccessGrant(Guid id, Guid? tenantId, PrincipalType principalType, Guid principalId, GrantScope scope, Permission permission, Guid? createdBy, DateTimeOffset createdAt)
     {

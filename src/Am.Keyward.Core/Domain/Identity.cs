@@ -5,10 +5,10 @@ namespace Am.Keyward.Core.Domain.Identity;
 /// <summary>An isolation boundary. In company-wide (single-tenant) mode a single implicit "system" tenant exists.</summary>
 public sealed class Tenant
 {
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
     public string Name { get; private set; }
-    public bool IsSystemTenant { get; }
-    public DateTimeOffset CreatedAt { get; }
+    public bool IsSystemTenant { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public Tenant(Guid id, string name, bool isSystemTenant, DateTimeOffset createdAt)
     {
@@ -37,17 +37,17 @@ public sealed class Tenant
 /// <summary>A global, installation-level account. Not owned by a tenant; may belong to 0..n tenants.</summary>
 public sealed class AppUser
 {
-    public Guid Id { get; }
+    public Guid Id { get; private set; }
 
     /// <summary>External IdP issuer in embedded mode; null for the standalone Identity store.</summary>
-    public string? Issuer { get; }
+    public string? Issuer { get; private set; }
 
     /// <summary>The stable external claim (sub/oid) or the local Identity user id. Unique together with <see cref="Issuer"/>.</summary>
-    public string ExternalId { get; }
+    public string ExternalId { get; private set; }
 
     public string DisplayName { get; private set; }
     public bool IsSystemAdmin { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt)
     {
@@ -72,11 +72,11 @@ public sealed class AppUser
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>
 public sealed class TenantMembership
 {
-    public Guid Id { get; }
-    public Guid TenantId { get; }
-    public Guid UserId { get; }
+    public Guid Id { get; private set; }
+    public Guid TenantId { get; private set; }
+    public Guid UserId { get; private set; }
     public TenantRole Role { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public TenantMembership(Guid id, Guid tenantId, Guid userId, TenantRole role, DateTimeOffset createdAt)
     {
@@ -93,10 +93,10 @@ public sealed class TenantMembership
 /// <summary>A group within a tenant; can own vaults/projects and has one or more group admins.</summary>
 public sealed class UserGroup
 {
-    public Guid Id { get; }
-    public Guid TenantId { get; }
+    public Guid Id { get; private set; }
+    public Guid TenantId { get; private set; }
     public string Name { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public UserGroup(Guid id, Guid tenantId, string name, DateTimeOffset createdAt)
     {
@@ -125,11 +125,11 @@ public sealed class UserGroup
 /// <summary>Many-to-many user↔group link with a per-group role (Member|Admin; multiple admins allowed).</summary>
 public sealed class GroupMembership
 {
-    public Guid Id { get; }
-    public Guid GroupId { get; }
-    public Guid UserId { get; }
+    public Guid Id { get; private set; }
+    public Guid GroupId { get; private set; }
+    public Guid UserId { get; private set; }
     public GroupRole Role { get; private set; }
-    public DateTimeOffset CreatedAt { get; }
+    public DateTimeOffset CreatedAt { get; private set; }
 
     public GroupMembership(Guid id, Guid groupId, Guid userId, GroupRole role, DateTimeOffset createdAt)
     {

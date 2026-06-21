@@ -10,16 +10,16 @@ namespace Am.Keyward.Core.Domain.Audit;
 /// </summary>
 public sealed class AuditEntry
 {
-    public Guid Id { get; }
-    public Guid? TenantId { get; }
-    public long Sequence { get; }
-    public AuditAction Action { get; }
-    public string ResourceType { get; }
-    public Guid? ResourceId { get; }
-    public Guid? ActorPseudonymId { get; }
-    public DateTimeOffset OccurredAt { get; }
-    public string PreviousHash { get; }
-    public string Hash { get; }
+    public Guid Id { get; private set; }
+    public Guid? TenantId { get; private set; }
+    public long Sequence { get; private set; }
+    public AuditAction Action { get; private set; }
+    public string ResourceType { get; private set; }
+    public Guid? ResourceId { get; private set; }
+    public Guid? ActorPseudonymId { get; private set; }
+    public DateTimeOffset OccurredAt { get; private set; }
+    public string PreviousHash { get; private set; }
+    public string Hash { get; private set; }
 
     public AuditEntry(
         Guid id,

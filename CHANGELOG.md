@@ -22,3 +22,11 @@ All notable changes to this project are documented here, following
   (`StaticKekProvider`, AES-256-GCM wrap — BCL primitive in lieu of RFC-3394 AES-KW; recorded in
   `EncryptedValue.WrapAlg`), DEK zeroed after use. On-disk format frozen as `FormatVersion = 1`.
   Verified by round-trip, tamper-detection, slot-substitution and wrong-KEK tests.
+- Slice 2 (persistence) — EF Core 10 / **Microsoft SQL Server**: `KeywardDbContext` (default schema
+  `amkeyward`, schema-scoped migrations history), value conversions for `EncryptedValue` / `SecretKey` /
+  `EnvironmentName`, the Initial migration and a design-time factory.
+- Slice 3 (walking skeleton, core) — software-credentials vertical: `ISoftwareSecretService` (Core
+  application) with an EF-backed implementation (encrypt-and-store / read-and-decrypt, full-slot AAD), a
+  minimal per-tenant hash-chained `DbAuditSink`, and the `AddKeyward` DI registration. Proven by an
+  end-to-end integration test (DI → SQL Server → encrypt/store → read/decrypt; value encrypted at rest;
+  operations audited).
