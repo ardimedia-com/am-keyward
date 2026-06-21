@@ -23,8 +23,31 @@ public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTena
             return false; // No tenant scope established -> deny; system operations use an elevated path.
         }
 
+        // Vaults are ACL-controlled within the tenant: access requires a grant to the user (group grants
+        // are layered on later). Tenant isolation (filter + RLS) is the outer boundary; this is the refiner.
+        if (resource.Kind == GrantScopeKind.Vault)
+        {
+            return userId is not null && await HasVaultGrantAsync(userId.Value, resource.TargetId, action, ct).ConfigureAwait(false);
+        }
+
+        // Projects/environments (software secrets): tenant-wide within the current tenant.
         var resourceTenant = await ResolveResourceTenantAsync(resource, ct).ConfigureAwait(false);
         return resourceTenant is not null && resourceTenant == current;
+    }
+
+    private async Task<bool> HasVaultGrantAsync(Guid userId, Guid vaultId, Permission action, CancellationToken ct)
+    {
+        // Permission is stored as a string, so compare the levels in memory (the set per user+vault is tiny).
+        var permissions = await db.AccessGrants
+            .Where(g => g.PrincipalType == PrincipalType.User
+                     && g.PrincipalId == userId
+                     && g.Scope.Kind == GrantScopeKind.Vault
+                     && g.Scope.TargetId == vaultId)
+            .Select(g => g.Permission)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return permissions.Any(p => p >= action);
     }
 
     private async Task<Guid?> ResolveResourceTenantAsync(GrantScope resource, CancellationToken ct) =>

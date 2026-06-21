@@ -14,10 +14,12 @@ public sealed class AccessGrant
     public Guid? TenantId { get; private set; }
     public PrincipalType PrincipalType { get; private set; }
     public Guid PrincipalId { get; private set; }
-    public GrantScope Scope { get; private set; }
+    public GrantScope Scope { get; private set; } = null!;
     public Permission Permission { get; private set; }
     public Guid? CreatedBy { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    private AccessGrant() { } // EF: owned GrantScope cannot be bound via constructor, so EF builds it separately.
 
     public AccessGrant(Guid id, Guid? tenantId, PrincipalType principalType, Guid principalId, GrantScope scope, Permission permission, Guid? createdBy, DateTimeOffset createdAt)
     {

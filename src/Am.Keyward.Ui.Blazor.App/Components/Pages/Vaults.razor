@@ -1,6 +1,6 @@
 @page "/vaults"
-@* Prerender disabled: loads user-scoped data in OnInitializedAsync, and the user scope is set by the
-   circuit handler (which runs for the circuit, not during HTTP prerender). *@
+@* Prerender disabled: loads user-scoped data in OnInitializedAsync, and the scope is set by the circuit
+   handler (which runs for the circuit, not during HTTP prerender). *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
 @using Am.Keyward.Core.Application
@@ -13,8 +13,8 @@
 <PageTitle>My Vault</PageTitle>
 
 <div class="page-header">
-    <h1>My Vault</h1>
-    <p>Your personal, server-side-encrypted vaults. Values are decrypted only when you reveal them.</p>
+    <h1>Vaults</h1>
+    <p>Personal vaults are yours alone; team vaults are shared with people in your tenant. Values are decrypted only when revealed.</p>
 </div>
 
 @if (status is not null)
@@ -23,36 +23,91 @@
 }
 
 <div class="card">
-    <h3>Create a vault</h3>
-    <div class="row" style="margin-top:.5rem;">
-        <input @bind="newVaultName" placeholder="Vault name" style="max-width:18rem;" />
-        <button @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))">Create vault</button>
+    <h3>Personal vaults</h3>
+    <div class="row" style="margin:.5rem 0;">
+        <input @bind="newVaultName" placeholder="New personal vault" style="max-width:16rem;" />
+        <button @onclick="CreatePersonalVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))">Create</button>
     </div>
-</div>
-
-<div class="card">
-    <h3>Vaults</h3>
-    @if (vaults is null)
+    @if (vaults is { Count: > 0 })
     {
-        <p class="muted">Loading…</p>
-    }
-    else if (vaults.Count == 0)
-    {
-        <p class="muted">No vaults yet — create one above.</p>
+        <div class="row">
+            @foreach (var v in vaults)
+            {
+                <button class="@SelectClass(v.Id)" @onclick="() => SelectVaultAsync(v.Id, false)">@v.Name</button>
+            }
+        </div>
     }
     else
     {
-        <div class="row" style="margin-top:.5rem;">
-            @foreach (var v in vaults)
+        <p class="muted">No personal vaults yet.</p>
+    }
+</div>
+
+<div class="card">
+    <h3>Team vaults</h3>
+    <div class="row" style="margin:.5rem 0;">
+        <input @bind="newTeamVaultName" placeholder="New team vault" style="max-width:16rem;" />
+        <button @onclick="CreateTeamVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newTeamVaultName))">Create</button>
+    </div>
+    @if (teamVaults is { Count: > 0 })
+    {
+        <div class="row">
+            @foreach (var v in teamVaults)
             {
-                <button class="@(v.Id == selectedVaultId ? "" : "btn-ghost")" @onclick="() => SelectVaultAsync(v.Id)">@v.Name</button>
+                <button class="@SelectClass(v.Id)" @onclick="() => SelectVaultAsync(v.Id, true)">@v.Name <span class="badge">team</span></button>
             }
         </div>
+    }
+    else
+    {
+        <p class="muted">No team vaults you can access yet.</p>
     }
 </div>
 
 @if (selectedVaultId is not null)
 {
+    @if (selectedIsTeam)
+    {
+        <div class="card">
+            <h3>Share this team vault</h3>
+            @if (shareCandidates.Count == 0)
+            {
+                <p class="muted">No other users to share with.</p>
+            }
+            else
+            {
+                <div class="row" style="margin-top:.5rem;">
+                    <select @bind="shareGranteeId" style="max-width:16rem;">
+                        <option value="">Select a user…</option>
+                        @foreach (var c in shareCandidates)
+                        {
+                            <option value="@c.UserId">@c.DisplayName</option>
+                        }
+                    </select>
+                    <select @bind="sharePermission" style="max-width:10rem;">
+                        @foreach (var p in Enum.GetValues<Permission>())
+                        {
+                            <option value="@p">@p</option>
+                        }
+                    </select>
+                    <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(shareGranteeId))">Share</button>
+                </div>
+            }
+            @if (shares is { Count: > 0 })
+            {
+                <table style="margin-top:1rem;">
+                    <thead><tr><th>User</th><th>Permission</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in shares)
+                        {
+                            <tr><td>@s.DisplayName</td><td><span class="badge">@s.Permission</span></td></tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    }
+
     <div class="card">
         <h3>Add item</h3>
         <div class="stack" style="margin-top:.5rem; max-width:32rem;">
@@ -77,14 +132,12 @@
                 </select>
             </div>
             <div class="field"><label>Secret content</label><textarea rows="3" @bind="itemContent" placeholder="password / note / connection string…"></textarea></div>
-            <div class="row">
-                <button @onclick="AddItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(itemName))">Add item</button>
-            </div>
+            <div class="row"><button @onclick="AddItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(itemName))">Add item</button></div>
         </div>
 
         <h3 style="margin-top:1.5rem;">New folder</h3>
         <div class="row" style="margin-top:.5rem;">
-            <input @bind="newFolderName" placeholder="Folder name" style="max-width:18rem;" />
+            <input @bind="newFolderName" placeholder="Folder name" style="max-width:16rem;" />
             <button class="btn-ghost" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">Add folder</button>
         </div>
     </div>
@@ -102,9 +155,7 @@
         else
         {
             <table>
-                <thead>
-                    <tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr>
-                </thead>
+                <thead><tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var item in items)
                     {
@@ -112,9 +163,7 @@
                             <td>@item.Name</td>
                             <td><span class="badge">@item.Type</span></td>
                             <td class="muted">@FolderName(item.FolderId)</td>
-                            <td class="row-actions">
-                                <button class="btn-ghost btn-sm" @onclick="() => RevealAsync(item.Id)" disabled="@busy">Reveal</button>
-                            </td>
+                            <td class="row-actions"><button class="btn-ghost btn-sm" @onclick="() => RevealAsync(item.Id)" disabled="@busy">Reveal</button></td>
                         </tr>
                         @if (revealedItemId == item.Id && revealedValue is not null)
                         {
@@ -136,12 +185,22 @@
 
 @code {
     private Guid? actorUserId;
+    private readonly Guid tenantId = Demo.TenantId;
+
     private IReadOnlyList<VaultSummary>? vaults;
+    private IReadOnlyList<VaultSummary>? teamVaults;
     private Guid? selectedVaultId;
+    private bool selectedIsTeam;
     private IReadOnlyList<VaultFolderSummary> folders = [];
     private IReadOnlyList<VaultItemSummary>? items;
 
+    private IReadOnlyList<ShareCandidate> shareCandidates = [];
+    private IReadOnlyList<VaultShare>? shares;
+    private string shareGranteeId = "";
+    private Permission sharePermission = Permission.Read;
+
     private string newVaultName = "";
+    private string newTeamVaultName = "";
     private string newFolderName = "";
     private string itemName = "";
     private ItemType itemType = ItemType.Login;
@@ -167,81 +226,89 @@
 
     private async Task ReloadVaultsAsync()
     {
-        if (actorUserId is null)
-        {
-            return;
-        }
-
+        if (actorUserId is null) return;
         vaults = await VaultService.ListVaultsAsync(actorUserId.Value);
+        teamVaults = await VaultService.ListSharedVaultsAsync(actorUserId.Value, tenantId);
     }
 
-    private async Task SelectVaultAsync(Guid vaultId)
+    private async Task SelectVaultAsync(Guid vaultId, bool isTeam)
     {
         selectedVaultId = vaultId;
+        selectedIsTeam = isTeam;
         revealedItemId = null;
         revealedValue = null;
+        shares = null;
         await ReloadVaultContentsAsync();
+        if (isTeam)
+        {
+            shareCandidates = await VaultService.ListShareCandidatesAsync(actorUserId!.Value, tenantId);
+            await ReloadSharesAsync();
+        }
     }
 
     private async Task ReloadVaultContentsAsync()
     {
-        if (actorUserId is null || selectedVaultId is null)
-        {
-            return;
-        }
-
+        if (actorUserId is null || selectedVaultId is null) return;
         folders = await VaultService.ListFoldersAsync(actorUserId.Value, selectedVaultId.Value);
         items = await VaultService.ListItemsAsync(actorUserId.Value, selectedVaultId.Value);
     }
 
-    private async Task CreateVaultAsync()
+    private async Task ReloadSharesAsync()
     {
-        if (busy || actorUserId is null || string.IsNullOrWhiteSpace(newVaultName)) return;
-        await RunAsync(async () =>
-        {
-            var id = await VaultService.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(actorUserId.Value, newVaultName));
-            newVaultName = "";
-            await ReloadVaultsAsync();
-            await SelectVaultAsync(id);
-            status = ("Vault created.", false);
-        });
+        if (actorUserId is null || selectedVaultId is null) return;
+        shares = await VaultService.ListVaultSharesAsync(actorUserId.Value, selectedVaultId.Value);
     }
 
-    private async Task AddFolderAsync()
+    private Task CreatePersonalVaultAsync() => RunAsync(async () =>
     {
-        if (busy || actorUserId is null || selectedVaultId is null || string.IsNullOrWhiteSpace(newFolderName)) return;
-        await RunAsync(async () =>
-        {
-            await VaultService.AddFolderAsync(new AddVaultFolderCommand(actorUserId.Value, selectedVaultId.Value, newFolderName));
-            newFolderName = "";
-            await ReloadVaultContentsAsync();
-            status = ("Folder added.", false);
-        });
-    }
+        var id = await VaultService.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(actorUserId!.Value, newVaultName));
+        newVaultName = "";
+        await ReloadVaultsAsync();
+        await SelectVaultAsync(id, false);
+        status = ("Personal vault created.", false);
+    }, () => !string.IsNullOrWhiteSpace(newVaultName));
 
-    private async Task AddItemAsync()
+    private Task CreateTeamVaultAsync() => RunAsync(async () =>
     {
-        if (busy || actorUserId is null || selectedVaultId is null || string.IsNullOrWhiteSpace(itemName)) return;
-        await RunAsync(async () =>
-        {
-            Guid? folderId = Guid.TryParse(itemFolderId, out var f) ? f : null;
-            await VaultService.AddItemAsync(new AddVaultItemCommand(actorUserId.Value, selectedVaultId.Value, folderId, itemType, itemName, itemContent));
-            itemName = "";
-            itemContent = "";
-            await ReloadVaultContentsAsync();
-            status = ("Item added.", false);
-        });
-    }
+        var id = await VaultService.CreateTenantVaultAsync(new CreateTenantVaultCommand(actorUserId!.Value, tenantId, newTeamVaultName));
+        newTeamVaultName = "";
+        await ReloadVaultsAsync();
+        await SelectVaultAsync(id, true);
+        status = ("Team vault created.", false);
+    }, () => !string.IsNullOrWhiteSpace(newTeamVaultName));
 
-    private async Task RevealAsync(Guid itemId)
+    private Task ShareAsync() => RunAsync(async () =>
     {
-        if (busy || actorUserId is null) return;
-        await RunAsync(async () =>
-        {
-            revealedValue = await VaultService.ReadItemAsync(actorUserId.Value, itemId) ?? "(empty)";
-            revealedItemId = itemId;
-        });
-    }
+        if (!Guid.TryParse(shareGranteeId, out var grantee)) return;
+        await VaultService.ShareWithUserAsync(new ShareVaultWithUserCommand(actorUserId!.Value, tenantId, selectedVaultId!.Value, grantee, sharePermission));
+        shareGranteeId = "";
+        await ReloadSharesAsync();
+        status = ("Vault shared.", false);
+    }, () => selectedVaultId is not null && !string.IsNullOrEmpty(shareGranteeId));
+
+    private Task AddFolderAsync() => RunAsync(async () =>
+    {
+        await VaultService.AddFolderAsync(new AddVaultFolderCommand(actorUserId!.Value, selectedVaultId!.Value, newFolderName));
+        newFolderName = "";
+        await ReloadVaultContentsAsync();
+        status = ("Folder added.", false);
+    }, () => selectedVaultId is not null && !string.IsNullOrWhiteSpace(newFolderName));
+
+    private Task AddItemAsync() => RunAsync(async () =>
+    {
+        Guid? folderId = Guid.TryParse(itemFolderId, out var f) ? f : null;
+        await VaultService.AddItemAsync(new AddVaultItemCommand(actorUserId!.Value, selectedVaultId!.Value, folderId, itemType, itemName, itemContent));
+        itemName = "";
+        itemContent = "";
+        await ReloadVaultContentsAsync();
+        status = ("Item added.", false);
+    }, () => selectedVaultId is not null && !string.IsNullOrWhiteSpace(itemName));
+
+    private Task RevealAsync(Guid itemId) => RunAsync(async () =>
+    {
+        revealedValue = await VaultService.ReadItemAsync(actorUserId!.Value, itemId) ?? "(empty)";
+        revealedItemId = itemId;
+    }, () => true);
 
     private void HideRevealed()
     {
@@ -249,24 +316,16 @@
         revealedValue = null;
     }
 
-    private async Task RunAsync(Func<Task> action)
+    private async Task RunAsync(Func<Task> action, Func<bool> precondition)
     {
+        if (busy || actorUserId is null || !precondition()) return;
         busy = true;
         status = null;
-        try
-        {
-            await action();
-        }
-        catch (Exception ex)
-        {
-            status = ("Error: " + ex.Message, true);
-        }
-        finally
-        {
-            busy = false;
-        }
+        try { await action(); }
+        catch (Exception ex) { status = ("Error: " + ex.Message, true); }
+        finally { busy = false; }
     }
 
-    private string FolderName(Guid? folderId) =>
-        folderId is null ? "—" : folders.FirstOrDefault(f => f.Id == folderId)?.Name ?? "—";
+    private string SelectClass(Guid vaultId) => vaultId == selectedVaultId ? "" : "btn-ghost";
+    private string FolderName(Guid? folderId) => folderId is null ? "—" : folders.FirstOrDefault(f => f.Id == folderId)?.Name ?? "—";
 }

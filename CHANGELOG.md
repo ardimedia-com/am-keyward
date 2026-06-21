@@ -7,6 +7,14 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 6b (part 3) — tenant ("team") vaults + sharing: create a tenant-owned vault (the creator gets a
+  Manage grant) and share it with other users at Read / Write / Manage via `AccessGrant`s; tenant vaults
+  are reachable only through a grant. The central `IAuthorizationService` now evaluates vault grants, with
+  tenant isolation (query filter + RLS) as the outer boundary — cross-tenant grants are forbidden. New
+  `AccessGrants` table (under row-level security) + migration. The `/vaults` page gained a Team-vaults
+  section (create, list, share with a user, view current shares). Group-based grants are deferred. Covered
+  by a sharing test (creator Manage; grantee gets exactly the granted permission; non-grantee denied;
+  another tenant cannot see the vault).
 - Slice 6b (part 2) — My Vault UI + shell theme: a `/vaults` page to create personal vaults, add folders
   and typed items, and reveal an item's decrypted value on demand. The whole shell was restyled into a
   cohesive theme (dark sidebar, light content, cards/tables/badges/forms) with hand-written CSS variables

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Core.Domain.Access;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.Human;
 using Am.Keyward.Core.Domain.Identity;
@@ -38,6 +39,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<VaultItem> VaultItems => Set<VaultItem>();
     public DbSet<VaultItemVersion> VaultItemVersions => Set<VaultItemVersion>();
+    public DbSet<AccessGrant> AccessGrants => Set<AccessGrant>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -205,6 +207,25 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasQueryFilter(x =>
                 (x.TenantId != null && x.TenantId == _tenant.TenantId)
                 || (x.TenantId == null && x.OwnerUserId == _user.UserId));
+        });
+
+        // Access grants share a tenant-owned resource (here: a vault) with a user or group. Tenant-scoped
+        // (cross-tenant grants are forbidden in v0.1). The grant is the authorization layer on top of the
+        // tenant isolation boundary; access decisions go through IAuthorizationService.
+        model.Entity<AccessGrant>(e =>
+        {
+            e.ToTable("AccessGrants");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.PrincipalType).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Permission).HasConversion<string>().HasMaxLength(16);
+            e.OwnsOne(x => x.Scope, s =>
+            {
+                s.Property(p => p.Kind).HasConversion<string>().HasMaxLength(16).HasColumnName("ScopeKind");
+                s.Property(p => p.TargetId).HasColumnName("ScopeTargetId");
+            });
+            e.HasIndex(x => x.TenantId);
+            e.HasIndex(x => new { x.PrincipalType, x.PrincipalId });
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<AuditEntry>(e =>

@@ -5,6 +5,18 @@ namespace Am.Keyward.Core.Application;
 /// <summary>Creates a personal (tenant-less, user-owned) vault.</summary>
 public sealed record CreatePersonalVaultCommand(Guid UserId, string Name);
 
+/// <summary>Creates a tenant-owned ("team") vault; the creator is granted Manage on it.</summary>
+public sealed record CreateTenantVaultCommand(Guid UserId, Guid TenantId, string Name);
+
+/// <summary>Shares a tenant vault with another user at a permission level (actor must have Manage).</summary>
+public sealed record ShareVaultWithUserCommand(Guid ActorUserId, Guid TenantId, Guid VaultId, Guid GranteeUserId, Permission Permission);
+
+/// <summary>A user who can be granted access to a tenant vault.</summary>
+public sealed record ShareCandidate(Guid UserId, string DisplayName);
+
+/// <summary>An existing share on a vault.</summary>
+public sealed record VaultShare(Guid GranteeUserId, string DisplayName, Permission Permission);
+
 /// <summary>Adds a folder to a vault the user owns.</summary>
 public sealed record AddVaultFolderCommand(Guid UserId, Guid VaultId, string Name);
 
@@ -25,6 +37,18 @@ public sealed record VaultFolderSummary(Guid Id, string Name, DateTimeOffset Cre
 public interface IVaultService
 {
     Task<Guid> CreatePersonalVaultAsync(CreatePersonalVaultCommand command, CancellationToken ct = default);
+
+    Task<Guid> CreateTenantVaultAsync(CreateTenantVaultCommand command, CancellationToken ct = default);
+
+    /// <summary>Tenant ("team") vaults the user has been granted access to (includes ones they created).</summary>
+    Task<IReadOnlyList<VaultSummary>> ListSharedVaultsAsync(Guid userId, Guid tenantId, CancellationToken ct = default);
+
+    Task ShareWithUserAsync(ShareVaultWithUserCommand command, CancellationToken ct = default);
+
+    /// <summary>Users in the tenant the actor can share a vault with (excludes the actor).</summary>
+    Task<IReadOnlyList<ShareCandidate>> ListShareCandidatesAsync(Guid actorUserId, Guid tenantId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<VaultShare>> ListVaultSharesAsync(Guid actorUserId, Guid vaultId, CancellationToken ct = default);
 
     Task<Guid> AddFolderAsync(AddVaultFolderCommand command, CancellationToken ct = default);
 
