@@ -31,6 +31,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SoftwareSecret> SoftwareSecrets => Set<SoftwareSecret>();
     public DbSet<SecretValue> SecretValues => Set<SecretValue>();
     public DbSet<SecretVersion> SecretVersions => Set<SecretVersion>();
+    public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder model)
@@ -122,6 +123,21 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => new { x.SecretValueId, x.VersionNumber }).IsUnique();
             e.HasIndex(x => x.TenantId);
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
+        model.Entity<SoftwareClientToken>(e =>
+        {
+            e.ToTable("SoftwareClientTokens");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
+            e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => x.TokenPrefix).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.ProjectId });
+            // Installation-global authentication table: deliberately NO tenant query filter and NOT in the
+            // row-level-security policy — it must be looked up by prefix BEFORE the tenant is known. The
+            // record carries TenantId only to scope the request once the token is authenticated. It holds
+            // no secret material (only a hash + a non-secret prefix).
         });
 
         model.Entity<AuditEntry>(e =>

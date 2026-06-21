@@ -1,5 +1,6 @@
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
+using Am.Keyward.Infrastructure.Auth;
 using Am.Keyward.Infrastructure.Crypto;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Infrastructure.Tenancy;
@@ -36,7 +37,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
         services.AddScoped<IAuditSink, DbAuditSink>();
-        services.AddScoped<ISoftwareSecretService, SoftwareSecretService>();
+
+        // The software-secrets service serves both the management path (by environment name) and the
+        // software-client read path (by environment id); expose the one scoped instance via both ports.
+        services.AddScoped<SoftwareSecretService>();
+        services.AddScoped<ISoftwareSecretService>(sp => sp.GetRequiredService<SoftwareSecretService>());
+        services.AddScoped<ISoftwareSecretReader>(sp => sp.GetRequiredService<SoftwareSecretService>());
+
+        // Software-client tokens: management + authentication, and a best-effort expiry watcher.
+        services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();
+        services.AddScoped<ISoftwareClientAuthenticator, SoftwareClientAuthenticator>();
+        services.AddHostedService<SoftwareClientTokenExpiryService>();
 
         return services;
     }

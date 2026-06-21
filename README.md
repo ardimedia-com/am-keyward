@@ -37,9 +37,11 @@ via Integrated Security.
 
 ## Documentation
 
-End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship. Operators should
-start with [database logins](docs/database-logins.md) (the least-privilege runtime login vs. the
-migration login that underpins tenant isolation).
+End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship:
+
+- [Software-client API](docs/software-client-api.md) — how a deployed app fetches its secrets with a token.
+- [Database logins](docs/database-logins.md) — the least-privilege runtime login vs. the migration login
+  that underpins tenant isolation.
 
 ## License
 

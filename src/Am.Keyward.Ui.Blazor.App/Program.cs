@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using Am.Keyward.Api;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Infrastructure;
@@ -5,6 +6,7 @@ using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +23,29 @@ var connectionString = builder.Configuration.GetConnectionString("Keyward")
     ?? "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
 var (kek, kekId) = DevKek.LoadOrCreate(builder.Environment.ContentRootPath);
 builder.Services.AddKeyward(connectionString, kek, kekId);
+builder.Services.AddKeywardSoftwareClientApi();
+
+// Per-token rate limiting for the software-client read API (registered here because the rate-limiter
+// service extension lives in the host's ASP.NET Core stack).
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy(KeywardClientApi.RateLimiterPolicy, httpContext =>
+    {
+        var partitionKey = httpContext.Request.Headers.Authorization.ToString();
+        if (string.IsNullOrEmpty(partitionKey))
+        {
+            partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
+        }
+
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
+    });
+});
 
 var app = builder.Build();
 
@@ -48,10 +73,15 @@ app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages:
 app.UseHttpsRedirection();
 app.UseAntiforgery();
 
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseRateLimiter();
+
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapKeywardApi();
+app.MapKeywardApi();          // management/admin API (route-scoped; unauthenticated for now)
+app.MapKeywardClientApi();    // software-client read API (token-authenticated + rate limited)
 
 app.Run();

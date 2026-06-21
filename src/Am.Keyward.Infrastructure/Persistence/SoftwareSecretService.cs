@@ -21,7 +21,7 @@ public sealed class SoftwareSecretService(
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
-    IAuthorizationService authorization) : ISoftwareSecretService
+    IAuthorizationService authorization) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
 
@@ -94,15 +94,88 @@ public sealed class SoftwareSecretService(
             return null;
         }
 
-        var version = value.Versions.Single(v => v.Id == value.CurrentVersionId);
-        var aad = Aad.ForSoftwareSecretVersion(query.TenantId, query.ProjectId, environment.Id, secret.Id, version.Id, AlgVersion);
-        var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
+        var plaintext = await DecryptCurrentAsync(query.TenantId, query.ProjectId, environment.Id, secret.Id, value, ct)
+            .ConfigureAwait(false);
 
         await audit.AppendAsync(
             new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
+        return plaintext;
+    }
+
+    // --- ISoftwareSecretReader: the software-client read path (environment fixed by the token) ---
+
+    public async Task<string?> ReadAsync(
+        Guid tenantId, Guid projectId, Guid environmentId, string key, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
+
+        var secretKey = SecretKey.Create(key);
+        var secret = await db.SoftwareSecrets
+            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
+            .ConfigureAwait(false);
+
+        var value = secret?.Values.FirstOrDefault(v => v.EnvironmentId == environmentId);
+        if (secret is null || value?.CurrentVersionId is null)
+        {
+            return null;
+        }
+
+        var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
+            .ConfigureAwait(false);
+
+        await audit.AppendAsync(
+            new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, actorUserId), ct)
+            .ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        return plaintext;
+    }
+
+    public async Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(
+        Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
+
+        var secrets = await db.SoftwareSecrets
+            .Where(s => s.ProjectId == projectId)
+            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var result = new List<KeyValuePair<string, string>>();
+        foreach (var secret in secrets)
+        {
+            var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environmentId);
+            if (value?.CurrentVersionId is null)
+            {
+                continue;
+            }
+
+            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
+                .ConfigureAwait(false);
+            result.Add(new KeyValuePair<string, string>(secret.Key.Value, plaintext));
+        }
+
+        await audit.AppendAsync(
+            new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", null, actorUserId), ct)
+            .ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        return result;
+    }
+
+    private async Task<string> DecryptCurrentAsync(
+        Guid tenantId, Guid projectId, Guid environmentId, Guid secretId, SecretValue value, CancellationToken ct)
+    {
+        var version = value.Versions.Single(v => v.Id == value.CurrentVersionId);
+        var aad = Aad.ForSoftwareSecretVersion(tenantId, projectId, environmentId, secretId, version.Id, AlgVersion);
+        var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
         return Encoding.UTF8.GetString(plaintext);
     }
 

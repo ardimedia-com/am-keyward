@@ -7,6 +7,16 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 5 — software-client API authentication: per-(project, environment) Bearer tokens
+  (`SoftwareClientToken`) so a deployed app reads only its own environment's secrets and a leaked token
+  cannot reach another environment. Only a SHA-256 hash + a non-secret lookup prefix are stored; the
+  plaintext is returned once. Tokens expire, rotate and revoke; a best-effort background service surfaces
+  ones nearing expiry. A new `Keyward.SoftwareClient` authentication scheme resolves the (tenant, project,
+  environment) scope from the token record (never the request) and sets the tenant scope
+  server-authoritatively, so reads run under the query filter + row-level security. New token-authenticated
+  client read API (`GET /keyward/api/v1/secrets` for the IConfiguration bulk load and `/secrets/{**key}`),
+  per-token rate limiting, and management endpoints to issue/list/rotate/revoke tokens. The token table is
+  installation-global (looked up by prefix before the tenant is known) and holds no secret material.
 - Slice 4 — tenant isolation (defense in depth): every tenant-owned table carries a denormalized
   `TenantId`; an EF Core global query filter scopes all reads to the ambient `ICurrentTenant`; SQL Server
   **row-level security** (a schemabound predicate over `SESSION_CONTEXT('TenantId')`, applied by a
