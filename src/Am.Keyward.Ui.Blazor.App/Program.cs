@@ -1,4 +1,5 @@
 using Am.Keyward.Api;
+using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Ui.Blazor.App;
@@ -28,6 +29,11 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
     await db.Database.MigrateAsync();
+
+    // Seed inside the demo tenant scope: row-level security must see the demo tenant for the existence
+    // check (otherwise it re-seeds every start) and must admit the seed rows (the BLOCK predicates
+    // require SESSION_CONTEXT('TenantId') to equal the rows' tenant).
+    scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(Demo.TenantId);
     await Demo.EnsureSeededAsync(db);
 }
 
