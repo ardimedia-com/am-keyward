@@ -17,3 +17,8 @@ All notable changes to this project are documented here, following
   versions; vaults → folders → items → versions; access grants; audit entries), value objects
   (`EncryptedValue`, `SecretKey`, `EnvironmentName`, `GrantScope`) and ports. The domain is pure (no
   EF/ASP.NET/crypto references) and guarded by a NetArchTest architecture test.
+- Slice 2 (crypto) — explicit envelope encryption (`Am.Keyward.Infrastructure`): AES-256-GCM per value
+  with a fresh 256-bit data key, full-slot AAD binding (`Aad`), DEK wrapping via `IKekProvider`
+  (`StaticKekProvider`, AES-256-GCM wrap — BCL primitive in lieu of RFC-3394 AES-KW; recorded in
+  `EncryptedValue.WrapAlg`), DEK zeroed after use. On-disk format frozen as `FormatVersion = 1`.
+  Verified by round-trip, tamper-detection, slot-substitution and wrong-KEK tests.
