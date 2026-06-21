@@ -13,6 +13,9 @@ REM        appsettings*.json or IOptions values, stop (Ctrl+C) and start again.
 REM
 REM  PREREQUISITES (handled automatically unless noted):
 REM    - .NET 10 SDK.
+REM    - A trusted ASP.NET Core HTTPS dev certificate. If the browser shows a
+REM      certificate warning on first start, run once:
+REM          dotnet dev-certs https --trust
 REM    - A local SQL Server reachable on "localhost" via Integrated Security.
 REM      The database "amkeyward" is created + migrated on startup and a demo
 REM      tenant/project (Dev/Test/Preview/Production) is seeded automatically.
