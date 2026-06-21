@@ -34,6 +34,19 @@ public class SoftwareClientTokenGeneratorTests
     }
 
     [TestMethod, TestCategory("Auth")]
+    public void Generated_tokens_always_parse_across_many_samples()
+    {
+        // Guards against a separator clashing with the segment alphabet (Base64Url's '_' broke this).
+        for (var i = 0; i < 250; i++)
+        {
+            var generated = SoftwareClientTokenGenerator.Generate();
+            Assert.IsTrue(SoftwareClientTokenGenerator.TryParsePrefix(generated.Token, out var prefix),
+                $"Token did not parse: {generated.Token}");
+            Assert.AreEqual(generated.Prefix, prefix);
+        }
+    }
+
+    [TestMethod, TestCategory("Auth")]
     public void TryParsePrefix_rejects_non_keyward_tokens()
     {
         Assert.IsFalse(SoftwareClientTokenGenerator.TryParsePrefix("not-a-token", out _));

@@ -5,16 +5,20 @@ using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
+using Am.Keyward.Ui.Blazor.App.Identity;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+
+const string managementPolicy = "Keyward.Management";
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Demo-only: every circuit operates inside the seeded demo tenant until sign-in exists.
+// Demo-only: every circuit operates inside the seeded demo tenant (sign-in identifies the user, not the tenant yet).
 builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
 // AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside
@@ -23,10 +27,30 @@ var connectionString = builder.Configuration.GetConnectionString("Keyward")
     ?? "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
 var (kek, kekId) = DevKek.LoadOrCreate(builder.Environment.ContentRootPath);
 builder.Services.AddKeyward(connectionString, kek, kekId);
-builder.Services.AddKeywardSoftwareClientApi();
 
-// Per-token rate limiting for the software-client read API (registered here because the rate-limiter
-// service extension lives in the host's ASP.NET Core stack).
+// --- ASP.NET Core Identity (shell-owned; the libraries stay identity-agnostic) ---
+builder.Services.AddDbContext<KeywardIdentityDbContext>(options =>
+    options.UseSqlServer(connectionString, sql =>
+        sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardIdentityDbContext.Schema)));
+
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<IdentityUser>, KeywardUserClaimsPrincipalFactory>();
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+builder.Services.AddIdentityCore<IdentityUser>(options =>
+    {
+        options.User.RequireUniqueEmail = true;
+        options.SignIn.RequireConfirmedAccount = false;
+    })
+    .AddEntityFrameworkStores<KeywardIdentityDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
+
+// Resolve the current Keyward user from the authenticated principal (overrides the anonymous stub).
+builder.Services.AddScoped<ICurrentUser, HttpContextCurrentUser>();
+
+// Software-client token authentication + per-token rate limiting (read API).
+builder.Services.AddKeywardSoftwareClientApi();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -47,13 +71,22 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+// The management API requires a signed-in admin (cookie scheme).
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(managementPolicy, policy =>
+    {
+        policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
+        policy.RequireAuthenticatedUser();
+    });
+
 var app = builder.Build();
 
-// Apply migrations and seed the demo tenant/project (dev convenience).
+// Apply migrations (both contexts) and seed the demo tenant/project (dev convenience).
 await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
     await db.Database.MigrateAsync();
+    await scope.ServiceProvider.GetRequiredService<KeywardIdentityDbContext>().Database.MigrateAsync();
 
     // Seed inside the demo tenant scope: row-level security must see the demo tenant for the existence
     // check (otherwise it re-seeds every start) and must admit the seed rows (the BLOCK predicates
@@ -81,7 +114,14 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapKeywardApi();          // management/admin API (route-scoped; unauthenticated for now)
-app.MapKeywardClientApi();    // software-client read API (token-authenticated + rate limited)
+app.MapKeywardApi(authorizationPolicy: managementPolicy);  // management API: signed-in admin (cookie)
+app.MapKeywardClientApi();                                  // software-client read API: token + rate limited
+
+// Sign out (POST so it cannot be triggered cross-site via a simple link).
+app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager) =>
+{
+    await signInManager.SignOutAsync();
+    return Results.LocalRedirect("/");
+}).DisableAntiforgery();
 
 app.Run();

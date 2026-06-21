@@ -31,36 +31,26 @@ REM    talk to the local "amkeyward" SQL Server; they self-skip (Inconclusive)
 REM    when no DB is reachable, so they stay green on a machine without SQL.
 REM        dotnet test Am.Keyward.slnx
 REM
-REM    Manual UI smoke test:
-REM        Open https://localhost:7212/secrets and use the demo page to store
-REM        and read a value (the demo tenant/project below are pre-seeded).
+REM    First run: open https://localhost:7212 -> you are redirected to sign in.
+REM    Register the first account; it becomes the system administrator.
 REM
-REM    Manual API smoke test (PowerShell). Two surfaces:
-REM      - Management API (route-scoped): create secrets + issue tokens. Still
-REM        UNAUTHENTICATED pending the human admin sign-in slice.
-REM      - Software-client API (token-authenticated, rate limited): read secrets.
-REM      Demo tenant  = 11111111-1111-1111-1111-111111111111
-REM      Demo project = 22222222-2222-2222-2222-222222222222
-REM    A trusted dev cert (see above) lets Invoke-RestMethod use https directly;
-REM    otherwise add -SkipCertificateCheck (PowerShell 7+).
+REM    Manual UI smoke test (signed in):
+REM      - /secrets : store and read a value (demo project, per environment).
+REM      - /tokens  : issue / rotate / revoke software-client tokens (shown once).
 REM
-REM      $base   = "https://localhost:7212/keyward/api/v1"
-REM      $proj   = "$base/tenants/11111111-1111-1111-1111-111111111111" +
-REM                "/projects/22222222-2222-2222-2222-222222222222"
+REM    Manual software-client API test (PowerShell). The client read API is
+REM    token-authenticated + rate limited; the scope (tenant/project/environment)
+REM    comes from the token. Issue a token on the /tokens page, then:
 REM
-REM      # 1) Store a secret via the management API (PUT -> 204):
-REM      Invoke-RestMethod -Method Put -ContentType "application/json" `
-REM          -Uri "$proj/environments/Production/secrets/ConnectionStrings:Main" `
-REM          -Body '{ "value": "Server=db;User Id=app;Password=hunter2" }'
+REM      $base = "https://localhost:7212/keyward/api/v1"
+REM      $h = @{ Authorization = "Bearer <paste-token-from-/tokens>" }
+REM      Invoke-RestMethod -Uri "$base/secrets" -Headers $h                        # all keys
+REM      Invoke-RestMethod -Uri "$base/secrets/ConnectionStrings:Main" -Headers $h # one key
 REM
-REM      # 2) Issue a software-client token for Production (returns the token ONCE):
-REM      $issued = Invoke-RestMethod -Method Post -ContentType "application/json" `
-REM          -Uri "$proj/environments/Production/tokens" -Body '{ "name": "demo" }'
-REM
-REM      # 3) Read as the software client (Bearer token; scope comes from the token):
-REM      $headers = @{ Authorization = "Bearer $($issued.token)" }
-REM      Invoke-RestMethod -Uri "$base/secrets" -Headers $headers                       # all keys
-REM      Invoke-RestMethod -Uri "$base/secrets/ConnectionStrings:Main" -Headers $headers # one key
+REM    (A trusted dev cert lets Invoke-RestMethod use https directly; otherwise add
+REM    -SkipCertificateCheck on PowerShell 7+.) The management API
+REM    (/keyward/api/v1/tenants/...) now requires a signed-in admin (cookie), so use
+REM    the UI above to create secrets and issue tokens.
 REM
 REM    Tenant isolation is active (EF query filter + SQL Server row-level security).
 REM    Local dev uses Integrated Security and needs no extra logins. To also verify
@@ -71,12 +61,9 @@ REM        setx KEYWARD_APP_TEST_CONNECTION "Server=localhost;Database=amkeyward
 REM ============================================================================
 REM
 REM  STILL TODO (open work -- this is a v0.1 walking skeleton, not finished):
-REM    WARNING: the MANAGEMENT API (/keyward/api/v1/tenants/...) is still
-REM             UNAUTHENTICATED pending the human admin sign-in slice -- do NOT
-REM             expose this build off localhost. (The software-client read API is
-REM             token-authenticated and rate limited.)
-REM    [Slice 6] Human admin sign-in + vaults UI (My Vault / Shared) + folders +
-REM              sharing; protects the management API + a token-management page.
+REM    [Slice 6] Human vaults UI (My Vault / Shared) + folders + server-side
+REM              sharing (grants). [Admin sign-in, management-API protection and
+REM              the token-management page have landed.]
 REM    [Slice 7] Ops hardening: audit hash-chain (DB SEQUENCE/single-writer/
 REM              exported checkpoint), DSGVO crypto-shredding, backup/restore
 REM              consistency, DB-swap safety-net migrator, monitoring, break-glass.

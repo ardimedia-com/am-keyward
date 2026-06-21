@@ -1,0 +1,58 @@
+@page "/account/login"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Nav
+
+<PageTitle>Sign in</PageTitle>
+
+<h1>Sign in</h1>
+
+@if (errorMessage is not null)
+{
+    <p style="color:#b00020;"><strong>@errorMessage</strong></p>
+}
+
+<EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+    <DataAnnotationsValidator />
+    <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
+        <label>Email
+            <InputText @bind-Value="Input.Email" autocomplete="username" />
+        </label>
+        <label>Password
+            <InputText type="password" @bind-Value="Input.Password" autocomplete="current-password" />
+        </label>
+        <ValidationSummary />
+        <button type="submit">Sign in</button>
+    </div>
+</EditForm>
+
+<p>No account yet? <a href="/account/register">Register</a> (the first account becomes the system admin).</p>
+
+@code {
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    private async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
+            return;
+        }
+
+        errorMessage = "Invalid email or password.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required, DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+    }
+}

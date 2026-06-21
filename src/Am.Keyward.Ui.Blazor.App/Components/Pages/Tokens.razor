@@ -1,0 +1,195 @@
+@page "/tokens"
+@rendermode InteractiveServer
+@attribute [Authorize]
+@using Am.Keyward.Core.Application
+@using Am.Keyward.Ui.Blazor.App
+@using Am.Keyward.Ui.Blazor.App.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ISoftwareClientTokenService TokenService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Software-client tokens</PageTitle>
+
+<h1>Software-client tokens (demo)</h1>
+<p>Issue, rotate and revoke tokens for the demo project. The token value is shown once, at issuance.</p>
+
+<div style="display:flex; flex-direction:column; gap:.5rem; max-width:40rem;">
+    <label>Environment
+        <select @bind="environment">
+            <option>Development</option>
+            <option>Test</option>
+            <option>Preview</option>
+            <option>Production</option>
+        </select>
+    </label>
+    <label>Name <input @bind="name" placeholder="orders-service prod" /></label>
+    <label>Expires in (days, optional) <input type="number" min="1" @bind="expiresInDays" /></label>
+    <div>
+        <button @onclick="IssueAsync" disabled="@(busy || string.IsNullOrWhiteSpace(name))">Issue token</button>
+    </div>
+</div>
+
+@if (status is not null)
+{
+    <p><strong>@status</strong></p>
+}
+@if (issuedToken is not null)
+{
+    <p style="background:#eef; padding:.5rem; border:1px solid #99c;">
+        New token (copy it now — it will not be shown again):<br />
+        <code>@issuedToken</code>
+    </p>
+}
+
+<h2>Existing tokens</h2>
+@if (list is null)
+{
+    <p>Loading…</p>
+}
+else if (list.Count == 0)
+{
+    <p>No tokens yet.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr><th>Name</th><th>Prefix</th><th>Created</th><th>Expires</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var token in list)
+            {
+                <tr>
+                    <td>@token.Name</td>
+                    <td><code>@token.TokenPrefix</code></td>
+                    <td>@token.CreatedAt.UtcDateTime.ToString("u")</td>
+                    <td>@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</td>
+                    <td>@StatusOf(token)</td>
+                    <td>
+                        @if (token.RevokedAt is null)
+                        {
+                            <button @onclick="() => RotateAsync(token.Id)" disabled="@busy">Rotate</button>
+                            <button @onclick="() => RevokeAsync(token.Id)" disabled="@busy">Revoke</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private string environment = "Production";
+    private string name = "";
+    private int? expiresInDays;
+    private string? status;
+    private string? issuedToken;
+    private bool busy;
+    private Guid? actorUserId;
+    private IReadOnlyList<SoftwareClientTokenInfo>? list;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        if (Guid.TryParse(authState.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var id))
+        {
+            actorUserId = id;
+        }
+
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync() => list = await TokenService.ListAsync(Demo.TenantId, Demo.ProjectId);
+
+    private async Task IssueAsync()
+    {
+        if (busy || string.IsNullOrWhiteSpace(name))
+        {
+            return;
+        }
+
+        busy = true;
+        status = null;
+        issuedToken = null;
+        try
+        {
+            var expiresAt = expiresInDays is > 0 ? DateTimeOffset.UtcNow.AddDays(expiresInDays.Value) : (DateTimeOffset?)null;
+            var issued = await TokenService.IssueAsync(
+                new IssueSoftwareClientTokenCommand(Demo.TenantId, Demo.ProjectId, environment, name, expiresAt, actorUserId));
+            issuedToken = issued.Token;
+            status = $"Issued token '{name}' for {environment}.";
+            name = "";
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            status = "Error: " + ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RotateAsync(Guid tokenId)
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        busy = true;
+        status = null;
+        issuedToken = null;
+        try
+        {
+            var rotated = await TokenService.RotateAsync(Demo.TenantId, tokenId, null, actorUserId);
+            issuedToken = rotated.Token;
+            status = "Rotated — the previous token has stopped working.";
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            status = "Error: " + ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task RevokeAsync(Guid tokenId)
+    {
+        if (busy)
+        {
+            return;
+        }
+
+        busy = true;
+        status = null;
+        try
+        {
+            await TokenService.RevokeAsync(Demo.TenantId, tokenId, actorUserId);
+            status = "Token revoked.";
+            await RefreshAsync();
+        }
+        catch (Exception ex)
+        {
+            status = "Error: " + ex.Message;
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private static string StatusOf(SoftwareClientTokenInfo token)
+    {
+        if (token.RevokedAt is not null)
+        {
+            return "Revoked";
+        }
+
+        return token.IsActive ? "Active" : "Expired";
+    }
+}

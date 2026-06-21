@@ -1,0 +1,70 @@
+@page "/account/register"
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<IdentityUser> UserManager
+@inject SignInManager<IdentityUser> SignInManager
+@inject NavigationManager Nav
+
+<PageTitle>Register</PageTitle>
+
+<h1>Register</h1>
+<p>The first account created becomes the system administrator.</p>
+
+@if (errorMessage is not null)
+{
+    <p style="color:#b00020;"><strong>@errorMessage</strong></p>
+}
+
+<EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+    <DataAnnotationsValidator />
+    <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
+        <label>Email
+            <InputText @bind-Value="Input.Email" autocomplete="username" />
+        </label>
+        <label>Password
+            <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
+        </label>
+        <label>Confirm password
+            <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
+        </label>
+        <ValidationSummary />
+        <button type="submit">Register</button>
+    </div>
+</EditForm>
+
+<p>Already have an account? <a href="/account/login">Sign in</a>.</p>
+
+@code {
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? errorMessage;
+
+    private async Task RegisterUser()
+    {
+        var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
+        var result = await UserManager.CreateAsync(user, Input.Password);
+        if (!result.Succeeded)
+        {
+            errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        // SignInAsync builds the principal via the claims factory, which creates the domain AppUser
+        // (first account => system admin) and stamps the keyward:user_id claim into the cookie.
+        await SignInManager.SignInAsync(user, isPersistent: true);
+        Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
+    }
+
+    private sealed class InputModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 6)]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password), Compare(nameof(Password), ErrorMessage = "The passwords do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

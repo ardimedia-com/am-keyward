@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 6a — admin sign-in and protected management API: the standalone reference shell now uses
+  ASP.NET Core Identity (cookie auth) for human sign-in, kept in the shell so the libraries stay
+  identity-agnostic (own `amkeyward_identity` schema and migration). The first registered account becomes
+  the system administrator; sign-in maps to a domain `AppUser` just-in-time and stamps a `keyward:user_id`
+  claim. The management API (create secrets, issue/rotate/revoke tokens) now requires a signed-in admin,
+  and the Blazor pages are behind authorization with a redirect to sign-in. Added a `/tokens` management
+  page (issue/rotate/revoke, token shown once) and sign-in/registration/sign-out.
 - Slice 5 — software-client API authentication: per-(project, environment) Bearer tokens
   (`SoftwareClientToken`) so a deployed app reads only its own environment's secrets and a leaked token
   cannot reach another environment. Only a SHA-256 hash + a non-secret lookup prefix are stored; the
@@ -57,6 +64,10 @@ All notable changes to this project are documented here, following
 
 ### Fixed
 
+- Software-client tokens encoded their prefix/secret as Base64Url, whose alphabet includes the `_`
+  separator; a token whose random secret contained `_` failed to parse and was rejected at authentication
+  (intermittent). Token segments are now lowercase hex, so parsing is deterministic. Added a many-sample
+  parse regression test.
 - Storing a second per-environment value for an existing software secret failed with a 0-row
   `DbUpdateConcurrencyException`: because entity keys are app-assigned GUIDs, EF Core's graph state
   heuristic mis-marked the brand-new child as `Modified` (a 0-row `UPDATE`) instead of `Added`.

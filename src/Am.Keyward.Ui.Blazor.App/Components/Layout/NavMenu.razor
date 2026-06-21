@@ -19,6 +19,34 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Software credentials
             </NavLink>
         </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="tokens">
+                <span class="bi bi-key-nav-menu" aria-hidden="true"></span> Client tokens
+            </NavLink>
+        </div>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <span class="nav-link">Signed in as @context.User.Identity?.Name</span>
+                </div>
+                <div class="nav-item px-3">
+                    <form action="account/logout" method="post">
+                        <button type="submit" class="nav-link btn btn-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Sign out
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="account/login">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Sign in
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 

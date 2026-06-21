@@ -12,13 +12,19 @@ public static class KeywardApi
     /// <summary>
     /// Maps the management/admin API under <paramref name="prefix"/> (versioned): create/read secrets and
     /// manage software-client tokens. The tenant scope is taken server-authoritatively from the route's
-    /// {tenantId}. These endpoints are still UNAUTHENTICATED pending the human admin sign-in slice — do not
-    /// expose this build publicly. (The software CLIENT read path is token-authenticated; see
+    /// {tenantId}. Pass <paramref name="authorizationPolicy"/> to require a signed-in admin (the reference
+    /// shell does). (The software CLIENT read path is token-authenticated; see
     /// <see cref="KeywardClientApi.MapKeywardClientApi"/>.)
     /// </summary>
-    public static IEndpointRouteBuilder MapKeywardApi(this IEndpointRouteBuilder endpoints, string prefix = "/keyward/api/v1")
+    public static IEndpointRouteBuilder MapKeywardApi(
+        this IEndpointRouteBuilder endpoints, string prefix = "/keyward/api/v1", string? authorizationPolicy = null)
     {
         var group = endpoints.MapGroup(prefix).WithTags("Keyward").DisableAntiforgery();
+
+        if (authorizationPolicy is not null)
+        {
+            group.RequireAuthorization(authorizationPolicy);
+        }
 
         // Establish the server-authoritative tenant scope from the route's {tenantId} (the first route
         // argument on every endpoint here), so the query filter and row-level security apply. Interim:
