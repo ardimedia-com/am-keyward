@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AM KEYWARD">
+  <rect width="64" height="64" rx="14" fill="#4f46e5"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M32 12a12 12 0 110 24 12 12 0 010-24zm0 6a6 6 0 100 12 6 6 0 000-12z"/>
+  <g fill="#ffffff">
+    <rect x="29" y="33" width="6" height="19" rx="2"/>
+    <rect x="35" y="38" width="8" height="4.5" rx="1.5"/>
+    <rect x="35" y="46" width="5.5" height="4.5" rx="1.5"/>
+  </g>
+</svg>

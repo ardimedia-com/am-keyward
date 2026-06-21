@@ -4,11 +4,12 @@
 @inject UserManager<IdentityUser> UserManager
 @inject SignInManager<IdentityUser> SignInManager
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> Loc
 
 <PageTitle>AM KEYWARD</PageTitle>
 
-<h1>Register</h1>
-<p>The first account created becomes the system administrator.</p>
+<h1>@Loc["Register.Title"]</h1>
+<p>@Loc["Register.FirstAdmin"]</p>
 
 @if (errorMessage is not null)
 {
@@ -18,21 +19,21 @@
 <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
     <DataAnnotationsValidator />
     <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
-        <label>Email
+        <label>@Loc["Register.Email"]
             <InputText @bind-Value="Input.Email" autocomplete="username" />
         </label>
-        <label>Password
+        <label>@Loc["Register.Password"]
             <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
         </label>
-        <label>Confirm password
+        <label>@Loc["Register.Confirm"]
             <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
         </label>
         <ValidationSummary />
-        <button type="submit">Register</button>
+        <button type="submit">@Loc["Register.Submit"]</button>
     </div>
 </EditForm>
 
-<p>Already have an account? <a href="/account/login">Sign in</a>.</p>
+<p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
 
 @code {
     [SupplyParameterFromForm] private InputModel Input { get; set; } = new();

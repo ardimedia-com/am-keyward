@@ -2,12 +2,13 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
 @using Am.Keyward.Ui.Blazor.App.Components.Vaults
+@inject IStringLocalizer<SharedResource> Loc
 
 <PageTitle>AM KEYWARD</PageTitle>
 
 <div class="page-header">
-    <h1>Team vaults</h1>
-    <p>Vaults owned by your tenant and shared with colleagues via access grants.</p>
+    <h1>@Loc["Page.Team.Title"]</h1>
+    <p>@Loc["Page.Team.Desc"]</p>
 </div>
 
 <VaultWorkspace Team="true" />

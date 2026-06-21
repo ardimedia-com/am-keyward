@@ -3,10 +3,11 @@
 @using Microsoft.AspNetCore.Identity
 @inject SignInManager<IdentityUser> SignInManager
 @inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> Loc
 
 <PageTitle>AM KEYWARD</PageTitle>
 
-<h1>Sign in</h1>
+<h1>@Loc["Login.Title"]</h1>
 
 @if (errorMessage is not null)
 {
@@ -16,18 +17,18 @@
 <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
     <DataAnnotationsValidator />
     <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
-        <label>Email
+        <label>@Loc["Login.Email"]
             <InputText @bind-Value="Input.Email" autocomplete="username" />
         </label>
-        <label>Password
+        <label>@Loc["Login.Password"]
             <InputText type="password" @bind-Value="Input.Password" autocomplete="current-password" />
         </label>
         <ValidationSummary />
-        <button type="submit">Sign in</button>
+        <button type="submit">@Loc["Login.Submit"]</button>
     </div>
 </EditForm>
 
-<p>No account yet? <a href="/account/register">Register</a> (the first account becomes the system admin).</p>
+<p>@Loc["Login.NoAccount"] <a href="/account/register">@Loc["Login.RegisterLink"]</a> @Loc["Login.FirstAdminHint"]</p>
 
 @code {
     [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
@@ -44,9 +45,7 @@
             return;
         }
 
-        errorMessage = result.IsLockedOut
-            ? "This account is temporarily locked after too many failed attempts. Try again later."
-            : "Invalid email or password.";
+        errorMessage = result.IsLockedOut ? Loc["Login.LockedOut"] : Loc["Login.Invalid"];
     }
 
     private sealed class InputModel

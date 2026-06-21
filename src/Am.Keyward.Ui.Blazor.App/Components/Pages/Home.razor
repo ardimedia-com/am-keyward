@@ -1,30 +1,31 @@
 @page "/"
+@inject IStringLocalizer<SharedResource> Loc
 
 <PageTitle>AM KEYWARD</PageTitle>
 
 <div class="page-header">
     <h1>AM KEYWARD</h1>
-    <p>An open-source, .NET-native credential &amp; secrets manager — software credentials and human vaults.</p>
+    <p>@Loc["Home.Tagline"]</p>
 </div>
 
 <AuthorizeView>
     <Authorized>
         <div class="card">
-            <h3>Quick links</h3>
+            <h3>@Loc["Home.QuickLinks"]</h3>
             <div class="row" style="margin-top:.5rem;">
-                <a class="btn" href="vaults/personal">Personal vaults</a>
-                <a class="btn btn-ghost" href="vaults/team">Team vaults</a>
-                <a class="btn btn-ghost" href="secrets">Software credentials</a>
-                <a class="btn btn-ghost" href="tokens">Client tokens</a>
+                <a class="btn" href="vaults/personal">@Loc["Nav.PersonalVaults"]</a>
+                <a class="btn btn-ghost" href="vaults/team">@Loc["Nav.TeamVaults"]</a>
+                <a class="btn btn-ghost" href="secrets">@Loc["Nav.SoftwareCredentials"]</a>
+                <a class="btn btn-ghost" href="tokens">@Loc["Nav.ClientTokens"]</a>
             </div>
         </div>
     </Authorized>
     <NotAuthorized>
         <div class="card">
-            <p>Sign in to manage your vaults and software credentials.</p>
+            <p>@Loc["Home.SignInPrompt"]</p>
             <div class="row" style="margin-top:.5rem;">
-                <a class="btn" href="account/login">Sign in</a>
-                <a class="btn btn-ghost" href="account/register">Register</a>
+                <a class="btn" href="account/login">@Loc["Nav.SignIn"]</a>
+                <a class="btn btn-ghost" href="account/register">@Loc["Home.Register"]</a>
             </div>
         </div>
     </NotAuthorized>

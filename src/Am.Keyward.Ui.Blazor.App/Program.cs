@@ -8,6 +8,7 @@ using Am.Keyward.Ui.Blazor.App.Components;
 using Am.Keyward.Ui.Blazor.App.Identity;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// UI localization (English default, German). Strings live in Resources/SharedResource.*.resx.
+builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    string[] cultures = ["en", "de"];
+    options.SetDefaultCulture("en").AddSupportedCultures(cultures).AddSupportedUICultures(cultures);
+});
 
 // Demo-only: every circuit operates inside the seeded demo tenant (sign-in identifies the user, not the tenant yet).
 builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
@@ -106,6 +115,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseRequestLocalization();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 app.UseAntiforgery();
@@ -139,6 +149,22 @@ app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager)
 {
     await signInManager.SignOutAsync();
     return Results.LocalRedirect("/");
+}).DisableAntiforgery();
+
+// Switch UI language: store the culture cookie and reload (the cookie applies on the next request).
+app.MapPost("/culture", (HttpContext context) =>
+{
+    var culture = context.Request.Form["culture"].ToString();
+    var redirectUri = context.Request.Form["redirectUri"].ToString();
+    if (!string.IsNullOrWhiteSpace(culture))
+    {
+        context.Response.Cookies.Append(
+            CookieRequestCultureProvider.DefaultCookieName,
+            CookieRequestCultureProvider.MakeCookieValue(new RequestCulture(culture)),
+            new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, Path = "/" });
+    }
+
+    return Results.LocalRedirect(string.IsNullOrWhiteSpace(redirectUri) ? "/" : redirectUri);
 }).DisableAntiforgery();
 
 app.Run();

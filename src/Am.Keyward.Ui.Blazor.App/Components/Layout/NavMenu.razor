@@ -1,15 +1,28 @@
+@inject IStringLocalizer<SharedResource> Loc
+@inject NavigationManager Nav
+
 <div class="nav-brand">
-    <a href="">AM KEYWARD</a>
+    <a href="">
+        <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true" style="vertical-align:-4px; margin-right:.4rem;">
+            <rect width="64" height="64" rx="14" fill="#4f46e5" />
+            <path fill="#ffffff" fill-rule="evenodd" d="M32 12a12 12 0 110 24 12 12 0 010-24zm0 6a6 6 0 100 12 6 6 0 000-12z" />
+            <g fill="#ffffff">
+                <rect x="29" y="33" width="6" height="19" rx="2" />
+                <rect x="35" y="38" width="8" height="4.5" rx="1.5" />
+                <rect x="35" y="46" width="5.5" height="4.5" rx="1.5" />
+            </g>
+        </svg>AM KEYWARD
+    </a>
 </div>
 
 <nav class="nav-links">
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">@Loc["Nav.Home"]</NavLink>
     <AuthorizeView>
         <Authorized>
-            <NavLink class="nav-link" href="vaults/personal">Personal vaults</NavLink>
-            <NavLink class="nav-link" href="vaults/team">Team vaults</NavLink>
-            <NavLink class="nav-link" href="secrets">Software credentials</NavLink>
-            <NavLink class="nav-link" href="tokens">Client tokens</NavLink>
+            <NavLink class="nav-link" href="vaults/personal">@Loc["Nav.PersonalVaults"]</NavLink>
+            <NavLink class="nav-link" href="vaults/team">@Loc["Nav.TeamVaults"]</NavLink>
+            <NavLink class="nav-link" href="secrets">@Loc["Nav.SoftwareCredentials"]</NavLink>
+            <NavLink class="nav-link" href="tokens">@Loc["Nav.ClientTokens"]</NavLink>
         </Authorized>
     </AuthorizeView>
 </nav>
@@ -19,11 +32,21 @@
         <Authorized>
             <div class="nav-user">@context.User.Identity?.Name</div>
             <form action="account/logout" method="post">
-                <button type="submit" class="nav-signout">Sign out</button>
+                <button type="submit" class="nav-signout">@Loc["Nav.SignOut"]</button>
             </form>
         </Authorized>
         <NotAuthorized>
-            <NavLink class="nav-link" href="account/login">Sign in</NavLink>
+            <NavLink class="nav-link" href="account/login">@Loc["Nav.SignIn"]</NavLink>
         </NotAuthorized>
     </AuthorizeView>
+
+    <form action="culture" method="post" class="nav-lang" title="@Loc["Language"]">
+        <input type="hidden" name="redirectUri" value="@CurrentPath" />
+        <button type="submit" name="culture" value="en" class="nav-lang-btn">EN</button>
+        <button type="submit" name="culture" value="de" class="nav-lang-btn">DE</button>
+    </form>
 </div>
+
+@code {
+    private string CurrentPath => "/" + Nav.ToBaseRelativePath(Nav.Uri);
+}
