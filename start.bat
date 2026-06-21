@@ -35,6 +35,7 @@ REM    First run: open https://localhost:7212 -> you are redirected to sign in.
 REM    Register the first account; it becomes the system administrator.
 REM
 REM    Manual UI smoke test (signed in):
+REM      - /vaults  : create a personal vault, add folders/items, reveal a value.
 REM      - /secrets : store and read a value (demo project, per environment).
 REM      - /tokens  : issue / rotate / revoke software-client tokens (shown once).
 REM
@@ -61,9 +62,9 @@ REM        setx KEYWARD_APP_TEST_CONNECTION "Server=localhost;Database=amkeyward
 REM ============================================================================
 REM
 REM  STILL TODO (open work -- this is a v0.1 walking skeleton, not finished):
-REM    [Slice 6] Human vaults UI (My Vault / Shared) + folders + server-side
-REM              sharing (grants). [Admin sign-in, management-API protection and
-REM              the token-management page have landed.]
+REM    [Slice 6] Tenant/group vaults + "Shared" (grant-based sharing within a
+REM              tenant). [Admin sign-in, the My Vault UI + shell theme, and the
+REM              token-management page have landed.]
 REM    [Slice 7] Ops hardening: audit hash-chain (DB SEQUENCE/single-writer/
 REM              exported checkpoint), DSGVO crypto-shredding, backup/restore
 REM              consistency, DB-swap safety-net migrator, monitoring, break-glass.

@@ -1,0 +1,272 @@
+@page "/vaults"
+@* Prerender disabled: loads user-scoped data in OnInitializedAsync, and the user scope is set by the
+   circuit handler (which runs for the circuit, not during HTTP prerender). *@
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@using Am.Keyward.Core.Application
+@using Am.Keyward.Core.Domain
+@using Am.Keyward.Ui.Blazor.App.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@inject IVaultService VaultService
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>My Vault</PageTitle>
+
+<div class="page-header">
+    <h1>My Vault</h1>
+    <p>Your personal, server-side-encrypted vaults. Values are decrypted only when you reveal them.</p>
+</div>
+
+@if (status is not null)
+{
+    <div class="notice @(status.Value.IsError ? "notice-error" : "")">@status.Value.Text</div>
+}
+
+<div class="card">
+    <h3>Create a vault</h3>
+    <div class="row" style="margin-top:.5rem;">
+        <input @bind="newVaultName" placeholder="Vault name" style="max-width:18rem;" />
+        <button @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))">Create vault</button>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Vaults</h3>
+    @if (vaults is null)
+    {
+        <p class="muted">Loading…</p>
+    }
+    else if (vaults.Count == 0)
+    {
+        <p class="muted">No vaults yet — create one above.</p>
+    }
+    else
+    {
+        <div class="row" style="margin-top:.5rem;">
+            @foreach (var v in vaults)
+            {
+                <button class="@(v.Id == selectedVaultId ? "" : "btn-ghost")" @onclick="() => SelectVaultAsync(v.Id)">@v.Name</button>
+            }
+        </div>
+    }
+</div>
+
+@if (selectedVaultId is not null)
+{
+    <div class="card">
+        <h3>Add item</h3>
+        <div class="stack" style="margin-top:.5rem; max-width:32rem;">
+            <div class="field"><label>Name</label><input @bind="itemName" placeholder="e.g. GitHub login" /></div>
+            <div class="field">
+                <label>Type</label>
+                <select @bind="itemType">
+                    @foreach (var t in Enum.GetValues<ItemType>())
+                    {
+                        <option value="@t">@t</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label>Folder</label>
+                <select @bind="itemFolderId">
+                    <option value="">(no folder)</option>
+                    @foreach (var f in folders)
+                    {
+                        <option value="@f.Id">@f.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="field"><label>Secret content</label><textarea rows="3" @bind="itemContent" placeholder="password / note / connection string…"></textarea></div>
+            <div class="row">
+                <button @onclick="AddItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(itemName))">Add item</button>
+            </div>
+        </div>
+
+        <h3 style="margin-top:1.5rem;">New folder</h3>
+        <div class="row" style="margin-top:.5rem;">
+            <input @bind="newFolderName" placeholder="Folder name" style="max-width:18rem;" />
+            <button class="btn-ghost" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">Add folder</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Items</h3>
+        @if (items is null)
+        {
+            <p class="muted">Loading…</p>
+        }
+        else if (items.Count == 0)
+        {
+            <p class="muted">No items in this vault yet.</p>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in items)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td><span class="badge">@item.Type</span></td>
+                            <td class="muted">@FolderName(item.FolderId)</td>
+                            <td class="row-actions">
+                                <button class="btn-ghost btn-sm" @onclick="() => RevealAsync(item.Id)" disabled="@busy">Reveal</button>
+                            </td>
+                        </tr>
+                        @if (revealedItemId == item.Id && revealedValue is not null)
+                        {
+                            <tr>
+                                <td colspan="4">
+                                    <div class="notice notice-reveal">
+                                        <code>@revealedValue</code>
+                                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="HideRevealed">Hide</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}
+
+@code {
+    private Guid? actorUserId;
+    private IReadOnlyList<VaultSummary>? vaults;
+    private Guid? selectedVaultId;
+    private IReadOnlyList<VaultFolderSummary> folders = [];
+    private IReadOnlyList<VaultItemSummary>? items;
+
+    private string newVaultName = "";
+    private string newFolderName = "";
+    private string itemName = "";
+    private ItemType itemType = ItemType.Login;
+    private string itemFolderId = "";
+    private string itemContent = "";
+
+    private Guid? revealedItemId;
+    private string? revealedValue;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (Guid.TryParse(state.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var id))
+        {
+            actorUserId = id;
+        }
+
+        await ReloadVaultsAsync();
+    }
+
+    private async Task ReloadVaultsAsync()
+    {
+        if (actorUserId is null)
+        {
+            return;
+        }
+
+        vaults = await VaultService.ListVaultsAsync(actorUserId.Value);
+    }
+
+    private async Task SelectVaultAsync(Guid vaultId)
+    {
+        selectedVaultId = vaultId;
+        revealedItemId = null;
+        revealedValue = null;
+        await ReloadVaultContentsAsync();
+    }
+
+    private async Task ReloadVaultContentsAsync()
+    {
+        if (actorUserId is null || selectedVaultId is null)
+        {
+            return;
+        }
+
+        folders = await VaultService.ListFoldersAsync(actorUserId.Value, selectedVaultId.Value);
+        items = await VaultService.ListItemsAsync(actorUserId.Value, selectedVaultId.Value);
+    }
+
+    private async Task CreateVaultAsync()
+    {
+        if (busy || actorUserId is null || string.IsNullOrWhiteSpace(newVaultName)) return;
+        await RunAsync(async () =>
+        {
+            var id = await VaultService.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(actorUserId.Value, newVaultName));
+            newVaultName = "";
+            await ReloadVaultsAsync();
+            await SelectVaultAsync(id);
+            status = ("Vault created.", false);
+        });
+    }
+
+    private async Task AddFolderAsync()
+    {
+        if (busy || actorUserId is null || selectedVaultId is null || string.IsNullOrWhiteSpace(newFolderName)) return;
+        await RunAsync(async () =>
+        {
+            await VaultService.AddFolderAsync(new AddVaultFolderCommand(actorUserId.Value, selectedVaultId.Value, newFolderName));
+            newFolderName = "";
+            await ReloadVaultContentsAsync();
+            status = ("Folder added.", false);
+        });
+    }
+
+    private async Task AddItemAsync()
+    {
+        if (busy || actorUserId is null || selectedVaultId is null || string.IsNullOrWhiteSpace(itemName)) return;
+        await RunAsync(async () =>
+        {
+            Guid? folderId = Guid.TryParse(itemFolderId, out var f) ? f : null;
+            await VaultService.AddItemAsync(new AddVaultItemCommand(actorUserId.Value, selectedVaultId.Value, folderId, itemType, itemName, itemContent));
+            itemName = "";
+            itemContent = "";
+            await ReloadVaultContentsAsync();
+            status = ("Item added.", false);
+        });
+    }
+
+    private async Task RevealAsync(Guid itemId)
+    {
+        if (busy || actorUserId is null) return;
+        await RunAsync(async () =>
+        {
+            revealedValue = await VaultService.ReadItemAsync(actorUserId.Value, itemId) ?? "(empty)";
+            revealedItemId = itemId;
+        });
+    }
+
+    private void HideRevealed()
+    {
+        revealedItemId = null;
+        revealedValue = null;
+    }
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        busy = true;
+        status = null;
+        try
+        {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            status = ("Error: " + ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private string FolderName(Guid? folderId) =>
+        folderId is null ? "—" : folders.FirstOrDefault(f => f.Id == folderId)?.Name ?? "—";
+}

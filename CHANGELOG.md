@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 6b (part 2) — My Vault UI + shell theme: a `/vaults` page to create personal vaults, add folders
+  and typed items, and reveal an item's decrypted value on demand. The whole shell was restyled into a
+  cohesive theme (dark sidebar, light content, cards/tables/badges/forms) with hand-written CSS variables
+  — no Bootstrap/Tailwind dependency — inspired by the win-smtp-relay admin look. Home is now a real
+  landing page, and the nav reflects sign-in state.
 - Slice 6b (part 1) — personal human vaults: server-side envelope-encrypted vaults owned by a user
   (tenant-less), with folders and typed, versioned items (`IVaultService`: create vault/folder/item, read,
   list), server-authoritative on the current user. Vault tables carry a denormalized isolation boundary

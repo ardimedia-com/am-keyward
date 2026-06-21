@@ -1,52 +1,28 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">AM KEYWARD</a>
-    </div>
+<div class="nav-brand">
+    <a href="">AM KEYWARD</a>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+<nav class="nav-links">
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+    <AuthorizeView>
+        <Authorized>
+            <NavLink class="nav-link" href="vaults">My Vault</NavLink>
+            <NavLink class="nav-link" href="secrets">Software credentials</NavLink>
+            <NavLink class="nav-link" href="tokens">Client tokens</NavLink>
+        </Authorized>
+    </AuthorizeView>
+</nav>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="secrets">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Software credentials
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="tokens">
-                <span class="bi bi-key-nav-menu" aria-hidden="true"></span> Client tokens
-            </NavLink>
-        </div>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <span class="nav-link">Signed in as @context.User.Identity?.Name</span>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="account/logout" method="post">
-                        <button type="submit" class="nav-link btn btn-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Sign out
-                        </button>
-                    </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="account/login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Sign in
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
+<div class="nav-foot">
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-user">@context.User.Identity?.Name</div>
+            <form action="account/logout" method="post">
+                <button type="submit" class="nav-signout">Sign out</button>
+            </form>
+        </Authorized>
+        <NotAuthorized>
+            <NavLink class="nav-link" href="account/login">Sign in</NavLink>
+        </NotAuthorized>
+    </AuthorizeView>
 </div>
-
