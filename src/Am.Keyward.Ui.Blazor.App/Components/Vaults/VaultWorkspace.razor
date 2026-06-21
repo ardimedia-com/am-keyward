@@ -31,8 +31,12 @@
     }
     else
     {
+        @if (vaults.Count > 5)
+        {
+            <input @bind="vaultFilter" @bind:event="oninput" placeholder="Filter vaults…" style="max-width:16rem; margin:.25rem 0;" />
+        }
         <div class="row" style="margin:.25rem 0 .75rem;">
-            @foreach (var v in vaults)
+            @foreach (var v in FilteredVaults)
             {
                 <button class="@(v.Id == selectedVaultId ? "" : "btn-ghost")" @onclick="() => SelectVaultAsync(v.Id)">@v.Name</button>
             }
@@ -86,9 +90,13 @@
         <p class="muted">Folders are optional labels to group items inside a vault. Deleting a folder keeps its items (they move back to the vault root).</p>
         @if (folders.Count > 0)
         {
+            @if (folders.Count > 5)
+            {
+                <input @bind="folderFilter" @bind:event="oninput" placeholder="Filter folders…" style="max-width:16rem; margin-bottom:.5rem;" />
+            }
             <table style="margin:.5rem 0;">
                 <tbody>
-                    @foreach (var f in folders)
+                    @foreach (var f in FilteredFolders)
                     {
                         <tr>
                             <td>
@@ -103,8 +111,17 @@
                                 else { @f.Name }
                             </td>
                             <td class="row-actions">
-                                <button class="btn-ghost btn-sm" @onclick="() => StartRenameFolder(f)" disabled="@busy">Rename</button>
-                                <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(f.Id)" disabled="@busy">Delete</button>
+                                @if (confirmDeleteFolderId == f.Id)
+                                {
+                                    <span class="muted">Delete folder?</span>
+                                    <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(f.Id)" disabled="@busy">Yes</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = null">Cancel</button>
+                                }
+                                else
+                                {
+                                    <button class="btn-ghost btn-sm" @onclick="() => StartRenameFolder(f)" disabled="@busy">Rename</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = f.Id" disabled="@busy">Delete…</button>
+                                }
                             </td>
                         </tr>
                     }
@@ -117,138 +134,134 @@
         </div>
     </div>
 
-    @* ---------- 4. Items (list-first, then view/add/edit) ---------- *@
+    @* ---------- 4. Items: detail/edit panel above an always-visible, filterable list ---------- *@
     <div class="card">
-        @if (itemMode == "list")
-        {
-            <div class="row" style="justify-content:space-between;">
-                <h3 style="margin:0;">Items</h3>
-                <button class="btn-sm" @onclick="StartAddItem" disabled="@busy">Add item</button>
-            </div>
-            <p class="muted">A vault item is one stored secret. A <strong>Login</strong> holds a website, username and password; other types hold a secure note or a single secret value. Values are encrypted and only shown when you choose <em>View</em>.</p>
+        <div class="row" style="justify-content:space-between;">
+            <h3 style="margin:0;">Items</h3>
+            <button class="btn-sm" @onclick="StartAddItem" disabled="@busy">Add item</button>
+        </div>
+        <p class="muted">A vault item is one stored secret. A <strong>Login</strong> holds a website, username and password; other types hold a secure note or a single secret value. Values are encrypted and only shown when you choose <em>View</em>. Delete is confirmed from the item's detail (choose <em>Delete…</em> to open it first).</p>
 
-            @if (items is null)
-            {
-                <p class="muted">Loading…</p>
-            }
-            else if (items.Count == 0)
-            {
-                <p class="muted">No items yet — use “Add item”.</p>
-            }
-            else
-            {
-                <table>
-                    <thead><tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr></thead>
-                    <tbody>
-                        @foreach (var item in items)
-                        {
-                            <tr>
-                                <td>@item.Name</td>
-                                <td><span class="badge">@item.Type</span></td>
-                                <td class="muted">@FolderName(item.FolderId)</td>
-                                <td class="row-actions">
-                                    <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">View</button>
-                                    <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(item.Id)" disabled="@busy">Edit</button>
-                                    <button class="btn-danger btn-sm" @onclick="() => DeleteItemAsync(item.Id)" disabled="@busy">Delete</button>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
-        }
-        else if (itemMode == "view" && detail is not null)
+        @if (itemMode == "view" && detail is not null)
         {
-            <div class="row" style="justify-content:space-between;">
-                <h3 style="margin:0;">@detail.Name</h3>
-                <div class="row">
-                    <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">Edit</button>
-                    <button class="btn-ghost btn-sm" @onclick="BackToList">Back</button>
+            <div class="panel">
+                <div class="row" style="justify-content:space-between;">
+                    <h4 style="margin:0;">@detail.Name</h4>
+                    <div class="row">
+                        <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">Edit</button>
+                        <button class="btn-danger btn-sm" @onclick="DeleteCurrentItemAsync" disabled="@busy">Delete</button>
+                        <button class="btn-ghost btn-sm" @onclick="BackToList">Close</button>
+                    </div>
                 </div>
-            </div>
-            <p class="muted"><span class="badge">@detail.Type</span> in @FolderName(detail.FolderId)</p>
+                <p class="muted"><span class="badge">@detail.Type</span> in @FolderName(detail.FolderId)</p>
 
-            @if (detail.Type == ItemType.Login)
-            {
-                var f = LoginContent.Parse(detail.Content);
-                <div class="stack" style="max-width:32rem;">
-                    <div>
-                        <strong>URL:</strong>
-                        @if (string.IsNullOrWhiteSpace(f.Url))
-                        {
-                            <text>—</text>
-                        }
-                        else
-                        {
-                            <a href="@f.Url" target="_blank" rel="noreferrer">@f.Url</a>
-                        }
-                    </div>
-                    <div><strong>Username:</strong> <code>@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</code></div>
-                    <div>
-                        <strong>Password:</strong> <code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code>
-                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
-                    </div>
-                    @if (!string.IsNullOrWhiteSpace(f.Note))
-                    {
-                        <div><strong>Note:</strong> @f.Note</div>
-                    }
-                </div>
-            }
-            else
-            {
-                <div class="stack" style="max-width:32rem;">
-                    <div><strong>Value:</strong></div>
-                    <div class="notice notice-reveal"><code>@(reveal ? detail.Content : "••••••••")</code>
-                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
-                    </div>
-                </div>
-            }
-        }
-        else if (itemMode is "add" or "edit")
-        {
-            <h3>@(itemMode == "add" ? "Add item" : $"Edit “{fName}”")</h3>
-            <div class="stack" style="max-width:32rem;">
-                @if (itemMode == "add")
+                @if (detail.Type == ItemType.Login)
                 {
-                    <div class="field">
-                        <label>Type</label>
-                        <select @bind="fType">
-                            @foreach (var t in Enum.GetValues<ItemType>())
-                            {
-                                <option value="@t">@t</option>
-                            }
-                        </select>
+                    var f = LoginContent.Parse(detail.Content);
+                    <div class="stack" style="max-width:32rem;">
+                        <div>
+                            <strong>URL:</strong>
+                            @if (string.IsNullOrWhiteSpace(f.Url)) { <text>—</text> }
+                            else { <a href="@f.Url" target="_blank" rel="noreferrer">@f.Url</a> }
+                        </div>
+                        <div><strong>Username:</strong> <code>@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</code></div>
+                        <div>
+                            <strong>Password:</strong> <code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code>
+                            <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(f.Note)) { <div><strong>Note:</strong> @f.Note</div> }
                     </div>
-                }
-                <div class="field"><label>Name</label><input @bind="fName" placeholder="e.g. GitHub" /></div>
-                <div class="field">
-                    <label>Folder</label>
-                    <select @bind="fFolderId">
-                        <option value="">(no folder)</option>
-                        @foreach (var folder in folders)
-                        {
-                            <option value="@folder.Id">@folder.Name</option>
-                        }
-                    </select>
-                </div>
-
-                @if (fType == ItemType.Login)
-                {
-                    <div class="field"><label>URL</label><input @bind="fUrl" placeholder="https://example.com" /></div>
-                    <div class="field"><label>Username</label><input @bind="fUser" autocomplete="off" /></div>
-                    <div class="field"><label>Password</label><input @bind="fPwd" autocomplete="off" /></div>
-                    <div class="field"><label>Note</label><textarea rows="2" @bind="fNote"></textarea></div>
                 }
                 else
                 {
-                    <div class="field"><label>Value / note</label><textarea rows="4" @bind="fContent" placeholder="secret value, note, connection string…"></textarea></div>
+                    <div>
+                        <strong>Value:</strong> <code>@(reveal ? detail.Content : "••••••••")</code>
+                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
+                    </div>
                 }
+            </div>
+        }
+        else if (itemMode is "add" or "edit")
+        {
+            <div class="panel">
+                <h4 style="margin-top:0;">@(itemMode == "add" ? "Add item" : $"Edit “{fName}”")</h4>
+                <div class="stack" style="max-width:32rem;">
+                    @if (itemMode == "add")
+                    {
+                        <div class="field">
+                            <label>Type</label>
+                            <select @bind="fType">
+                                @foreach (var t in Enum.GetValues<ItemType>())
+                                {
+                                    <option value="@t">@t</option>
+                                }
+                            </select>
+                        </div>
+                    }
+                    <div class="field"><label>Name</label><input @bind="fName" placeholder="e.g. GitHub" /></div>
+                    <div class="field">
+                        <label>Folder</label>
+                        <select @bind="fFolderId">
+                            <option value="">(no folder)</option>
+                            @foreach (var folder in folders)
+                            {
+                                <option value="@folder.Id">@folder.Name</option>
+                            }
+                        </select>
+                    </div>
 
-                <div class="row">
-                    <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">Save</button>
-                    <button class="btn-ghost" @onclick="BackToList">Cancel</button>
+                    @if (fType == ItemType.Login)
+                    {
+                        <div class="field"><label>URL</label><input @bind="fUrl" placeholder="https://example.com" /></div>
+                        <div class="field"><label>Username</label><input @bind="fUser" autocomplete="off" /></div>
+                        <div class="field"><label>Password</label><input @bind="fPwd" autocomplete="off" /></div>
+                        <div class="field"><label>Note</label><textarea rows="2" @bind="fNote"></textarea></div>
+                    }
+                    else
+                    {
+                        <div class="field"><label>Value / note</label><textarea rows="4" @bind="fContent" placeholder="secret value, note, connection string…"></textarea></div>
+                    }
+
+                    <div class="row">
+                        <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">Save</button>
+                        <button class="btn-ghost" @onclick="BackToList">Cancel</button>
+                    </div>
                 </div>
             </div>
+        }
+
+        @if (items is null)
+        {
+            <p class="muted">Loading…</p>
+        }
+        else if (items.Count == 0)
+        {
+            <p class="muted">No items yet — use “Add item”.</p>
+        }
+        else
+        {
+            @if (items.Count > 5)
+            {
+                <input @bind="itemFilter" @bind:event="oninput" placeholder="Filter items…" style="max-width:18rem; margin-bottom:.5rem;" />
+            }
+            <table>
+                <thead><tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var item in FilteredItems)
+                    {
+                        <tr>
+                            <td>@item.Name</td>
+                            <td><span class="badge">@item.Type</span></td>
+                            <td class="muted">@FolderName(item.FolderId)</td>
+                            <td class="row-actions">
+                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">View</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(item.Id)" disabled="@busy">Edit</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">Delete…</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         }
     </div>
 
@@ -320,6 +333,12 @@
     private string newFolderName = "";
     private Guid? renamingFolderId;
     private string folderRenameValue = "";
+    private Guid? confirmDeleteFolderId;
+
+    // list filters
+    private string vaultFilter = "";
+    private string folderFilter = "";
+    private string itemFilter = "";
 
     private string fName = "";
     private ItemType fType = ItemType.Login;
@@ -436,6 +455,7 @@
     private Task DeleteFolderAsync(Guid folderId) => RunAsync(async () =>
     {
         await VaultService.DeleteFolderAsync(actorUserId!.Value, selectedVaultId!.Value, folderId);
+        confirmDeleteFolderId = null;
         await ReloadContentsAsync();
     }, true);
 
@@ -485,12 +505,13 @@
         BackToList();
     }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(fName));
 
-    private Task DeleteItemAsync(Guid itemId) => RunAsync(async () =>
+    private Task DeleteCurrentItemAsync() => RunAsync(async () =>
     {
-        await VaultService.DeleteItemAsync(actorUserId!.Value, itemId);
+        await VaultService.DeleteItemAsync(actorUserId!.Value, detail!.Id);
         await ReloadContentsAsync();
+        BackToList();
         status = ("Item deleted.", false);
-    }, true);
+    }, detail is not null);
 
     private async Task OnImportFileAsync(InputFileChangeEventArgs e)
     {
@@ -533,4 +554,16 @@
     }
 
     private string FolderName(Guid? folderId) => folderId is null ? "—" : folders.FirstOrDefault(f => f.Id == folderId)?.Name ?? "—";
+
+    private IEnumerable<VaultSummary> FilteredVaults => Filter(vaults, vaultFilter, v => v.Name);
+    private IEnumerable<VaultFolderSummary> FilteredFolders => Filter(folders, folderFilter, f => f.Name);
+    private IEnumerable<VaultItemSummary> FilteredItems => Filter(items, itemFilter, i => $"{i.Name} {i.Type}");
+
+    private static IEnumerable<T> Filter<T>(IEnumerable<T>? source, string query, Func<T, string> selector)
+    {
+        if (source is null) return [];
+        return string.IsNullOrWhiteSpace(query)
+            ? source
+            : source.Where(x => selector(x).Contains(query.Trim(), StringComparison.OrdinalIgnoreCase));
+    }
 }

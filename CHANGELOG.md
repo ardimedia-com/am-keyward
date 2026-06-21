@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Vaults UI refinements: every list (vaults, folders, items, and the client-token list) gains a filter
+  box for longer lists; an item's detail / add / edit panel now appears above the list on the same page
+  (the list stays visible); and deletion is never one-click — choosing “Delete…” on an item opens its
+  detail with a Delete button there, and folder deletion is confirmed inline. The content area spans the
+  full page width.
 - Vaults UI — list-first workspace, split into separate **Personal vaults** (`/vaults/personal`) and
   **Team vaults** (`/vaults/team`) pages. Each lists vaults → select one → lists its folders and items;
   choosing View / Add / Edit / Delete on an item shows it with the matching actions. Login items have
