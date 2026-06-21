@@ -1,5 +1,7 @@
 @page "/tokens"
-@rendermode InteractiveServer
+@* Prerender disabled: this page loads tenant-scoped data in OnInitializedAsync, and the demo tenant
+   scope is established by the circuit handler — which runs for the circuit, not during HTTP prerender. *@
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
 @using Am.Keyward.Core.Application
 @using Am.Keyward.Ui.Blazor.App
