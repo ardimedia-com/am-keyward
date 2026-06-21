@@ -46,7 +46,7 @@ public sealed class Project
             throw new InvalidOperationException($"Environment '{name}' already exists in project '{Name}'.");
         }
 
-        var env = new RuntimeEnvironment(id, Id, name, createdAt);
+        var env = new RuntimeEnvironment(id, Id, TenantId, name, createdAt);
         _environments.Add(env);
         return env;
     }
@@ -57,13 +57,18 @@ public sealed class RuntimeEnvironment
 {
     public Guid Id { get; private set; }
     public Guid ProjectId { get; private set; }
+
+    /// <summary>Denormalized owning tenant (drives the tenant query filter and SQL Server row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
     public EnvironmentName Name { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    public RuntimeEnvironment(Guid id, Guid projectId, EnvironmentName name, DateTimeOffset createdAt)
+    public RuntimeEnvironment(Guid id, Guid projectId, Guid tenantId, EnvironmentName name, DateTimeOffset createdAt)
     {
         Id = id;
         ProjectId = projectId;
+        TenantId = tenantId;
         Name = name;
         CreatedAt = createdAt;
     }
@@ -79,6 +84,10 @@ public sealed class SoftwareSecret
 
     public Guid Id { get; private set; }
     public Guid ProjectId { get; private set; }
+
+    /// <summary>Denormalized owning tenant (drives the tenant query filter and SQL Server row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
     public SecretKey Key { get; private set; }
 
     /// <summary>Steward (the user who created/manages it); tombstoned (set null) on user deletion.</summary>
@@ -87,10 +96,11 @@ public sealed class SoftwareSecret
     public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyList<SecretValue> Values => _values;
 
-    public SoftwareSecret(Guid id, Guid projectId, SecretKey key, Guid? createdBy, DateTimeOffset createdAt)
+    public SoftwareSecret(Guid id, Guid projectId, Guid tenantId, SecretKey key, Guid? createdBy, DateTimeOffset createdAt)
     {
         Id = id;
         ProjectId = projectId;
+        TenantId = tenantId;
         Key = key;
         CreatedBy = createdBy;
         CreatedAt = createdAt;
@@ -102,7 +112,7 @@ public sealed class SoftwareSecret
         var existing = _values.FirstOrDefault(v => v.EnvironmentId == environmentId);
         if (existing is null)
         {
-            var created = new SecretValue(valueId, Id, environmentId);
+            var created = new SecretValue(valueId, TenantId, Id, environmentId);
             created.AddVersion(versionId, encrypted, at);
             _values.Add(created);
             return created;
@@ -119,21 +129,26 @@ public sealed class SecretValue
     private readonly List<SecretVersion> _versions = [];
 
     public Guid Id { get; private set; }
+
+    /// <summary>Denormalized owning tenant (drives the tenant query filter and SQL Server row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
     public Guid SoftwareSecretId { get; private set; }
     public Guid EnvironmentId { get; private set; }
     public Guid? CurrentVersionId { get; private set; }
     public IReadOnlyList<SecretVersion> Versions => _versions;
 
-    public SecretValue(Guid id, Guid softwareSecretId, Guid environmentId)
+    public SecretValue(Guid id, Guid tenantId, Guid softwareSecretId, Guid environmentId)
     {
         Id = id;
+        TenantId = tenantId;
         SoftwareSecretId = softwareSecretId;
         EnvironmentId = environmentId;
     }
 
     public SecretVersion AddVersion(Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
     {
-        var version = new SecretVersion(versionId, Id, _versions.Count + 1, encrypted, at);
+        var version = new SecretVersion(versionId, TenantId, Id, _versions.Count + 1, encrypted, at);
         _versions.Add(version);
         CurrentVersionId = version.Id;
         return version;
@@ -149,14 +164,19 @@ public sealed class SecretValue
 public sealed class SecretVersion
 {
     public Guid Id { get; private set; }
+
+    /// <summary>Denormalized owning tenant (drives the tenant query filter and SQL Server row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
     public Guid SecretValueId { get; private set; }
     public int VersionNumber { get; private set; }
     public EncryptedValue Encrypted { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    public SecretVersion(Guid id, Guid secretValueId, int versionNumber, EncryptedValue encrypted, DateTimeOffset createdAt)
+    public SecretVersion(Guid id, Guid tenantId, Guid secretValueId, int versionNumber, EncryptedValue encrypted, DateTimeOffset createdAt)
     {
         Id = id;
+        TenantId = tenantId;
         SecretValueId = secretValueId;
         VersionNumber = versionNumber;
         Encrypted = encrypted;

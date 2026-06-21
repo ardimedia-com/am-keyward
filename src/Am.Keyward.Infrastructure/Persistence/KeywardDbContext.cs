@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.Identity;
 using Am.Keyward.Core.Domain.Software;
@@ -12,10 +13,16 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// The AM KEYWARD database context. All tables live in the dedicated <see cref="Schema"/> so the
 /// library can be embedded in a host's existing database without colliding; the migrations-history
 /// table is scoped to the same schema (configured by callers, see the design-time factory and DI).
+/// Tenant isolation is enforced by a global query filter keyed on the ambient <see cref="ICurrentTenant"/>
+/// (read per query), backed in depth by SQL Server row-level security (see the SESSION_CONTEXT
+/// interceptor and the TenancyIsolation migration).
 /// </summary>
-public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options) : DbContext(options)
+public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options, ICurrentTenant tenant)
+    : DbContext(options)
 {
     public const string Schema = "amkeyward";
+
+    private readonly ICurrentTenant _tenant = tenant;
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<AppUser> Users => Set<AppUser>();
@@ -49,6 +56,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.ToTable("Tenants");
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.HasQueryFilter(x => x.Id == _tenant.TenantId);
         });
 
         model.Entity<AppUser>(e =>
@@ -67,8 +75,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
             e.Property(x => x.OwnerType).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => x.TenantId);
             e.HasMany(x => x.Environments).WithOne().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Environments).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<RuntimeEnvironment>(e =>
@@ -77,6 +87,8 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasConversion(envNameConverter).HasMaxLength(128).IsRequired();
             e.HasIndex(x => new { x.ProjectId, x.Name }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<SoftwareSecret>(e =>
@@ -85,8 +97,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.HasKey(x => x.Id);
             e.Property(x => x.Key).HasConversion(secretKeyConverter).HasMaxLength(512).IsRequired();
             e.HasIndex(x => new { x.ProjectId, x.Key }).IsUnique(); // one key per project
+            e.HasIndex(x => x.TenantId);
             e.HasMany(x => x.Values).WithOne().HasForeignKey(x => x.SoftwareSecretId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Values).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<SecretValue>(e =>
@@ -94,8 +108,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.ToTable("SecretValues");
             e.HasKey(x => x.Id);
             e.HasIndex(x => new { x.SoftwareSecretId, x.EnvironmentId }).IsUnique(); // one value per (secret, environment)
+            e.HasIndex(x => x.TenantId);
             e.HasMany(x => x.Versions).WithOne().HasForeignKey(x => x.SecretValueId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Versions).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<SecretVersion>(e =>
@@ -104,6 +120,8 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.HasKey(x => x.Id);
             e.Property(x => x.Encrypted).HasConversion(encryptedConverter).IsRequired();
             e.HasIndex(x => new { x.SecretValueId, x.VersionNumber }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         model.Entity<AuditEntry>(e =>
@@ -115,6 +133,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options)
             e.Property(x => x.PreviousHash).HasMaxLength(64).IsRequired();
             e.Property(x => x.Hash).HasMaxLength(64).IsRequired();
             e.HasIndex(x => new { x.TenantId, x.Sequence }).IsUnique();
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
     }
 }

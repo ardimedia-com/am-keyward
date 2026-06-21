@@ -20,7 +20,9 @@ deployment, including:
 - **KEK custody** — the key-encryption-key is **never** stored in the database. Keep it in a separate
   store (e.g. Azure Key Vault / HSM / a protected key file) and **verify your KEK restore works** —
   **KEK loss = total, unrecoverable data loss**.
-- Database security and a least-privilege runtime login.
+- Database security and a least-privilege runtime login — use the two-login setup (`amkeyward_app` for
+  runtime, `amkeyward_migrator` for migrations) so the runtime cannot bypass tenant row-level security.
+  See [docs/database-logins.md](docs/database-logins.md).
 - Network exposure, rate limiting, TLS, and general hardening.
 - Backups of the database and the KEK store (on separate schedules/locations).
 

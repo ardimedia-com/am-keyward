@@ -24,6 +24,16 @@ public interface ICurrentTenant
 }
 
 /// <summary>
+/// Sets the server-authoritative tenant scope for the current request/session. Called ONLY at the host
+/// edge (API route binding, Blazor circuit, future token auth) — never from business logic, which must
+/// treat tenancy as immutable for the duration of the operation.
+/// </summary>
+public interface ITenantScopeSetter
+{
+    void SetTenant(Guid? tenantId);
+}
+
+/// <summary>
 /// Wraps/unwraps per-secret data-encryption-keys (DEKs) using an external key-encryption-key (KEK).
 /// The KEK never leaves the provider and is never stored in the application database.
 /// </summary>

@@ -32,11 +32,14 @@ dotnet build Am.Keyward.slnx
 dotnet test Am.Keyward.slnx
 ```
 
-Requires the .NET 10 SDK; data/integration tests require SQL Server (LocalDB).
+Requires the .NET 10 SDK; data/integration tests require a local SQL Server reachable on `localhost`
+via Integrated Security.
 
 ## Documentation
 
-End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship.
+End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship. Operators should
+start with [database logins](docs/database-logins.md) (the least-privilege runtime login vs. the
+migration login that underpins tenant isolation).
 
 ## License
 

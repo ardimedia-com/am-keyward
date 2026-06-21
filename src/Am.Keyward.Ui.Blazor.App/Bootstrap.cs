@@ -36,7 +36,8 @@ public static class Demo
 
     public static async Task EnsureSeededAsync(KeywardDbContext db)
     {
-        if (await db.Tenants.AnyAsync(t => t.Id == TenantId))
+        // Startup runs without a tenant scope; bypass the tenant query filter for the existence check.
+        if (await db.Tenants.IgnoreQueryFilters().AnyAsync(t => t.Id == TenantId))
         {
             return;
         }

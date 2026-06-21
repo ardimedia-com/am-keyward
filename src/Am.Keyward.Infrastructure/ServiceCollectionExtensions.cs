@@ -2,6 +2,7 @@ using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Am.Keyward.Infrastructure.Crypto;
 using Am.Keyward.Infrastructure.Persistence;
+using Am.Keyward.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -12,13 +13,24 @@ public static class ServiceCollectionExtensions
     /// <summary>
     /// Registers AM KEYWARD against a SQL Server database and an in-memory KEK (file/env-loaded by the
     /// host). The migrations-history table is scoped to the <c>amkeyward</c> schema so it never collides
-    /// with the host's migrations.
+    /// with the host's migrations. Tenant isolation is wired up here: the ambient tenant context, the
+    /// SESSION_CONTEXT interceptor (row-level-security backstop) and the central authorization service.
     /// </summary>
     public static IServiceCollection AddKeyward(this IServiceCollection services, string connectionString, byte[] kek, string kekId)
     {
-        services.AddDbContext<KeywardDbContext>(options =>
+        // One ambient tenant context per scope, exposed as both the read port (ICurrentTenant) and the
+        // host-edge write port (ITenantScopeSetter).
+        services.AddScoped<AmbientTenantContext>();
+        services.AddScoped<ICurrentTenant>(sp => sp.GetRequiredService<AmbientTenantContext>());
+        services.AddScoped<ITenantScopeSetter>(sp => sp.GetRequiredService<AmbientTenantContext>());
+        services.AddScoped<ICurrentUser, AnonymousCurrentUser>();
+        services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
+        services.AddScoped<TenantSessionContextInterceptor>();
+
+        services.AddDbContext<KeywardDbContext>((sp, options) =>
             options.UseSqlServer(connectionString, sql =>
-                sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema)));
+                    sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
+                .AddInterceptors(sp.GetRequiredService<TenantSessionContextInterceptor>()));
 
         services.AddSingleton<IKekProvider>(new StaticKekProvider(kek, kekId));
         services.AddSingleton<IClock, SystemClock>();

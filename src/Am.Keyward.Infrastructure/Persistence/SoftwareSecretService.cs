@@ -18,12 +18,18 @@ public sealed class SoftwareSecretService(
     KeywardDbContext db,
     ISecretBackend backend,
     IAuditSink audit,
-    IClock clock) : ISoftwareSecretService
+    IClock clock,
+    ICurrentTenant tenant,
+    ICurrentUser currentUser,
+    IAuthorizationService authorization) : ISoftwareSecretService
 {
     private const int AlgVersion = 1;
 
     public async Task StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {
+        EnsureTenantScope(cmd.TenantId);
+        await EnsureAuthorizedAsync(cmd.ProjectId, Permission.Write, ct).ConfigureAwait(false);
+
         var environment = await ResolveEnvironmentAsync(cmd.ProjectId, cmd.Environment, ct)
             ?? throw new InvalidOperationException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
 
@@ -34,7 +40,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         var isNew = secret is null;
-        secret ??= new SoftwareSecret(Guid.NewGuid(), cmd.ProjectId, key, cmd.ActorUserId, clock.UtcNow);
+        secret ??= new SoftwareSecret(Guid.NewGuid(), cmd.ProjectId, cmd.TenantId, key, cmd.ActorUserId, clock.UtcNow);
 
         var existingValue = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
         var valueId = existingValue?.Id ?? Guid.NewGuid();
@@ -67,6 +73,9 @@ public sealed class SoftwareSecretService(
 
     public async Task<string?> ReadAsync(ReadSoftwareSecretQuery query, CancellationToken ct = default)
     {
+        EnsureTenantScope(query.TenantId);
+        await EnsureAuthorizedAsync(query.ProjectId, Permission.Read, ct).ConfigureAwait(false);
+
         var environment = await ResolveEnvironmentAsync(query.ProjectId, query.Environment, ct).ConfigureAwait(false);
         if (environment is null)
         {
@@ -95,6 +104,36 @@ public sealed class SoftwareSecretService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return Encoding.UTF8.GetString(plaintext);
+    }
+
+    /// <summary>
+    /// Server-authoritative tenant gate: the command's tenant must match the ambient scope set by the
+    /// host edge (route/circuit). This is the central application-level cross-tenant check, backed in
+    /// depth by the EF tenant query filter and SQL Server row-level security.
+    /// </summary>
+    private void EnsureTenantScope(Guid requestedTenantId)
+    {
+        if (tenant.TenantId != requestedTenantId)
+        {
+            throw new UnauthorizedAccessException(
+                "Tenant scope mismatch: the request's tenant does not match the authenticated scope.");
+        }
+    }
+
+    /// <summary>
+    /// Routes the resource access decision through the central <see cref="IAuthorizationService"/>, which
+    /// confirms the project's true owning tenant matches the current scope (catching a "right scope,
+    /// foreign project" attempt even if the query filter were bypassed).
+    /// </summary>
+    private async Task EnsureAuthorizedAsync(Guid projectId, Permission action, CancellationToken ct)
+    {
+        var allowed = await authorization
+            .IsAllowedAsync(currentUser.UserId, new GrantScope(GrantScopeKind.Project, projectId), action, ct)
+            .ConfigureAwait(false);
+        if (!allowed)
+        {
+            throw new UnauthorizedAccessException($"Not authorized to {action} project {projectId}.");
+        }
     }
 
     private async Task<RuntimeEnvironment?> ResolveEnvironmentAsync(Guid projectId, string environment, CancellationToken ct)

@@ -52,14 +52,16 @@ REM          -Body '{ "value": "Server=db;User Id=app;Password=hunter2" }'
 REM
 REM      # Read (GET -> { key, value }):
 REM      Invoke-RestMethod -Method Get -Uri $secret
+REM
+REM    Tenant isolation is active (EF query filter + SQL Server row-level security).
+REM    Local dev uses Integrated Security and needs no extra logins. To also verify
+REM    RLS against the least-privilege runtime login, create the two logins from
+REM    db\setup-logins.sql and point the test at the app connection (see
+REM    docs\database-logins.md):
+REM        setx KEYWARD_APP_TEST_CONNECTION "Server=localhost;Database=amkeyward;User Id=amkeyward_app;Password=...;Encrypt=False"
 REM ============================================================================
 REM
 REM  STILL TODO (open work -- this is a v0.1 walking skeleton, not finished):
-REM    [Slice 4] Multi-tenancy + isolation: global users + 0..n tenants, the
-REM              composite query filter + SQL Server RLS (SESSION_CONTEXT), a
-REM              least-privilege runtime SQL login separate from migrations, the
-REM              adversarial cross-tenant test gate, and the central
-REM              IAuthorizationService. (RLS is NOT active yet.)
 REM    [Slice 5] Software-client API auth: per-(project,environment) tokens
 REM              (expiry/rotation/revocation + notifications) + rate limiting.
 REM              WARNING: the API at /keyward/api/v1 is currently UNAUTHENTICATED

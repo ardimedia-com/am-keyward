@@ -7,6 +7,15 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 4 — tenant isolation (defense in depth): every tenant-owned table carries a denormalized
+  `TenantId`; an EF Core global query filter scopes all reads to the ambient `ICurrentTenant`; SQL Server
+  **row-level security** (a schemabound predicate over `SESSION_CONTEXT('TenantId')`, applied by a
+  connection interceptor) enforces the same boundary inside the database as a backstop; and a central
+  `IAuthorizationService` resolves a resource's true owning tenant so a "right scope, foreign project"
+  attempt is denied. The host edge sets the server-authoritative scope (API route, Blazor circuit) via
+  `ITenantScopeSetter`. Two-login model documented (`amkeyward_app` runtime vs `amkeyward_migrator` DDL,
+  `db/setup-logins.sql` + `docs/database-logins.md`). Covered by an adversarial cross-tenant test at the
+  application layer, plus an RLS test that runs against the least-privilege login when configured.
 - Initial solution skeleton (Slice 0): layered projects — `Am.Keyward.Core` (pure domain/application),
   `Am.Keyward.Infrastructure`, `Am.Keyward.Contracts`, `Am.Keyward.Api`, `Am.Keyward.Ui.Blazor` (RCL),
   `Am.Keyward.Ui.Blazor.App` (standalone reference shell), and `Am.Keyward.Tests`.

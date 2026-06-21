@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Identity;
@@ -20,6 +21,14 @@ public class SoftwareSecretIntegrationTests
 {
     private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
 
+    /// <summary>Opens a DI scope with the server-authoritative tenant scope established (as a host edge would).</summary>
+    private static IServiceScope ScopeFor(ServiceProvider provider, Guid tenantId)
+    {
+        var scope = provider.CreateScope();
+        scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+        return scope;
+    }
+
     [TestMethod, TestCategory("Integration")]
     public async Task Store_then_read_roundtrips_and_is_encrypted_at_rest()
     {
@@ -32,7 +41,7 @@ public class SoftwareSecretIntegrationTests
         const string plaintext = "Server=db;User Id=app;Password=hunter2";
 
         // Arrange: ensure DB reachable, then seed tenant + project + Production environment.
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
             if (!await db.Database.CanConnectAsync())
@@ -49,14 +58,14 @@ public class SoftwareSecretIntegrationTests
         }
 
         // Act: store, then read (separate scopes = separate DbContext instances).
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             await scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
                 .StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "ConnectionStrings:Main", plaintext, ActorUserId: null));
         }
 
         string? readBack;
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             readBack = await scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
                 .ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "ConnectionStrings:Main", ActorUserId: null));
@@ -67,7 +76,7 @@ public class SoftwareSecretIntegrationTests
 
         // Assert: the value is encrypted at rest (the stored column never contains the plaintext),
         // and a tamper-evident audit entry exists for this tenant.
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
@@ -93,7 +102,7 @@ public class SoftwareSecretIntegrationTests
         var tenantId = Guid.NewGuid();
         var projectId = Guid.NewGuid();
 
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
             if (!await db.Database.CanConnectAsync())
@@ -111,14 +120,14 @@ public class SoftwareSecretIntegrationTests
         }
 
         // Both stores share one DbContext (mirrors the Blazor circuit-scoped context that triggered the bug).
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
             await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "ConnectionStrings:Main", "prod-value", null));
             await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Development", "ConnectionStrings:Main", "dev-value", null));
         }
 
-        using (var scope = provider.CreateScope())
+        using (var scope = ScopeFor(provider, tenantId))
         {
             var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
             Assert.AreEqual("prod-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "ConnectionStrings:Main", null)));

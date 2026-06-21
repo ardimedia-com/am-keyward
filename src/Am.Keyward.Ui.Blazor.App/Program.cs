@@ -3,12 +3,16 @@ using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+// Demo-only: every circuit operates inside the seeded demo tenant until sign-in exists.
+builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
 // AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside
 // the database. A real deployment supplies the connection string and a proper KEK provider.

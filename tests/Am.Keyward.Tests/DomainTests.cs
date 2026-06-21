@@ -71,7 +71,7 @@ public class DomainTests
     [TestMethod, TestCategory("Domain")]
     public void SoftwareSecret_keeps_one_value_per_environment_and_tracks_current_version()
     {
-        var secret = new SoftwareSecret(Guid.NewGuid(), Guid.NewGuid(), SecretKey.Create("Shopify:AccessToken"), null, DateTimeOffset.UnixEpoch);
+        var secret = new SoftwareSecret(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SecretKey.Create("Shopify:AccessToken"), null, DateTimeOffset.UnixEpoch);
         var envId = Guid.NewGuid();
 
         var value = secret.SetValue(Guid.NewGuid(), envId, Guid.NewGuid(), Sample(), DateTimeOffset.UnixEpoch);

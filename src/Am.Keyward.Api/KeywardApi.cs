@@ -1,7 +1,9 @@
+using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Am.Keyward.Api;
 
@@ -15,6 +17,16 @@ public static class KeywardApi
     public static IEndpointRouteBuilder MapKeywardApi(this IEndpointRouteBuilder endpoints, string prefix = "/keyward/api/v1")
     {
         var group = endpoints.MapGroup(prefix).WithTags("Keyward").DisableAntiforgery();
+
+        // Establish the server-authoritative tenant scope from the route's {tenantId} (the first route
+        // argument on every endpoint here), so the query filter and row-level security apply. Interim:
+        // Slice 5 derives the tenant from the software-client token and verifies it matches the route.
+        group.AddEndpointFilter(async (context, next) =>
+        {
+            var tenantId = context.GetArgument<Guid>(0);
+            context.HttpContext.RequestServices.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            return await next(context);
+        });
 
         group.MapPut(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/environments/{environment}/secrets/{**key}",
