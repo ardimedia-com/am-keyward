@@ -29,7 +29,7 @@ public sealed class SoftwareClientTokenService(
         var generated = SoftwareClientTokenGenerator.Generate();
         var token = new SoftwareClientToken(
             Guid.NewGuid(), cmd.TenantId, cmd.ProjectId, environment.Id, cmd.Name,
-            generated.Prefix, generated.Hash, cmd.ActorUserId, clock.UtcNow, cmd.ExpiresAt);
+            generated.Prefix, generated.Hash, cmd.ActorUserId, clock.UtcNow, cmd.ExpiresAt, cmd.Note);
 
         db.SoftwareClientTokens.Add(token);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -78,9 +78,20 @@ public sealed class SoftwareClientTokenService(
 
         return tokens
             .Select(t => new SoftwareClientTokenInfo(
-                t.Id, t.ProjectId, t.EnvironmentId, t.Name, t.TokenPrefix,
+                t.Id, t.ProjectId, t.EnvironmentId, t.Name, t.Note, t.TokenPrefix,
                 t.CreatedAt, t.ExpiresAt, t.LastRotatedAt, t.RevokedAt, t.IsActive(now)))
             .ToList();
+    }
+
+    public async Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+
+        var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+
+        token.UpdateDetails(name, note);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     private Task<SoftwareClientToken?> FindAsync(Guid tenantId, Guid tokenId, CancellationToken ct) =>

@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Software credentials UI — the `/secrets` page is now a list-first manager: it lists the project's secret
+  keys (filterable), View shows each environment's current value (masked, with Reveal) and lets you set or
+  change the value per environment, Add creates a key/value, and Delete… removes a secret via its detail.
+  Backed by new `ListSecretsAsync` / `GetSecretAsync` / `DeleteSecretAsync` service methods.
+- Client tokens — a token now has an editable name and a free-text note: issue with a note, edit the
+  name/note inline (panel above the list), and the list shows the note and a status badge. (Migration
+  `SoftwareClientTokenNote`.)
 - Vaults UI refinements: every list (vaults, folders, items, and the client-token list) gains a filter
   box for longer lists; an item's detail / add / edit panel now appears above the list on the same page
   (the list stays visible); and deletion is never one-click — choosing “Delete…” on an item opens its

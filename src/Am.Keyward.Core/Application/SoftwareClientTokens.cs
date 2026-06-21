@@ -7,7 +7,8 @@ public sealed record IssueSoftwareClientTokenCommand(
     string Environment,
     string Name,
     DateTimeOffset? ExpiresAt,
-    Guid? ActorUserId);
+    Guid? ActorUserId,
+    string Note = "");
 
 /// <summary>
 /// The result of issuing or rotating a token. <see cref="Token"/> is the plaintext, returned exactly
@@ -21,6 +22,7 @@ public sealed record SoftwareClientTokenInfo(
     Guid ProjectId,
     Guid EnvironmentId,
     string Name,
+    string Note,
     string TokenPrefix,
     DateTimeOffset CreatedAt,
     DateTimeOffset? ExpiresAt,
@@ -34,6 +36,9 @@ public interface ISoftwareClientTokenService
     Task<IssuedSoftwareClientToken> IssueAsync(IssueSoftwareClientTokenCommand command, CancellationToken ct = default);
 
     Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt, Guid? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Updates a token's name and note (does not change its secret, scope or expiry).</summary>
+    Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default);
 
     Task RevokeAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default);
 

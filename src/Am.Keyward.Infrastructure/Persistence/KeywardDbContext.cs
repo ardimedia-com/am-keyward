@@ -138,6 +138,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.ToTable("SoftwareClientTokens");
             e.HasKey(x => x.Id);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.Property(x => x.Note).HasMaxLength(1024).IsRequired();
             e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
             e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
             e.HasIndex(x => x.TokenPrefix).IsUnique();

@@ -16,6 +16,9 @@ public sealed class SoftwareClientToken
     public Guid EnvironmentId { get; private set; }
     public string Name { get; private set; }
 
+    /// <summary>Free-text note (e.g. where the token is deployed); never secret.</summary>
+    public string Note { get; private set; }
+
     /// <summary>Non-secret, indexed lookup handle (the leading segment of the token).</summary>
     public string TokenPrefix { get; private set; }
 
@@ -38,7 +41,8 @@ public sealed class SoftwareClientToken
         string tokenHash,
         Guid? createdBy,
         DateTimeOffset createdAt,
-        DateTimeOffset? expiresAt)
+        DateTimeOffset? expiresAt,
+        string? note = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -60,11 +64,24 @@ public sealed class SoftwareClientToken
         ProjectId = projectId;
         EnvironmentId = environmentId;
         Name = name.Trim();
+        Note = note?.Trim() ?? string.Empty;
         TokenPrefix = tokenPrefix;
         TokenHash = tokenHash;
         CreatedBy = createdBy;
         CreatedAt = createdAt;
         ExpiresAt = expiresAt;
+    }
+
+    /// <summary>Updates the (non-secret) name and note; does not touch the secret, scope or expiry.</summary>
+    public void UpdateDetails(string name, string? note)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Token name required.", nameof(name));
+        }
+
+        Name = name.Trim();
+        Note = note?.Trim() ?? string.Empty;
     }
 
     /// <summary>A token can authenticate only while it is neither revoked nor past its expiry.</summary>

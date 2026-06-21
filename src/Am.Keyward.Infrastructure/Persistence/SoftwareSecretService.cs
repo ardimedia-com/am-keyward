@@ -179,6 +179,94 @@ public sealed class SoftwareSecretService(
         return Encoding.UTF8.GetString(plaintext);
     }
 
+    // --- management surface (list / view / delete by key) ---
+
+    public async Task<IReadOnlyList<SoftwareSecretSummary>> ListSecretsAsync(Guid tenantId, Guid projectId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
+
+        var envNames = await db.RuntimeEnvironments
+            .Where(e => e.ProjectId == projectId)
+            .ToDictionaryAsync(e => e.Id, e => e.Name.Value, ct)
+            .ConfigureAwait(false);
+
+        var secrets = await db.SoftwareSecrets
+            .Where(s => s.ProjectId == projectId)
+            .Include(s => s.Values)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return secrets
+            .Select(s => new SoftwareSecretSummary(
+                s.Key.Value,
+                s.Values.Where(v => v.CurrentVersionId != null)
+                    .Select(v => envNames.GetValueOrDefault(v.EnvironmentId, "?"))
+                    .OrderBy(n => n)
+                    .ToList()))
+            .OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    public async Task<SoftwareSecretDetail?> GetSecretAsync(Guid tenantId, Guid projectId, string key, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
+
+        var secretKey = SecretKey.Create(key);
+        var environments = await db.RuntimeEnvironments
+            .Where(e => e.ProjectId == projectId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var secret = await db.SoftwareSecrets
+            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
+            .ConfigureAwait(false);
+        if (secret is null)
+        {
+            return null;
+        }
+
+        var values = new List<SecretEnvironmentValue>();
+        foreach (var environment in environments.OrderBy(e => e.Name.Value))
+        {
+            var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
+            if (value?.CurrentVersionId is null)
+            {
+                values.Add(new SecretEnvironmentValue(environment.Name.Value, false, null));
+                continue;
+            }
+
+            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environment.Id, secret.Id, value, ct).ConfigureAwait(false);
+            values.Add(new SecretEnvironmentValue(environment.Name.Value, true, plaintext));
+        }
+
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, null), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        return new SoftwareSecretDetail(secret.Key.Value, values);
+    }
+
+    public async Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
+
+        var secretKey = SecretKey.Create(key);
+        var secret = await db.SoftwareSecrets
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
+            .ConfigureAwait(false);
+        if (secret is null)
+        {
+            return;
+        }
+
+        db.SoftwareSecrets.Remove(secret); // values + versions cascade
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareSecret", secret.Id, actorUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Server-authoritative tenant gate: the command's tenant must match the ambient scope set by the
     /// host edge (route/circuit). This is the central application-level cross-tenant check, backed in
