@@ -97,6 +97,58 @@ public class VaultIntegrationTests
         Assert.IsEmpty(await vaultsB.ListVaultsAsync(userB));
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Item_crud_and_login_import_round_trip()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        Guid vaultId, itemId;
+        using (var scope = ScopeForUser(provider, userId))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            vaultId = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Logins"));
+            itemId = await vaults.AddItemAsync(new AddVaultItemCommand(
+                userId, vaultId, null, ItemType.Login, "GitHub", LoginContent.ToJson("https://github.com", "octocat", "p@ss", "personal")));
+        }
+
+        using (var scope = ScopeForUser(provider, userId))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+            var detail = await vaults.GetItemAsync(userId, itemId);
+            Assert.IsNotNull(detail);
+            var fields = LoginContent.Parse(detail.Content);
+            Assert.AreEqual("octocat", fields.Username);
+            Assert.AreEqual("p@ss", fields.Password);
+
+            // Edit -> new version.
+            await vaults.UpdateItemAsync(new UpdateVaultItemCommand(
+                userId, itemId, "GitHub (work)", null, LoginContent.ToJson("https://github.com", "octocat", "rotated", "work")));
+            var updated = await vaults.GetItemAsync(userId, itemId);
+            Assert.AreEqual("GitHub (work)", updated!.Name);
+            Assert.AreEqual("rotated", LoginContent.Parse(updated.Content).Password);
+
+            // Import (e.g. an Edge export).
+            var count = await vaults.ImportLoginsAsync(userId, vaultId,
+            [
+                new ImportedLogin("Site A", "https://a.example", "ua", "pa", ""),
+                new ImportedLogin("Site B", "https://b.example", "ub", "pb", ""),
+            ]);
+            Assert.AreEqual(2, count);
+            Assert.HasCount(3, await vaults.ListItemsAsync(userId, vaultId));
+
+            // Delete.
+            await vaults.DeleteItemAsync(userId, itemId);
+            Assert.HasCount(2, await vaults.ListItemsAsync(userId, vaultId));
+        }
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();

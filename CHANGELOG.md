@@ -7,6 +7,12 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Vaults — full CRUD + structured logins + import (service): items can be edited (a re-encrypted new
+  version) and deleted; folders and vaults can be renamed and deleted (vault deletion also removes its
+  access grants); a Login item's content is structured as url / username / password / note (JSON inside the
+  encrypted value, shared by UI and importer via `LoginContent`); and logins can be bulk-imported from a
+  browser password export (`ImportLoginsAsync`). `GetItemAsync` returns an item with its decrypted content
+  for viewing/editing.
 - Slice 7 (part 1) — ops hardening: an audit-chain verifier (`IAuditChainVerifier`) walks a tenant's
   hash chain in sequence order and recomputes each link, detecting a tampered entry, a broken previous-hash
   link, or a sequence gap; the chain hash moved to a shared helper so the writer and verifier cannot drift.

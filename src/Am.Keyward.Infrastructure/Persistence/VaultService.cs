@@ -243,6 +243,157 @@ public sealed class VaultService(
             .ConfigureAwait(false);
     }
 
+    public async Task RenameVaultAsync(Guid userId, Guid vaultId, string name, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+        vault.Rename(name);
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteVaultAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+
+        // Remove the vault's access grants (no FK to clean them up automatically), then the vault itself
+        // (folders / items / versions cascade).
+        var grants = await db.AccessGrants
+            .Where(g => g.Scope.Kind == GrantScopeKind.Vault && g.Scope.TargetId == vaultId)
+            .ToListAsync(ct).ConfigureAwait(false);
+        db.AccessGrants.RemoveRange(grants);
+        db.Vaults.Remove(vault);
+
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Delete, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task RenameFolderAsync(Guid userId, Guid vaultId, Guid folderId, string name, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+        var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == folderId && f.VaultId == vaultId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Folder {folderId} not found.");
+        folder.Rename(name);
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteFolderAsync(Guid userId, Guid vaultId, Guid folderId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+
+        // Move the folder's items back to the vault root (FolderId has no FK), then delete the folder.
+        await db.VaultItems
+            .Where(i => i.VaultId == vaultId && i.FolderId == folderId)
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.FolderId, (Guid?)null), ct)
+            .ConfigureAwait(false);
+        await db.Folders.Where(f => f.Id == folderId && f.VaultId == vaultId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
+
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task UpdateItemAsync(UpdateVaultItemCommand cmd, CancellationToken ct = default)
+    {
+        EnsureUserScope(cmd.UserId);
+
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == cmd.ItemId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Item {cmd.ItemId} not found.");
+        var vault = await LoadAuthorizedVaultAsync(cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+
+        item.Rename(cmd.Name);
+        item.MoveToFolder(cmd.FolderId);
+
+        var versionId = Guid.NewGuid();
+        var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, versionId, AlgVersion);
+        var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(cmd.Content), aad, ct).ConfigureAwait(false);
+        item.AddVersion(versionId, encrypted, clock.UtcNow);
+        db.VaultItemVersions.Add(item.Current); // new version of a tracked item -> mark Added explicitly
+
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteItemAsync(Guid userId, Guid itemId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        var item = await db.VaultItems.FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+        if (item is null)
+        {
+            return;
+        }
+
+        var vault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        db.VaultItems.Remove(item); // versions cascade
+
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Delete, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<VaultItemDetail?> GetItemAsync(Guid userId, Guid itemId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+        if (item?.CurrentVersionId is null)
+        {
+            return null;
+        }
+
+        var vault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+
+        var version = item.Versions.Single(v => v.Id == item.CurrentVersionId);
+        var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
+        var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
+
+        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        return new VaultItemDetail(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, Encoding.UTF8.GetString(plaintext));
+    }
+
+    public async Task<int> ImportLoginsAsync(Guid userId, Guid vaultId, IReadOnlyList<ImportedLogin> logins, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+
+        var imported = 0;
+        foreach (var login in logins)
+        {
+            if (string.IsNullOrWhiteSpace(login.Name) && string.IsNullOrWhiteSpace(login.Url) && string.IsNullOrWhiteSpace(login.Username))
+            {
+                continue; // skip blank rows
+            }
+
+            var item = new VaultItem(
+                Guid.NewGuid(), vault.Id, vault.TenantId, vault.OwnerUserId, folderId: null, ItemType.Login,
+                string.IsNullOrWhiteSpace(login.Name) ? (login.Url is { Length: > 0 } ? login.Url : "Imported login") : login.Name,
+                userId, clock.UtcNow);
+
+            var versionId = Guid.NewGuid();
+            var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, versionId, AlgVersion);
+            var content = LoginContent.ToJson(login.Url, login.Username, login.Password, login.Note);
+            var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(content), aad, ct).ConfigureAwait(false);
+            item.AddVersion(versionId, encrypted, clock.UtcNow);
+            db.VaultItems.Add(item);
+            imported++;
+        }
+
+        if (imported > 0)
+        {
+            await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Create, "VaultItem", vault.Id, userId), ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        return imported;
+    }
+
     /// <summary>
     /// Loads a vault the current user may access at <paramref name="permission"/>: personal vaults are
     /// owner-only; tenant vaults require a matching access grant (via the central authorization service).

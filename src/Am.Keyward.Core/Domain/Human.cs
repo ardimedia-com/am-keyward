@@ -64,6 +64,16 @@ public sealed class Vault
         _folders.Add(folder);
         return folder;
     }
+
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Vault name required.", nameof(name));
+        }
+
+        Name = name.Trim();
+    }
 }
 
 /// <summary>Belongs to exactly one vault and inherits its tenant/owner/protection. Flat (no nesting) in v0.1.</summary>
@@ -149,6 +159,16 @@ public sealed class VaultItem
         _versions.Add(version);
         CurrentVersionId = version.Id;
         return version;
+    }
+
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Item name required.", nameof(name));
+        }
+
+        Name = name.Trim();
     }
 
     /// <summary>Reparent within the same vault (null = vault root). Cross-vault moves are not allowed.</summary>
