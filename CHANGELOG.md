@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Vaults UI — list-first workspace, split into separate **Personal vaults** (`/vaults/personal`) and
+  **Team vaults** (`/vaults/team`) pages. Each lists vaults → select one → lists its folders and items;
+  choosing View / Add / Edit / Delete on an item shows it with the matching actions. Login items have
+  name / url / username / password / note fields (password masked, with reveal); other types a single
+  value. Each vault can import a browser password CSV (Edge / Chrome). Team pages add sharing (grant a
+  user Read / Write / Manage and see current shares). Every entity carries a short in-page explanation,
+  and all pages now use the browser title "AM KEYWARD".
 - Vaults — full CRUD + structured logins + import (service): items can be edited (a re-encrypted new
   version) and deleted; folders and vaults can be renamed and deleted (vault deletion also removes its
   access grants); a Login item's content is structured as url / username / password / note (JSON inside the
