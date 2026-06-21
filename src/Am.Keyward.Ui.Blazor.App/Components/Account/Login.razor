@@ -37,14 +37,16 @@
 
     private async Task LoginUser()
     {
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: false);
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, isPersistent: true, lockoutOnFailure: true);
         if (result.Succeeded)
         {
             Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
             return;
         }
 
-        errorMessage = "Invalid email or password.";
+        errorMessage = result.IsLockedOut
+            ? "This account is temporarily locked after too many failed attempts. Try again later."
+            : "Invalid email or password.";
     }
 
     private sealed class InputModel

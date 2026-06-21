@@ -7,6 +7,10 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 7 (part 1) — ops hardening: an audit-chain verifier (`IAuditChainVerifier`) walks a tenant's
+  hash chain in sequence order and recomputes each link, detecting a tampered entry, a broken previous-hash
+  link, or a sequence gap; the chain hash moved to a shared helper so the writer and verifier cannot drift.
+  Sign-in lockout is enabled (5 failed attempts → a 5-minute lockout) to blunt password brute-forcing.
 - Slice 6b (part 3) — tenant ("team") vaults + sharing: create a tenant-owned vault (the creator gets a
   Manage grant) and share it with other users at Read / Write / Manage via `AccessGrant`s; tenant vaults
   are reachable only through a grant. The central `IAuthorizationService` now evaluates vault grants, with

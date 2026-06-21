@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
         services.AddScoped<IAuditSink, DbAuditSink>();
+        services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
 
         // The software-secrets service serves both the management path (by environment name) and the
         // software-client read path (by environment id); expose the one scoped instance via both ports.

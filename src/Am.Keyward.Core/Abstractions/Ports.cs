@@ -82,6 +82,15 @@ public interface IAuditSink
     ValueTask AppendAsync(AuditRequest request, CancellationToken ct = default);
 }
 
+/// <summary>The result of verifying a tenant's audit hash chain.</summary>
+public sealed record AuditChainStatus(bool IsIntact, long EntriesChecked, long? FirstBrokenSequence, string? Detail);
+
+/// <summary>Walks a tenant's audit chain and recomputes the hashes to detect tampering or gaps.</summary>
+public interface IAuditChainVerifier
+{
+    Task<AuditChainStatus> VerifyAsync(Guid? tenantId, CancellationToken ct = default);
+}
+
 /// <summary>Resolves the connection string per tenant (shared DB by default; DB-per-tenant later).</summary>
 public interface ITenantConnectionResolver
 {

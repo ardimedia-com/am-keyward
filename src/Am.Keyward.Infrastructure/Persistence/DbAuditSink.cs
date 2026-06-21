@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Audit;
 using Microsoft.EntityFrameworkCore;
@@ -25,28 +23,14 @@ public sealed class DbAuditSink(KeywardDbContext db, IClock clock) : IAuditSink
             .ConfigureAwait(false);
 
         var sequence = (prev?.Sequence ?? 0) + 1;
-        var previousHash = prev?.Hash ?? new string('0', 64);
+        var previousHash = prev?.Hash ?? AuditChainHash.GenesisHash;
         var occurredAt = clock.UtcNow;
-        var hash = ComputeHash(request, sequence, occurredAt, previousHash);
+        var hash = AuditChainHash.Compute(
+            request.TenantId, sequence, request.Action, request.ResourceType,
+            request.ResourceId, request.ActorPseudonymId, occurredAt, previousHash);
 
         db.AuditEntries.Add(new AuditEntry(
             Guid.NewGuid(), request.TenantId, sequence, request.Action, request.ResourceType,
             request.ResourceId, request.ActorPseudonymId, occurredAt, previousHash, hash));
-    }
-
-    private static string ComputeHash(AuditRequest r, long sequence, DateTimeOffset at, string previousHash)
-    {
-        var canonical = string.Join('|',
-        [
-            r.TenantId?.ToString("D") ?? "-",
-            sequence.ToString(),
-            r.Action.ToString(),
-            r.ResourceType,
-            r.ResourceId?.ToString("D") ?? "-",
-            r.ActorPseudonymId?.ToString("D") ?? "-",
-            at.ToString("O"),
-            previousHash,
-        ]);
-        return Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 }
