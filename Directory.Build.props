@@ -1,0 +1,13 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <Company>Ardimedia Anstalt</Company>
+    <Product>AM KEYWARD</Product>
+    <Copyright>Copyright (c) 2026 Ardimedia Anstalt</Copyright>
+  </PropertyGroup>
+
+</Project>

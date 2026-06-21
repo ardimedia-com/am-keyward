@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Am.Keyward.Api/Am.Keyward.Api.csproj" />
+    <Project Path="src/Am.Keyward.Contracts/Am.Keyward.Contracts.csproj" />
+    <Project Path="src/Am.Keyward.Core/Am.Keyward.Core.csproj" />
+    <Project Path="src/Am.Keyward.Infrastructure/Am.Keyward.Infrastructure.csproj" />
+    <Project Path="src/Am.Keyward.Ui.Blazor.App/Am.Keyward.Ui.Blazor.App.csproj" />
+    <Project Path="src/Am.Keyward.Ui.Blazor/Am.Keyward.Ui.Blazor.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Am.Keyward.Tests/Am.Keyward.Tests.csproj" />
+  </Folder>
+</Solution>
