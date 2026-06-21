@@ -1,27 +1,47 @@
+using Am.Keyward.Api;
+using Am.Keyward.Infrastructure;
+using Am.Keyward.Infrastructure.Persistence;
+using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside
+// the database. A real deployment supplies the connection string and a proper KEK provider.
+var connectionString = builder.Configuration.GetConnectionString("Keyward")
+    ?? "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+var (kek, kekId) = DevKek.LoadOrCreate(builder.Environment.ContentRootPath);
+builder.Services.AddKeyward(connectionString, kek, kekId);
+
 var app = builder.Build();
+
+// Apply migrations and seed the demo tenant/project (dev convenience).
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+    await db.Database.MigrateAsync();
+    await Demo.EnsureSeededAsync(db);
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapKeywardApi();
 
 app.Run();

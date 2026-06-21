@@ -74,12 +74,12 @@ public class SoftwareSecretIntegrationTests
             var storedColumns = await db.Database
                 .SqlQueryRaw<string>("SELECT [Encrypted] AS [Value] FROM [amkeyward].[SecretVersions]")
                 .ToListAsync();
-            Assert.IsTrue(storedColumns.Count > 0);
+            Assert.IsNotEmpty(storedColumns);
             Assert.IsFalse(storedColumns.Any(c => c.Contains("hunter2", StringComparison.Ordinal)),
                 "Plaintext must never be stored at rest.");
 
             var auditCount = await db.AuditEntries.CountAsync(a => a.TenantId == tenantId);
-            Assert.IsTrue(auditCount >= 2, "Store and read should both be audited.");
+            Assert.IsGreaterThanOrEqualTo(2, auditCount, "Store and read should both be audited.");
         }
     }
 }

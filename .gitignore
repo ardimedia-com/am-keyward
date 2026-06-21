@@ -484,3 +484,8 @@ $RECYCLE.BIN/
 # AM KEYWARD - internal design/planning docs (not published)
 .claude/
 
+
+# AM KEYWARD - dev KEK key file (never commit a key)
+kek.dev.key
+*.dev.key
+

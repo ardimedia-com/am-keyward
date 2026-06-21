@@ -30,3 +30,8 @@ All notable changes to this project are documented here, following
   minimal per-tenant hash-chained `DbAuditSink`, and the `AddKeyward` DI registration. Proven by an
   end-to-end integration test (DI → SQL Server → encrypt/store → read/decrypt; value encrypted at rest;
   operations audited).
+- Slice 3 (walking skeleton, hosting) — `Am.Keyward.Api` (`MapKeywardApi`, versioned under
+  `/keyward/api/v1`; unauthenticated for now — token auth lands in a later slice) and the standalone
+  reference shell wired up: `AddKeyward`, startup migrate + demo tenant/project seed, a dev KEK loaded
+  from a local key file outside the database, and a `/secrets` Blazor page. Verified end-to-end over
+  HTTP against SQL Server (store → encrypted at rest → read).
