@@ -15,6 +15,12 @@ All notable changes to this project are documented here, following
   at commit by a `SaveChanges` interceptor under a session-scoped SQL Server application lock, so concurrent
   appends (even across instances) cannot fork a tenant's chain or collide on its sequence — replacing the
   previous read-max-then-insert that could race.
+- Slice 7 (part 3) — runtime migration safety-net: a background service periodically re-checks both
+  contexts for pending migrations and applies them, so the app recovers if the database is
+  swapped/restored under the running instance (the startup migration would otherwise be bypassed). EF
+  serializes across instances via its migration lock; best-effort and configurable via the
+  `DatabaseMigration` section (`Enabled`, `CheckIntervalSeconds`). The cleaner operational fix — recycle
+  the app whenever the DB is swapped — still applies.
 - Slice 6b (part 3) — tenant ("team") vaults + sharing: create a tenant-owned vault (the creator gets a
   Manage grant) and share it with other users at Read / Write / Manage via `AccessGrant`s; tenant vaults
   are reachable only through a grant. The central `IAuthorizationService` now evaluates vault grants, with

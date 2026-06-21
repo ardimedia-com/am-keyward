@@ -79,6 +79,10 @@ builder.Services.AddAuthorizationBuilder()
         policy.RequireAuthenticatedUser();
     });
 
+// Runtime migration safety-net (covers the DB being swapped under the running app).
+builder.Services.Configure<DatabaseMigrationOptions>(builder.Configuration.GetSection(DatabaseMigrationOptions.SectionName));
+builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.DatabaseMigrationBackgroundService>();
+
 var app = builder.Build();
 
 // Apply migrations (both contexts) and seed the demo tenant/project (dev convenience).

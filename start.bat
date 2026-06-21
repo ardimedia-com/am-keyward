@@ -20,6 +20,9 @@ REM    - A local SQL Server reachable on "localhost" via Integrated Security.
 REM      The database "amkeyward" is created + migrated on startup and a demo
 REM      tenant/project (Dev/Test/Preview/Production) is seeded automatically.
 REM      To reset, drop the "amkeyward" database; startup recreates it.
+REM      A runtime safety-net also re-checks for pending migrations periodically
+REM      (in case the DB is swapped under the running app); configure via the
+REM      "DatabaseMigration" section in appsettings.json (Enabled / CheckIntervalSeconds).
 REM    - A dev KEK is auto-created as "kek.dev.key" in the shell folder
 REM      (gitignored, kept OUTSIDE the database). Production uses a real KEK
 REM      provider (Azure Key Vault / HSM) instead -- see SECURITY.md.
