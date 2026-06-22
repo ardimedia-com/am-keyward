@@ -67,10 +67,14 @@ jobs:
       - name: Push to nuget.org
         shell: bash
         run: |
-          dotnet nuget push "artifacts/*.nupkg" \
-            --source https://api.nuget.org/v3/index.json \
-            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
-            --skip-duplicate
+          # dotnet nuget push doesn't expand a wildcard path itself, so let bash expand it and push each
+          # package (the matching .snupkg symbol package is pushed alongside automatically).
+          for pkg in artifacts/*.nupkg; do
+            dotnet nuget push "$pkg" \
+              --source https://api.nuget.org/v3/index.json \
+              --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
+              --skip-duplicate
+          done
 
       - name: Create GitHub Release
         env:
