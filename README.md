@@ -74,6 +74,96 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 - [Operations & KEK/DR runbook](docs/operations-runbook.md) — key custody, backup/restore order, KEK
   rotation and compromise response, monitoring/health endpoints, break-glass, GDPR erasure.
 
+## Embedding in your own ASP.NET Core / Blazor app
+
+AM KEYWARD is library-first: you add it to your own Blazor Web App and it brings its services, API, and
+feature UI. There are no published NuGet packages yet, so reference the projects directly
+(`Am.Keyward.Infrastructure`, `Am.Keyward.Api`, `Am.Keyward.Ui.Blazor`) via `ProjectReference` (e.g. as a
+git submodule) until packages ship.
+
+**1. Register the services** — one call wires up the EF Core `DbContext` (schema `amkeyward`), envelope
+crypto, audit, vaults, tokens, break-glass and monitoring:
+
+```csharp
+// The KEK comes from your provider (Azure Key Vault / HSM / a protected file) — NEVER from the DB/appsettings.
+var keywardConn = builder.Configuration.GetConnectionString("Keyward")!;
+var (kek, kekId) = LoadKekFromYourProvider();
+builder.Services.AddKeyward(keywardConn, kek, kekId);
+
+// Tell the embedded UI which tenant/project to operate in (from your own selection logic).
+builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
+
+// Optional: the software-client read API + its named "Keyward.SoftwareClient" bearer scheme.
+builder.Services.AddKeywardSoftwareClientApi();
+```
+
+**2. Bind identity at the edge.** The libraries are identity-agnostic: they read `ICurrentUser` /
+`ICurrentTenant`, which you set from *your* auth. Map your signed-in principal to a Keyward `AppUser` id and
+set it (plus the active tenant) per request and per Blazor circuit:
+
+```csharp
+app.Use(async (context, next) =>
+{
+    if (TryGetKeywardUserId(context.User, out var userId))
+        context.RequestServices.GetRequiredService<IUserScopeSetter>().SetUser(userId);
+    context.RequestServices.GetRequiredService<ITenantScopeSetter>().SetTenant(ResolveActiveTenant(context.User));
+    await next();
+});
+```
+
+(For interactive Blazor circuits, set the same via a `CircuitHandler` — see the reference shell's
+`DemoTenantCircuitHandler`.)
+
+**3. Discover the feature pages.** The pages live under the `/amkeyward/*` route prefix (so they can't
+collide with your routes). Add the RCL assembly to both the endpoint and the router:
+
+```csharp
+app.MapRazorComponents<App>()
+   .AddInteractiveServerRenderMode()
+   .AddAdditionalAssemblies(typeof(Am.Keyward.Ui.Blazor.KeywardRoutes).Assembly);
+```
+```razor
+<Router AppAssembly="..." AdditionalAssemblies="new[] { typeof(Am.Keyward.Ui.Blazor.KeywardRoutes).Assembly }" />
+```
+
+**4. Drop the navigation into your layout** (localized, auth-aware, no hardcoded routes):
+
+```razor
+<KeywardNav />
+```
+
+**Styling and routes come for free.** The UI theme is component-scoped CSS in the RCL, so it is folded into
+your app's standard `{Assembly}.styles.css` bundle automatically — no extra stylesheet `<link>` needed.
+Override the look by redefining the `--kw-*` CSS variables on `.keyward-ui`. The feature routes are the
+`/amkeyward/*` namespace; use the `KeywardRoutes` constants for links.
+
+### Database & migrations
+
+- **You provide the database via the connection string** passed to `AddKeyward(connectionString, …)`.
+  AM KEYWARD is **SQL Server only** (incl. Azure SQL). The reference shell reads it from
+  `ConnectionStrings:Keyward` (override it in `appsettings.json`, an environment variable, or user-secrets;
+  it falls back to a `localhost` dev default). AM KEYWARD never hardcodes the database name — that lives in
+  *your* connection string.
+- **It coexists in your database.** All AM KEYWARD tables live in a dedicated **schema `amkeyward`** with a
+  **schema-scoped migrations-history table**, so you can point it at the same database your host app already
+  uses without colliding with your tables or your own EF migrations.
+- **Migrations are not automatic just from the connection string.** `AddKeyward` only registers the
+  `DbContext`; the connection string only says *where* the database is. Apply Keyward's migrations one of
+  these ways (the reference shell does the first two):
+  - call `MigrateAsync()` at startup — this **creates the database if it doesn't exist** and applies pending
+    migrations:
+    ```csharp
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().Database.MigrateAsync();
+    ```
+  - and/or run a periodic safety-net (re-applies pending migrations if the DB is swapped under a running
+    app) — see the reference shell's `DatabaseMigrationBackgroundService` and the `DatabaseMigration`
+    config section (`Enabled`, `CheckIntervalSeconds`);
+  - or apply them out-of-band in your deploy step (`dotnet ef database update`).
+- **Two database logins (production).** Migrate with an elevated DDL login and run with a **least-privilege
+  login that is an RLS subject** (not `db_owner`/`sysadmin`, which would bypass row-level security). Local
+  development uses Integrated Security for both. See [docs/database-logins.md](docs/database-logins.md).
+
 ## Tech
 
 .NET 10 · Blazor Server · ASP.NET Core · EF Core (Microsoft SQL Server) · MIT licensed.
