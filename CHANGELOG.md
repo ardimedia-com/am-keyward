@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- The RCL now ships its own stylesheet so the embedded pages look themed without depending on the
+  standalone shell's CSS: a static web asset at `_content/Am.Keyward.Ui.Blazor/keyward.css`, fully scoped
+  under a `.keyward-ui` wrapper (with its own CSS variables) so importing it into a host can never restyle
+  the host's own buttons/inputs/tables. The RCL feature pages are wrapped in `.keyward-ui`; a host links the
+  one stylesheet (or overrides the `--kw-*` variables / ships its own). The reference shell links it too.
+
 ### Changed
 
 - The Keyward feature UI is now **embeddable**: the routable pages (`/secrets`, `/vaults/personal`,
