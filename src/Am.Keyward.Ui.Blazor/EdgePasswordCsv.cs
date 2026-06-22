@@ -1,6 +1,6 @@
 using Am.Keyward.Core.Application;
 
-namespace Am.Keyward.Ui.Blazor.App;
+namespace Am.Keyward.Ui.Blazor;
 
 /// <summary>
 /// Parses a browser password-export CSV (Microsoft Edge / Google Chrome format, header columns

@@ -31,6 +31,10 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 // Demo-only: every circuit operates inside the seeded demo tenant (sign-in identifies the user, not the tenant yet).
 builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
+// The workspace context the embedded Keyward UI pages (RCL) read for their tenant/project. The reference
+// shell points it at the demo tenant/project; a real host supplies its own selection.
+builder.Services.AddScoped<Am.Keyward.Ui.Blazor.IKeywardWorkspaceContext, DemoWorkspaceContext>();
+
 // AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside
 // the database. A real deployment supplies the connection string and a proper KEK provider.
 var connectionString = builder.Configuration.GetConnectionString("Keyward")
@@ -151,7 +155,10 @@ app.UseRateLimiter();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode()
+    // Discover the routable feature pages that live in the Am.Keyward.Ui.Blazor RCL (endpoint routing in
+    // the Blazor Web App model scans the App assembly by default; RCL pages must be added explicitly).
+    .AddAdditionalAssemblies(typeof(Am.Keyward.Ui.Blazor.Pages.Secrets).Assembly);
 
 app.MapKeywardApi(authorizationPolicy: managementPolicy);  // management API: signed-in admin (cookie)
 app.MapKeywardClientApi();                                  // software-client read API: token + rate limited

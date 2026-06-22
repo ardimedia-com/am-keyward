@@ -1,11 +1,6 @@
-@using Am.Keyward.Core.Application
-@using Am.Keyward.Core.Domain
-@using Am.Keyward.Ui.Blazor.App
-@using Am.Keyward.Ui.Blazor.App.Identity
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.AspNetCore.Components.Forms
 @inject IVaultService VaultService
-@inject AuthenticationStateProvider AuthState
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
 
 @if (status is not null)
@@ -313,7 +308,7 @@
     [Parameter] public bool Team { get; set; }
 
     private Guid? actorUserId;
-    private readonly Guid tenantId = Demo.TenantId;
+    private Guid tenantId;
 
     private IReadOnlyList<VaultSummary>? vaults;
     private Guid? selectedVaultId;
@@ -357,12 +352,8 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var state = await AuthState.GetAuthenticationStateAsync();
-        if (Guid.TryParse(state.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var id))
-        {
-            actorUserId = id;
-        }
-
+        actorUserId = CurrentUser.UserId;
+        tenantId = Workspace.TenantId;
         await ReloadVaultsAsync();
     }
 

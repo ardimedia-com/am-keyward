@@ -2,12 +2,9 @@
 @* Prerender disabled: loads tenant-scoped data in OnInitializedAsync, set by the circuit handler. *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
-@using Am.Keyward.Core.Application
-@using Am.Keyward.Ui.Blazor.App
-@using Am.Keyward.Ui.Blazor.App.Identity
-@using Microsoft.AspNetCore.Components.Authorization
 @inject ISoftwareClientTokenService TokenService
-@inject AuthenticationStateProvider AuthState
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
 
 <PageTitle>AM KEYWARD</PageTitle>
@@ -136,16 +133,11 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var authState = await AuthState.GetAuthenticationStateAsync();
-        if (Guid.TryParse(authState.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var id))
-        {
-            actorUserId = id;
-        }
-
+        actorUserId = CurrentUser.UserId;
         await RefreshAsync();
     }
 
-    private async Task RefreshAsync() => list = await TokenService.ListAsync(Demo.TenantId, Demo.ProjectId);
+    private async Task RefreshAsync() => list = await TokenService.ListAsync(Workspace.TenantId, Workspace.ProjectId);
 
     private async Task IssueAsync()
     {
@@ -155,7 +147,7 @@
         {
             var expiresAt = expiresInDays is > 0 ? DateTimeOffset.UtcNow.AddDays(expiresInDays.Value) : (DateTimeOffset?)null;
             var issued = await TokenService.IssueAsync(
-                new IssueSoftwareClientTokenCommand(Demo.TenantId, Demo.ProjectId, environment, name, expiresAt, actorUserId, note));
+                new IssueSoftwareClientTokenCommand(Workspace.TenantId, Workspace.ProjectId, environment, name, expiresAt, actorUserId, note));
             issuedToken = issued.Token;
             status = (Loc["Token.Msg.Issued", name, environment], false);
             name = ""; note = "";
@@ -178,7 +170,7 @@
         busy = true; status = null;
         try
         {
-            await TokenService.UpdateAsync(Demo.TenantId, editingTokenId.Value, editName, editNote, actorUserId);
+            await TokenService.UpdateAsync(Workspace.TenantId, editingTokenId.Value, editName, editNote, actorUserId);
             editingTokenId = null;
             await RefreshAsync();
             status = (Loc["Token.Msg.Updated"], false);
@@ -193,7 +185,7 @@
         busy = true; status = null; issuedToken = null;
         try
         {
-            var rotated = await TokenService.RotateAsync(Demo.TenantId, tokenId, null, actorUserId);
+            var rotated = await TokenService.RotateAsync(Workspace.TenantId, tokenId, null, actorUserId);
             issuedToken = rotated.Token;
             status = (Loc["Token.Msg.Rotated"], false);
             await RefreshAsync();
@@ -208,7 +200,7 @@
         busy = true; status = null;
         try
         {
-            await TokenService.RevokeAsync(Demo.TenantId, tokenId, actorUserId);
+            await TokenService.RevokeAsync(Workspace.TenantId, tokenId, actorUserId);
             status = (Loc["Token.Msg.Revoked"], false);
             await RefreshAsync();
         }

@@ -5,6 +5,18 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- The Keyward feature UI is now **embeddable**: the routable pages (`/secrets`, `/vaults/personal`,
+  `/vaults/team`, `/tokens`) plus the `VaultWorkspace` component, the `SharedResource` localizer and all
+  `.resx`, and the `EdgePasswordCsv` importer moved from the standalone shell into the reusable RCL
+  `Am.Keyward.Ui.Blazor`. The pages no longer depend on the shell's demo seed or ASP.NET Identity: they read
+  the actor from the `ICurrentUser` port and the active tenant/project from a new host-supplied
+  `IKeywardWorkspaceContext` seam (the reference shell implements it via `DemoWorkspaceContext`). A host
+  embeds the pages by referencing the RCL, registering an `IKeywardWorkspaceContext`, and adding the RCL
+  assembly to `MapRazorComponents<App>().AddAdditionalAssemblies(...)` and the router. The standalone shell
+  keeps the host concerns (App/Routes, layout, account, home/not-found/error).
+
 ## [0.1.0] - 2026-06-22
 
 First tagged pre-1.0 release: the full v0.1 walking-skeleton-to-breadth build (Slices 0–8) — software

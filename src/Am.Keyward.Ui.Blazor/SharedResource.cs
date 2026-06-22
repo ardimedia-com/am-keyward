@@ -1,4 +1,4 @@
-namespace Am.Keyward.Ui.Blazor.App;
+namespace Am.Keyward.Ui.Blazor;
 
 /// <summary>
 /// Marker type for the shared UI string resources. Inject <c>IStringLocalizer&lt;SharedResource&gt;</c>
