@@ -100,4 +100,123 @@
   <data name="Profile.Desc" xml:space="preserve"><value>Dein Konto.</value></data>
   <data name="Profile.Email" xml:space="preserve"><value>E-Mail</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>System-Administrator</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Wird geladen…</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Speichern</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Schliessen</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Bearbeiten</value></data>
+  <data name="Common.Delete" xml:space="preserve"><value>Löschen</value></data>
+  <data name="Common.DeleteEllipsis" xml:space="preserve"><value>Löschen…</value></data>
+  <data name="Common.View" xml:space="preserve"><value>Ansehen</value></data>
+  <data name="Common.Rename" xml:space="preserve"><value>Umbenennen</value></data>
+  <data name="Common.Reveal" xml:space="preserve"><value>Anzeigen</value></data>
+  <data name="Common.Hide" xml:space="preserve"><value>Verbergen</value></data>
+  <data name="Common.Yes" xml:space="preserve"><value>Ja</value></data>
+  <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Common.Note" xml:space="preserve"><value>Notiz</value></data>
+  <data name="Common.Type" xml:space="preserve"><value>Typ</value></data>
+  <data name="Common.Environment" xml:space="preserve"><value>Umgebung</value></data>
+  <data name="Common.Error" xml:space="preserve"><value>Fehler: </value></data>
+  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Team-Tresore</value></data>
+  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Deine Tresore</value></data>
+  <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team-Tresore gehören dem Mandanten und werden über Berechtigungen mit Personen geteilt. Du siehst jene, die dir gehören oder auf die dir Zugriff gewährt wurde. Wenn du einen Tresor teilst, kann ein Kollege seine Einträge lesen oder bearbeiten.</value></data>
+  <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Persönliche Tresore gehören nur dir — niemand sonst kann sie sehen. Verwende sie für deine eigenen Logins, Notizen und Secrets.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>Noch keine Tresore — erstelle unten einen.</value></data>
+  <data name="Vault.Filter" xml:space="preserve"><value>Tresore filtern…</value></data>
+  <data name="Vault.NewNameTeam" xml:space="preserve"><value>Name des neuen Team-Tresors</value></data>
+  <data name="Vault.NewNamePersonal" xml:space="preserve"><value>Name des neuen Tresors</value></data>
+  <data name="Vault.Create" xml:space="preserve"><value>Tresor erstellen</value></data>
+  <data name="Vault.Delete" xml:space="preserve"><value>Tresor löschen</value></data>
+  <data name="Vault.ConfirmDelete" xml:space="preserve"><value>Diesen Tresor und alle seine Einträge löschen? Dies kann nicht rückgängig gemacht werden.</value></data>
+  <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Ja, löschen</value></data>
+  <data name="Vault.Import.Title" xml:space="preserve"><value>Logins importieren</value></data>
+  <data name="Vault.Import.Desc" xml:space="preserve"><value>Lade einen Browser-Passwortexport hoch (Microsoft Edge / Chrome CSV: name, url, username, password, note). Jede Zeile wird zu einem Login-Eintrag in diesem Tresor.</value></data>
+  <data name="Vault.Folders.Title" xml:space="preserve"><value>Ordner</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Ordner sind optionale Bezeichnungen, um Einträge innerhalb eines Tresors zu gruppieren. Beim Löschen eines Ordners bleiben seine Einträge erhalten (sie wandern zurück in die Tresor-Wurzel).</value></data>
+  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Ordner filtern…</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Ordner löschen?</value></data>
+  <data name="Vault.Folders.NewName" xml:space="preserve"><value>Name des neuen Ordners</value></data>
+  <data name="Vault.Folders.Add" xml:space="preserve"><value>Ordner hinzufügen</value></data>
+  <data name="Vault.Items.Title" xml:space="preserve"><value>Einträge</value></data>
+  <data name="Vault.Items.Add" xml:space="preserve"><value>Eintrag hinzufügen</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Ein Tresor-Eintrag ist ein gespeichertes Secret. Ein Login enthält eine Website, einen Benutzernamen und ein Passwort; andere Typen enthalten eine sichere Notiz oder einen einzelnen Secret-Wert. Werte sind verschlüsselt und werden nur angezeigt, wenn du Ansehen wählst. Das Löschen wird in der Detailansicht des Eintrags bestätigt (wähle zuerst Löschen…, um sie zu öffnen).</value></data>
+  <data name="Vault.Items.InFolder" xml:space="preserve"><value>in</value></data>
+  <data name="Vault.Items.EditNamed" xml:space="preserve"><value>“{0}” bearbeiten</value></data>
+  <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>z. B. GitHub</value></data>
+  <data name="Vault.Items.Empty" xml:space="preserve"><value>Noch keine Einträge — verwende „Eintrag hinzufügen“.</value></data>
+  <data name="Vault.Items.Filter" xml:space="preserve"><value>Einträge filtern…</value></data>
+  <data name="Vault.Field.Url" xml:space="preserve"><value>URL</value></data>
+  <data name="Vault.Field.Username" xml:space="preserve"><value>Benutzername</value></data>
+  <data name="Vault.Field.Password" xml:space="preserve"><value>Passwort</value></data>
+  <data name="Vault.Field.Note" xml:space="preserve"><value>Notiz</value></data>
+  <data name="Vault.Field.Value" xml:space="preserve"><value>Wert</value></data>
+  <data name="Vault.Field.Folder" xml:space="preserve"><value>Ordner</value></data>
+  <data name="Vault.Field.NoFolder" xml:space="preserve"><value>(kein Ordner)</value></data>
+  <data name="Vault.Field.ValueNote" xml:space="preserve"><value>Wert / Notiz</value></data>
+  <data name="Vault.Field.ValuePlaceholder" xml:space="preserve"><value>Secret-Wert, Notiz, Connection-String…</value></data>
+  <data name="Vault.Share.Title" xml:space="preserve"><value>Teilen</value></data>
+  <data name="Vault.Share.Desc" xml:space="preserve"><value>Gewähre einem Kollegen Zugriff auf diesen Tresor: Lesen, um Einträge anzusehen; Schreiben, um auch hinzuzufügen/zu bearbeiten; Verwalten, um auch umzubenennen/zu löschen und zu teilen.</value></data>
+  <data name="Vault.Share.NoCandidates" xml:space="preserve"><value>Noch keine anderen Benutzer zum Teilen vorhanden.</value></data>
+  <data name="Vault.Share.SelectUser" xml:space="preserve"><value>Benutzer auswählen…</value></data>
+  <data name="Vault.Share.Action" xml:space="preserve"><value>Teilen</value></data>
+  <data name="Vault.Share.User" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Vault.Share.Permission" xml:space="preserve"><value>Berechtigung</value></data>
+  <data name="Vault.Msg.Created" xml:space="preserve"><value>Tresor erstellt.</value></data>
+  <data name="Vault.Msg.Renamed" xml:space="preserve"><value>Tresor umbenannt.</value></data>
+  <data name="Vault.Msg.Deleted" xml:space="preserve"><value>Tresor gelöscht.</value></data>
+  <data name="Vault.Msg.ItemAdded" xml:space="preserve"><value>Eintrag hinzugefügt.</value></data>
+  <data name="Vault.Msg.ItemSaved" xml:space="preserve"><value>Eintrag gespeichert.</value></data>
+  <data name="Vault.Msg.ItemDeleted" xml:space="preserve"><value>Eintrag gelöscht.</value></data>
+  <data name="Vault.Msg.NoLogins" xml:space="preserve"><value>Keine Logins in der Datei gefunden.</value></data>
+  <data name="Vault.Msg.Imported" xml:space="preserve"><value>{0} Login(s) importiert.</value></data>
+  <data name="Vault.Msg.Shared" xml:space="preserve"><value>Tresor geteilt.</value></data>
+  <data name="Secret.Title" xml:space="preserve"><value>Secrets</value></data>
+  <data name="Secret.Add" xml:space="preserve"><value>Secret hinzufügen</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>Ein Secret ist ein Schlüssel (z. B. ConnectionStrings:Main), der in jeder Umgebung einen anderen Wert haben kann. Wähle Ansehen, um seine Werte zu sehen oder zu ändern, oder Löschen…, um es zu öffnen und zu entfernen.</value></data>
+  <data name="Secret.HideValues" xml:space="preserve"><value>Werte verbergen</value></data>
+  <data name="Secret.RevealValues" xml:space="preserve"><value>Werte anzeigen</value></data>
+  <data name="Secret.View.Desc" xml:space="preserve"><value>Lege den Wert pro Umgebung fest oder ändere ihn. Jedes Speichern erstellt eine neue verschlüsselte Version.</value></data>
+  <data name="Secret.CurrentValue" xml:space="preserve"><value>Aktueller Wert</value></data>
+  <data name="Secret.SetNewValue" xml:space="preserve"><value>Neuen Wert festlegen</value></data>
+  <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>neuer Wert</value></data>
+  <data name="Secret.Key" xml:space="preserve"><value>Schlüssel</value></data>
+  <data name="Secret.Value" xml:space="preserve"><value>Wert</value></data>
+  <data name="Secret.Empty" xml:space="preserve"><value>Noch keine Secrets — verwende „Secret hinzufügen“.</value></data>
+  <data name="Secret.Filter" xml:space="preserve"><value>Secrets filtern…</value></data>
+  <data name="Secret.EnvWithValue" xml:space="preserve"><value>Umgebungen mit einem Wert</value></data>
+  <data name="Secret.None" xml:space="preserve"><value>keine</value></data>
+  <data name="Secret.Msg.Saved" xml:space="preserve"><value>{0} in {1} gespeichert.</value></data>
+  <data name="Secret.Msg.Created" xml:space="preserve"><value>Secret {0} erstellt.</value></data>
+  <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret gelöscht.</value></data>
+  <data name="Token.New" xml:space="preserve"><value>Neuer Token (kopiere ihn jetzt — er wird nicht erneut angezeigt):</value></data>
+  <data name="Token.Issue.Title" xml:space="preserve"><value>Token ausstellen</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Beschränke einen Token auf eine Umgebung, damit ein durchgesickerter Token keine andere lesen kann. Füge eine Notiz hinzu (z. B. wo er eingesetzt wird) und optional ein Ablaufdatum.</value></data>
+  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Notiz (optional)</value></data>
+  <data name="Token.NotePlaceholder" xml:space="preserve"><value>wo er verwendet wird, Eigentümer, Ticket…</value></data>
+  <data name="Token.ExpiresInDays" xml:space="preserve"><value>Läuft ab in (Tagen, optional)</value></data>
+  <data name="Token.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>
+  <data name="Token.Existing.Title" xml:space="preserve"><value>Vorhandene Tokens</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Bearbeite Name/Notiz eines Tokens jederzeit. Rotieren ersetzt sein Secret (das alte funktioniert dann nicht mehr); Widerrufen deaktiviert ihn.</value></data>
+  <data name="Token.Edit.Title" xml:space="preserve"><value>Token bearbeiten</value></data>
+  <data name="Token.Empty" xml:space="preserve"><value>Noch keine Tokens — stelle oben einen aus.</value></data>
+  <data name="Token.Filter" xml:space="preserve"><value>Tokens filtern…</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Präfix</value></data>
+  <data name="Token.Created" xml:space="preserve"><value>Erstellt</value></data>
+  <data name="Token.Expires" xml:space="preserve"><value>Läuft ab</value></data>
+  <data name="Token.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Token.Rotate" xml:space="preserve"><value>Rotieren</value></data>
+  <data name="Token.Revoke" xml:space="preserve"><value>Widerrufen</value></data>
+  <data name="Token.Status.Active" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="Token.Status.Revoked" xml:space="preserve"><value>Widerrufen</value></data>
+  <data name="Token.Status.Expired" xml:space="preserve"><value>Abgelaufen</value></data>
+  <data name="Token.Msg.Issued" xml:space="preserve"><value>Token '{0}' für {1} ausgestellt.</value></data>
+  <data name="Token.Msg.Updated" xml:space="preserve"><value>Token aktualisiert.</value></data>
+  <data name="Token.Msg.Rotated" xml:space="preserve"><value>Rotiert — der vorherige Token funktioniert nicht mehr.</value></data>
+  <data name="Token.Msg.Revoked" xml:space="preserve"><value>Token widerrufen.</value></data>
+  <data name="Error.Title" xml:space="preserve"><value>Fehler.</value></data>
+  <data name="Error.Heading" xml:space="preserve"><value>Beim Verarbeiten deiner Anfrage ist ein Fehler aufgetreten.</value></data>
+  <data name="Error.RequestId" xml:space="preserve"><value>Anfrage-ID:</value></data>
+  <data name="NotFound.Title" xml:space="preserve"><value>Nicht gefunden</value></data>
+  <data name="NotFound.Body" xml:space="preserve"><value>Der gesuchte Inhalt existiert leider nicht.</value></data>
 </root>

@@ -11,8 +11,10 @@ All notable changes to this project are documented here, following
   UI is now localizable in six languages — English (default), German (Swiss/Liechtenstein spelling),
   French, Italian, Spanish and Portuguese — using `IStringLocalizer` + `.resx` (a shared `SharedResource`),
   `RequestLocalization` with a culture cookie. The non-English translations are best-effort and meant to be
-  refined by the community. The navigation, sign-in/registration, home and page headers are translated;
-  remaining page bodies follow the same `Loc["…"]` pattern.
+  refined by the community. The whole UI is translated — navigation, sign-in/registration, home, the header
+  bar, and the full page bodies of the personal/team vaults workspace, software credentials and client
+  tokens (labels, buttons, descriptions, table headers, placeholders and status messages), plus the
+  not-found and error pages.
 - Top header bar: a full-width header above the content carries a language switcher (all six languages) and
   the signed-in user's name; clicking the name opens a menu with "View profile" and "Sign out". A new
   `/account/profile` page shows the account's e-mail and system-admin status. The language switcher and

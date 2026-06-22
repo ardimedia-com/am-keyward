@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Forms
 @inject IVaultService VaultService
 @inject AuthenticationStateProvider AuthState
+@inject IStringLocalizer<SharedResource> Loc
 
 @if (status is not null)
 {
@@ -14,26 +15,24 @@
 
 @* ---------- 1. Vault list (always shown first) ---------- *@
 <div class="card">
-    <h3>@(Team ? "Team vaults" : "Your vaults")</h3>
+    <h3>@(Team ? Loc["Vault.List.TitleTeam"] : Loc["Vault.List.TitlePersonal"])</h3>
     <p class="muted">
-        @(Team
-            ? "Team vaults belong to the tenant and are shared with people via grants. You see the ones you own or were given access to. Sharing a vault lets a colleague read or edit its items."
-            : "Personal vaults are yours alone — nobody else can see them. Use them for your own logins, notes and secrets.")
+        @(Team ? Loc["Vault.List.DescTeam"] : Loc["Vault.List.DescPersonal"])
     </p>
 
     @if (vaults is null)
     {
-        <p class="muted">Loading…</p>
+        <p class="muted">@Loc["Common.Loading"]</p>
     }
     else if (vaults.Count == 0)
     {
-        <p class="muted">No vaults yet — create one below.</p>
+        <p class="muted">@Loc["Vault.List.Empty"]</p>
     }
     else
     {
         @if (vaults.Count > 5)
         {
-            <input @bind="vaultFilter" @bind:event="oninput" placeholder="Filter vaults…" style="max-width:16rem; margin:.25rem 0;" />
+            <input @bind="vaultFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Filter"])" style="max-width:16rem; margin:.25rem 0;" />
         }
         <div class="row" style="margin:.25rem 0 .75rem;">
             @foreach (var v in FilteredVaults)
@@ -44,8 +43,8 @@
     }
 
     <div class="row">
-        <input @bind="newVaultName" placeholder="@(Team ? "New team vault name" : "New vault name")" style="max-width:16rem;" />
-        <button @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))">Create vault</button>
+        <input @bind="newVaultName" placeholder="@(Team ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" style="max-width:16rem;" />
+        <button @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))">@Loc["Vault.Create"]</button>
     </div>
 </div>
 
@@ -56,8 +55,8 @@
         <div class="row" style="justify-content:space-between;">
             <h3 style="margin:0;">@SelectedVaultName</h3>
             <div class="row">
-                <button class="btn-ghost btn-sm" @onclick="ToggleRenameVault" disabled="@busy">Rename</button>
-                <button class="btn-danger btn-sm" @onclick="() => confirmDeleteVault = true" disabled="@busy">Delete vault</button>
+                <button class="btn-ghost btn-sm" @onclick="ToggleRenameVault" disabled="@busy">@Loc["Common.Rename"]</button>
+                <button class="btn-danger btn-sm" @onclick="() => confirmDeleteVault = true" disabled="@busy">@Loc["Vault.Delete"]</button>
             </div>
         </div>
 
@@ -65,34 +64,34 @@
         {
             <div class="row" style="margin-top:.5rem;">
                 <input @bind="vaultRenameValue" style="max-width:16rem;" />
-                <button class="btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">Save</button>
-                <button class="btn-ghost btn-sm" @onclick="() => renamingVault = false">Cancel</button>
+                <button class="btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">@Loc["Common.Save"]</button>
+                <button class="btn-ghost btn-sm" @onclick="() => renamingVault = false">@Loc["Common.Cancel"]</button>
             </div>
         }
 
         @if (confirmDeleteVault)
         {
             <div class="notice notice-error" style="margin-top:.5rem;">
-                Delete this vault and <strong>all</strong> its items? This cannot be undone.
-                <button class="btn-danger btn-sm" style="margin-left:.5rem;" @onclick="DeleteVaultAsync" disabled="@busy">Yes, delete</button>
-                <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteVault = false">Cancel</button>
+                @Loc["Vault.ConfirmDelete"]
+                <button class="btn-danger btn-sm" style="margin-left:.5rem;" @onclick="DeleteVaultAsync" disabled="@busy">@Loc["Vault.ConfirmDeleteYes"]</button>
+                <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteVault = false">@Loc["Common.Cancel"]</button>
             </div>
         }
 
-        <h4 style="margin:1rem 0 .25rem;">Import logins</h4>
-        <p class="muted">Upload a browser password export (Microsoft Edge / Chrome CSV: name, url, username, password, note). Each row becomes a Login item in this vault.</p>
+        <h4 style="margin:1rem 0 .25rem;">@Loc["Vault.Import.Title"]</h4>
+        <p class="muted">@Loc["Vault.Import.Desc"]</p>
         <InputFile OnChange="OnImportFileAsync" accept=".csv" disabled="@busy" />
     </div>
 
     @* ---------- 3. Folders ---------- *@
     <div class="card">
-        <h3>Folders</h3>
-        <p class="muted">Folders are optional labels to group items inside a vault. Deleting a folder keeps its items (they move back to the vault root).</p>
+        <h3>@Loc["Vault.Folders.Title"]</h3>
+        <p class="muted">@Loc["Vault.Folders.Desc"]</p>
         @if (folders.Count > 0)
         {
             @if (folders.Count > 5)
             {
-                <input @bind="folderFilter" @bind:event="oninput" placeholder="Filter folders…" style="max-width:16rem; margin-bottom:.5rem;" />
+                <input @bind="folderFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Folders.Filter"])" style="max-width:16rem; margin-bottom:.5rem;" />
             }
             <table style="margin:.5rem 0;">
                 <tbody>
@@ -104,8 +103,8 @@
                                 {
                                     <span class="row">
                                         <input @bind="folderRenameValue" style="max-width:14rem;" />
-                                        <button class="btn-sm" @onclick="() => RenameFolderAsync(f.Id)" disabled="@busy">Save</button>
-                                        <button class="btn-ghost btn-sm" @onclick="() => renamingFolderId = null">Cancel</button>
+                                        <button class="btn-sm" @onclick="() => RenameFolderAsync(f.Id)" disabled="@busy">@Loc["Common.Save"]</button>
+                                        <button class="btn-ghost btn-sm" @onclick="() => renamingFolderId = null">@Loc["Common.Cancel"]</button>
                                     </span>
                                 }
                                 else { @f.Name }
@@ -113,14 +112,14 @@
                             <td class="row-actions">
                                 @if (confirmDeleteFolderId == f.Id)
                                 {
-                                    <span class="muted">Delete folder?</span>
-                                    <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(f.Id)" disabled="@busy">Yes</button>
-                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = null">Cancel</button>
+                                    <span class="muted">@Loc["Vault.Folders.ConfirmDelete"]</span>
+                                    <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(f.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = null">@Loc["Common.Cancel"]</button>
                                 }
                                 else
                                 {
-                                    <button class="btn-ghost btn-sm" @onclick="() => StartRenameFolder(f)" disabled="@busy">Rename</button>
-                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = f.Id" disabled="@busy">Delete…</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => StartRenameFolder(f)" disabled="@busy">@Loc["Common.Rename"]</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = f.Id" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
                                 }
                             </td>
                         </tr>
@@ -129,18 +128,18 @@
             </table>
         }
         <div class="row">
-            <input @bind="newFolderName" placeholder="New folder name" style="max-width:14rem;" />
-            <button class="btn-ghost btn-sm" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">Add folder</button>
+            <input @bind="newFolderName" placeholder="@(Loc["Vault.Folders.NewName"])" style="max-width:14rem;" />
+            <button class="btn-ghost btn-sm" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">@Loc["Vault.Folders.Add"]</button>
         </div>
     </div>
 
     @* ---------- 4. Items: detail/edit panel above an always-visible, filterable list ---------- *@
     <div class="card">
         <div class="row" style="justify-content:space-between;">
-            <h3 style="margin:0;">Items</h3>
-            <button class="btn-sm" @onclick="StartAddItem" disabled="@busy">Add item</button>
+            <h3 style="margin:0;">@Loc["Vault.Items.Title"]</h3>
+            <button class="btn-sm" @onclick="StartAddItem" disabled="@busy">@Loc["Vault.Items.Add"]</button>
         </div>
-        <p class="muted">A vault item is one stored secret. A <strong>Login</strong> holds a website, username and password; other types hold a secure note or a single secret value. Values are encrypted and only shown when you choose <em>View</em>. Delete is confirmed from the item's detail (choose <em>Delete…</em> to open it first).</p>
+        <p class="muted">@Loc["Vault.Items.Desc"]</p>
 
         @if (itemMode == "view" && detail is not null)
         {
@@ -148,35 +147,35 @@
                 <div class="row" style="justify-content:space-between;">
                     <h4 style="margin:0;">@detail.Name</h4>
                     <div class="row">
-                        <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">Edit</button>
-                        <button class="btn-danger btn-sm" @onclick="DeleteCurrentItemAsync" disabled="@busy">Delete</button>
-                        <button class="btn-ghost btn-sm" @onclick="BackToList">Close</button>
+                        <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">@Loc["Common.Edit"]</button>
+                        <button class="btn-danger btn-sm" @onclick="DeleteCurrentItemAsync" disabled="@busy">@Loc["Common.Delete"]</button>
+                        <button class="btn-ghost btn-sm" @onclick="BackToList">@Loc["Common.Close"]</button>
                     </div>
                 </div>
-                <p class="muted"><span class="badge">@detail.Type</span> in @FolderName(detail.FolderId)</p>
+                <p class="muted"><span class="badge">@detail.Type</span> @Loc["Vault.Items.InFolder"] @FolderName(detail.FolderId)</p>
 
                 @if (detail.Type == ItemType.Login)
                 {
                     var f = LoginContent.Parse(detail.Content);
                     <div class="stack" style="max-width:32rem;">
                         <div>
-                            <strong>URL:</strong>
+                            <strong>@Loc["Vault.Field.Url"]:</strong>
                             @if (string.IsNullOrWhiteSpace(f.Url)) { <text>—</text> }
                             else { <a href="@f.Url" target="_blank" rel="noreferrer">@f.Url</a> }
                         </div>
-                        <div><strong>Username:</strong> <code>@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</code></div>
+                        <div><strong>@Loc["Vault.Field.Username"]:</strong> <code>@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</code></div>
                         <div>
-                            <strong>Password:</strong> <code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code>
-                            <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
+                            <strong>@Loc["Vault.Field.Password"]:</strong> <code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code>
+                            <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])</button>
                         </div>
-                        @if (!string.IsNullOrWhiteSpace(f.Note)) { <div><strong>Note:</strong> @f.Note</div> }
+                        @if (!string.IsNullOrWhiteSpace(f.Note)) { <div><strong>@Loc["Vault.Field.Note"]:</strong> @f.Note</div> }
                     </div>
                 }
                 else
                 {
                     <div>
-                        <strong>Value:</strong> <code>@(reveal ? detail.Content : "••••••••")</code>
-                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? "Hide" : "Reveal")</button>
+                        <strong>@Loc["Vault.Field.Value"]:</strong> <code>@(reveal ? detail.Content : "••••••••")</code>
+                        <button class="btn-ghost btn-sm" style="margin-left:.5rem;" @onclick="() => reveal = !reveal">@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])</button>
                     </div>
                 }
             </div>
@@ -184,12 +183,12 @@
         else if (itemMode is "add" or "edit")
         {
             <div class="panel">
-                <h4 style="margin-top:0;">@(itemMode == "add" ? "Add item" : $"Edit “{fName}”")</h4>
+                <h4 style="margin-top:0;">@(itemMode == "add" ? Loc["Vault.Items.Add"] : Loc["Vault.Items.EditNamed", fName])</h4>
                 <div class="stack" style="max-width:32rem;">
                     @if (itemMode == "add")
                     {
                         <div class="field">
-                            <label>Type</label>
+                            <label>@Loc["Common.Type"]</label>
                             <select @bind="fType">
                                 @foreach (var t in Enum.GetValues<ItemType>())
                                 {
@@ -198,11 +197,11 @@
                             </select>
                         </div>
                     }
-                    <div class="field"><label>Name</label><input @bind="fName" placeholder="e.g. GitHub" /></div>
+                    <div class="field"><label>@Loc["Common.Name"]</label><input @bind="fName" placeholder="@(Loc["Vault.Items.NamePlaceholder"])" /></div>
                     <div class="field">
-                        <label>Folder</label>
+                        <label>@Loc["Vault.Field.Folder"]</label>
                         <select @bind="fFolderId">
-                            <option value="">(no folder)</option>
+                            <option value="">@Loc["Vault.Field.NoFolder"]</option>
                             @foreach (var folder in folders)
                             {
                                 <option value="@folder.Id">@folder.Name</option>
@@ -212,19 +211,19 @@
 
                     @if (fType == ItemType.Login)
                     {
-                        <div class="field"><label>URL</label><input @bind="fUrl" placeholder="https://example.com" /></div>
-                        <div class="field"><label>Username</label><input @bind="fUser" autocomplete="off" /></div>
-                        <div class="field"><label>Password</label><input @bind="fPwd" autocomplete="off" /></div>
-                        <div class="field"><label>Note</label><textarea rows="2" @bind="fNote"></textarea></div>
+                        <div class="field"><label>@Loc["Vault.Field.Url"]</label><input @bind="fUrl" placeholder="https://example.com" /></div>
+                        <div class="field"><label>@Loc["Vault.Field.Username"]</label><input @bind="fUser" autocomplete="off" /></div>
+                        <div class="field"><label>@Loc["Vault.Field.Password"]</label><input @bind="fPwd" autocomplete="off" /></div>
+                        <div class="field"><label>@Loc["Vault.Field.Note"]</label><textarea rows="2" @bind="fNote"></textarea></div>
                     }
                     else
                     {
-                        <div class="field"><label>Value / note</label><textarea rows="4" @bind="fContent" placeholder="secret value, note, connection string…"></textarea></div>
+                        <div class="field"><label>@Loc["Vault.Field.ValueNote"]</label><textarea rows="4" @bind="fContent" placeholder="@(Loc["Vault.Field.ValuePlaceholder"])"></textarea></div>
                     }
 
                     <div class="row">
-                        <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">Save</button>
-                        <button class="btn-ghost" @onclick="BackToList">Cancel</button>
+                        <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">@Loc["Common.Save"]</button>
+                        <button class="btn-ghost" @onclick="BackToList">@Loc["Common.Cancel"]</button>
                     </div>
                 </div>
             </div>
@@ -232,20 +231,20 @@
 
         @if (items is null)
         {
-            <p class="muted">Loading…</p>
+            <p class="muted">@Loc["Common.Loading"]</p>
         }
         else if (items.Count == 0)
         {
-            <p class="muted">No items yet — use “Add item”.</p>
+            <p class="muted">@Loc["Vault.Items.Empty"]</p>
         }
         else
         {
             @if (items.Count > 5)
             {
-                <input @bind="itemFilter" @bind:event="oninput" placeholder="Filter items…" style="max-width:18rem; margin-bottom:.5rem;" />
+                <input @bind="itemFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Items.Filter"])" style="max-width:18rem; margin-bottom:.5rem;" />
             }
             <table>
-                <thead><tr><th>Name</th><th>Type</th><th>Folder</th><th></th></tr></thead>
+                <thead><tr><th>@Loc["Common.Name"]</th><th>@Loc["Common.Type"]</th><th>@Loc["Vault.Field.Folder"]</th><th></th></tr></thead>
                 <tbody>
                     @foreach (var item in FilteredItems)
                     {
@@ -254,9 +253,9 @@
                             <td><span class="badge">@item.Type</span></td>
                             <td class="muted">@FolderName(item.FolderId)</td>
                             <td class="row-actions">
-                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">View</button>
-                                <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(item.Id)" disabled="@busy">Edit</button>
-                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">Delete…</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">@Loc["Common.View"]</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(item.Id)" disabled="@busy">@Loc["Common.Edit"]</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => ViewItemAsync(item.Id)" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
                             </td>
                         </tr>
                     }
@@ -269,17 +268,17 @@
     @if (Team)
     {
         <div class="card">
-            <h3>Sharing</h3>
-            <p class="muted">Grant a colleague access to this vault: <strong>Read</strong> to view items, <strong>Write</strong> to also add/edit, <strong>Manage</strong> to also rename/delete and share.</p>
+            <h3>@Loc["Vault.Share.Title"]</h3>
+            <p class="muted">@Loc["Vault.Share.Desc"]</p>
             @if (shareCandidates.Count == 0)
             {
-                <p class="muted">No other users to share with yet.</p>
+                <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
             }
             else
             {
                 <div class="row" style="margin:.5rem 0;">
                     <select @bind="shareGranteeId" style="max-width:16rem;">
-                        <option value="">Select a user…</option>
+                        <option value="">@Loc["Vault.Share.SelectUser"]</option>
                         @foreach (var c in shareCandidates)
                         {
                             <option value="@c.UserId">@c.DisplayName</option>
@@ -291,13 +290,13 @@
                             <option value="@p">@p</option>
                         }
                     </select>
-                    <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(shareGranteeId))">Share</button>
+                    <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(shareGranteeId))">@Loc["Vault.Share.Action"]</button>
                 </div>
             }
             @if (shares is { Count: > 0 })
             {
                 <table>
-                    <thead><tr><th>User</th><th>Permission</th></tr></thead>
+                    <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th></tr></thead>
                     <tbody>
                         @foreach (var s in shares)
                         {
@@ -406,7 +405,7 @@
         newVaultName = "";
         await ReloadVaultsAsync();
         await SelectVaultAsync(id);
-        status = ("Vault created.", false);
+        status = (Loc["Vault.Msg.Created"], false);
     }, !string.IsNullOrWhiteSpace(newVaultName));
 
     private void ToggleRenameVault()
@@ -420,7 +419,7 @@
         await VaultService.RenameVaultAsync(actorUserId!.Value, selectedVaultId!.Value, vaultRenameValue);
         renamingVault = false;
         await ReloadVaultsAsync();
-        status = ("Vault renamed.", false);
+        status = (Loc["Vault.Msg.Renamed"], false);
     }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(vaultRenameValue));
 
     private Task DeleteVaultAsync() => RunAsync(async () =>
@@ -429,7 +428,7 @@
         confirmDeleteVault = false;
         selectedVaultId = null;
         await ReloadVaultsAsync();
-        status = ("Vault deleted.", false);
+        status = (Loc["Vault.Msg.Deleted"], false);
     }, selectedVaultId is not null);
 
     private Task AddFolderAsync() => RunAsync(async () =>
@@ -494,12 +493,12 @@
         if (itemMode == "add")
         {
             await VaultService.AddItemAsync(new AddVaultItemCommand(actorUserId!.Value, selectedVaultId!.Value, folderId, fType, fName, content));
-            status = ("Item added.", false);
+            status = (Loc["Vault.Msg.ItemAdded"], false);
         }
         else
         {
             await VaultService.UpdateItemAsync(new UpdateVaultItemCommand(actorUserId!.Value, detail!.Id, fName, folderId, content));
-            status = ("Item saved.", false);
+            status = (Loc["Vault.Msg.ItemSaved"], false);
         }
         await ReloadContentsAsync();
         BackToList();
@@ -510,7 +509,7 @@
         await VaultService.DeleteItemAsync(actorUserId!.Value, detail!.Id);
         await ReloadContentsAsync();
         BackToList();
-        status = ("Item deleted.", false);
+        status = (Loc["Vault.Msg.ItemDeleted"], false);
     }, detail is not null);
 
     private async Task OnImportFileAsync(InputFileChangeEventArgs e)
@@ -520,10 +519,10 @@
             using var reader = new StreamReader(e.File.OpenReadStream(maxAllowedSize: 8 * 1024 * 1024));
             var text = await reader.ReadToEndAsync();
             var logins = EdgePasswordCsv.Parse(text);
-            if (logins.Count == 0) { status = ("No logins found in the file.", true); return; }
+            if (logins.Count == 0) { status = (Loc["Vault.Msg.NoLogins"], true); return; }
             var count = await VaultService.ImportLoginsAsync(actorUserId!.Value, selectedVaultId!.Value, logins);
             await ReloadContentsAsync();
-            status = ($"Imported {count} login(s).", false);
+            status = (Loc["Vault.Msg.Imported", count], false);
         }, selectedVaultId is not null);
     }
 
@@ -533,7 +532,7 @@
         await VaultService.ShareWithUserAsync(new ShareVaultWithUserCommand(actorUserId!.Value, tenantId, selectedVaultId!.Value, grantee, sharePermission));
         shareGranteeId = "";
         shares = await VaultService.ListVaultSharesAsync(actorUserId!.Value, selectedVaultId!.Value);
-        status = ("Vault shared.", false);
+        status = (Loc["Vault.Msg.Shared"], false);
     }, selectedVaultId is not null && !string.IsNullOrEmpty(shareGranteeId));
 
     private void BackToList()
@@ -549,7 +548,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = ("Error: " + ex.Message, true); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
         finally { busy = false; }
     }
 

@@ -100,4 +100,123 @@
   <data name="Profile.Desc" xml:space="preserve"><value>Your account.</value></data>
   <data name="Profile.Email" xml:space="preserve"><value>Email</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>System administrator</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Edit</value></data>
+  <data name="Common.Delete" xml:space="preserve"><value>Delete</value></data>
+  <data name="Common.DeleteEllipsis" xml:space="preserve"><value>Delete…</value></data>
+  <data name="Common.View" xml:space="preserve"><value>View</value></data>
+  <data name="Common.Rename" xml:space="preserve"><value>Rename</value></data>
+  <data name="Common.Reveal" xml:space="preserve"><value>Reveal</value></data>
+  <data name="Common.Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="Common.Yes" xml:space="preserve"><value>Yes</value></data>
+  <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
+  <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Common.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Common.Environment" xml:space="preserve"><value>Environment</value></data>
+  <data name="Common.Error" xml:space="preserve"><value>Error: </value></data>
+  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Team vaults</value></data>
+  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Your vaults</value></data>
+  <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team vaults belong to the tenant and are shared with people via grants. You see the ones you own or were given access to. Sharing a vault lets a colleague read or edit its items.</value></data>
+  <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Personal vaults are yours alone — nobody else can see them. Use them for your own logins, notes and secrets.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>No vaults yet — create one below.</value></data>
+  <data name="Vault.Filter" xml:space="preserve"><value>Filter vaults…</value></data>
+  <data name="Vault.NewNameTeam" xml:space="preserve"><value>New team vault name</value></data>
+  <data name="Vault.NewNamePersonal" xml:space="preserve"><value>New vault name</value></data>
+  <data name="Vault.Create" xml:space="preserve"><value>Create vault</value></data>
+  <data name="Vault.Delete" xml:space="preserve"><value>Delete vault</value></data>
+  <data name="Vault.ConfirmDelete" xml:space="preserve"><value>Delete this vault and all its items? This cannot be undone.</value></data>
+  <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
+  <data name="Vault.Import.Title" xml:space="preserve"><value>Import logins</value></data>
+  <data name="Vault.Import.Desc" xml:space="preserve"><value>Upload a browser password export (Microsoft Edge / Chrome CSV: name, url, username, password, note). Each row becomes a Login item in this vault.</value></data>
+  <data name="Vault.Folders.Title" xml:space="preserve"><value>Folders</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Folders are optional labels to group items inside a vault. Deleting a folder keeps its items (they move back to the vault root).</value></data>
+  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Filter folders…</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Delete folder?</value></data>
+  <data name="Vault.Folders.NewName" xml:space="preserve"><value>New folder name</value></data>
+  <data name="Vault.Folders.Add" xml:space="preserve"><value>Add folder</value></data>
+  <data name="Vault.Items.Title" xml:space="preserve"><value>Items</value></data>
+  <data name="Vault.Items.Add" xml:space="preserve"><value>Add item</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>A vault item is one stored secret. A Login holds a website, username and password; other types hold a secure note or a single secret value. Values are encrypted and only shown when you choose View. Delete is confirmed from the item's detail (choose Delete… to open it first).</value></data>
+  <data name="Vault.Items.InFolder" xml:space="preserve"><value>in</value></data>
+  <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Edit “{0}”</value></data>
+  <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>e.g. GitHub</value></data>
+  <data name="Vault.Items.Empty" xml:space="preserve"><value>No items yet — use “Add item”.</value></data>
+  <data name="Vault.Items.Filter" xml:space="preserve"><value>Filter items…</value></data>
+  <data name="Vault.Field.Url" xml:space="preserve"><value>URL</value></data>
+  <data name="Vault.Field.Username" xml:space="preserve"><value>Username</value></data>
+  <data name="Vault.Field.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="Vault.Field.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Vault.Field.Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Vault.Field.Folder" xml:space="preserve"><value>Folder</value></data>
+  <data name="Vault.Field.NoFolder" xml:space="preserve"><value>(no folder)</value></data>
+  <data name="Vault.Field.ValueNote" xml:space="preserve"><value>Value / note</value></data>
+  <data name="Vault.Field.ValuePlaceholder" xml:space="preserve"><value>secret value, note, connection string…</value></data>
+  <data name="Vault.Share.Title" xml:space="preserve"><value>Sharing</value></data>
+  <data name="Vault.Share.Desc" xml:space="preserve"><value>Grant a colleague access to this vault: Read to view items, Write to also add/edit, Manage to also rename/delete and share.</value></data>
+  <data name="Vault.Share.NoCandidates" xml:space="preserve"><value>No other users to share with yet.</value></data>
+  <data name="Vault.Share.SelectUser" xml:space="preserve"><value>Select a user…</value></data>
+  <data name="Vault.Share.Action" xml:space="preserve"><value>Share</value></data>
+  <data name="Vault.Share.User" xml:space="preserve"><value>User</value></data>
+  <data name="Vault.Share.Permission" xml:space="preserve"><value>Permission</value></data>
+  <data name="Vault.Msg.Created" xml:space="preserve"><value>Vault created.</value></data>
+  <data name="Vault.Msg.Renamed" xml:space="preserve"><value>Vault renamed.</value></data>
+  <data name="Vault.Msg.Deleted" xml:space="preserve"><value>Vault deleted.</value></data>
+  <data name="Vault.Msg.ItemAdded" xml:space="preserve"><value>Item added.</value></data>
+  <data name="Vault.Msg.ItemSaved" xml:space="preserve"><value>Item saved.</value></data>
+  <data name="Vault.Msg.ItemDeleted" xml:space="preserve"><value>Item deleted.</value></data>
+  <data name="Vault.Msg.NoLogins" xml:space="preserve"><value>No logins found in the file.</value></data>
+  <data name="Vault.Msg.Imported" xml:space="preserve"><value>Imported {0} login(s).</value></data>
+  <data name="Vault.Msg.Shared" xml:space="preserve"><value>Vault shared.</value></data>
+  <data name="Secret.Title" xml:space="preserve"><value>Secrets</value></data>
+  <data name="Secret.Add" xml:space="preserve"><value>Add secret</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>A secret is a key (e.g. ConnectionStrings:Main) that can hold a different value in each environment. Choose View to see or change its values, or Delete… to open it and remove it.</value></data>
+  <data name="Secret.HideValues" xml:space="preserve"><value>Hide values</value></data>
+  <data name="Secret.RevealValues" xml:space="preserve"><value>Reveal values</value></data>
+  <data name="Secret.View.Desc" xml:space="preserve"><value>Set or change the value per environment. Each save creates a new encrypted version.</value></data>
+  <data name="Secret.CurrentValue" xml:space="preserve"><value>Current value</value></data>
+  <data name="Secret.SetNewValue" xml:space="preserve"><value>Set new value</value></data>
+  <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>new value</value></data>
+  <data name="Secret.Key" xml:space="preserve"><value>Key</value></data>
+  <data name="Secret.Value" xml:space="preserve"><value>Value</value></data>
+  <data name="Secret.Empty" xml:space="preserve"><value>No secrets yet — use “Add secret”.</value></data>
+  <data name="Secret.Filter" xml:space="preserve"><value>Filter secrets…</value></data>
+  <data name="Secret.EnvWithValue" xml:space="preserve"><value>Environments with a value</value></data>
+  <data name="Secret.None" xml:space="preserve"><value>none</value></data>
+  <data name="Secret.Msg.Saved" xml:space="preserve"><value>Saved {0} in {1}.</value></data>
+  <data name="Secret.Msg.Created" xml:space="preserve"><value>Secret {0} created.</value></data>
+  <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret deleted.</value></data>
+  <data name="Token.New" xml:space="preserve"><value>New token (copy it now — it will not be shown again):</value></data>
+  <data name="Token.Issue.Title" xml:space="preserve"><value>Issue a token</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Scope a token to one environment so a leaked token cannot read another. Add a note (e.g. where it is deployed) and an optional expiry.</value></data>
+  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (optional)</value></data>
+  <data name="Token.NotePlaceholder" xml:space="preserve"><value>where it's used, owner, ticket…</value></data>
+  <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expires in (days, optional)</value></data>
+  <data name="Token.Issue.Action" xml:space="preserve"><value>Issue token</value></data>
+  <data name="Token.Existing.Title" xml:space="preserve"><value>Existing tokens</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Edit a token's name/note any time. Rotate replaces its secret (the old one stops working); Revoke disables it.</value></data>
+  <data name="Token.Edit.Title" xml:space="preserve"><value>Edit token</value></data>
+  <data name="Token.Empty" xml:space="preserve"><value>No tokens yet — issue one above.</value></data>
+  <data name="Token.Filter" xml:space="preserve"><value>Filter tokens…</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Prefix</value></data>
+  <data name="Token.Created" xml:space="preserve"><value>Created</value></data>
+  <data name="Token.Expires" xml:space="preserve"><value>Expires</value></data>
+  <data name="Token.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Token.Rotate" xml:space="preserve"><value>Rotate</value></data>
+  <data name="Token.Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="Token.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Token.Status.Revoked" xml:space="preserve"><value>Revoked</value></data>
+  <data name="Token.Status.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Token.Msg.Issued" xml:space="preserve"><value>Issued token '{0}' for {1}.</value></data>
+  <data name="Token.Msg.Updated" xml:space="preserve"><value>Token updated.</value></data>
+  <data name="Token.Msg.Rotated" xml:space="preserve"><value>Rotated — the previous token has stopped working.</value></data>
+  <data name="Token.Msg.Revoked" xml:space="preserve"><value>Token revoked.</value></data>
+  <data name="Error.Title" xml:space="preserve"><value>Error.</value></data>
+  <data name="Error.Heading" xml:space="preserve"><value>An error occurred while processing your request.</value></data>
+  <data name="Error.RequestId" xml:space="preserve"><value>Request ID:</value></data>
+  <data name="NotFound.Title" xml:space="preserve"><value>Not Found</value></data>
+  <data name="NotFound.Body" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
 </root>

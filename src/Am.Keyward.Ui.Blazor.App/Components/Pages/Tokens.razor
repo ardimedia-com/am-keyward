@@ -19,22 +19,22 @@
 
 @if (status is not null)
 {
-    <div class="notice @(status.StartsWith("Error", StringComparison.Ordinal) ? "notice-error" : "")">@status</div>
+    <div class="notice @(status.Value.IsError ? "notice-error" : "")">@status.Value.Text</div>
 }
 @if (issuedToken is not null)
 {
     <div class="notice notice-reveal">
-        New token (copy it now — it will not be shown again):<br />
+        @Loc["Token.New"]<br />
         <code>@issuedToken</code>
     </div>
 }
 
 <div class="card">
-    <h3>Issue a token</h3>
-    <p class="muted">Scope a token to one environment so a leaked token cannot read another. Add a note (e.g. where it is deployed) and an optional expiry.</p>
+    <h3>@Loc["Token.Issue.Title"]</h3>
+    <p class="muted">@Loc["Token.Issue.Desc"]</p>
     <div class="stack" style="max-width:32rem; margin-top:.5rem;">
         <div class="field">
-            <label>Environment</label>
+            <label>@Loc["Common.Environment"]</label>
             <select @bind="environment">
                 <option>Development</option>
                 <option>Test</option>
@@ -42,27 +42,27 @@
                 <option>Production</option>
             </select>
         </div>
-        <div class="field"><label>Name</label><input @bind="name" placeholder="orders-service prod" /></div>
-        <div class="field"><label>Note (optional)</label><textarea rows="2" @bind="note" placeholder="where it's used, owner, ticket…"></textarea></div>
-        <div class="field"><label>Expires in (days, optional)</label><input type="number" min="1" @bind="expiresInDays" style="max-width:10rem;" /></div>
-        <div class="row"><button @onclick="IssueAsync" disabled="@(busy || string.IsNullOrWhiteSpace(name))">Issue token</button></div>
+        <div class="field"><label>@Loc["Common.Name"]</label><input @bind="name" placeholder="@(Loc["Token.NamePlaceholder"])" /></div>
+        <div class="field"><label>@Loc["Token.NoteOptional"]</label><textarea rows="2" @bind="note" placeholder="@(Loc["Token.NotePlaceholder"])"></textarea></div>
+        <div class="field"><label>@Loc["Token.ExpiresInDays"]</label><input type="number" min="1" @bind="expiresInDays" style="max-width:10rem;" /></div>
+        <div class="row"><button @onclick="IssueAsync" disabled="@(busy || string.IsNullOrWhiteSpace(name))">@Loc["Token.Issue.Action"]</button></div>
     </div>
 </div>
 
 <div class="card">
-    <h3>Existing tokens</h3>
-    <p class="muted">Edit a token's name/note any time. Rotate replaces its secret (the old one stops working); Revoke disables it.</p>
+    <h3>@Loc["Token.Existing.Title"]</h3>
+    <p class="muted">@Loc["Token.Existing.Desc"]</p>
 
     @if (editingTokenId is not null)
     {
         <div class="panel">
-            <h4 style="margin-top:0;">Edit token</h4>
+            <h4 style="margin-top:0;">@Loc["Token.Edit.Title"]</h4>
             <div class="stack" style="max-width:32rem;">
-                <div class="field"><label>Name</label><input @bind="editName" /></div>
-                <div class="field"><label>Note</label><textarea rows="2" @bind="editNote"></textarea></div>
+                <div class="field"><label>@Loc["Common.Name"]</label><input @bind="editName" /></div>
+                <div class="field"><label>@Loc["Common.Note"]</label><textarea rows="2" @bind="editNote"></textarea></div>
                 <div class="row">
-                    <button @onclick="SaveEditAsync" disabled="@(busy || string.IsNullOrWhiteSpace(editName))">Save</button>
-                    <button class="btn-ghost" @onclick="() => editingTokenId = null">Cancel</button>
+                    <button @onclick="SaveEditAsync" disabled="@(busy || string.IsNullOrWhiteSpace(editName))">@Loc["Common.Save"]</button>
+                    <button class="btn-ghost" @onclick="() => editingTokenId = null">@Loc["Common.Cancel"]</button>
                 </div>
             </div>
         </div>
@@ -70,21 +70,21 @@
 
     @if (list is null)
     {
-        <p class="muted">Loading…</p>
+        <p class="muted">@Loc["Common.Loading"]</p>
     }
     else if (list.Count == 0)
     {
-        <p class="muted">No tokens yet — issue one above.</p>
+        <p class="muted">@Loc["Token.Empty"]</p>
     }
     else
     {
         @if (list.Count > 5)
         {
-            <input @bind="tokenFilter" @bind:event="oninput" placeholder="Filter tokens…" style="max-width:18rem; margin-bottom:.5rem;" />
+            <input @bind="tokenFilter" @bind:event="oninput" placeholder="@(Loc["Token.Filter"])" style="max-width:18rem; margin-bottom:.5rem;" />
         }
         <table>
             <thead>
-                <tr><th>Name</th><th>Note</th><th>Prefix</th><th>Created</th><th>Expires</th><th>Status</th><th></th></tr>
+                <tr><th>@Loc["Common.Name"]</th><th>@Loc["Common.Note"]</th><th>@Loc["Token.Prefix"]</th><th>@Loc["Token.Created"]</th><th>@Loc["Token.Expires"]</th><th>@Loc["Token.Status"]</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var token in FilteredTokens)
@@ -97,11 +97,11 @@
                         <td>@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</td>
                         <td><span class="badge @StatusBadge(token)">@StatusOf(token)</span></td>
                         <td class="row-actions">
-                            <button class="btn-ghost btn-sm" @onclick="() => StartEdit(token)" disabled="@busy">Edit</button>
+                            <button class="btn-ghost btn-sm" @onclick="() => StartEdit(token)" disabled="@busy">@Loc["Common.Edit"]</button>
                             @if (token.RevokedAt is null)
                             {
-                                <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">Rotate</button>
-                                <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">Revoke</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["Token.Rotate"]</button>
+                                <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Token.Revoke"]</button>
                             }
                         </td>
                     </tr>
@@ -116,7 +116,7 @@
     private string name = "";
     private string note = "";
     private int? expiresInDays;
-    private string? status;
+    private (string Text, bool IsError)? status;
     private string? issuedToken;
     private bool busy;
     private Guid? actorUserId;
@@ -155,11 +155,11 @@
             var issued = await TokenService.IssueAsync(
                 new IssueSoftwareClientTokenCommand(Demo.TenantId, Demo.ProjectId, environment, name, expiresAt, actorUserId, note));
             issuedToken = issued.Token;
-            status = $"Issued token '{name}' for {environment}.";
+            status = (Loc["Token.Msg.Issued", name, environment], false);
             name = ""; note = "";
             await RefreshAsync();
         }
-        catch (Exception ex) { status = "Error: " + ex.Message; }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
         finally { busy = false; }
     }
 
@@ -179,9 +179,9 @@
             await TokenService.UpdateAsync(Demo.TenantId, editingTokenId.Value, editName, editNote, actorUserId);
             editingTokenId = null;
             await RefreshAsync();
-            status = "Token updated.";
+            status = (Loc["Token.Msg.Updated"], false);
         }
-        catch (Exception ex) { status = "Error: " + ex.Message; }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
         finally { busy = false; }
     }
 
@@ -193,10 +193,10 @@
         {
             var rotated = await TokenService.RotateAsync(Demo.TenantId, tokenId, null, actorUserId);
             issuedToken = rotated.Token;
-            status = "Rotated — the previous token has stopped working.";
+            status = (Loc["Token.Msg.Rotated"], false);
             await RefreshAsync();
         }
-        catch (Exception ex) { status = "Error: " + ex.Message; }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
         finally { busy = false; }
     }
 
@@ -207,15 +207,15 @@
         try
         {
             await TokenService.RevokeAsync(Demo.TenantId, tokenId, actorUserId);
-            status = "Token revoked.";
+            status = (Loc["Token.Msg.Revoked"], false);
             await RefreshAsync();
         }
-        catch (Exception ex) { status = "Error: " + ex.Message; }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
         finally { busy = false; }
     }
 
-    private static string StatusOf(SoftwareClientTokenInfo token) =>
-        token.RevokedAt is not null ? "Revoked" : token.IsActive ? "Active" : "Expired";
+    private string StatusOf(SoftwareClientTokenInfo token) =>
+        token.RevokedAt is not null ? Loc["Token.Status.Revoked"] : token.IsActive ? Loc["Token.Status.Active"] : Loc["Token.Status.Expired"];
 
     private static string StatusBadge(SoftwareClientTokenInfo token) =>
         token.RevokedAt is not null ? "badge-danger" : token.IsActive ? "badge-success" : "badge-warning";

@@ -100,4 +100,123 @@
   <data name="Profile.Desc" xml:space="preserve"><value>Votre compte.</value></data>
   <data name="Profile.Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>Administrateur système</value></data>
+  <data name="Common.Loading" xml:space="preserve"><value>Chargement…</value></data>
+  <data name="Common.Save" xml:space="preserve"><value>Enregistrer</value></data>
+  <data name="Common.Cancel" xml:space="preserve"><value>Annuler</value></data>
+  <data name="Common.Close" xml:space="preserve"><value>Fermer</value></data>
+  <data name="Common.Edit" xml:space="preserve"><value>Modifier</value></data>
+  <data name="Common.Delete" xml:space="preserve"><value>Supprimer</value></data>
+  <data name="Common.DeleteEllipsis" xml:space="preserve"><value>Supprimer…</value></data>
+  <data name="Common.View" xml:space="preserve"><value>Afficher</value></data>
+  <data name="Common.Rename" xml:space="preserve"><value>Renommer</value></data>
+  <data name="Common.Reveal" xml:space="preserve"><value>Révéler</value></data>
+  <data name="Common.Hide" xml:space="preserve"><value>Masquer</value></data>
+  <data name="Common.Yes" xml:space="preserve"><value>Oui</value></data>
+  <data name="Common.Name" xml:space="preserve"><value>Nom</value></data>
+  <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Common.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Common.Environment" xml:space="preserve"><value>Environnement</value></data>
+  <data name="Common.Error" xml:space="preserve"><value>Erreur : </value></data>
+  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Coffres d'équipe</value></data>
+  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Vos coffres</value></data>
+  <data name="Vault.List.DescTeam" xml:space="preserve"><value>Les coffres d'équipe appartiennent au locataire et sont partagés avec des personnes via des autorisations. Vous voyez ceux que vous possédez ou auxquels on vous a donné accès. Partager un coffre permet à un collègue de lire ou de modifier ses éléments.</value></data>
+  <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Les coffres personnels n'appartiennent qu'à vous — personne d'autre ne peut les voir. Utilisez-les pour vos propres identifiants, notes et secrets.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>Aucun coffre pour l'instant — créez-en un ci-dessous.</value></data>
+  <data name="Vault.Filter" xml:space="preserve"><value>Filtrer les coffres…</value></data>
+  <data name="Vault.NewNameTeam" xml:space="preserve"><value>Nom du nouveau coffre d'équipe</value></data>
+  <data name="Vault.NewNamePersonal" xml:space="preserve"><value>Nom du nouveau coffre</value></data>
+  <data name="Vault.Create" xml:space="preserve"><value>Créer un coffre</value></data>
+  <data name="Vault.Delete" xml:space="preserve"><value>Supprimer le coffre</value></data>
+  <data name="Vault.ConfirmDelete" xml:space="preserve"><value>Supprimer ce coffre et tous ses éléments ? Cette action est irréversible.</value></data>
+  <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Oui, supprimer</value></data>
+  <data name="Vault.Import.Title" xml:space="preserve"><value>Importer des identifiants</value></data>
+  <data name="Vault.Import.Desc" xml:space="preserve"><value>Téléversez un export de mots de passe de navigateur (CSV Microsoft Edge / Chrome : name, url, username, password, note). Chaque ligne devient un élément Identifiant dans ce coffre.</value></data>
+  <data name="Vault.Folders.Title" xml:space="preserve"><value>Dossiers</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Les dossiers sont des étiquettes facultatives pour regrouper les éléments dans un coffre. Supprimer un dossier conserve ses éléments (ils reviennent à la racine du coffre).</value></data>
+  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Filtrer les dossiers…</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Supprimer le dossier ?</value></data>
+  <data name="Vault.Folders.NewName" xml:space="preserve"><value>Nom du nouveau dossier</value></data>
+  <data name="Vault.Folders.Add" xml:space="preserve"><value>Ajouter un dossier</value></data>
+  <data name="Vault.Items.Title" xml:space="preserve"><value>Éléments</value></data>
+  <data name="Vault.Items.Add" xml:space="preserve"><value>Ajouter un élément</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un élément de coffre est un secret stocké. Un Identifiant contient un site web, un nom d'utilisateur et un mot de passe ; les autres types contiennent une note sécurisée ou une seule valeur secrète. Les valeurs sont chiffrées et affichées uniquement lorsque vous choisissez Afficher. La suppression se confirme depuis le détail de l'élément (choisissez Supprimer… pour l'ouvrir d'abord).</value></data>
+  <data name="Vault.Items.InFolder" xml:space="preserve"><value>dans</value></data>
+  <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Modifier « {0} »</value></data>
+  <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>p. ex. GitHub</value></data>
+  <data name="Vault.Items.Empty" xml:space="preserve"><value>Aucun élément pour l'instant — utilisez « Ajouter un élément ».</value></data>
+  <data name="Vault.Items.Filter" xml:space="preserve"><value>Filtrer les éléments…</value></data>
+  <data name="Vault.Field.Url" xml:space="preserve"><value>URL</value></data>
+  <data name="Vault.Field.Username" xml:space="preserve"><value>Nom d'utilisateur</value></data>
+  <data name="Vault.Field.Password" xml:space="preserve"><value>Mot de passe</value></data>
+  <data name="Vault.Field.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="Vault.Field.Value" xml:space="preserve"><value>Valeur</value></data>
+  <data name="Vault.Field.Folder" xml:space="preserve"><value>Dossier</value></data>
+  <data name="Vault.Field.NoFolder" xml:space="preserve"><value>(aucun dossier)</value></data>
+  <data name="Vault.Field.ValueNote" xml:space="preserve"><value>Valeur / note</value></data>
+  <data name="Vault.Field.ValuePlaceholder" xml:space="preserve"><value>valeur secrète, note, chaîne de connexion…</value></data>
+  <data name="Vault.Share.Title" xml:space="preserve"><value>Partage</value></data>
+  <data name="Vault.Share.Desc" xml:space="preserve"><value>Accordez à un collègue l'accès à ce coffre : Lecture pour voir les éléments, Écriture pour aussi ajouter/modifier, Gestion pour aussi renommer/supprimer et partager.</value></data>
+  <data name="Vault.Share.NoCandidates" xml:space="preserve"><value>Aucun autre utilisateur avec qui partager pour l'instant.</value></data>
+  <data name="Vault.Share.SelectUser" xml:space="preserve"><value>Sélectionnez un utilisateur…</value></data>
+  <data name="Vault.Share.Action" xml:space="preserve"><value>Partager</value></data>
+  <data name="Vault.Share.User" xml:space="preserve"><value>Utilisateur</value></data>
+  <data name="Vault.Share.Permission" xml:space="preserve"><value>Autorisation</value></data>
+  <data name="Vault.Msg.Created" xml:space="preserve"><value>Coffre créé.</value></data>
+  <data name="Vault.Msg.Renamed" xml:space="preserve"><value>Coffre renommé.</value></data>
+  <data name="Vault.Msg.Deleted" xml:space="preserve"><value>Coffre supprimé.</value></data>
+  <data name="Vault.Msg.ItemAdded" xml:space="preserve"><value>Élément ajouté.</value></data>
+  <data name="Vault.Msg.ItemSaved" xml:space="preserve"><value>Élément enregistré.</value></data>
+  <data name="Vault.Msg.ItemDeleted" xml:space="preserve"><value>Élément supprimé.</value></data>
+  <data name="Vault.Msg.NoLogins" xml:space="preserve"><value>Aucun identifiant trouvé dans le fichier.</value></data>
+  <data name="Vault.Msg.Imported" xml:space="preserve"><value>{0} identifiant(s) importé(s).</value></data>
+  <data name="Vault.Msg.Shared" xml:space="preserve"><value>Coffre partagé.</value></data>
+  <data name="Secret.Title" xml:space="preserve"><value>Secrets</value></data>
+  <data name="Secret.Add" xml:space="preserve"><value>Ajouter un secret</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>Un secret est une clé (p. ex. ConnectionStrings:Main) qui peut contenir une valeur différente dans chaque environnement. Choisissez Afficher pour voir ou modifier ses valeurs, ou Supprimer… pour l'ouvrir et le retirer.</value></data>
+  <data name="Secret.HideValues" xml:space="preserve"><value>Masquer les valeurs</value></data>
+  <data name="Secret.RevealValues" xml:space="preserve"><value>Révéler les valeurs</value></data>
+  <data name="Secret.View.Desc" xml:space="preserve"><value>Définissez ou modifiez la valeur par environnement. Chaque enregistrement crée une nouvelle version chiffrée.</value></data>
+  <data name="Secret.CurrentValue" xml:space="preserve"><value>Valeur actuelle</value></data>
+  <data name="Secret.SetNewValue" xml:space="preserve"><value>Définir une nouvelle valeur</value></data>
+  <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>nouvelle valeur</value></data>
+  <data name="Secret.Key" xml:space="preserve"><value>Clé</value></data>
+  <data name="Secret.Value" xml:space="preserve"><value>Valeur</value></data>
+  <data name="Secret.Empty" xml:space="preserve"><value>Aucun secret pour l'instant — utilisez « Ajouter un secret ».</value></data>
+  <data name="Secret.Filter" xml:space="preserve"><value>Filtrer les secrets…</value></data>
+  <data name="Secret.EnvWithValue" xml:space="preserve"><value>Environnements avec une valeur</value></data>
+  <data name="Secret.None" xml:space="preserve"><value>aucun</value></data>
+  <data name="Secret.Msg.Saved" xml:space="preserve"><value>{0} enregistré dans {1}.</value></data>
+  <data name="Secret.Msg.Created" xml:space="preserve"><value>Secret {0} créé.</value></data>
+  <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret supprimé.</value></data>
+  <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
+  <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Limitez un jeton à un seul environnement afin qu'un jeton divulgué ne puisse pas en lire un autre. Ajoutez une note (p. ex. où il est déployé) et une expiration facultative.</value></data>
+  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif)</value></data>
+  <data name="Token.NotePlaceholder" xml:space="preserve"><value>où il est utilisé, propriétaire, ticket…</value></data>
+  <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expire dans (jours, facultatif)</value></data>
+  <data name="Token.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
+  <data name="Token.Existing.Title" xml:space="preserve"><value>Jetons existants</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Modifiez le nom/la note d'un jeton à tout moment. La rotation remplace son secret (l'ancien cesse de fonctionner) ; Révoquer le désactive.</value></data>
+  <data name="Token.Edit.Title" xml:space="preserve"><value>Modifier le jeton</value></data>
+  <data name="Token.Empty" xml:space="preserve"><value>Aucun jeton pour l'instant — émettez-en un ci-dessus.</value></data>
+  <data name="Token.Filter" xml:space="preserve"><value>Filtrer les jetons…</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Préfixe</value></data>
+  <data name="Token.Created" xml:space="preserve"><value>Créé</value></data>
+  <data name="Token.Expires" xml:space="preserve"><value>Expire</value></data>
+  <data name="Token.Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Token.Rotate" xml:space="preserve"><value>Faire tourner</value></data>
+  <data name="Token.Revoke" xml:space="preserve"><value>Révoquer</value></data>
+  <data name="Token.Status.Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Token.Status.Revoked" xml:space="preserve"><value>Révoqué</value></data>
+  <data name="Token.Status.Expired" xml:space="preserve"><value>Expiré</value></data>
+  <data name="Token.Msg.Issued" xml:space="preserve"><value>Jeton « {0} » émis pour {1}.</value></data>
+  <data name="Token.Msg.Updated" xml:space="preserve"><value>Jeton mis à jour.</value></data>
+  <data name="Token.Msg.Rotated" xml:space="preserve"><value>Rotation effectuée — le jeton précédent a cessé de fonctionner.</value></data>
+  <data name="Token.Msg.Revoked" xml:space="preserve"><value>Jeton révoqué.</value></data>
+  <data name="Error.Title" xml:space="preserve"><value>Erreur.</value></data>
+  <data name="Error.Heading" xml:space="preserve"><value>Une erreur s'est produite lors du traitement de votre demande.</value></data>
+  <data name="Error.RequestId" xml:space="preserve"><value>ID de la demande :</value></data>
+  <data name="NotFound.Title" xml:space="preserve"><value>Introuvable</value></data>
+  <data name="NotFound.Body" xml:space="preserve"><value>Désolé, le contenu que vous recherchez n'existe pas.</value></data>
 </root>
