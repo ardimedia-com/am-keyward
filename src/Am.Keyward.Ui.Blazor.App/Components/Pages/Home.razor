@@ -13,10 +13,10 @@
         <div class="card">
             <h3>@Loc["Home.QuickLinks"]</h3>
             <div class="row" style="margin-top:.5rem;">
-                <a class="btn" href="vaults/personal">@Loc["Nav.PersonalVaults"]</a>
-                <a class="btn btn-ghost" href="vaults/team">@Loc["Nav.TeamVaults"]</a>
-                <a class="btn btn-ghost" href="secrets">@Loc["Nav.SoftwareCredentials"]</a>
-                <a class="btn btn-ghost" href="tokens">@Loc["Nav.ClientTokens"]</a>
+                <a class="btn" href="@KeywardRoutes.PersonalVaults">@Loc["Nav.PersonalVaults"]</a>
+                <a class="btn btn-ghost" href="@KeywardRoutes.TeamVaults">@Loc["Nav.TeamVaults"]</a>
+                <a class="btn btn-ghost" href="@KeywardRoutes.SoftwareCredentials">@Loc["Nav.SoftwareCredentials"]</a>
+                <a class="btn btn-ghost" href="@KeywardRoutes.ClientTokens">@Loc["Nav.ClientTokens"]</a>
             </div>
         </div>
     </Authorized>

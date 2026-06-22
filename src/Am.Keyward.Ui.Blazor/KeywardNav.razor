@@ -1,0 +1,13 @@
+@* Reusable navigation for the embedded Keyward sections. Identity-aware (only shown when signed in) and
+   localized; uses the KeywardRoutes constants so a host never hardcodes Keyward's route strings. The host
+   decides WHERE to place it (its own layout) and may style the .nav-link class to taste. *@
+@inject IStringLocalizer<SharedResource> Loc
+
+<AuthorizeView>
+    <Authorized>
+        <NavLink class="nav-link" href="@KeywardRoutes.PersonalVaults">@Loc["Nav.PersonalVaults"]</NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.TeamVaults">@Loc["Nav.TeamVaults"]</NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.SoftwareCredentials">@Loc["Nav.SoftwareCredentials"]</NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.ClientTokens">@Loc["Nav.ClientTokens"]</NavLink>
+    </Authorized>
+</AuthorizeView>

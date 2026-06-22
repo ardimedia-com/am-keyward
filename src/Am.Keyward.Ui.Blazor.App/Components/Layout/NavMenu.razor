@@ -16,12 +16,6 @@
 
 <nav class="nav-links">
     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">@Loc["Nav.Home"]</NavLink>
-    <AuthorizeView>
-        <Authorized>
-            <NavLink class="nav-link" href="vaults/personal">@Loc["Nav.PersonalVaults"]</NavLink>
-            <NavLink class="nav-link" href="vaults/team">@Loc["Nav.TeamVaults"]</NavLink>
-            <NavLink class="nav-link" href="secrets">@Loc["Nav.SoftwareCredentials"]</NavLink>
-            <NavLink class="nav-link" href="tokens">@Loc["Nav.ClientTokens"]</NavLink>
-        </Authorized>
-    </AuthorizeView>
+    @* The Keyward section links come from the RCL so routes aren't hardcoded here. *@
+    <KeywardNav />
 </nav>

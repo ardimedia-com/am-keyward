@@ -1,0 +1,9 @@
+@* Style scope for the embedded Keyward UI. Wrap a Keyward page's content in <KeywardUi>...</KeywardUi>;
+   the styling lives in KeywardUi.razor.css and — because it is component-scoped CSS in this RCL — is
+   bundled automatically into the host app's {Assembly}.styles.css. A host therefore needs NO extra <link>:
+   referencing the standard Blazor styles bundle is enough. Override the look via the --kw-* CSS variables. *@
+<div class="keyward-ui">@ChildContent</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -1,9 +1,9 @@
-@page "/vaults"
+@page "/amkeyward/vaults"
 @attribute [Authorize]
 @inject NavigationManager Nav
 
 <PageTitle>AM KEYWARD</PageTitle>
 
 @code {
-    protected override void OnInitialized() => Nav.NavigateTo("vaults/personal", replace: true);
+    protected override void OnInitialized() => Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
 }

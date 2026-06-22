@@ -1,0 +1,179 @@
+/* Component-scoped theme for the embedded Keyward UI. Because this is RCL scoped CSS, the framework folds
+   it into the consuming app's {Assembly}.styles.css automatically — no manual <link> needed. The root
+   .keyward-ui carries the CSS variables (which inherit to descendants); ::deep reaches the page markup the
+   child components render. Override the look by redefining the --kw-* variables on .keyward-ui in the host. */
+
+.keyward-ui {
+    color-scheme: light;
+
+    --kw-bg: #f6f7f9;
+    --kw-surface: #ffffff;
+    --kw-muted: #f1f3f5;
+    --kw-text: #1c2024;
+    --kw-muted-text: #6b7280;
+    --kw-border: #e3e6ea;
+
+    --kw-primary: #4f46e5;
+    --kw-primary-hover: #4338ca;
+    --kw-primary-foreground: #ffffff;
+
+    --kw-success: #15803d;
+    --kw-danger: #b91c1c;
+    --kw-warning: #b45309;
+
+    --kw-radius: 8px;
+    --kw-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10);
+
+    color: var(--kw-text);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+}
+
+.keyward-ui ::deep h1, .keyward-ui ::deep h2, .keyward-ui ::deep h3 {
+    color: var(--kw-text);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    margin: 0 0 .5rem;
+}
+.keyward-ui ::deep h1 { font-size: 1.6rem; font-weight: 650; }
+.keyward-ui ::deep h2 { font-size: 1.2rem; font-weight: 600; margin-top: 1.5rem; }
+.keyward-ui ::deep h3 { font-size: 1rem; font-weight: 600; }
+.keyward-ui ::deep h1:focus, .keyward-ui ::deep h1:focus-visible { outline: none; }
+
+.keyward-ui ::deep a { color: var(--kw-primary); text-decoration: none; }
+.keyward-ui ::deep a:hover { text-decoration: underline; }
+
+.keyward-ui ::deep code {
+    font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+    font-size: .85em;
+    background: var(--kw-muted);
+    padding: .1rem .35rem;
+    border-radius: 4px;
+    word-break: break-all;
+}
+
+.keyward-ui ::deep p { margin: .25rem 0 .75rem; }
+.keyward-ui ::deep .muted { color: var(--kw-muted-text); }
+.keyward-ui ::deep .lead { color: var(--kw-muted-text); margin-top: 0; }
+
+/* Buttons (bare <button> styled too, so the pages inherit the look) */
+.keyward-ui ::deep button,
+.keyward-ui ::deep .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem .9rem;
+    font-size: .9rem;
+    font-weight: 500;
+    line-height: 1;
+    color: var(--kw-primary-foreground);
+    background: var(--kw-primary);
+    border: 1px solid var(--kw-primary);
+    border-radius: var(--kw-radius);
+    cursor: pointer;
+    text-decoration: none;
+    transition: background-color .12s ease, opacity .12s ease;
+}
+.keyward-ui ::deep button:hover,
+.keyward-ui ::deep .btn:hover { background: var(--kw-primary-hover); border-color: var(--kw-primary-hover); text-decoration: none; }
+.keyward-ui ::deep button:disabled,
+.keyward-ui ::deep .btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.keyward-ui ::deep .btn-ghost,
+.keyward-ui ::deep button.btn-ghost {
+    background: transparent;
+    color: var(--kw-text);
+    border: 1px solid var(--kw-border);
+}
+.keyward-ui ::deep .btn-ghost:hover,
+.keyward-ui ::deep button.btn-ghost:hover { background: var(--kw-muted); border-color: var(--kw-border); }
+
+.keyward-ui ::deep .btn-danger,
+.keyward-ui ::deep button.btn-danger {
+    background: transparent;
+    color: var(--kw-danger);
+    border: 1px solid color-mix(in srgb, var(--kw-danger) 35%, transparent);
+}
+.keyward-ui ::deep .btn-danger:hover,
+.keyward-ui ::deep button.btn-danger:hover { background: color-mix(in srgb, var(--kw-danger) 10%, transparent); }
+
+.keyward-ui ::deep .btn-sm, .keyward-ui ::deep button.btn-sm { padding: .3rem .6rem; font-size: .8rem; }
+
+/* Forms */
+.keyward-ui ::deep label { font-size: .85rem; font-weight: 500; color: var(--kw-text); }
+.keyward-ui ::deep input, .keyward-ui ::deep select, .keyward-ui ::deep textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: .5rem .65rem;
+    font-size: .9rem;
+    color: var(--kw-text);
+    background: var(--kw-surface);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+}
+.keyward-ui ::deep input:focus, .keyward-ui ::deep select:focus, .keyward-ui ::deep textarea:focus {
+    outline: 2px solid color-mix(in srgb, var(--kw-primary) 45%, transparent);
+    outline-offset: 1px;
+    border-color: var(--kw-primary);
+}
+.keyward-ui ::deep .field { display: flex; flex-direction: column; gap: .3rem; margin-bottom: .75rem; }
+.keyward-ui ::deep .stack { display: flex; flex-direction: column; gap: .6rem; }
+.keyward-ui ::deep .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+.keyward-ui ::deep .form-narrow { max-width: 28rem; }
+.keyward-ui ::deep .validation-message, .keyward-ui ::deep .field-validation-error { color: var(--kw-danger); font-size: .8rem; }
+
+/* Cards / panels */
+.keyward-ui ::deep .card {
+    background: var(--kw-surface);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    box-shadow: var(--kw-shadow);
+    padding: 1.25rem;
+}
+.keyward-ui ::deep .card + .card { margin-top: 1rem; }
+
+.keyward-ui ::deep .panel {
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    background: var(--kw-muted);
+    padding: 1rem;
+    margin: .5rem 0 1rem;
+}
+
+.keyward-ui ::deep .page-header { margin-bottom: 1.25rem; }
+.keyward-ui ::deep .page-header p { color: var(--kw-muted-text); font-size: .9rem; margin: .15rem 0 0; }
+
+/* Tables */
+.keyward-ui ::deep table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.keyward-ui ::deep th {
+    text-align: left;
+    font-weight: 600;
+    color: var(--kw-muted-text);
+    padding: .6rem .75rem;
+    border-bottom: 1px solid var(--kw-border);
+    white-space: nowrap;
+}
+.keyward-ui ::deep td { padding: .6rem .75rem; border-bottom: 1px solid var(--kw-border); vertical-align: middle; }
+.keyward-ui ::deep tr:last-child td { border-bottom: none; }
+.keyward-ui ::deep .row-actions { display: flex; gap: .4rem; }
+
+/* Badges */
+.keyward-ui ::deep .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: .12rem .5rem;
+    font-size: .75rem;
+    font-weight: 500;
+    border-radius: 999px;
+    background: var(--kw-muted);
+    color: var(--kw-muted-text);
+    border: 1px solid var(--kw-border);
+}
+.keyward-ui ::deep .badge-success { background: color-mix(in srgb, var(--kw-success) 12%, transparent); color: var(--kw-success); border-color: color-mix(in srgb, var(--kw-success) 30%, transparent); }
+.keyward-ui ::deep .badge-danger  { background: color-mix(in srgb, var(--kw-danger) 12%, transparent);  color: var(--kw-danger);  border-color: color-mix(in srgb, var(--kw-danger) 30%, transparent); }
+.keyward-ui ::deep .badge-warning { background: color-mix(in srgb, var(--kw-warning) 14%, transparent); color: var(--kw-warning); border-color: color-mix(in srgb, var(--kw-warning) 30%, transparent); }
+
+/* Inline notices */
+.keyward-ui ::deep .notice { padding: .6rem .8rem; border-radius: var(--kw-radius); font-size: .85rem; margin: .5rem 0; border: 1px solid var(--kw-border); background: var(--kw-muted); }
+.keyward-ui ::deep .notice-error { background: color-mix(in srgb, var(--kw-danger) 10%, transparent); color: var(--kw-danger); border-color: color-mix(in srgb, var(--kw-danger) 30%, transparent); }
+.keyward-ui ::deep .notice-reveal { background: color-mix(in srgb, var(--kw-primary) 8%, transparent); border-color: color-mix(in srgb, var(--kw-primary) 30%, transparent); }

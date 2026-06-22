@@ -1,4 +1,4 @@
-@page "/tokens"
+@page "/amkeyward/tokens"
 @* Prerender disabled: loads tenant-scoped data in OnInitializedAsync, set by the circuit handler. *@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
@@ -9,7 +9,7 @@
 
 <PageTitle>AM KEYWARD</PageTitle>
 
-<div class="keyward-ui">
+<KeywardUi>
 <div class="page-header">
     <h1>@Loc["Page.Tokens.Title"]</h1>
     <p>@Loc["Page.Tokens.Desc"]</p>
@@ -110,7 +110,7 @@
         </table>
     }
 </div>
-</div>
+</KeywardUi>
 
 @code {
     private string environment = "Production";
