@@ -18,8 +18,8 @@
   <PropertyGroup>
     <Authors>Ardimedia Anstalt</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/ardimedia/am-keyward</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ardimedia/am-keyward</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/ardimedia-com/am-keyward</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ardimedia-com/am-keyward</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>secrets;credentials;vault;password-manager;blazor;encryption;keyward</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
