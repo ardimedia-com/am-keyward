@@ -2,14 +2,17 @@ name: Release
 
 # Tag-driven release. Push a v* tag (e.g. v0.1.0-preview) on a release-prep commit that has already promoted
 # the matching "## [<version>]" CHANGELOG section. The job builds + tests, packs the libraries and pushes
-# them to nuget.org, then publishes a GitHub Release whose notes ARE that CHANGELOG section.
-# Requires a repository secret NUGET_API_KEY (a nuget.org API key).
+# them to nuget.org via Trusted Publishing (OIDC — no long-lived API key), then publishes a GitHub Release
+# whose notes ARE that CHANGELOG section.
+# Setup (once): create a Trusted Publishing policy on nuget.org for this repo + workflow, and set the repo
+# Actions variable NUGET_USER to the nuget.org account username that owns the policy. No secret needed.
 on:
   push:
     tags: ['v*']
 
 permissions:
   contents: write
+  id-token: write   # OIDC token for NuGet Trusted Publishing
 
 jobs:
   release:
@@ -54,12 +57,19 @@ jobs:
       - name: Pack
         run: dotnet pack Am.Keyward.slnx -c Release --no-build -p:Version=${{ env.TAG_LABEL }} -o artifacts
 
+      # Trusted Publishing: exchange the GitHub OIDC token for a short-lived, single-use nuget.org API key.
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
       - name: Push to nuget.org
         shell: bash
         run: |
           dotnet nuget push "artifacts/*.nupkg" \
             --source https://api.nuget.org/v3/index.json \
-            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}" \
             --skip-duplicate
 
       - name: Create GitHub Release
