@@ -23,7 +23,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
-    string[] cultures = ["en", "de"];
+    string[] cultures = ["en", "de", "fr", "it", "es", "pt"];
     options.SetDefaultCulture("en").AddSupportedCultures(cultures).AddSupportedUICultures(cultures);
 });
 

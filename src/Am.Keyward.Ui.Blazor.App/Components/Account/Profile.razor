@@ -1,0 +1,28 @@
+@page "/account/profile"
+@attribute [Authorize]
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>AM KEYWARD</PageTitle>
+
+<div class="page-header">
+    <h1>@Loc["Profile.Title"]</h1>
+    <p>@Loc["Profile.Desc"]</p>
+</div>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="card" style="max-width:32rem;">
+            <div class="field">
+                <label>@Loc["Profile.Email"]</label>
+                <div>@context.User.Identity?.Name</div>
+            </div>
+            @if (context.User.HasClaim("keyward:is_system_admin", "true"))
+            {
+                <p><span class="badge badge-success">@Loc["Profile.SystemAdmin"]</span></p>
+            }
+            <form action="account/logout" method="post" style="margin-top:1rem;">
+                <button type="submit" class="btn-danger">@Loc["Nav.SignOut"]</button>
+            </form>
+        </div>
+    </Authorized>
+</AuthorizeView>

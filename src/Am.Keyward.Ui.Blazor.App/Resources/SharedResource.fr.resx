@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Nav.Home" xml:space="preserve"><value>Accueil</value></data>
+  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Coffres personnels</value></data>
+  <data name="Nav.TeamVaults" xml:space="preserve"><value>Coffres d'équipe</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Identifiants logiciels</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>Jetons client</value></data>
+  <data name="Nav.SignIn" xml:space="preserve"><value>Se connecter</value></data>
+  <data name="Nav.SignOut" xml:space="preserve"><value>Se déconnecter</value></data>
+  <data name="Language" xml:space="preserve"><value>Langue</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Un gestionnaire d'identifiants et de secrets open source, natif .NET — identifiants logiciels et coffres personnels.</value></data>
+  <data name="Home.QuickLinks" xml:space="preserve"><value>Liens rapides</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Connectez-vous pour gérer vos coffres et identifiants logiciels.</value></data>
+  <data name="Home.Register" xml:space="preserve"><value>S'inscrire</value></data>
+  <data name="Login.Title" xml:space="preserve"><value>Se connecter</value></data>
+  <data name="Login.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Login.Password" xml:space="preserve"><value>Mot de passe</value></data>
+  <data name="Login.Submit" xml:space="preserve"><value>Se connecter</value></data>
+  <data name="Login.NoAccount" xml:space="preserve"><value>Pas encore de compte ?</value></data>
+  <data name="Login.RegisterLink" xml:space="preserve"><value>S'inscrire</value></data>
+  <data name="Login.FirstAdminHint" xml:space="preserve"><value>(le premier compte devient administrateur système)</value></data>
+  <data name="Login.Invalid" xml:space="preserve"><value>E-mail ou mot de passe invalide.</value></data>
+  <data name="Login.LockedOut" xml:space="preserve"><value>Ce compte est temporairement verrouillé après trop de tentatives échouées. Réessayez plus tard.</value></data>
+  <data name="Register.Title" xml:space="preserve"><value>S'inscrire</value></data>
+  <data name="Register.FirstAdmin" xml:space="preserve"><value>Le premier compte créé devient l'administrateur système.</value></data>
+  <data name="Register.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Register.Password" xml:space="preserve"><value>Mot de passe</value></data>
+  <data name="Register.Confirm" xml:space="preserve"><value>Confirmer le mot de passe</value></data>
+  <data name="Register.Submit" xml:space="preserve"><value>S'inscrire</value></data>
+  <data name="Register.HaveAccount" xml:space="preserve"><value>Vous avez déjà un compte ?</value></data>
+  <data name="Register.SignInLink" xml:space="preserve"><value>Se connecter</value></data>
+  <data name="Page.Personal.Title" xml:space="preserve"><value>Coffres personnels</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos identifiants, notes et secrets privés — chiffrés et visibles seulement par vous.</value></data>
+  <data name="Page.Team.Title" xml:space="preserve"><value>Coffres d'équipe</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres appartenant à votre locataire et partagés avec des collègues via des autorisations.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Identifiants logiciels</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Secrets machine (clés API, chaînes de connexion) pour le projet de démonstration, cloisonnés par environnement. Vos logiciels les lisent à l'exécution avec un jeton client ; ici vous gérez les valeurs.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>Jetons client</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Jetons que votre logiciel déployé présente (en tant que jeton Bearer) pour lire les secrets de ce projet, cloisonnés par environnement. La valeur du jeton n'est affichée qu'une fois, à l'émission — copiez-la alors.</value></data>
+  <data name="Nav.Profile" xml:space="preserve"><value>Voir le profil</value></data>
+  <data name="Profile.Title" xml:space="preserve"><value>Profil</value></data>
+  <data name="Profile.Desc" xml:space="preserve"><value>Votre compte.</value></data>
+  <data name="Profile.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Profile.SystemAdmin" xml:space="preserve"><value>Administrateur système</value></data>
+</root>

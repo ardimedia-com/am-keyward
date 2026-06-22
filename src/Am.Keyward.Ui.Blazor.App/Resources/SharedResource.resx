@@ -95,4 +95,9 @@
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Machine secrets (API keys, connection strings) for the demo project, scoped per environment. Your software reads them at runtime with a software-client token; here you manage the values.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Client tokens</value></data>
   <data name="Page.Tokens.Desc" xml:space="preserve"><value>Tokens your deployed software presents (as a Bearer token) to read this project's secrets, scoped per environment. The token value is shown once, at issuance — copy it then.</value></data>
+  <data name="Nav.Profile" xml:space="preserve"><value>View profile</value></data>
+  <data name="Profile.Title" xml:space="preserve"><value>Profile</value></data>
+  <data name="Profile.Desc" xml:space="preserve"><value>Your account.</value></data>
+  <data name="Profile.Email" xml:space="preserve"><value>Email</value></data>
+  <data name="Profile.SystemAdmin" xml:space="preserve"><value>System administrator</value></data>
 </root>

@@ -95,4 +95,9 @@
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Maschinen-Secrets (API-Schlüssel, Connection-Strings) für das Demo-Projekt, pro Environment. Deine Software liest sie zur Laufzeit mit einem Client-Token; hier verwaltest du die Werte.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Client-Tokens</value></data>
   <data name="Page.Tokens.Desc" xml:space="preserve"><value>Tokens, die deine Software (als Bearer-Token) vorzeigt, um die Secrets dieses Projekts zu lesen, pro Environment. Der Token-Wert wird nur einmal bei der Ausgabe angezeigt — kopiere ihn dann.</value></data>
+  <data name="Nav.Profile" xml:space="preserve"><value>Profil ansehen</value></data>
+  <data name="Profile.Title" xml:space="preserve"><value>Profil</value></data>
+  <data name="Profile.Desc" xml:space="preserve"><value>Dein Konto.</value></data>
+  <data name="Profile.Email" xml:space="preserve"><value>E-Mail</value></data>
+  <data name="Profile.SystemAdmin" xml:space="preserve"><value>System-Administrator</value></data>
 </root>

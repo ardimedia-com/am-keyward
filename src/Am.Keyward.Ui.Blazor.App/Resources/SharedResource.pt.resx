@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Nav.Home" xml:space="preserve"><value>Início</value></data>
+  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Cofres pessoais</value></data>
+  <data name="Nav.TeamVaults" xml:space="preserve"><value>Cofres da equipa</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Credenciais de software</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>Tokens de cliente</value></data>
+  <data name="Nav.SignIn" xml:space="preserve"><value>Iniciar sessão</value></data>
+  <data name="Nav.SignOut" xml:space="preserve"><value>Terminar sessão</value></data>
+  <data name="Language" xml:space="preserve"><value>Idioma</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Um gestor de credenciais e segredos de código aberto, nativo de .NET — credenciais de software e cofres pessoais.</value></data>
+  <data name="Home.QuickLinks" xml:space="preserve"><value>Ligações rápidas</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Inicie sessão para gerir os seus cofres e credenciais de software.</value></data>
+  <data name="Home.Register" xml:space="preserve"><value>Registar</value></data>
+  <data name="Login.Title" xml:space="preserve"><value>Iniciar sessão</value></data>
+  <data name="Login.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Login.Password" xml:space="preserve"><value>Palavra-passe</value></data>
+  <data name="Login.Submit" xml:space="preserve"><value>Iniciar sessão</value></data>
+  <data name="Login.NoAccount" xml:space="preserve"><value>Ainda não tem conta?</value></data>
+  <data name="Login.RegisterLink" xml:space="preserve"><value>Registar</value></data>
+  <data name="Login.FirstAdminHint" xml:space="preserve"><value>(a primeira conta torna-se administrador do sistema)</value></data>
+  <data name="Login.Invalid" xml:space="preserve"><value>E-mail ou palavra-passe inválidos.</value></data>
+  <data name="Login.LockedOut" xml:space="preserve"><value>Esta conta está temporariamente bloqueada após demasiadas tentativas falhadas. Tente novamente mais tarde.</value></data>
+  <data name="Register.Title" xml:space="preserve"><value>Registar</value></data>
+  <data name="Register.FirstAdmin" xml:space="preserve"><value>A primeira conta criada torna-se o administrador do sistema.</value></data>
+  <data name="Register.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Register.Password" xml:space="preserve"><value>Palavra-passe</value></data>
+  <data name="Register.Confirm" xml:space="preserve"><value>Confirmar palavra-passe</value></data>
+  <data name="Register.Submit" xml:space="preserve"><value>Registar</value></data>
+  <data name="Register.HaveAccount" xml:space="preserve"><value>Já tem uma conta?</value></data>
+  <data name="Register.SignInLink" xml:space="preserve"><value>Iniciar sessão</value></data>
+  <data name="Page.Personal.Title" xml:space="preserve"><value>Cofres pessoais</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Os seus inícios de sessão, notas e segredos privados — encriptados e visíveis apenas para si.</value></data>
+  <data name="Page.Team.Title" xml:space="preserve"><value>Cofres da equipa</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Cofres pertencentes ao seu inquilino e partilhados com colegas através de permissões.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Credenciais de software</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Segredos de máquina (chaves de API, cadeias de ligação) para o projeto de demonstração, segmentados por ambiente. O seu software lê-os em tempo de execução com um token de cliente; aqui gere os valores.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de cliente</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Tokens que o seu software implementado apresenta (como token Bearer) para ler os segredos deste projeto, segmentados por ambiente. O valor do token é mostrado apenas uma vez, na emissão — copie-o então.</value></data>
+  <data name="Nav.Profile" xml:space="preserve"><value>Ver perfil</value></data>
+  <data name="Profile.Title" xml:space="preserve"><value>Perfil</value></data>
+  <data name="Profile.Desc" xml:space="preserve"><value>A sua conta.</value></data>
+  <data name="Profile.Email" xml:space="preserve"><value>E-mail</value></data>
+  <data name="Profile.SystemAdmin" xml:space="preserve"><value>Administrador do sistema</value></data>
+</root>

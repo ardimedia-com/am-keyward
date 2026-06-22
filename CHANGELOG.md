@@ -8,10 +8,15 @@ All notable changes to this project are documented here, following
 ### Added
 
 - Branding & multi-language UI: a new key-in-tile SVG icon is the favicon and the sidebar brand mark. The
-  UI is now localizable — English (default) and German (Swiss/Liechtenstein spelling) — using
-  `IStringLocalizer` + `.resx` (a shared `SharedResource`), `RequestLocalization` with a culture cookie,
-  and an EN/DE language switcher in the sidebar. The navigation, sign-in/registration, home and page
-  headers are translated; remaining page bodies follow the same `Loc["…"]` pattern.
+  UI is now localizable in six languages — English (default), German (Swiss/Liechtenstein spelling),
+  French, Italian, Spanish and Portuguese — using `IStringLocalizer` + `.resx` (a shared `SharedResource`),
+  `RequestLocalization` with a culture cookie. The non-English translations are best-effort and meant to be
+  refined by the community. The navigation, sign-in/registration, home and page headers are translated;
+  remaining page bodies follow the same `Loc["…"]` pattern.
+- Top header bar: a full-width header above the content carries a language switcher (all six languages) and
+  the signed-in user's name; clicking the name opens a menu with "View profile" and "Sign out". A new
+  `/account/profile` page shows the account's e-mail and system-admin status. The language switcher and
+  user menu moved out of the sidebar into this header.
 - Software credentials UI — the `/secrets` page is now a list-first manager: it lists the project's secret
   keys (filterable), View shows each environment's current value (masked, with Reveal) and lets you set or
   change the value per environment, Add creates a key/value, and Delete… removes a secret via its detail.

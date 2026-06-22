@@ -1,5 +1,4 @@
 @inject IStringLocalizer<SharedResource> Loc
-@inject NavigationManager Nav
 
 <div class="nav-brand">
     <a href="">
@@ -26,27 +25,3 @@
         </Authorized>
     </AuthorizeView>
 </nav>
-
-<div class="nav-foot">
-    <AuthorizeView>
-        <Authorized>
-            <div class="nav-user">@context.User.Identity?.Name</div>
-            <form action="account/logout" method="post">
-                <button type="submit" class="nav-signout">@Loc["Nav.SignOut"]</button>
-            </form>
-        </Authorized>
-        <NotAuthorized>
-            <NavLink class="nav-link" href="account/login">@Loc["Nav.SignIn"]</NavLink>
-        </NotAuthorized>
-    </AuthorizeView>
-
-    <form action="culture" method="post" class="nav-lang" title="@Loc["Language"]">
-        <input type="hidden" name="redirectUri" value="@CurrentPath" />
-        <button type="submit" name="culture" value="en" class="nav-lang-btn">EN</button>
-        <button type="submit" name="culture" value="de" class="nav-lang-btn">DE</button>
-    </form>
-</div>
-
-@code {
-    private string CurrentPath => "/" + Nav.ToBaseRelativePath(Nav.Uri);
-}

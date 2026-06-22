@@ -1,0 +1,41 @@
+@using System.Globalization
+@inject IStringLocalizer<SharedResource> Loc
+@inject NavigationManager Nav
+
+<header class="topbar">
+    <details class="menu">
+        <summary>🌐 @CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToUpperInvariant()</summary>
+        <div class="menu-panel">
+            <form action="culture" method="post">
+                <input type="hidden" name="redirectUri" value="@CurrentPath" />
+                <button type="submit" name="culture" value="en">English</button>
+                <button type="submit" name="culture" value="de">Deutsch</button>
+                <button type="submit" name="culture" value="fr">Français</button>
+                <button type="submit" name="culture" value="it">Italiano</button>
+                <button type="submit" name="culture" value="es">Español</button>
+                <button type="submit" name="culture" value="pt">Português</button>
+            </form>
+        </div>
+    </details>
+
+    <AuthorizeView>
+        <Authorized>
+            <details class="menu">
+                <summary>@context.User.Identity?.Name</summary>
+                <div class="menu-panel">
+                    <a href="account/profile">@Loc["Nav.Profile"]</a>
+                    <form action="account/logout" method="post">
+                        <button type="submit">@Loc["Nav.SignOut"]</button>
+                    </form>
+                </div>
+            </details>
+        </Authorized>
+        <NotAuthorized>
+            <a class="topbar-link" href="account/login">@Loc["Nav.SignIn"]</a>
+        </NotAuthorized>
+    </AuthorizeView>
+</header>
+
+@code {
+    private string CurrentPath => "/" + Nav.ToBaseRelativePath(Nav.Uri);
+}
