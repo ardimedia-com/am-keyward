@@ -7,6 +7,15 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 7 (part 6) — break-glass mechanism: dual-control emergency access to server-side material. A
+  System Admin requests access to a scoped resource with a reason; a **different** System Admin must
+  approve it (no self-approval, enforced in the domain) before it can be consumed once, within a validity
+  window. Every transition is written both to the tamper-evident audit chain (`BreakGlass` action) and to
+  an out-of-band, append-only **hash-chained file sink** (`IBreakGlassSink` / `FileBreakGlassSink`) that
+  lives outside the database — so the DB admin whose access is recorded cannot rewrite their own trail
+  (non-repudiation). New `BreakGlassGrant` aggregate + `IBreakGlassService` (request/approve/reject/consume),
+  installation-global table (system-admin gated, not tenant-filtered), migration `BreakGlass`, and a
+  `Keyward:BreakGlass` config section (`SinkFilePath`, `ValidityMinutes`).
 - Slice 7 (part 5) — DSGVO crypto-shredding: audit entries now store an opaque, stable **pseudonym** for
   the actor instead of the user id. The actor's PII (display name, external id) lives in a new
   `AuditSubjects` table encrypted under a per-subject DEK (envelope, KEK-wrapped, AAD-bound to the

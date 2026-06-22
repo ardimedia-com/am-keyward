@@ -40,6 +40,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<VaultItem> VaultItems => Set<VaultItem>();
     public DbSet<VaultItemVersion> VaultItemVersions => Set<VaultItemVersion>();
     public DbSet<AccessGrant> AccessGrants => Set<AccessGrant>();
+    public DbSet<BreakGlassGrant> BreakGlassGrants => Set<BreakGlassGrant>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<AuditSubject> AuditSubjects => Set<AuditSubject>();
 
@@ -228,6 +229,24 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => x.TenantId);
             e.HasIndex(x => new { x.PrincipalType, x.PrincipalId });
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
+        // Break-glass grants: dual-control emergency access. Installation-global (a cross-tenant System-Admin
+        // capability gated by an explicit system-admin check), so deliberately NO tenant query filter and
+        // NOT in row-level security — the grant carries the target's TenantId only to scope the recovery.
+        model.Entity<BreakGlassGrant>(e =>
+        {
+            e.ToTable("BreakGlassGrants");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Reason).HasMaxLength(1024).IsRequired();
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.OwnsOne(x => x.Scope, s =>
+            {
+                s.Property(p => p.Kind).HasConversion<string>().HasMaxLength(16).HasColumnName("ScopeKind");
+                s.Property(p => p.TargetId).HasColumnName("ScopeTargetId");
+            });
+            e.HasIndex(x => x.Status);
+            e.HasIndex(x => x.TenantId);
         });
 
         model.Entity<AuditEntry>(e =>

@@ -489,3 +489,6 @@ $RECYCLE.BIN/
 kek.dev.key
 *.dev.key
 
+# AM KEYWARD - break-glass out-of-band trail (must stay outside the repo)
+breakglass-audit.jsonl
+

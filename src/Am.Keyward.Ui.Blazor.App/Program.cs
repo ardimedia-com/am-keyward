@@ -38,6 +38,11 @@ var connectionString = builder.Configuration.GetConnectionString("Keyward")
 var (kek, kekId) = DevKek.LoadOrCreate(builder.Environment.ContentRootPath);
 builder.Services.AddKeyward(connectionString, kek, kekId);
 
+// Break-glass: the non-repudiable, append-only trail lives outside the database. A real deployment points
+// SinkFilePath at storage the database admin cannot rewrite (separate host / restricted permissions).
+builder.Services.Configure<Am.Keyward.Infrastructure.Auth.BreakGlassOptions>(
+    builder.Configuration.GetSection(Am.Keyward.Infrastructure.Auth.BreakGlassOptions.SectionName));
+
 // --- ASP.NET Core Identity (shell-owned; the libraries stay identity-agnostic) ---
 builder.Services.AddDbContext<KeywardIdentityDbContext>(options =>
     options.UseSqlServer(connectionString, sql =>

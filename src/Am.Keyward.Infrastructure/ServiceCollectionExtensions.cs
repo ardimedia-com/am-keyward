@@ -64,6 +64,10 @@ public static class ServiceCollectionExtensions
         // Human vaults (server-side encrypted).
         services.AddScoped<IVaultService, VaultService>();
 
+        // Break-glass: dual-control emergency access with an out-of-band, append-only non-repudiation sink.
+        services.AddSingleton<IBreakGlassSink, FileBreakGlassSink>();
+        services.AddScoped<IBreakGlassService, BreakGlassService>();
+
         // Ops monitoring: a periodic compliance/availability sweep (KEK integrity, audit-chain integrity,
         // token expiry) publishing a snapshot for the host's health endpoint to read cheaply.
         services.AddSingleton<Monitoring.OpsHealthSnapshot>();

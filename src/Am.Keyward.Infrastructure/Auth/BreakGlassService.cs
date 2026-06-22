@@ -1,0 +1,106 @@
+using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Core.Domain;
+using Am.Keyward.Core.Domain.Access;
+using Am.Keyward.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
+namespace Am.Keyward.Infrastructure.Auth;
+
+/// <summary>
+/// Dual-control break-glass: a System Admin requests emergency access to a server-side resource with a
+/// reason; a <em>different</em> System Admin must approve it before it can be consumed for a single recovery
+/// inside its validity window. Every transition is recorded both in the tamper-evident audit chain and in
+/// the out-of-band <see cref="IBreakGlassSink"/> (which the DB admin cannot rewrite). The grant table is
+/// installation-global: break-glass is a cross-tenant System-Admin capability gated by an explicit
+/// system-admin check, not by tenant scope.
+/// </summary>
+public sealed class BreakGlassService(
+    KeywardDbContext db,
+    IBreakGlassSink sink,
+    IAuditSink audit,
+    IClock clock,
+    IOptions<BreakGlassOptions> options) : IBreakGlassService
+{
+    public async Task<Guid> RequestAsync(RequestBreakGlassCommand cmd, CancellationToken ct = default)
+    {
+        await EnsureSystemAdminAsync(cmd.RequesterUserId, ct).ConfigureAwait(false);
+
+        var now = clock.UtcNow;
+        var grant = new BreakGlassGrant(
+            Guid.NewGuid(), cmd.TenantId, cmd.Scope, cmd.RequesterUserId, cmd.Reason,
+            now, now.AddMinutes(Math.Max(1, options.Value.ValidityMinutes)));
+
+        db.BreakGlassGrants.Add(grant);
+        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, cmd.RequesterUserId), ct).ConfigureAwait(false);
+        await WriteSinkAsync("Requested", grant, cmd.RequesterUserId, ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return grant.Id;
+    }
+
+    public async Task ApproveAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default)
+    {
+        await EnsureSystemAdminAsync(approverUserId, ct).ConfigureAwait(false);
+        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+
+        grant.Approve(approverUserId, clock.UtcNow); // domain enforces approver != requester (dual control)
+
+        // The non-repudiable approval record goes out-of-band first, so it survives even if the DB write fails.
+        await WriteSinkAsync("Approved", grant, approverUserId, ct).ConfigureAwait(false);
+        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task RejectAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default)
+    {
+        await EnsureSystemAdminAsync(approverUserId, ct).ConfigureAwait(false);
+        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+
+        grant.Reject(approverUserId, clock.UtcNow);
+
+        await WriteSinkAsync("Rejected", grant, approverUserId, ct).ConfigureAwait(false);
+        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<BreakGlassGrant>> ListPendingAsync(CancellationToken ct = default) =>
+        await db.BreakGlassGrants
+            .Where(g => g.Status == BreakGlassStatus.Pending)
+            .OrderBy(g => g.RequestedAt)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+    public async Task ConsumeAsync(Guid grantId, Guid actorUserId, CancellationToken ct = default)
+    {
+        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+        if (grant.ApproverUserId != actorUserId && grant.RequesterUserId != actorUserId)
+        {
+            throw new UnauthorizedAccessException("Only the break-glass requester or approver may consume the grant.");
+        }
+
+        grant.Consume(clock.UtcNow); // domain enforces approved-and-unexpired
+
+        await WriteSinkAsync("Consumed", grant, actorUserId, ct).ConfigureAwait(false);
+        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, actorUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task<BreakGlassGrant> LoadAsync(Guid grantId, CancellationToken ct) =>
+        await db.BreakGlassGrants.FirstOrDefaultAsync(g => g.Id == grantId, ct).ConfigureAwait(false)
+        ?? throw new InvalidOperationException($"Break-glass grant {grantId} not found.");
+
+    private async Task EnsureSystemAdminAsync(Guid userId, CancellationToken ct)
+    {
+        var isAdmin = await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false);
+        if (!isAdmin)
+        {
+            throw new UnauthorizedAccessException("Break-glass is restricted to System Admins.");
+        }
+    }
+
+    private Task WriteSinkAsync(string @event, BreakGlassGrant grant, Guid actorUserId, CancellationToken ct) =>
+        sink.AppendAsync(new BreakGlassRecord(
+            clock.UtcNow, @event, grant.Id, grant.TenantId,
+            $"{grant.Scope.Kind}:{grant.Scope.TargetId}", grant.RequesterUserId,
+            @event == "Requested" ? null : actorUserId, grant.Reason), ct);
+}

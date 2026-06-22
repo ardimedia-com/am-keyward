@@ -62,6 +62,16 @@ public enum GrantScopeKind
     Environment,
 }
 
+/// <summary>Lifecycle of a break-glass grant (dual-control emergency access to server-side material).</summary>
+public enum BreakGlassStatus
+{
+    Pending,
+    Approved,
+    Rejected,
+    Consumed,
+    Expired,
+}
+
 /// <summary>The audited operation.</summary>
 public enum AuditAction
 {

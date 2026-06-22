@@ -1,4 +1,5 @@
 using Am.Keyward.Core.Domain;
+using Am.Keyward.Core.Domain.Access;
 using Am.Keyward.Core.Domain.ValueObjects;
 
 namespace Am.Keyward.Core.Abstractions;
@@ -160,4 +161,47 @@ public interface ITenantConnectionResolver
 public interface IAuthorizationService
 {
     ValueTask<bool> IsAllowedAsync(Guid? userId, GrantScope resource, Permission action, CancellationToken ct = default);
+}
+
+/// <summary>One non-repudiable break-glass event for the external append-only sink.</summary>
+public sealed record BreakGlassRecord(
+    DateTimeOffset At,
+    string Event,
+    Guid GrantId,
+    Guid? TenantId,
+    string Scope,
+    Guid RequesterUserId,
+    Guid? ApproverUserId,
+    string Reason);
+
+/// <summary>
+/// Append-only, out-of-band sink for break-glass events. It must live outside the application database so
+/// the DB admin whose emergency access is being recorded cannot rewrite their own trail — the source of
+/// non-repudiation. The file implementation hash-chains each line so deletion or edits are detectable.
+/// </summary>
+public interface IBreakGlassSink
+{
+    Task AppendAsync(BreakGlassRecord record, CancellationToken ct = default);
+}
+
+/// <summary>A request for emergency (break-glass) access to a server-side resource.</summary>
+public sealed record RequestBreakGlassCommand(Guid? TenantId, GrantScope Scope, Guid RequesterUserId, string Reason);
+
+/// <summary>
+/// Dual-control emergency access. A System Admin requests access with a reason; a different System Admin
+/// must approve it (and the approval is written to the out-of-band <see cref="IBreakGlassSink"/> plus the
+/// audit chain) before it can be consumed for a single recovery within its validity window.
+/// </summary>
+public interface IBreakGlassService
+{
+    Task<Guid> RequestAsync(RequestBreakGlassCommand cmd, CancellationToken ct = default);
+
+    Task ApproveAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default);
+
+    Task RejectAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<BreakGlassGrant>> ListPendingAsync(CancellationToken ct = default);
+
+    /// <summary>Consume an approved, unexpired grant for a single recovery; throws if it is not usable.</summary>
+    Task ConsumeAsync(Guid grantId, Guid actorUserId, CancellationToken ct = default);
 }
