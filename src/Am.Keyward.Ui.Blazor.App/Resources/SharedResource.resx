@@ -88,13 +88,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Already have an account?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Sign in</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Personal vaults</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Your private logins, notes and secrets — encrypted and visible only to you.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Your private vaults for personal logins, secure notes and other secrets. They belong to you alone — encrypted so that nobody else, not even an administrator, can read them. Use them the way you would a personal password manager: store a login per website, reveal the password only when you need it, and organize items into folders.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Team vaults</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Vaults owned by your tenant and shared with colleagues via access grants.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Vaults owned by your organization (tenant) and shared with colleagues through access grants. Use them for credentials a team needs in common — shared service accounts, Wi-Fi keys, licence keys — where you decide per person who may read, edit or manage each vault. Sharing is explicit: a colleague sees only the vaults you grant them.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Software credentials</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Machine secrets (API keys, connection strings) for the demo project, scoped per environment. Your software reads them at runtime with a software-client token; here you manage the values.</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Software credentials are the machine secrets your applications need at runtime — API keys, connection strings, signing keys and the like — stored encrypted and grouped by environment (Development / Test / Preview / Production). Instead of putting these values in your app's own config files, your deployed software fetches them from here at startup through the read API, using a client token. On this page you create and manage the values; on the Client tokens page you issue the tokens your software uses to read them.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Client tokens</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Tokens your deployed software presents (as a Bearer token) to read this project's secrets, scoped per environment. The token value is shown once, at issuance — copy it then.</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Client tokens let your deployed software authenticate to AM KEYWARD and read this project's software credentials at runtime — so secrets never have to live in the app's own config. Each token is scoped to a single environment, so a leaked Production token still cannot read Development. The token's secret value is shown only once, when you issue it — copy it immediately and store it in your app's configuration.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>View profile</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Profile</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Your account.</value></data>
@@ -139,7 +139,7 @@
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Add folder</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Items</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Add item</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>A vault item is one stored secret. A Login holds a website, username and password; other types hold a secure note or a single secret value. Values are encrypted and only shown when you choose View. Delete is confirmed from the item's detail (choose Delete… to open it first).</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>A vault item is one stored secret. A Login holds a website address, username and password — ideal for sign-in credentials; the other types hold a secure note or a single secret value. Values are encrypted at rest and only revealed when you choose View. To remove an item, choose Delete… to open its detail first, then confirm — so nothing is deleted by accident.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>in</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Edit “{0}”</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>e.g. GitHub</value></data>
@@ -172,7 +172,7 @@
   <data name="Vault.Msg.Shared" xml:space="preserve"><value>Vault shared.</value></data>
   <data name="Secret.Title" xml:space="preserve"><value>Secrets</value></data>
   <data name="Secret.Add" xml:space="preserve"><value>Add secret</value></data>
-  <data name="Secret.Desc" xml:space="preserve"><value>A secret is a key (e.g. ConnectionStrings:Main) that can hold a different value in each environment. Choose View to see or change its values, or Delete… to open it and remove it.</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>A secret is a named key (for example ConnectionStrings:Main) that can hold a different encrypted value in each environment. Choose View to see or set its per-environment values, or Delete… to open it and remove it. Every change is saved as a new encrypted version, so earlier values are never silently overwritten.</value></data>
   <data name="Secret.HideValues" xml:space="preserve"><value>Hide values</value></data>
   <data name="Secret.RevealValues" xml:space="preserve"><value>Reveal values</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Set or change the value per environment. Each save creates a new encrypted version.</value></data>
@@ -190,14 +190,14 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret deleted.</value></data>
   <data name="Token.New" xml:space="preserve"><value>New token (copy it now — it will not be shown again):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Issue a token</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Scope a token to one environment so a leaked token cannot read another. Add a note (e.g. where it is deployed) and an optional expiry.</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Issue one token per application and environment. Give it a clear name (which app or service it belongs to), an optional note (where it runs, owner, ticket) and an optional expiry after which it stops working. Scoping each token to a single environment keeps the blast radius small if one ever leaks.</value></data>
   <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Note (optional)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>where it's used, owner, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expires in (days, optional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Issue token</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Existing tokens</value></data>
-  <data name="Token.Existing.Desc" xml:space="preserve"><value>Edit a token's name/note any time. Rotate replaces its secret (the old one stops working); Revoke disables it.</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Each token is listed with its prefix (the visible start of the value, to identify it), creation date, expiry and status. Edit changes its name and note; Rotate issues a fresh secret value for the same token and immediately invalidates the old one (use it on a schedule or after a suspected leak); Revoke permanently disables it.</value></data>
   <data name="Token.Edit.Title" xml:space="preserve"><value>Edit token</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>No tokens yet — issue one above.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filter tokens…</value></data>
@@ -219,4 +219,6 @@
   <data name="Error.RequestId" xml:space="preserve"><value>Request ID:</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Not Found</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>How to use it: store the token in your deployed app's configuration (an environment variable or secret store), then have the app call AM KEYWARD's read API with the header “Authorization: Bearer &lt;token&gt;” to load this project's secrets for its environment, typically at startup. Secrets therefore never live in your app's own files. If a token leaks, Rotate it to replace its value or Revoke it to disable it — your other tokens keep working.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>How it fits together: you store a value here once per environment; your deployed software reads it at runtime with a client token (see the Client tokens page). Change a value here and the next read picks it up — no redeploy of your app needed.</value></data>
 </root>

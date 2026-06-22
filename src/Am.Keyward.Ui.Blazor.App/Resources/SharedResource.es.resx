@@ -88,13 +88,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>¿Ya tienes una cuenta?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Iniciar sesión</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Bóvedas personales</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Tus inicios de sesión, notas y secretos privados — cifrados y visibles solo para ti.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Tus bóvedas privadas para inicios de sesión personales, notas seguras y otros secretos. Te pertenecen solo a ti — cifradas para que nadie más, ni siquiera un administrador, pueda leerlas. Úsalas como un gestor de contraseñas personal: guarda un inicio de sesión por sitio web, muestra la contraseña solo cuando la necesites y organiza los elementos en carpetas.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Bóvedas de equipo</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Bóvedas propiedad de tu inquilino y compartidas con colegas mediante permisos.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Bóvedas propiedad de tu organización (inquilino) y compartidas con colegas mediante permisos de acceso. Úsalas para credenciales que un equipo necesita en común — cuentas de servicio compartidas, claves de Wi-Fi, claves de licencia — donde decides por persona quién puede leer, editar o gestionar cada bóveda. Compartir es explícito: un colega solo ve las bóvedas que le concedes.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Credenciales de software</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Secretos de máquina (claves de API, cadenas de conexión) para el proyecto de demostración, segmentados por entorno. Tu software los lee en tiempo de ejecución con un token de cliente; aquí gestionas los valores.</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Las credenciales de software son los secretos de máquina que tus aplicaciones necesitan en tiempo de ejecución — claves de API, cadenas de conexión, claves de firma y similares — almacenados cifrados y agrupados por entorno (Development / Test / Preview / Production). En lugar de poner estos valores en los archivos de configuración de tu propia app, tu software desplegado los obtiene desde aquí al iniciarse mediante la API de lectura, usando un token de cliente. En esta página creas y gestionas los valores; en la página de Tokens de cliente emites los tokens que tu software usa para leerlos.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de cliente</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Tokens que tu software desplegado presenta (como token Bearer) para leer los secretos de este proyecto, segmentados por entorno. El valor del token se muestra una sola vez, al emitirlo — cópialo entonces.</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Los tokens de cliente permiten que tu software desplegado se autentique ante AM KEYWARD y lea las credenciales de software de este proyecto en tiempo de ejecución — para que los secretos nunca tengan que vivir en la propia configuración de la app. Cada token está limitado a un solo entorno, de modo que un token de Production filtrado sigue sin poder leer Development. El valor secreto del token se muestra una sola vez, al emitirlo — cópialo de inmediato y guárdalo en la configuración de tu app.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>Ver perfil</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Perfil</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Tu cuenta.</value></data>
@@ -139,7 +139,7 @@
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Añadir carpeta</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Elementos</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Añadir elemento</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un elemento de bóveda es un secreto almacenado. Un inicio de sesión contiene un sitio web, un nombre de usuario y una contraseña; otros tipos contienen una nota segura o un único valor secreto. Los valores están cifrados y solo se muestran cuando eliges Ver. La eliminación se confirma desde el detalle del elemento (elige Eliminar… para abrirlo primero).</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un elemento de bóveda es un secreto almacenado. Un inicio de sesión contiene una dirección de sitio web, un nombre de usuario y una contraseña — ideal para credenciales de acceso; los demás tipos contienen una nota segura o un único valor secreto. Los valores se almacenan cifrados y solo se muestran cuando eliges Ver. Para quitar un elemento, elige Eliminar… para abrir antes su detalle y luego confirma — así nada se elimina por accidente.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>en</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Editar “{0}”</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>p. ej. GitHub</value></data>
@@ -172,7 +172,7 @@
   <data name="Vault.Msg.Shared" xml:space="preserve"><value>Bóveda compartida.</value></data>
   <data name="Secret.Title" xml:space="preserve"><value>Secretos</value></data>
   <data name="Secret.Add" xml:space="preserve"><value>Añadir secreto</value></data>
-  <data name="Secret.Desc" xml:space="preserve"><value>Un secreto es una clave (p. ej. ConnectionStrings:Main) que puede contener un valor distinto en cada entorno. Elige Ver para consultar o cambiar sus valores, o Eliminar… para abrirlo y quitarlo.</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>Un secreto es una clave con nombre (por ejemplo ConnectionStrings:Main) que puede contener un valor cifrado distinto en cada entorno. Elige Ver para consultar o establecer sus valores por entorno, o Eliminar… para abrirlo y quitarlo. Cada cambio se guarda como una nueva versión cifrada, de modo que los valores anteriores nunca se sobrescriben en silencio.</value></data>
   <data name="Secret.HideValues" xml:space="preserve"><value>Ocultar valores</value></data>
   <data name="Secret.RevealValues" xml:space="preserve"><value>Mostrar valores</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Establece o cambia el valor por entorno. Cada guardado crea una nueva versión cifrada.</value></data>
@@ -190,14 +190,14 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secreto eliminado.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nuevo token (cópialo ahora — no se volverá a mostrar):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emitir un token</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Limita un token a un solo entorno para que un token filtrado no pueda leer otro. Añade una nota (p. ej. dónde está desplegado) y una caducidad opcional.</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Emite un token por aplicación y entorno. Dale un nombre claro (a qué app o servicio pertenece), una nota opcional (dónde se ejecuta, responsable, ticket) y una caducidad opcional tras la cual deja de funcionar. Limitar cada token a un solo entorno mantiene pequeño el radio de impacto si alguno llega a filtrarse.</value></data>
   <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (opcional)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>dónde se usa, responsable, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Caduca en (días, opcional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Tokens existentes</value></data>
-  <data name="Token.Existing.Desc" xml:space="preserve"><value>Edita el nombre/nota de un token en cualquier momento. Rotar reemplaza su secreto (el antiguo deja de funcionar); Revocar lo desactiva.</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Cada token aparece con su prefijo (el inicio visible del valor, para identificarlo), fecha de creación, caducidad y estado. Editar cambia su nombre y nota; Rotar emite un nuevo valor secreto para el mismo token e invalida de inmediato el antiguo (úsalo de forma periódica o tras una sospecha de filtración); Revocar lo desactiva permanentemente.</value></data>
   <data name="Token.Edit.Title" xml:space="preserve"><value>Editar token</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>Aún no hay tokens — emite uno arriba.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filtrar tokens…</value></data>
@@ -219,4 +219,6 @@
   <data name="Error.RequestId" xml:space="preserve"><value>ID de solicitud:</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>No encontrado</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Lo sentimos, el contenido que buscas no existe.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>Cómo usarlo: guarda el token en la configuración de tu app desplegada (una variable de entorno o un almacén de secretos) y haz que la app llame a la API de lectura de AM KEYWARD con la cabecera “Authorization: Bearer &lt;token&gt;” para cargar los secretos de este proyecto para su entorno, normalmente al iniciarse. Así los secretos nunca viven en los propios archivos de tu app. Si un token se filtra, usa Rotar para reemplazar su valor o Revocar para desactivarlo — tus otros tokens siguen funcionando.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>Cómo encaja todo: aquí guardas un valor una vez por entorno; tu software desplegado lo lee en tiempo de ejecución con un token de cliente (consulta la página de Tokens de cliente). Cambia un valor aquí y la siguiente lectura lo recoge — sin necesidad de volver a desplegar tu app.</value></data>
 </root>

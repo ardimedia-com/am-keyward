@@ -15,6 +15,11 @@ All notable changes to this project are documented here, following
   bar, and the full page bodies of the personal/team vaults workspace, software credentials and client
   tokens (labels, buttons, descriptions, table headers, placeholders and status messages), plus the
   not-found and error pages.
+- In-app help: every page explains what its entity is and how to use it, in plain language. The personal
+  and team vault intros, the software-credentials and client-tokens pages now carry fuller descriptions,
+  and the credentials/tokens pages add a "how it works" note covering the end-to-end flow (deployed
+  software reads secrets at runtime with a Bearer client token; rotate/revoke on leak; values change
+  without an app redeploy). All help text is localized in the six UI languages.
 - Top header bar: a full-width header above the content carries a language switcher (all six languages) and
   the signed-in user's name; clicking the name opens a menu with "View profile" and "Sign out". A new
   `/account/profile` page shows the account's e-mail and system-admin status. The language switcher and

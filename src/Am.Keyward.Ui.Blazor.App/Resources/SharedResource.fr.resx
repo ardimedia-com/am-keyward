@@ -88,13 +88,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Vous avez déjà un compte ?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Se connecter</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Coffres personnels</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos identifiants, notes et secrets privés — chiffrés et visibles seulement par vous.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos coffres privés pour vos identifiants personnels, vos notes sécurisées et vos autres secrets. Ils n'appartiennent qu'à vous — chiffrés de sorte que personne d'autre, pas même un administrateur, ne puisse les lire. Utilisez-les comme un gestionnaire de mots de passe personnel : enregistrez un identifiant par site web, ne révélez le mot de passe que lorsque vous en avez besoin et organisez les éléments en dossiers.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Coffres d'équipe</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres appartenant à votre locataire et partagés avec des collègues via des autorisations.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres appartenant à votre organisation (locataire) et partagés avec des collègues via des autorisations d'accès. Utilisez-les pour les identifiants dont une équipe a besoin en commun — comptes de service partagés, clés Wi-Fi, clés de licence — où vous décidez, personne par personne, qui peut lire, modifier ou gérer chaque coffre. Le partage est explicite : un collègue ne voit que les coffres que vous lui accordez.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Identifiants logiciels</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Secrets machine (clés API, chaînes de connexion) pour le projet de démonstration, cloisonnés par environnement. Vos logiciels les lisent à l'exécution avec un jeton client ; ici vous gérez les valeurs.</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Les identifiants logiciels sont les secrets machine dont vos applications ont besoin à l'exécution — clés API, chaînes de connexion, clés de signature et similaires — stockés chiffrés et regroupés par environnement (Development / Test / Preview / Production). Au lieu de placer ces valeurs dans les fichiers de configuration de votre application, votre logiciel déployé les récupère ici au démarrage via l'API de lecture, à l'aide d'un jeton client. Sur cette page, vous créez et gérez les valeurs ; sur la page Jetons client, vous émettez les jetons que votre logiciel utilise pour les lire.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Jetons client</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Jetons que votre logiciel déployé présente (en tant que jeton Bearer) pour lire les secrets de ce projet, cloisonnés par environnement. La valeur du jeton n'est affichée qu'une fois, à l'émission — copiez-la alors.</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Les jetons client permettent à votre logiciel déployé de s'authentifier auprès de AM KEYWARD et de lire les identifiants logiciels de ce projet à l'exécution — afin que les secrets n'aient jamais à résider dans les fichiers de configuration de l'application. Chaque jeton est limité à un seul environnement, de sorte qu'un jeton Production divulgué ne peut malgré tout pas lire Development. La valeur secrète du jeton n'est affichée qu'une seule fois, lors de son émission — copiez-la immédiatement et stockez-la dans la configuration de votre application.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>Voir le profil</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Profil</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Votre compte.</value></data>
@@ -139,7 +139,7 @@
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Ajouter un dossier</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Éléments</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Ajouter un élément</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un élément de coffre est un secret stocké. Un Identifiant contient un site web, un nom d'utilisateur et un mot de passe ; les autres types contiennent une note sécurisée ou une seule valeur secrète. Les valeurs sont chiffrées et affichées uniquement lorsque vous choisissez Afficher. La suppression se confirme depuis le détail de l'élément (choisissez Supprimer… pour l'ouvrir d'abord).</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un élément de coffre est un secret stocké. Un Identifiant contient une adresse de site web, un nom d'utilisateur et un mot de passe — idéal pour les identifiants de connexion ; les autres types contiennent une note sécurisée ou une seule valeur secrète. Les valeurs sont chiffrées au repos et ne sont révélées que lorsque vous choisissez Afficher. Pour retirer un élément, choisissez Supprimer… pour ouvrir d'abord son détail, puis confirmez — afin que rien ne soit supprimé par accident.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>dans</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Modifier « {0} »</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>p. ex. GitHub</value></data>
@@ -172,7 +172,7 @@
   <data name="Vault.Msg.Shared" xml:space="preserve"><value>Coffre partagé.</value></data>
   <data name="Secret.Title" xml:space="preserve"><value>Secrets</value></data>
   <data name="Secret.Add" xml:space="preserve"><value>Ajouter un secret</value></data>
-  <data name="Secret.Desc" xml:space="preserve"><value>Un secret est une clé (p. ex. ConnectionStrings:Main) qui peut contenir une valeur différente dans chaque environnement. Choisissez Afficher pour voir ou modifier ses valeurs, ou Supprimer… pour l'ouvrir et le retirer.</value></data>
+  <data name="Secret.Desc" xml:space="preserve"><value>Un secret est une clé nommée (par exemple ConnectionStrings:Main) qui peut contenir une valeur chiffrée différente dans chaque environnement. Choisissez Afficher pour voir ou définir ses valeurs par environnement, ou Supprimer… pour l'ouvrir et le retirer. Chaque modification est enregistrée comme une nouvelle version chiffrée, de sorte que les valeurs antérieures ne sont jamais écrasées en silence.</value></data>
   <data name="Secret.HideValues" xml:space="preserve"><value>Masquer les valeurs</value></data>
   <data name="Secret.RevealValues" xml:space="preserve"><value>Révéler les valeurs</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Définissez ou modifiez la valeur par environnement. Chaque enregistrement crée une nouvelle version chiffrée.</value></data>
@@ -190,14 +190,14 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret supprimé.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Limitez un jeton à un seul environnement afin qu'un jeton divulgué ne puisse pas en lire un autre. Ajoutez une note (p. ex. où il est déployé) et une expiration facultative.</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et par environnement. Donnez-lui un nom clair (l'application ou le service auquel il appartient), une note facultative (où il s'exécute, propriétaire, ticket) et une expiration facultative après laquelle il cesse de fonctionner. Limiter chaque jeton à un seul environnement réduit le rayon d'impact si l'un d'eux venait à être divulgué.</value></data>
   <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>où il est utilisé, propriétaire, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expire dans (jours, facultatif)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Jetons existants</value></data>
-  <data name="Token.Existing.Desc" xml:space="preserve"><value>Modifiez le nom/la note d'un jeton à tout moment. La rotation remplace son secret (l'ancien cesse de fonctionner) ; Révoquer le désactive.</value></data>
+  <data name="Token.Existing.Desc" xml:space="preserve"><value>Chaque jeton est répertorié avec son préfixe (le début visible de la valeur, pour l'identifier), sa date de création, son expiration et son statut. Modifier change son nom et sa note ; Faire tourner émet une nouvelle valeur secrète pour le même jeton et invalide immédiatement l'ancienne (utilisez-la de façon planifiée ou après une fuite suspectée) ; Révoquer le désactive définitivement.</value></data>
   <data name="Token.Edit.Title" xml:space="preserve"><value>Modifier le jeton</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>Aucun jeton pour l'instant — émettez-en un ci-dessus.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filtrer les jetons…</value></data>
@@ -219,4 +219,6 @@
   <data name="Error.RequestId" xml:space="preserve"><value>ID de la demande :</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Introuvable</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Désolé, le contenu que vous recherchez n'existe pas.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>Comment l'utiliser : stockez le jeton dans la configuration de votre application déployée (une variable d'environnement ou un magasin de secrets), puis faites en sorte que l'application appelle l'API de lecture de AM KEYWARD avec l'en-tête « Authorization: Bearer &lt;token&gt; » pour charger les secrets de ce projet correspondant à son environnement, généralement au démarrage. Les secrets ne résident donc jamais dans les fichiers de votre application. Si un jeton est divulgué, faites-le tourner pour remplacer sa valeur ou révoquez-le pour le désactiver — vos autres jetons continuent de fonctionner.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>Comment tout s'articule : vous stockez ici une valeur une fois par environnement ; votre logiciel déployé la lit à l'exécution avec un jeton client (voir la page Jetons client). Modifiez une valeur ici et la prochaine lecture la prendra en compte — sans redéploiement de votre application.</value></data>
 </root>
