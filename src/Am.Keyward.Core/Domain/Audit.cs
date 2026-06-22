@@ -1,4 +1,5 @@
 using Am.Keyward.Core.Domain;
+using Am.Keyward.Core.Domain.ValueObjects;
 
 namespace Am.Keyward.Core.Domain.Audit;
 
@@ -55,5 +56,51 @@ public sealed class AuditEntry
         Sequence = sequence;
         PreviousHash = previousHash;
         Hash = hash;
+    }
+}
+
+/// <summary>
+/// The crypto-shredding link between an audit entry's opaque actor pseudonym and the actor's
+/// human-readable PII. The pseudonym (<see cref="Id"/>) is what the audit chain stores; the PII (display
+/// name, external id) lives here encrypted under a per-subject DEK. DSGVO erasure destroys the PII
+/// (<see cref="Erase"/>) — the ciphertext is cleared so it can never be recovered — while the pseudonym
+/// remains in the (immutable) audit chain, keeping it intact and the non-personal metadata auditable.
+/// Installation-global: a subject's pseudonym is stable across tenants and not tenant-filtered.
+/// </summary>
+public sealed class AuditSubject
+{
+    public Guid Id { get; private set; }
+
+    /// <summary>Stable opaque reference to the real actor (e.g. the <c>AppUser.Id</c>); used for find-or-create and erasure targeting.</summary>
+    public string SubjectReference { get; private set; }
+
+    /// <summary>The actor's PII, encrypted at rest. <c>null</c> once erased (crypto-shredded).</summary>
+    public EncryptedValue? EncryptedPii { get; private set; }
+
+    public DateTimeOffset CreatedAt { get; private set; }
+    public DateTimeOffset? ErasedAt { get; private set; }
+
+    public bool IsErased => ErasedAt is not null;
+
+    // encryptedPii is nullable because an erased subject legitimately has none, and EF reuses this
+    // constructor to materialize erased rows. Creation (the directory) always passes a non-null value.
+    public AuditSubject(Guid id, string subjectReference, EncryptedValue? encryptedPii, DateTimeOffset createdAt)
+    {
+        if (string.IsNullOrWhiteSpace(subjectReference))
+        {
+            throw new ArgumentException("Subject reference required.", nameof(subjectReference));
+        }
+
+        Id = id;
+        SubjectReference = subjectReference.Trim();
+        EncryptedPii = encryptedPii;
+        CreatedAt = createdAt;
+    }
+
+    /// <summary>Crypto-shred: destroy the encrypted PII so it is irrecoverable, leaving the pseudonym in audit.</summary>
+    public void Erase(DateTimeOffset at)
+    {
+        EncryptedPii = null;
+        ErasedAt = at;
     }
 }

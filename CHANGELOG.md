@@ -7,6 +7,15 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 7 (part 5) — DSGVO crypto-shredding: audit entries now store an opaque, stable **pseudonym** for
+  the actor instead of the user id. The actor's PII (display name, external id) lives in a new
+  `AuditSubjects` table encrypted under a per-subject DEK (envelope, KEK-wrapped, AAD-bound to the
+  pseudonym), via the new `IAuditSubjectDirectory` (find-or-create on append, admin read, erase). Erasure
+  clears the ciphertext so the PII becomes irrecoverable, while the pseudonym stays in the immutable audit
+  chain — the chain still verifies intact after a subject is erased. The directory is installation-global
+  (a subject is stable across tenants, not tenant-filtered or under RLS) and holds only ciphertext.
+  Migration `CryptoShredding`. (`AuditRequest.ActorPseudonymId` renamed to `ActorUserId` — the sink does
+  the pseudonymizing.)
 - Slice 7 (part 4) — ops hardening: telemetry redaction, backup/restore KEK-integrity job, and health
   monitoring. The `EncryptedValue` envelope now renders as `[REDACTED]` so it can never leak ciphertext,
   nonce, tag, wrapped DEK or KEK id into any log sink (Serilog or `Microsoft.Extensions.Logging` both call

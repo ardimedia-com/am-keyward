@@ -26,6 +26,14 @@ public static class Aad
         => Build("vi", tenantId, ownerType: ownerType.ToString(), ownerOrProjectId: ownerId,
                  environmentId: null, id: itemId, versionId: versionId, algVersion: algVersion);
 
+    /// <summary>
+    /// AAD for the per-subject PII encrypted in an audit-subject row (crypto-shredding). Binds the
+    /// ciphertext to the subject's pseudonym, so an encrypted PII blob cannot be moved to another subject.
+    /// </summary>
+    public static byte[] ForAuditSubjectPii(Guid pseudonymId, int algVersion)
+        => Build("as", tenantId: null, ownerType: "-", ownerOrProjectId: pseudonymId,
+                 environmentId: null, id: pseudonymId, versionId: pseudonymId, algVersion: algVersion);
+
     private static byte[] Build(
         string slot, Guid? tenantId, string ownerType, Guid ownerOrProjectId,
         Guid? environmentId, Guid id, Guid versionId, int algVersion)

@@ -76,13 +76,41 @@ public interface ISecretBackend
     ValueTask<byte[]> UnprotectAsync(EncryptedValue value, ReadOnlyMemory<byte> aad, CancellationToken ct = default);
 }
 
-/// <summary>What the application asks the audit sink to record; the sink assigns sequence/hash and chains it.</summary>
+/// <summary>
+/// What the application asks the audit sink to record. <see cref="ActorUserId"/> is the real actor; the
+/// sink pseudonymizes it (via <see cref="IAuditSubjectDirectory"/>) before storing, and assigns the
+/// sequence/hash and chains it.
+/// </summary>
 public sealed record AuditRequest(
     Guid? TenantId,
     AuditAction Action,
     string ResourceType,
     Guid? ResourceId,
-    Guid? ActorPseudonymId);
+    Guid? ActorUserId);
+
+/// <summary>The actor's human-readable PII held (encrypted) for an audit subject; destroyed on erasure.</summary>
+public sealed record AuditSubjectPii(string DisplayName, string? ExternalId);
+
+/// <summary>
+/// Maps an actor to a stable, opaque audit pseudonym and holds that actor's PII encrypted under a
+/// per-subject key, so DSGVO erasure can crypto-shred the PII while the immutable audit chain keeps the
+/// pseudonym. Installation-global (a subject is stable across tenants).
+/// </summary>
+public interface IAuditSubjectDirectory
+{
+    /// <summary>
+    /// Finds or creates the pseudonym for <paramref name="subjectReference"/>, capturing its PII encrypted
+    /// at rest. Returns <c>null</c> for an unattributed event (no subject reference). The new subject row is
+    /// staged on the shared unit of work and persisted by the caller's SaveChanges.
+    /// </summary>
+    ValueTask<Guid?> ResolvePseudonymAsync(string? subjectReference, AuditSubjectPii pii, CancellationToken ct = default);
+
+    /// <summary>Decrypts a subject's PII for an admin audit view; <c>null</c> if unknown or already erased.</summary>
+    Task<AuditSubjectPii?> TryReadPiiAsync(Guid pseudonymId, CancellationToken ct = default);
+
+    /// <summary>Crypto-shreds every pseudonym of a subject (destroys the PII). Returns how many were erased.</summary>
+    Task<int> EraseAsync(string subjectReference, CancellationToken ct = default);
+}
 
 /// <summary>Append-only, single-writer, per-tenant hash-chained audit sink.</summary>
 public interface IAuditSink

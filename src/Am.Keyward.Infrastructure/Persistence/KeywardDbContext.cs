@@ -41,6 +41,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<VaultItemVersion> VaultItemVersions => Set<VaultItemVersion>();
     public DbSet<AccessGrant> AccessGrants => Set<AccessGrant>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<AuditSubject> AuditSubjects => Set<AuditSubject>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -239,6 +240,23 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Hash).HasMaxLength(64).IsRequired();
             e.HasIndex(x => new { x.TenantId, x.Sequence }).IsUnique();
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
+        // Crypto-shredding directory: maps an audit pseudonym to the actor's PII, encrypted under a
+        // per-subject DEK. Installation-global (a subject is stable across tenants), so — like the token
+        // table — it has deliberately NO tenant query filter and is NOT in the row-level-security policy:
+        // it is looked up by pseudonym/subject reference independent of the active tenant, and holds only
+        // ciphertext (cleared on erasure), never plaintext PII.
+        model.Entity<AuditSubject>(e =>
+        {
+            e.ToTable("AuditSubjects");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.SubjectReference).HasMaxLength(256).IsRequired();
+            // Nullable converter (NULL once erased) — a dedicated converter keeps the column nullable.
+            e.Property(x => x.EncryptedPii).HasConversion(
+                v => v == null ? null : JsonSerializer.Serialize(v, json),
+                s => s == null ? null : JsonSerializer.Deserialize<EncryptedValue>(s, json));
+            e.HasIndex(x => x.SubjectReference);
         });
     }
 }

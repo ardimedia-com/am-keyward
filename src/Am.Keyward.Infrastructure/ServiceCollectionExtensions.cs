@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IKekProvider>(new StaticKekProvider(kek, kekId));
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
+        services.AddScoped<IAuditSubjectDirectory, DbAuditSubjectDirectory>();
         services.AddScoped<IAuditSink, DbAuditSink>();
         services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
         services.AddScoped<IKekIntegrityVerifier, DbKekIntegrityVerifier>();
