@@ -1,8 +1,9 @@
 name: Release
 
-# Tag-driven release. Push a v* tag (e.g. v0.1.0) on a release-prep commit that has already promoted the
-# matching "## [<version>]" CHANGELOG section. The job builds + tests, then publishes a GitHub Release whose
-# notes ARE that CHANGELOG section (single source of truth).
+# Tag-driven release. Push a v* tag (e.g. v0.1.0-preview) on a release-prep commit that has already promoted
+# the matching "## [<version>]" CHANGELOG section. The job builds + tests, packs the libraries and pushes
+# them to nuget.org, then publishes a GitHub Release whose notes ARE that CHANGELOG section.
+# Requires a repository secret NUGET_API_KEY (a nuget.org API key).
 on:
   push:
     tags: ['v*']
@@ -19,9 +20,8 @@ jobs:
       - name: Determine version
         shell: bash
         run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          echo "VERSION=${TAG%%-*}" >> "$GITHUB_ENV"
-          echo "TAG_LABEL=${TAG}" >> "$GITHUB_ENV"
+          # The full tag (minus the leading 'v') IS the package version, e.g. 0.1.0-preview.
+          echo "TAG_LABEL=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       # Fail fast (before the build) if a tagged release has no matching CHANGELOG section, so a forgotten
       # promotion blocks the release instead of publishing stale notes.
@@ -43,11 +43,24 @@ jobs:
         run: dotnet restore Am.Keyward.slnx
 
       - name: Build
-        run: dotnet build Am.Keyward.slnx -c Release --no-restore -p:Version=${{ env.VERSION }}
+        run: dotnet build Am.Keyward.slnx -c Release --no-restore -p:Version=${{ env.TAG_LABEL }}
 
       # Integration tests skip (Inconclusive) when no SQL Server is reachable, so this stays green on CI.
       - name: Test
         run: dotnet test Am.Keyward.slnx -c Release --no-build
+
+      # Pack the publishable libraries (the shell app + tests set IsPackable=false) and push to nuget.org.
+      # Symbol packages (.snupkg) are pushed alongside automatically. --skip-duplicate makes a re-run safe.
+      - name: Pack
+        run: dotnet pack Am.Keyward.slnx -c Release --no-build -p:Version=${{ env.TAG_LABEL }} -o artifacts
+
+      - name: Push to nuget.org
+        shell: bash
+        run: |
+          dotnet nuget push "artifacts/*.nupkg" \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
+            --skip-duplicate
 
       - name: Create GitHub Release
         env:

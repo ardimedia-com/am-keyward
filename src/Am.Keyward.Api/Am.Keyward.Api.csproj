@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>AM KEYWARD — Minimal-API endpoints (MapKeywardApi / MapKeywardClientApi) and software-client token authentication.</Description>
   </PropertyGroup>
 
   <!-- Api maps Minimal-API endpoints + software-client token auth; it needs the ASP.NET Core

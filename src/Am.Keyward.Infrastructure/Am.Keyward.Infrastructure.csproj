@@ -18,6 +18,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>AM KEYWARD — EF Core (SQL Server) persistence, envelope crypto and KEK providers, tamper-evident audit, tenancy with row-level security, vaults, software-client tokens, break-glass and monitoring.</Description>
   </PropertyGroup>
 
 </Project>

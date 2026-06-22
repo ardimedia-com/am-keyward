@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Description>AM KEYWARD — embeddable Blazor (RCL) feature UI: software credentials, personal and team vaults, and client tokens, under the /amkeyward route prefix with a self-applying scoped theme.</Description>
   </PropertyGroup>
 
 

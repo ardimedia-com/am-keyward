@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>AM KEYWARD — pure domain and application core (aggregates, value objects, ports) for the embeddable credential and secrets manager. No EF Core / ASP.NET / crypto dependencies.</Description>
   </PropertyGroup>
 
 </Project>

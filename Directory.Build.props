@@ -8,8 +8,32 @@
     <Company>Ardimedia Anstalt</Company>
     <Product>AM KEYWARD</Product>
     <Copyright>Copyright (c) 2026 Ardimedia Anstalt</Copyright>
-    <!-- Release version. The tag-driven release workflow overrides this with -p:Version from the v* tag. -->
-    <Version>0.1.0</Version>
+    <!-- Release version. The tag-driven release workflow overrides this with -p:Version from the v* tag.
+         Pre-1.0 and not yet externally security-reviewed -> a -preview prerelease. -->
+    <Version>0.1.0-preview</Version>
   </PropertyGroup>
+
+  <!-- Shared NuGet package metadata. Individual projects add their own <Description>; non-library
+       projects (the reference shell, tests) set <IsPackable>false</IsPackable>. -->
+  <PropertyGroup>
+    <Authors>Ardimedia Anstalt</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/ardimedia/am-keyward</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ardimedia/am-keyward</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>secrets;credentials;vault;password-manager;blazor;encryption;keyward</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- SourceLink (built into the .NET SDK) + deterministic CI builds for debuggable, reproducible packages. -->
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Pack the repo README into each package (shown on the nuget.org listing). Skipped for non-packable projects. -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="/" Visible="false" />
+  </ItemGroup>
 
 </Project>
