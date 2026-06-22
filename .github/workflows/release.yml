@@ -1,0 +1,76 @@
+name: Release
+
+# Tag-driven release. Push a v* tag (e.g. v0.1.0) on a release-prep commit that has already promoted the
+# matching "## [<version>]" CHANGELOG section. The job builds + tests, then publishes a GitHub Release whose
+# notes ARE that CHANGELOG section (single source of truth).
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "VERSION=${TAG%%-*}" >> "$GITHUB_ENV"
+          echo "TAG_LABEL=${TAG}" >> "$GITHUB_ENV"
+
+      # Fail fast (before the build) if a tagged release has no matching CHANGELOG section, so a forgotten
+      # promotion blocks the release instead of publishing stale notes.
+      - name: Verify CHANGELOG has an entry for this release
+        shell: bash
+        run: |
+          if ! grep -qF "## [${TAG_LABEL}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no '## [${TAG_LABEL}]' section. Promote [Unreleased] to '## [${TAG_LABEL}] - <date>' before tagging."
+            exit 1
+          fi
+          echo "CHANGELOG.md has a section for ${TAG_LABEL}."
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Am.Keyward.slnx
+
+      - name: Build
+        run: dotnet build Am.Keyward.slnx -c Release --no-restore -p:Version=${{ env.VERSION }}
+
+      # Integration tests skip (Inconclusive) when no SQL Server is reachable, so this stays green on CI.
+      - name: Test
+        run: dotnet test Am.Keyward.slnx -c Release --no-build
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          # Mark pre-1.0 (0.x) and alpha/beta/rc/preview tags as prereleases.
+          IS_PRERELEASE=""
+          if echo "$TAG_LABEL" | grep -qE "^0\.|alpha|beta|rc|preview"; then
+            IS_PRERELEASE="--prerelease"
+          fi
+
+          # Release notes are the matching CHANGELOG section: the body between "## [<version>]" and the next
+          # "## [" header. The guard above guarantees it exists.
+          awk -v ver="## [${TAG_LABEL}]" 'index($0, ver) == 1 { f = 1; next } /^## \[/ { if (f) exit } f { print }' CHANGELOG.md > RELEASE_NOTES.md
+
+          if [ -s RELEASE_NOTES.md ]; then
+            NOTES_ARG=(--notes-file RELEASE_NOTES.md)
+          else
+            NOTES_ARG=(--generate-notes)
+          fi
+
+          gh release create "$GITHUB_REF_NAME" \
+            --title "AM KEYWARD $TAG_LABEL" \
+            "${NOTES_ARG[@]}" \
+            $IS_PRERELEASE

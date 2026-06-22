@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-06-22
+
+First tagged pre-1.0 release: the full v0.1 walking-skeleton-to-breadth build (Slices 0–8) — software
+credentials, server-side human vaults, tenancy/isolation, and the ops/compliance hardening below. Pre-1.0
+and **not yet externally security-reviewed** — do not store real secrets yet (see SECURITY.md).
+
 ### Added
 
 - Slice 7 (part 6) — break-glass mechanism: dual-control emergency access to server-side material. A

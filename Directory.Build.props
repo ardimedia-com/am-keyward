@@ -8,6 +8,8 @@
     <Company>Ardimedia Anstalt</Company>
     <Product>AM KEYWARD</Product>
     <Copyright>Copyright (c) 2026 Ardimedia Anstalt</Copyright>
+    <!-- Release version. The tag-driven release workflow overrides this with -p:Version from the v* tag. -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
 </Project>
