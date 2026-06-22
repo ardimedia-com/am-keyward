@@ -47,6 +47,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
         services.AddScoped<IAuditSink, DbAuditSink>();
         services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
+        services.AddScoped<IKekIntegrityVerifier, DbKekIntegrityVerifier>();
 
         // The software-secrets service serves both the management path (by environment name) and the
         // software-client read path (by environment id); expose the one scoped instance via both ports.
@@ -61,6 +62,11 @@ public static class ServiceCollectionExtensions
 
         // Human vaults (server-side encrypted).
         services.AddScoped<IVaultService, VaultService>();
+
+        // Ops monitoring: a periodic compliance/availability sweep (KEK integrity, audit-chain integrity,
+        // token expiry) publishing a snapshot for the host's health endpoint to read cheaply.
+        services.AddSingleton<Monitoring.OpsHealthSnapshot>();
+        services.AddHostedService<Monitoring.OpsMonitorBackgroundService>();
 
         return services;
     }

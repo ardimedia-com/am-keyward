@@ -37,6 +37,8 @@ public sealed class StaticKekProvider : IKekProvider
         KekId = kekId;
     }
 
+    public bool CanResolve(string kekId) => string.Equals(kekId, KekId, StringComparison.Ordinal);
+
     public ValueTask<byte[]> WrapAsync(byte[] dek, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(dek);

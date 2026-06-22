@@ -17,7 +17,23 @@ public sealed record EncryptedValue(
     string KekId,
     string WrapAlg,
     int AlgVersion,
-    int FormatVersion);
+    int FormatVersion)
+{
+    /// <summary>
+    /// Redacted rendering so the envelope can never leak into telemetry. Structured logging (Serilog,
+    /// <c>Microsoft.Extensions.Logging</c>) calls <see cref="object.ToString"/> on a logged complex object,
+    /// so overriding it here scrubs ciphertext / nonce / tag / wrapped-DEK / KEK id from every log sink
+    /// regardless of the host's logger. JSON persistence is unaffected (it serializes the properties, not
+    /// <see cref="ToString"/>).
+    /// </summary>
+    public override string ToString() => "EncryptedValue { [REDACTED] }";
+
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("[REDACTED]");
+        return true;
+    }
+}
 
 /// <summary>
 /// A software-secret key, validated to be a configuration-style key (e.g. <c>Shopify:AccessToken</c>,

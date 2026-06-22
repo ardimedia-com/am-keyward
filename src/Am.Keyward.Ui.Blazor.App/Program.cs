@@ -3,6 +3,7 @@ using Am.Keyward.Api;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
+using Am.Keyward.Infrastructure.Monitoring;
 using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
 using Am.Keyward.Ui.Blazor.App.Identity;
@@ -92,6 +93,12 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.Configure<DatabaseMigrationOptions>(builder.Configuration.GetSection(DatabaseMigrationOptions.SectionName));
 builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.DatabaseMigrationBackgroundService>();
 
+// Monitoring/health: a live KEK-availability probe and the cached ops-monitor snapshot (KEK integrity,
+// audit-chain integrity, token expiry). Exposed at /health (liveness) and /health/ready (readiness).
+builder.Services.AddHealthChecks()
+    .AddCheck<KekAvailabilityHealthCheck>("kek-availability", tags: ["ready", "live"])
+    .AddCheck<OpsMonitorHealthCheck>("ops-monitor", tags: ["ready"]);
+
 var app = builder.Build();
 
 // Apply migrations (both contexts) and seed the demo tenant/project (dev convenience).
@@ -143,6 +150,17 @@ app.MapRazorComponents<App>()
 
 app.MapKeywardApi(authorizationPolicy: managementPolicy);  // management API: signed-in admin (cookie)
 app.MapKeywardClientApi();                                  // software-client read API: token + rate limited
+
+// Health endpoints: liveness (KEK reachable) and readiness (KEK + ops-monitor snapshot). Anonymous and
+// body-free by default so they leak nothing; operators put detail behind their own auth if needed.
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live"),
+});
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+});
 
 // Sign out (POST so it cannot be triggered cross-site via a simple link).
 app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager) =>

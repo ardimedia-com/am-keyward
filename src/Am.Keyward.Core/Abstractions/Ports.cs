@@ -52,6 +52,14 @@ public interface IKekProvider
     /// <summary>Identifier (incl. key-version) of the KEK currently used for wrapping.</summary>
     string KekId { get; }
 
+    /// <summary>
+    /// Whether this provider can still unwrap DEKs wrapped under <paramref name="kekId"/>. During a KEK
+    /// rotation more than one version is available (the overlap window); the backup/restore integrity job
+    /// uses this to verify every stored <c>wrappedDek</c> resolves under an available KEK without paying an
+    /// unwrap round-trip per row.
+    /// </summary>
+    bool CanResolve(string kekId);
+
     ValueTask<byte[]> WrapAsync(byte[] dek, CancellationToken ct = default);
 
     ValueTask<byte[]> UnwrapAsync(byte[] wrappedDek, string kekId, CancellationToken ct = default);
@@ -89,6 +97,29 @@ public sealed record AuditChainStatus(bool IsIntact, long EntriesChecked, long? 
 public interface IAuditChainVerifier
 {
     Task<AuditChainStatus> VerifyAsync(Guid? tenantId, CancellationToken ct = default);
+}
+
+/// <summary>One stored envelope whose KEK id cannot be resolved by the current provider.</summary>
+public sealed record KekIntegrityIssue(string ResourceType, Guid ResourceId, string KekId);
+
+/// <summary>
+/// The result of the backup/restore consistency job: how many encrypted slots were scanned and which (if
+/// any) reference a KEK version the provider can no longer resolve — the signal that a DB was restored
+/// without its matching KEK store, or that a KEK version was destroyed before its rows were re-wrapped.
+/// </summary>
+public sealed record KekIntegrityReport(long Checked, IReadOnlyList<KekIntegrityIssue> Unresolvable)
+{
+    public bool IsConsistent => Unresolvable.Count == 0;
+}
+
+/// <summary>
+/// Verifies that every persisted <c>wrappedDek</c> resolves under an available <c>kekId</c>. Installation-
+/// wide (across tenants), so it must run with a database login able to read all rows — by design the
+/// least-privilege runtime login is hidden from cross-tenant rows by row-level security.
+/// </summary>
+public interface IKekIntegrityVerifier
+{
+    Task<KekIntegrityReport> VerifyAsync(CancellationToken ct = default);
 }
 
 /// <summary>Resolves the connection string per tenant (shared DB by default; DB-per-tenant later).</summary>

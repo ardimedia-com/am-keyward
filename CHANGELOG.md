@@ -7,6 +7,17 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- Slice 7 (part 4) — ops hardening: telemetry redaction, backup/restore KEK-integrity job, and health
+  monitoring. The `EncryptedValue` envelope now renders as `[REDACTED]` so it can never leak ciphertext,
+  nonce, tag, wrapped DEK or KEK id into any log sink (Serilog or `Microsoft.Extensions.Logging` both call
+  `ToString()` on a logged object). A new `IKekIntegrityVerifier` scans every stored envelope and reports
+  any whose KEK id the provider can no longer resolve — the signal that a database was restored without its
+  matching KEK store, or a KEK version was retired before its rows were re-wrapped (it checks id
+  resolvability, no per-row unwrap); the `IKekProvider` port gained `CanResolve(kekId)` for the overlap
+  window. A periodic `OpsMonitorBackgroundService` verifies KEK integrity, walks each tenant's audit hash
+  chain, and counts tokens nearing expiry, logging anomalies and publishing an `OpsHealthSnapshot`. Two
+  health checks — a live `kek-availability` wrap/unwrap probe and a cached `ops-monitor` reading — are
+  exposed at `/health` (liveness) and `/health/ready` (readiness).
 - Branding & multi-language UI: a new key-in-tile SVG icon is the favicon and the sidebar brand mark. The
   UI is now localizable in six languages — English (default), German (Swiss/Liechtenstein spelling),
   French, Italian, Spanish and Portuguese — using `IStringLocalizer` + `.resx` (a shared `SharedResource`),
