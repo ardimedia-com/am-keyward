@@ -73,6 +73,7 @@
   <data name="Login.Title" xml:space="preserve"><value>Iniciar sessão</value></data>
   <data name="Login.Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Login.Password" xml:space="preserve"><value>Palavra-passe</value></data>
+  <data name="Login.RememberMe" xml:space="preserve"><value>Manter sessão iniciada neste dispositivo</value></data>
   <data name="Login.Submit" xml:space="preserve"><value>Iniciar sessão</value></data>
   <data name="Login.NoAccount" xml:space="preserve"><value>Ainda não tem conta?</value></data>
   <data name="Login.RegisterLink" xml:space="preserve"><value>Registar</value></data>

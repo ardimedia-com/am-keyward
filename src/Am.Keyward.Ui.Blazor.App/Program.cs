@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.RateLimiting;
 using Am.Keyward.Api;
 using Am.Keyward.Core.Abstractions;
@@ -8,6 +10,7 @@ using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
 using Am.Keyward.Ui.Blazor.App.Identity;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.RateLimiting;
@@ -18,7 +21,35 @@ const string managementPolicy = "Keyward.Management";
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
+    // Hold a disconnected circuit longer so a short network drop / device sleep returns to a live session
+    // instead of a full reload (server memory cost is negligible for this low-concurrency admin UI).
+    .AddInteractiveServerComponents(options =>
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(30));
+
+// Persist the Data Protection key ring to a stable location OUTSIDE the deploy folder, so an app restart
+// or redeploy does not regenerate the keys and sign every user out (and break outstanding Identity reset /
+// confirmation tokens). Best-effort: fall back to SetApplicationName alone if the shared folder is not
+// writable, so a locked-down host still starts. DPAPI at-rest protection is Windows-only (this reference
+// shell is Windows). See auth-policy-and-session-implementation.md (Part 2, Data Protection).
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("Am.Keyward");
+string? dataProtectionWarning = null;
+try
+{
+    var keyRingPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "Ardimedia", "Am.Keyward", "keys");
+    Directory.CreateDirectory(keyRingPath);
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(keyRingPath));
+    if (OperatingSystem.IsWindows())
+    {
+        dataProtection.ProtectKeysWithDpapi(protectToLocalMachine: true);
+    }
+}
+catch (Exception ex)
+{
+    // Fall back to the default key store (SetApplicationName still applied). Logged after Build(), below.
+    dataProtectionWarning = ex.Message;
+}
 
 // UI localization (English default, German). Strings live in Resources/SharedResource.*.resx.
 builder.Services.AddLocalization(options => options.ResourcesPath = "Resources");
@@ -60,6 +91,13 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
     {
         options.User.RequireUniqueEmail = true;
         options.SignIn.RequireConfirmedAccount = false;
+        // Password policy: a strong minimum length matters more than mandatory symbols (a long passphrase
+        // beats forced punctuation). See auth-policy-and-session-implementation.md (Part 1).
+        options.Password.RequiredLength = 12;
+        options.Password.RequireDigit = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireNonAlphanumeric = false;
         options.Lockout.AllowedForNewUsers = true;
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
@@ -75,11 +113,12 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy(KeywardClientApi.RateLimiterPolicy, httpContext =>
     {
-        var partitionKey = httpContext.Request.Headers.Authorization.ToString();
-        if (string.IsNullOrEmpty(partitionKey))
-        {
-            partitionKey = httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
-        }
+        // Partition per token, but never hold the plaintext bearer token as the (in-memory) key: hash it,
+        // so a leaked limiter dump reveals no secrets and the key is fixed-width regardless of token length.
+        var authHeader = httpContext.Request.Headers.Authorization.ToString();
+        var partitionKey = string.IsNullOrEmpty(authHeader)
+            ? "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous")
+            : "tok:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(authHeader)));
 
         return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
         {
@@ -109,6 +148,13 @@ builder.Services.AddHealthChecks()
     .AddCheck<OpsMonitorHealthCheck>("ops-monitor", tags: ["ready"]);
 
 var app = builder.Build();
+
+if (dataProtectionWarning is not null)
+{
+    app.Logger.LogWarning(
+        "Data Protection key-ring persistence unavailable, using the framework default store (users may be signed out on restart): {Reason}",
+        dataProtectionWarning);
+}
 
 // Apply migrations (both contexts) and seed the demo tenant/project (dev convenience).
 await using (var scope = app.Services.CreateAsyncScope())

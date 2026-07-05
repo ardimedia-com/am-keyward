@@ -44,8 +44,12 @@ public sealed class SoftwareClientTokenService(
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
 
+        // Rotation renews the secret only; keep the token's existing expiry unless the caller supplies a new
+        // one (so a rotate can't silently turn a 30-day token into one that never expires). Removing the
+        // expiry is therefore a deliberate, separate action, not a side effect of rotating.
+        var effectiveExpiry = expiresAt ?? token.ExpiresAt;
         var generated = SoftwareClientTokenGenerator.Generate();
-        token.Rotate(generated.Prefix, generated.Hash, clock.UtcNow, expiresAt);
+        token.Rotate(generated.Prefix, generated.Hash, clock.UtcNow, effectiveExpiry);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new IssuedSoftwareClientToken(token.Id, generated.Token, generated.Prefix, token.ExpiresAt);

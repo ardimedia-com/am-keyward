@@ -5,14 +5,38 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Security
+
+- **Data Protection key ring is now persisted** (reference shell) to `%ProgramData%\Ardimedia\Am.Keyward\keys`
+  with `SetApplicationName("Am.Keyward")` and DPAPI at-rest protection on Windows, best-effort with a
+  fall-back to the default store if the folder is not writable. Previously the key ring lived at the
+  framework default location, so every app restart/redeploy regenerated the keys — signing all users out and
+  invalidating outstanding Identity reset/confirmation tokens.
+- **Password policy raised to a 12-character minimum** (require upper/lower/digit; symbols not mandated) on
+  Identity and on the registration form, up from the framework default of 6.
+- **"Remember me" is now opt-in.** The login page ships an unchecked "keep me signed in" box; sign-in and
+  registration no longer force a persistent cookie (`isPersistent` was hardcoded `true`), so on a shared or
+  kiosk device the next person no longer inherits a signed-in vault session.
+- **Software-secret decryption pins the AES-GCM tag length** to the 16-byte constant instead of trusting the
+  stored (DB-writable) tag length, and rejects any value whose tag length differs — closing a
+  tag-truncation forgery-resistance downgrade.
+- **The read-API rate limiter no longer keys its in-memory partitions on the raw bearer token** — it hashes
+  the Authorization header (SHA-256) so a limiter dump reveals no token plaintext.
+
 ### Fixed
 
 - Embedded UI (`Secrets` page): saving or creating a secret value called the busy-guarded `ViewAsync`
   from inside an already-running guarded action, so it early-returned — the detail view was never
   refreshed and the just-entered plaintext value was left in the input with Save still enabled. Extracted
   an unguarded `LoadDetailAsync` loader and clear the add-value field after a successful create.
+- Rotating a software-client token without an explicit new expiry silently cleared its expiry (turning a
+  time-limited token into a non-expiring one); rotation now preserves the token's existing expiry unless a
+  new one is supplied.
 
 ### Changed
+
+- Blazor circuit retention raised to 30 minutes (`DisconnectedCircuitRetentionPeriod`) so a short network
+  drop or device sleep returns to a live session instead of a full reload.
 
 - Accessibility and layout hardening of the embedded UI pages (`Secrets`, `Tokens`, `VaultWorkspace`) and
   the reference shell's `NotFound` page: associate `<label>`s with their inputs, add `aria-label`s to

@@ -48,11 +48,18 @@ public sealed class EnvelopeSecretBackend : ISecretBackend
     public async ValueTask<byte[]> UnprotectAsync(EncryptedValue value, ReadOnlyMemory<byte> aad, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(value);
+        // Pin the tag length to the constant we wrote with — never trust the stored (DB-writable) tag length.
+        // A tamperer could otherwise shorten the tag to weaken forgery resistance.
+        if (value.AuthTag.Length != TagSize)
+        {
+            throw new CryptographicException($"Unexpected authentication tag length {value.AuthTag.Length}; expected {TagSize}.");
+        }
+
         var dek = await _kek.UnwrapAsync(value.WrappedDek, value.KekId, ct).ConfigureAwait(false);
         try
         {
             var plaintext = new byte[value.Ciphertext.Length];
-            using var gcm = new AesGcm(dek, value.AuthTag.Length);
+            using var gcm = new AesGcm(dek, TagSize);
             gcm.Decrypt(value.Nonce, value.Ciphertext, value.AuthTag, plaintext, aad.Span);
             return plaintext;
         }

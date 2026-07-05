@@ -36,10 +36,14 @@
 <p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
 
 @code {
-    [SupplyParameterFromForm] private InputModel Input { get; set; } = new();
+    // No initializer on a [SupplyParameterFromForm] property (BL0008: a form post could overwrite it with
+    // null); default it in OnInitialized so a GET render still has a model to bind.
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     private string? errorMessage;
+
+    protected override void OnInitialized() => Input ??= new();
 
     private async Task RegisterUser()
     {
@@ -52,8 +56,9 @@
         }
 
         // SignInAsync builds the principal via the claims factory, which creates the domain AppUser
-        // (first account => system admin) and stamps the keyward:user_id claim into the cookie.
-        await SignInManager.SignInAsync(user, isPersistent: true);
+        // (first account => system admin) and stamps the keyward:user_id claim into the cookie. New sign-in
+        // gets a session cookie (isPersistent: false) — persistence is opt-in only, via the login page.
+        await SignInManager.SignInAsync(user, isPersistent: false);
         Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
     }
 
@@ -62,7 +67,7 @@
         [Required, EmailAddress]
         public string Email { get; set; } = "";
 
-        [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 6)]
+        [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 12)]
         public string Password { get; set; } = "";
 
         [DataType(DataType.Password), Compare(nameof(Password), ErrorMessage = "The passwords do not match.")]

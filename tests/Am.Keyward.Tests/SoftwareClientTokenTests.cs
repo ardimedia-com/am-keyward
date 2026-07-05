@@ -138,16 +138,22 @@ public class SoftwareClientTokenTests
         var projectId = Guid.NewGuid();
         await SeedProjectWithTwoEnvironmentsAsync(provider, tenantId, projectId, prodValue: "prod-secret", devValue: "dev-secret");
 
-        var original = await IssueAsync(provider, tenantId, projectId, "Production", expiresAt: null);
+        var expiry = DateTimeOffset.UtcNow.AddDays(30);
+        var original = await IssueAsync(provider, tenantId, projectId, "Production", expiresAt: expiry);
         IssuedSoftwareClientToken rotated;
         using (var scope = ScopeFor(provider, tenantId))
         {
+            // Rotate without a new expiry (the UI always does this): the existing expiry must be preserved,
+            // not silently cleared to "never expires".
             rotated = await scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>()
                 .RotateAsync(tenantId, original.TokenId, null, null);
         }
 
         Assert.IsNull(await AuthenticateAsync(provider, original.Token), "Old secret must stop working after rotation.");
         Assert.AreEqual("prod-secret", await AuthenticateAndReadAsync(provider, rotated.Token, Key));
+        Assert.IsNotNull(rotated.ExpiresAt, "Rotation must keep the token's existing expiry.");
+        Assert.IsTrue((rotated.ExpiresAt!.Value - expiry).Duration() < TimeSpan.FromSeconds(1),
+            "Rotation must keep the token's existing expiry unchanged.");
     }
 
     // --- helpers ---
