@@ -29,6 +29,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
 
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<AppUser> Users => Set<AppUser>();
+    public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<RuntimeEnvironment> RuntimeEnvironments => Set<RuntimeEnvironment>();
     public DbSet<SoftwareSecret> SoftwareSecrets => Set<SoftwareSecret>();
@@ -78,6 +79,19 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.ExternalId).HasMaxLength(512).IsRequired();
             e.Property(x => x.DisplayName).HasMaxLength(256).IsRequired();
             e.HasIndex(x => new { x.Issuer, x.ExternalId }).IsUnique();
+        });
+
+        // Tenant membership: which installation-global users belong to which tenant, with a per-tenant role.
+        // Installation-global (looked up at the host edge before/independent of the tenant scope, to gate a
+        // caller-supplied {tenantId}), so — like the token and audit-subject tables — it has deliberately NO
+        // tenant query filter and is NOT in the row-level-security policy.
+        model.Entity<TenantMembership>(e =>
+        {
+            e.ToTable("TenantMemberships");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.TenantId, x.UserId }).IsUnique();
+            e.HasIndex(x => x.UserId);
         });
 
         model.Entity<Project>(e =>

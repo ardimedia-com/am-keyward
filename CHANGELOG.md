@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Security
 
+- **The management API now verifies tenant membership** before it trusts the route's `{tenantId}`. Previously
+  it set the server-authoritative tenant scope straight from the caller-supplied route id with only an
+  "authenticated" check, so any signed-in user could read/write another tenant's software secrets and
+  mint/rotate/revoke its tokens. A new `ITenantMembership` port gates the route tenant against the signed-in
+  user's membership (system admins are members of every tenant); non-members get 403. New `TenantMemberships`
+  table + migration.
+
 - **Data Protection key ring is now persisted** (reference shell) to `%ProgramData%\Ardimedia\Am.Keyward\keys`
   with `SetApplicationName("Am.Keyward")` and DPAPI at-rest protection on Windows, best-effort with a
   fall-back to the default store if the folder is not writable. Previously the key ring lived at the

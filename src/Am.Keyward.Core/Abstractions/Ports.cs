@@ -163,6 +163,17 @@ public interface IAuthorizationService
     ValueTask<bool> IsAllowedAsync(Guid? userId, GrantScope resource, Permission action, CancellationToken ct = default);
 }
 
+/// <summary>
+/// Whether an installation-global user may act within a tenant. Used at the host edge to gate the
+/// server-authoritative tenant scope against a caller-supplied <c>{tenantId}</c> (e.g. the management API
+/// route), so an authenticated user cannot target a tenant they do not belong to. A user is authorized for
+/// a tenant if they hold a membership in it or are a system admin (the installation operator).
+/// </summary>
+public interface ITenantMembership
+{
+    ValueTask<bool> IsMemberAsync(Guid userId, Guid tenantId, CancellationToken ct = default);
+}
+
 /// <summary>One non-repudiable break-glass event for the external append-only sink.</summary>
 public sealed record BreakGlassRecord(
     DateTimeOffset At,

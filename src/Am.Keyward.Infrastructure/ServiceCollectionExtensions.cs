@@ -32,6 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUserScopeSetter>(sp => sp.GetRequiredService<AmbientUserContext>());
 
         services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
+        services.AddScoped<ITenantMembership, TenantMembershipService>();
         services.AddScoped<TenantSessionContextInterceptor>();
         services.AddScoped<AuditChainInterceptor>();
 

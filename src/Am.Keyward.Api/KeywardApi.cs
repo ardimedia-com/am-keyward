@@ -26,13 +26,26 @@ public static class KeywardApi
             group.RequireAuthorization(authorizationPolicy);
         }
 
-        // Establish the server-authoritative tenant scope from the route's {tenantId} (the first route
-        // argument on every endpoint here), so the query filter and row-level security apply. Interim:
-        // Slice 5 derives the tenant from the software-client token and verifies it matches the route.
+        // Gate the caller-supplied route {tenantId} against the signed-in user's tenant membership, THEN
+        // establish the server-authoritative tenant scope from it (so the query filter and row-level security
+        // apply). Without the membership check any authenticated user could target any tenant's secrets/tokens
+        // by putting that tenant's id in the route. The user is resolved by the host from the auth cookie
+        // (see ICurrentUser); system admins are members of every tenant.
         group.AddEndpointFilter(async (context, next) =>
         {
             var tenantId = context.GetArgument<Guid>(0);
-            context.HttpContext.RequestServices.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            var services = context.HttpContext.RequestServices;
+
+            var userId = services.GetRequiredService<ICurrentUser>().UserId;
+            if (userId is not { } uid
+                || !await services.GetRequiredService<ITenantMembership>().IsMemberAsync(uid, tenantId, context.HttpContext.RequestAborted))
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status403Forbidden,
+                    title: "Not authorized for the requested tenant.");
+            }
+
+            services.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
             return await next(context);
         });
 
