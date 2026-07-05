@@ -7,6 +7,16 @@ All notable changes to this project are documented here, following
 
 ### Security
 
+- **Software-client token lifecycle is now audited.** Issuing, rotating, revoking and updating a token
+  writes a tamper-evident audit-chain entry (attributed to the acting user), so minting or revoking a
+  credential leaves a trace; previously these operations wrote nothing.
+- **Admin secret access is now attributed.** The management API resolves the signed-in user, and the
+  software-secret service records that actor on store/read/delete (and the UI secret-detail read) instead of
+  a null actor. The machine (token) read path stays unattributed, as it has no user.
+- **A local user is now unique by external id.** A filtered unique index on `Users(ExternalId)` for local
+  (null-issuer) accounts, plus a SQL app-lock around the just-in-time user creation, so two concurrent
+  first-time sign-ins can neither create duplicate `AppUser` rows for one user nor both become System Admin.
+  Migration `LocalUserUniqueIndex`.
 - **The tenant-less (personal-vault) audit hash chain no longer forks.** The audit-chain writer reads the
   chain head on the app connection, which is subject to row-level security; while a tenant was in scope (every
   Blazor circuit) the head of a `TenantId = null` chain was hidden, so each personal-vault operation re-sealed

@@ -1,5 +1,6 @@
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
+using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Software;
 using Am.Keyward.Core.Domain.ValueObjects;
 using Am.Keyward.Infrastructure.Persistence;
@@ -9,13 +10,18 @@ namespace Am.Keyward.Infrastructure.Auth;
 
 /// <summary>
 /// Issues, rotates, revokes and lists software-client tokens. Issuance returns the plaintext token once;
-/// only its hash is persisted. All operations are gated on the server-authoritative current tenant.
+/// only its hash is persisted. All operations are gated on the server-authoritative current tenant, and every
+/// lifecycle change (issue / rotate / revoke / update) is written to the tamper-evident audit chain so the
+/// minting and revocation of a credential leaves a trace.
 /// </summary>
 public sealed class SoftwareClientTokenService(
     KeywardDbContext db,
     IClock clock,
-    ICurrentTenant tenant) : ISoftwareClientTokenService
+    ICurrentTenant tenant,
+    IAuditSink audit,
+    ICurrentUser currentUser) : ISoftwareClientTokenService
 {
+    private const string ResourceType = "SoftwareClientToken";
     public async Task<IssuedSoftwareClientToken> IssueAsync(IssueSoftwareClientTokenCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
@@ -32,6 +38,7 @@ public sealed class SoftwareClientTokenService(
             generated.Prefix, generated.Hash, cmd.ActorUserId, clock.UtcNow, cmd.ExpiresAt, cmd.Note);
 
         db.SoftwareClientTokens.Add(token);
+        await AuditAsync(cmd.TenantId, AuditAction.Create, token.Id, cmd.ActorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new IssuedSoftwareClientToken(token.Id, generated.Token, generated.Prefix, token.ExpiresAt);
@@ -50,6 +57,7 @@ public sealed class SoftwareClientTokenService(
         var effectiveExpiry = expiresAt ?? token.ExpiresAt;
         var generated = SoftwareClientTokenGenerator.Generate();
         token.Rotate(generated.Prefix, generated.Hash, clock.UtcNow, effectiveExpiry);
+        await AuditAsync(tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new IssuedSoftwareClientToken(token.Id, generated.Token, generated.Prefix, token.ExpiresAt);
@@ -66,6 +74,7 @@ public sealed class SoftwareClientTokenService(
         }
 
         token.Revoke(clock.UtcNow);
+        await AuditAsync(tenantId, AuditAction.Revoke, token.Id, actorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -95,11 +104,15 @@ public sealed class SoftwareClientTokenService(
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
 
         token.UpdateDetails(name, note);
+        await AuditAsync(tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     private Task<SoftwareClientToken?> FindAsync(Guid tenantId, Guid tokenId, CancellationToken ct) =>
         db.SoftwareClientTokens.FirstOrDefaultAsync(t => t.Id == tokenId && t.TenantId == tenantId, ct);
+
+    private ValueTask AuditAsync(Guid tenantId, AuditAction action, Guid tokenId, Guid? actorUserId, CancellationToken ct) =>
+        audit.AppendAsync(new AuditRequest(tenantId, action, ResourceType, tokenId, actorUserId ?? currentUser.UserId), ct);
 
     private void EnsureTenantScope(Guid requestedTenantId)
     {

@@ -66,7 +66,7 @@ public sealed class SoftwareSecretService(
         }
 
         await audit.AppendAsync(
-            new AuditRequest(cmd.TenantId, AuditAction.Update, "SoftwareSecret", secret.Id, cmd.ActorUserId), ct)
+            new AuditRequest(cmd.TenantId, AuditAction.Update, "SoftwareSecret", secret.Id, cmd.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -98,7 +98,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         await audit.AppendAsync(
-            new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId), ct)
+            new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -242,7 +242,7 @@ public sealed class SoftwareSecretService(
             values.Add(new SecretEnvironmentValue(environment.Name.Value, true, plaintext));
         }
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, null), ct).ConfigureAwait(false);
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new SoftwareSecretDetail(secret.Key.Value, values);
@@ -263,7 +263,7 @@ public sealed class SoftwareSecretService(
         }
 
         db.SoftwareSecrets.Remove(secret); // values + versions cascade
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareSecret", secret.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 

@@ -39,9 +39,25 @@ public sealed class KeywardUserClaimsPrincipalFactory(
     private async Task<AppUser> EnsureAppUserAsync(IdentityUser user)
     {
         // The Users table is installation-global (no tenant filter), so no tenant scope is needed here.
-        var existing = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == user.Id);
+        var existing = await FindLocalUserAsync(user.Id);
         if (existing is not null)
         {
+            return existing;
+        }
+
+        // Serialize the just-in-time creation across concurrent sign-ins with a SQL app-lock, so the
+        // "first account becomes the System Admin" decision and the insert are atomic: two simultaneous
+        // first-time sign-ins can neither both become admin nor create duplicate rows for the same user.
+        // The filtered unique index on ExternalId is the database backstop if the lock is ever unavailable.
+        await using var tx = await db.Database.BeginTransactionAsync();
+        await db.Database.ExecuteSqlRawAsync(
+            "EXEC sp_getapplock @Resource = N'Keyward_UserInit', @LockMode = 'Exclusive', @LockOwner = 'Transaction';");
+
+        // Re-check inside the lock — another concurrent sign-in for this user may have created it.
+        existing = await FindLocalUserAsync(user.Id);
+        if (existing is not null)
+        {
+            await tx.CommitAsync();
             return existing;
         }
 
@@ -53,6 +69,10 @@ public sealed class KeywardUserClaimsPrincipalFactory(
 
         db.Users.Add(appUser);
         await db.SaveChangesAsync();
+        await tx.CommitAsync();
         return appUser;
     }
+
+    private Task<AppUser?> FindLocalUserAsync(string externalId) =>
+        db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == externalId);
 }

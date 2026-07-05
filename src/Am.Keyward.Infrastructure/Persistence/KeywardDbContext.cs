@@ -78,7 +78,12 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Issuer).HasMaxLength(512);
             e.Property(x => x.ExternalId).HasMaxLength(512).IsRequired();
             e.Property(x => x.DisplayName).HasMaxLength(256).IsRequired();
+            // External users are unique per (Issuer, ExternalId). Local users have a null Issuer, which the
+            // composite index does not constrain (SQL Server treats each null as distinct in a multi-column
+            // unique index), so add a filtered unique index on ExternalId for local users — otherwise two
+            // concurrent just-in-time creations for the same local Identity user could insert duplicate rows.
             e.HasIndex(x => new { x.Issuer, x.ExternalId }).IsUnique();
+            e.HasIndex(x => x.ExternalId).IsUnique().HasFilter("[Issuer] IS NULL");
         });
 
         // Tenant membership: which installation-global users belong to which tenant, with a per-tenant role.

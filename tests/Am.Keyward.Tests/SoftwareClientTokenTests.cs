@@ -156,6 +156,39 @@ public class SoftwareClientTokenTests
             "Rotation must keep the token's existing expiry unchanged.");
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Issuing_a_token_writes_an_attributed_audit_entry()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        var actor = Guid.NewGuid();
+        await SeedProjectWithTwoEnvironmentsAsync(provider, tenantId, projectId, prodValue: "p", devValue: "d");
+
+        Guid tokenId;
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var issued = await scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>()
+                .IssueAsync(new IssueSoftwareClientTokenCommand(tenantId, projectId, "Production", "ci token", null, actor));
+            tokenId = issued.TokenId;
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            var audited = await db.AuditEntries.AnyAsync(a =>
+                a.TenantId == tenantId && a.ResourceType == "SoftwareClientToken"
+                && a.ResourceId == tokenId && a.Action == AuditAction.Create);
+            Assert.IsTrue(audited, "Issuing a software-client token must write an audit entry.");
+        }
+    }
+
     // --- helpers ---
 
     private static ServiceProvider BuildProvider()
