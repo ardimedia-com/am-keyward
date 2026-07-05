@@ -7,6 +7,16 @@ All notable changes to this project are documented here, following
 
 ### Security
 
+- **The tenant-less (personal-vault) audit hash chain no longer forks.** The audit-chain writer reads the
+  chain head on the app connection, which is subject to row-level security; while a tenant was in scope (every
+  Blazor circuit) the head of a `TenantId = null` chain was hidden, so each personal-vault operation re-sealed
+  sequence 1 and the tamper-evident chain silently forked (and health went Unhealthy). A trusted, FILTER-only
+  `SESSION_CONTEXT('SystemBypass')` read bypass — set only by the audit writer around its head read — lets it
+  see the correct head. BLOCK predicates never honor the bypass, so no cross-tenant write is ever enabled.
+- **The ops-monitor and KEK-integrity sweeps are no longer blind.** Running tenant-less, they were filtered by
+  RLS to zero rows, so the KEK-integrity check falsely reported "consistent, 0 checked" and no tenant's audit
+  chain was verified. They now run under the same FILTER-only system-read bypass (`SystemReadScope`), so they
+  scan every tenant's encrypted versions and audit chains. Migration `AuditSystemReadBypass`.
 - **The management API now verifies tenant membership** before it trusts the route's `{tenantId}`. Previously
   it set the server-authoritative tenant scope straight from the caller-supplied route id with only an
   "authenticated" check, so any signed-in user could read/write another tenant's software secrets and

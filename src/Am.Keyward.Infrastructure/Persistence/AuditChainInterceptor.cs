@@ -58,18 +58,31 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             .ConfigureAwait(false);
         _lockHeld = true;
 
-        foreach (var group in pending.GroupBy(e => e.TenantId))
+        // Read the chain head with the row-level-security READ bypass on: a group's tenant may differ from
+        // the ambient session tenant (a null/personal chain written while a tenant is in scope, or a
+        // cross-tenant break-glass entry), and RLS would otherwise hide those rows so the head read returns
+        // nothing and the chain silently forks (re-sealing sequence 1). The bypass is confined to this head
+        // read and only affects the FILTER predicate (reads); the audit INSERT that follows is unaffected.
+        await SetBypassAsync(connection, on: true, ct).ConfigureAwait(false);
+        try
         {
-            var (sequence, previousHash) = await ReadHeadAsync(connection, group.Key, ct).ConfigureAwait(false);
-            foreach (var entry in group.OrderBy(e => e.OccurredAt))
+            foreach (var group in pending.GroupBy(e => e.TenantId))
             {
-                sequence++;
-                var hash = AuditChainHash.Compute(
-                    entry.TenantId, sequence, entry.Action, entry.ResourceType,
-                    entry.ResourceId, entry.ActorPseudonymId, entry.OccurredAt, previousHash);
-                entry.Seal(sequence, previousHash, hash);
-                previousHash = hash;
+                var (sequence, previousHash) = await ReadHeadAsync(connection, group.Key, ct).ConfigureAwait(false);
+                foreach (var entry in group.OrderBy(e => e.OccurredAt))
+                {
+                    sequence++;
+                    var hash = AuditChainHash.Compute(
+                        entry.TenantId, sequence, entry.Action, entry.ResourceType,
+                        entry.ResourceId, entry.ActorPseudonymId, entry.OccurredAt, previousHash);
+                    entry.Seal(sequence, previousHash, hash);
+                    previousHash = hash;
+                }
             }
+        }
+        finally
+        {
+            await SetBypassAsync(connection, on: false, ct).ConfigureAwait(false);
         }
 
         return result;
@@ -142,6 +155,9 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             ? (reader.GetInt64(0), reader.GetString(1))
             : (0L, AuditChainHash.GenesisHash);
     }
+
+    private static Task SetBypassAsync(DbConnection connection, bool on, CancellationToken ct) =>
+        ExecuteAsync(connection, $"EXEC sp_set_session_context @key = N'SystemBypass', @value = {(on ? 1 : 0)};", ct);
 
     private static async Task ExecuteAsync(DbConnection connection, string sql, CancellationToken ct)
     {

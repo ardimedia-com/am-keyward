@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Am.Keyward.Infrastructure.Persistence;
@@ -11,12 +12,17 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// <c>UserId</c> scopes tenant-less personal-vault rows. SESSION_CONTEXT is connection-scoped and cleared
 /// when a pooled connection is reset on return, so it is (re)applied on each open, and set
 /// <c>@read_only=1</c> so application code cannot change it for the life of the connection.
+/// It also stamps <c>SystemBypass</c> from <see cref="SystemReadScope"/> — <c>1</c> only for the trusted,
+/// tenant-less maintenance sweeps that must read across every tenant, otherwise <c>0</c> (full isolation).
+/// The bypass is honored solely by the FILTER predicates of the audit / encrypted-version tables, never the
+/// BLOCK predicates, so it can never enable a cross-tenant write.
 /// </summary>
-public sealed class TenantSessionContextInterceptor(ICurrentTenant tenant, ICurrentUser user) : DbConnectionInterceptor
+public sealed class TenantSessionContextInterceptor(ICurrentTenant tenant, ICurrentUser user, SystemReadScope systemRead) : DbConnectionInterceptor
 {
     private const string SetSessionContextSql =
         "EXEC sp_set_session_context @key = N'TenantId', @value = @tenant, @read_only = 1;" +
-        "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;";
+        "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;" +
+        "EXEC sp_set_session_context @key = N'SystemBypass', @value = @bypass;";
 
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
     {
@@ -37,6 +43,11 @@ public sealed class TenantSessionContextInterceptor(ICurrentTenant tenant, ICurr
         command.CommandText = SetSessionContextSql;
         AddParameter(command, "@tenant", tenant.TenantId);
         AddParameter(command, "@user", user.UserId);
+
+        var bypass = command.CreateParameter();
+        bypass.ParameterName = "@bypass";
+        bypass.Value = systemRead.Enabled ? 1 : 0;
+        command.Parameters.Add(bypass);
         return command;
     }
 

@@ -49,6 +49,10 @@ public sealed class OpsMonitorBackgroundService(
             using var scope = scopeFactory.CreateScope();
             var sp = scope.ServiceProvider;
 
+            // Trusted, tenant-less maintenance sweep: read across every tenant (grant the RLS read bypass for
+            // this scope, before any DbContext connection is opened). Reads only — no writes happen here.
+            sp.GetRequiredService<Tenancy.SystemReadScope>().Enabled = true;
+
             var kek = await sp.GetRequiredService<IKekIntegrityVerifier>().VerifyAsync(ct).ConfigureAwait(false);
             if (!kek.IsConsistent)
             {

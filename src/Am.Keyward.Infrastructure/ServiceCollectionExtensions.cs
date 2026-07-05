@@ -33,6 +33,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
         services.AddScoped<ITenantMembership, TenantMembershipService>();
+        services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();
         services.AddScoped<AuditChainInterceptor>();
 
