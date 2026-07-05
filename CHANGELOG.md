@@ -22,6 +22,10 @@ All notable changes to this project are documented here, following
   tag-truncation forgery-resistance downgrade.
 - **The read-API rate limiter no longer keys its in-memory partitions on the raw bearer token** — it hashes
   the Authorization header (SHA-256) so a limiter dump reveals no token plaintext.
+- **Break-glass grants now carry an optimistic-concurrency token** (SQL Server rowversion), so two racing
+  approve/reject/consume calls can no longer both succeed — an approved single-use grant cannot be consumed
+  twice. `ConsumeAsync` additionally re-checks system-admin (mirroring request/approve/reject), so a user
+  de-privileged after approval can no longer consume an outstanding grant. Migration `BreakGlassConcurrency`.
 
 ### Fixed
 

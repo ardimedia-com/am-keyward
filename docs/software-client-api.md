@@ -47,5 +47,7 @@ can rotate them in time.
 - Tokens carry no secret material at rest — only a SHA-256 hash and a non-secret lookup prefix are stored.
 - The token determines the tenant scope server-side; reads are additionally constrained by the database
   row-level-security policy (see [database logins](database-logins.md)).
-- The management API above is not yet authenticated (a later slice adds admin sign-in); do not expose this
-  pre-1.0 build outside localhost.
+- The management API above requires a signed-in admin (the ASP.NET Core Identity application cookie). Note
+  that it does **not yet verify tenant membership** — it trusts the route's `{tenantId}`, so a real
+  multi-tenant deployment must add a membership check first. Do not expose this pre-1.0 build outside
+  localhost.

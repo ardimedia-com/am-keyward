@@ -245,6 +245,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
                 s.Property(p => p.Kind).HasConversion<string>().HasMaxLength(16).HasColumnName("ScopeKind");
                 s.Property(p => p.TargetId).HasColumnName("ScopeTargetId");
             });
+            // Optimistic concurrency: serialize the approve/reject/consume transitions so a single-use grant
+            // cannot be consumed twice by two racing callers (the second SaveChanges fails).
+            e.Property(x => x.RowVersion).IsRowVersion();
             e.HasIndex(x => x.Status);
             e.HasIndex(x => x.TenantId);
         });

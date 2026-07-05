@@ -72,6 +72,10 @@ public sealed class BreakGlassService(
 
     public async Task ConsumeAsync(Guid grantId, Guid actorUserId, CancellationToken ct = default)
     {
+        // Re-check system-admin at consume time (mirrors request/approve/reject): a user de-privileged after
+        // approval must not still be able to consume an outstanding grant.
+        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+
         var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
         if (grant.ApproverUserId != actorUserId && grant.RequesterUserId != actorUserId)
         {

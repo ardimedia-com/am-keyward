@@ -28,6 +28,13 @@ public sealed class BreakGlassGrant
     public DateTimeOffset ExpiresAt { get; private set; }
     public DateTimeOffset? ConsumedAt { get; private set; }
 
+    /// <summary>
+    /// Optimistic-concurrency token (mapped as a SQL Server rowversion). It makes every state transition
+    /// serialize at the database: two concurrent approve/reject/consume calls cannot both win — the second
+    /// save fails, so an approved single-use grant cannot be consumed twice.
+    /// </summary>
+    public byte[]? RowVersion { get; private set; }
+
     private BreakGlassGrant() { } // EF: owned GrantScope cannot be bound via constructor, so EF builds it separately.
 
     public BreakGlassGrant(
