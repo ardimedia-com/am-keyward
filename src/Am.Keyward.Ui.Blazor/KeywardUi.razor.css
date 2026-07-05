@@ -144,6 +144,7 @@
 .keyward-ui ::deep .page-header p { color: var(--kw-muted-text); font-size: .9rem; margin: .15rem 0 0; }
 
 /* Tables */
+.keyward-ui ::deep .table-scroll { overflow-x: auto; }
 .keyward-ui ::deep table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 .keyward-ui ::deep th {
     text-align: left;

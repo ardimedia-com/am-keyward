@@ -17,11 +17,11 @@
 
 @if (status is not null)
 {
-    <div class="notice @(status.Value.IsError ? "notice-error" : "")">@status.Value.Text</div>
+    <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
 }
 @if (issuedToken is not null)
 {
-    <div class="notice notice-reveal">
+    <div class="notice notice-reveal" role="status">
         @Loc["Token.New"]<br />
         <code>@issuedToken</code>
     </div>
@@ -34,17 +34,17 @@
     <p class="muted">@Loc["Token.Issue.Desc"]</p>
     <div class="stack" style="max-width:32rem; margin-top:.5rem;">
         <div class="field">
-            <label>@Loc["Common.Environment"]</label>
-            <select @bind="environment">
+            <label for="kw-token-env">@Loc["Common.Environment"]</label>
+            <select id="kw-token-env" @bind="environment">
                 <option>Development</option>
                 <option>Test</option>
                 <option>Preview</option>
                 <option>Production</option>
             </select>
         </div>
-        <div class="field"><label>@Loc["Common.Name"]</label><input @bind="name" placeholder="@(Loc["Token.NamePlaceholder"])" /></div>
-        <div class="field"><label>@Loc["Token.NoteOptional"]</label><textarea rows="2" @bind="note" placeholder="@(Loc["Token.NotePlaceholder"])"></textarea></div>
-        <div class="field"><label>@Loc["Token.ExpiresInDays"]</label><input type="number" min="1" @bind="expiresInDays" style="max-width:10rem;" /></div>
+        <div class="field"><label for="kw-token-name">@Loc["Common.Name"]</label><input id="kw-token-name" @bind="name" placeholder="@(Loc["Token.NamePlaceholder"])" /></div>
+        <div class="field"><label for="kw-token-note">@Loc["Token.NoteOptional"]</label><textarea id="kw-token-note" rows="2" @bind="note" placeholder="@(Loc["Token.NotePlaceholder"])"></textarea></div>
+        <div class="field"><label for="kw-token-expires">@Loc["Token.ExpiresInDays"]</label><input id="kw-token-expires" type="number" min="1" @bind="expiresInDays" style="max-width:10rem;" /></div>
         <div class="row"><button @onclick="IssueAsync" disabled="@(busy || string.IsNullOrWhiteSpace(name))">@Loc["Token.Issue.Action"]</button></div>
     </div>
 </div>
@@ -58,8 +58,8 @@
         <div class="panel">
             <h4 style="margin-top:0;">@Loc["Token.Edit.Title"]</h4>
             <div class="stack" style="max-width:32rem;">
-                <div class="field"><label>@Loc["Common.Name"]</label><input @bind="editName" /></div>
-                <div class="field"><label>@Loc["Common.Note"]</label><textarea rows="2" @bind="editNote"></textarea></div>
+                <div class="field"><label for="kw-token-edit-name">@Loc["Common.Name"]</label><input id="kw-token-edit-name" @bind="editName" /></div>
+                <div class="field"><label for="kw-token-edit-note">@Loc["Common.Note"]</label><textarea id="kw-token-edit-note" rows="2" @bind="editNote"></textarea></div>
                 <div class="row">
                     <button @onclick="SaveEditAsync" disabled="@(busy || string.IsNullOrWhiteSpace(editName))">@Loc["Common.Save"]</button>
                     <button class="btn-ghost" @onclick="() => editingTokenId = null">@Loc["Common.Cancel"]</button>
@@ -80,8 +80,9 @@
     {
         @if (list.Count > 5)
         {
-            <input @bind="tokenFilter" @bind:event="oninput" placeholder="@(Loc["Token.Filter"])" style="max-width:18rem; margin-bottom:.5rem;" />
+            <input @bind="tokenFilter" @bind:event="oninput" placeholder="@(Loc["Token.Filter"])" aria-label="@(Loc["Token.Filter"])" style="max-width:18rem; margin-bottom:.5rem;" />
         }
+        <div class="table-scroll">
         <table>
             <thead>
                 <tr><th>@Loc["Common.Name"]</th><th>@Loc["Common.Note"]</th><th>@Loc["Token.Prefix"]</th><th>@Loc["Token.Created"]</th><th>@Loc["Token.Expires"]</th><th>@Loc["Token.Status"]</th><th></th></tr>
@@ -96,18 +97,21 @@
                         <td>@token.CreatedAt.UtcDateTime.ToString("u")</td>
                         <td>@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</td>
                         <td><span class="badge @StatusBadge(token)">@StatusOf(token)</span></td>
-                        <td class="row-actions">
-                            <button class="btn-ghost btn-sm" @onclick="() => StartEdit(token)" disabled="@busy">@Loc["Common.Edit"]</button>
-                            @if (token.RevokedAt is null)
-                            {
-                                <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["Token.Rotate"]</button>
-                                <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Token.Revoke"]</button>
-                            }
+                        <td>
+                            <div class="row-actions">
+                                <button class="btn-ghost btn-sm" @onclick="() => StartEdit(token)" disabled="@busy">@Loc["Common.Edit"]</button>
+                                @if (token.RevokedAt is null)
+                                {
+                                    <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["Token.Rotate"]</button>
+                                    <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Token.Revoke"]</button>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        </div>
     }
 </div>
 </KeywardUi>

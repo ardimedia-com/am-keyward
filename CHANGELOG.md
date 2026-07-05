@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- Embedded UI (`Secrets` page): saving or creating a secret value called the busy-guarded `ViewAsync`
+  from inside an already-running guarded action, so it early-returned — the detail view was never
+  refreshed and the just-entered plaintext value was left in the input with Save still enabled. Extracted
+  an unguarded `LoadDetailAsync` loader and clear the add-value field after a successful create.
+
+### Changed
+
+- Accessibility and layout hardening of the embedded UI pages (`Secrets`, `Tokens`, `VaultWorkspace`) and
+  the reference shell's `NotFound` page: associate `<label>`s with their inputs, add `aria-label`s to
+  placeholder-only filter/select controls, mark status/error notices with `role="status"`/`role="alert"`,
+  set `autocomplete="off"` on secret-value inputs, wrap wide data tables in a horizontal-scroll container
+  (new `.table-scroll` class) and move row-action flex layout off the `<td>` onto an inner element, and use
+  an `<h1>` on the not-found page so `FocusOnNavigate` and the heading hierarchy work.
+
 ## [0.1.0-preview] - 2026-06-22
 
 First published (pre-1.0 **preview**) release on nuget.org: the full v0.1 build (Slices 0–8) — software
