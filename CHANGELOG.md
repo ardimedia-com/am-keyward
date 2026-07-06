@@ -94,8 +94,13 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
-- **Test database bootstrap is now self-contained and config-driven** (prep for running the isolation gate in
-  CI). The integration tests read their connection string from `appsettings.json` (localhost default),
+- **CI now runs the integration/isolation tests against a real SQL Server.** A new `integration-tests.yml`
+  workflow stands up a SQL Server service container (Developer edition) on Linux, so the tenant-isolation,
+  row-level-security and audit-chain guarantees are actually exercised on every push/PR — the existing
+  `windows-latest` build (`ci.yml`) and the release pipeline are untouched. With `CI=true` an unreachable
+  database now fails the build instead of silently skipping the integration tests.
+- **Test database bootstrap is now self-contained and config-driven.** The integration tests read their
+  connection string from `appsettings.json` (localhost default),
   overridable by `ConnectionStrings__Keyward` so CI can point at a SQL-auth server (password from a CI secret,
   never committed). An assembly bootstrap applies the migrations (creating the schema, no separate `dotnet ef`
   step) and provisions the least-privilege `amkeyward_app` login from `db/setup-logins.sql` with generated

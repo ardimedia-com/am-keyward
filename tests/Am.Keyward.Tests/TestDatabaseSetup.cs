@@ -36,10 +36,12 @@ public static class TestDatabaseSetup
             // local database is already up to date.
             await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().Database.MigrateAsync();
         }
-        catch
+        catch when (!IsCi)
         {
-            return; // SQL unreachable or no DDL rights — the integration tests skip themselves.
+            return; // Local: SQL unreachable or no DDL rights — the integration tests skip themselves.
         }
+        // In CI (CI=true) a migration failure is NOT swallowed: the integration/isolation tests must actually
+        // run, so an unreachable database fails the build instead of silently skipping.
 
         try
         {
@@ -54,12 +56,16 @@ public static class TestDatabaseSetup
             }.ConnectionString;
             Environment.SetEnvironmentVariable("KEYWARD_APP_TEST_CONNECTION", appConnectionString);
         }
-        catch
+        catch when (!IsCi)
         {
-            // Provisioning server logins needs a sysadmin connection; where it is unavailable the
-            // row-level-security test stays inconclusive (the app-layer isolation tests still run).
+            // Local: provisioning server logins needs a sysadmin connection; where it is unavailable the
+            // row-level-security test stays inconclusive (the app-layer isolation tests still run). In CI this
+            // is not swallowed, so the RLS test is guaranteed to run.
         }
     }
+
+    private static bool IsCi =>
+        string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Runs the real <c>db/setup-logins.sql</c> (with generated passwords) batch-by-batch — EF/ADO
     /// cannot execute a multi-batch <c>GO</c> script in one call, so split on the <c>GO</c> separators.</summary>
