@@ -233,7 +233,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
 
         // Access grants share a tenant-owned resource (here: a vault) with a user or group. Tenant-scoped
         // (cross-tenant grants are forbidden in v0.1). The grant is the authorization layer on top of the
-        // tenant isolation boundary; access decisions go through IAuthorizationService.
+        // tenant isolation boundary; access decisions go through IKeywardAccessPolicy.
         model.Entity<AccessGrant>(e =>
         {
             e.ToTable("AccessGrants");

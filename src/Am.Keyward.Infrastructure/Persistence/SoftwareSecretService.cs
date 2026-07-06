@@ -21,7 +21,7 @@ public sealed class SoftwareSecretService(
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
-    IAuthorizationService authorization) : ISoftwareSecretService, ISoftwareSecretReader
+    IKeywardAccessPolicy authorization) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
 
@@ -282,7 +282,7 @@ public sealed class SoftwareSecretService(
     }
 
     /// <summary>
-    /// Routes the resource access decision through the central <see cref="IAuthorizationService"/>, which
+    /// Routes the resource access decision through the central <see cref="IKeywardAccessPolicy"/>, which
     /// confirms the project's true owning tenant matches the current scope (catching a "right scope,
     /// foreign project" attempt even if the query filter were bypassed).
     /// </summary>

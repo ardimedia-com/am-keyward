@@ -157,8 +157,12 @@ public interface ITenantConnectionResolver
     string ResolveConnectionString(Guid? tenantId);
 }
 
-/// <summary>Centralized authorization: resolves whether a principal may perform an action on a scoped resource.</summary>
-public interface IAuthorizationService
+/// <summary>
+/// Centralized access policy: resolves whether a principal may perform an action on a scoped resource.
+/// Named <c>IKeywardAccessPolicy</c> (not <c>IAuthorizationService</c>) so it does not collide with
+/// ASP.NET Core's <c>Microsoft.AspNetCore.Authorization.IAuthorizationService</c> in an embedding host.
+/// </summary>
+public interface IKeywardAccessPolicy
 {
     ValueTask<bool> IsAllowedAsync(Guid? userId, GrantScope resource, Permission action, CancellationToken ct = default);
 }

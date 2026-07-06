@@ -88,6 +88,10 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **Breaking (library API):** the central access-policy port `IAuthorizationService` is renamed to
+  `IKeywardAccessPolicy`, so it no longer collides with ASP.NET Core's
+  `Microsoft.AspNetCore.Authorization.IAuthorizationService` in an embedding host (no more alias-`using`).
+  Consumers referencing the port by name update to the new name; behaviour is unchanged.
 - Blazor circuit retention raised to 30 minutes (`DisconnectedCircuitRetentionPeriod`) so a short network
   drop or device sleep returns to a live session instead of a full reload.
 - The audit-chain append lock is now **per tenant** (`Keyward_AuditChain_{tenantId}`) instead of one

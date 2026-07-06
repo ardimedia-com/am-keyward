@@ -13,7 +13,7 @@ namespace Am.Keyward.Infrastructure.Tenancy;
 /// v0.1 enforces tenant isolation only; fine-grained per-user / per-group <c>AccessGrant</c> evaluation
 /// is layered in here when human vaults arrive, without changing the call sites.
 /// </summary>
-public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTenant tenant) : IAuthorizationService
+public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTenant tenant) : IKeywardAccessPolicy
 {
     public async ValueTask<bool> IsAllowedAsync(Guid? userId, GrantScope resource, Permission action, CancellationToken ct = default)
     {

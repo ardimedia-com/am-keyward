@@ -14,7 +14,7 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// Human-vaults implementation. Personal vaults are owned by a user and isolated per user; tenant ("team")
 /// vaults are owned by a tenant and shared within it via <see cref="AccessGrant"/>s (the creator is granted
 /// Manage). Every item version is envelope-encrypted and bound to its slot via AAD. Access decisions for
-/// tenant vaults go through the central <see cref="IAuthorizationService"/>; personal vaults are owner-only.
+/// tenant vaults go through the central <see cref="IKeywardAccessPolicy"/>; personal vaults are owner-only.
 /// </summary>
 public sealed class VaultService(
     KeywardDbContext db,
@@ -23,7 +23,7 @@ public sealed class VaultService(
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
-    IAuthorizationService authorization) : IVaultService
+    IKeywardAccessPolicy authorization) : IVaultService
 {
     private const int AlgVersion = 1;
 

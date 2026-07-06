@@ -43,7 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<AmbientUserContext>());
         services.AddScoped<IUserScopeSetter>(sp => sp.GetRequiredService<AmbientUserContext>());
 
-        services.AddScoped<IAuthorizationService, TenantAuthorizationService>();
+        services.AddScoped<IKeywardAccessPolicy, TenantAuthorizationService>();
         services.AddScoped<ITenantMembership, TenantMembershipService>();
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();
