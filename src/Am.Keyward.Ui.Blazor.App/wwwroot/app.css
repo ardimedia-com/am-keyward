@@ -225,6 +225,7 @@ input:focus, select:focus, textarea:focus {
 .auth-card { max-width: 24rem; margin: 3rem auto; }
 
 /* Tables */
+.table-scroll { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th {
     text-align: left;

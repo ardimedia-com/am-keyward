@@ -222,4 +222,16 @@
   <data name="NotFound.Body" xml:space="preserve"><value>Lamentamos, o conteúdo que procura não existe.</value></data>
   <data name="Token.UsageNote" xml:space="preserve"><value>Como utilizá-lo: guarde o token na configuração da sua aplicação implementada (uma variável de ambiente ou um cofre de segredos) e, em seguida, faça a aplicação chamar a API de leitura do AM KEYWARD com o cabeçalho “Authorization: Bearer &lt;token&gt;” para carregar os segredos deste projeto para o seu ambiente, normalmente no arranque. Os segredos nunca residem, assim, nos ficheiros da própria aplicação. Se um token for comprometido, utilize Rodar para substituir o respetivo valor ou Revogar para o desativar — os seus outros tokens continuam a funcionar.</value></data>
   <data name="Secret.UsageNote" xml:space="preserve"><value>Como tudo se encaixa: guarda aqui um valor uma vez por ambiente; o seu software implementado lê-o em tempo de execução com um token de cliente (consulte a página Tokens de cliente). Altere aqui um valor e a leitura seguinte passa a utilizá-lo — sem necessidade de reimplementar a sua aplicação.</value></data>
+  <data name="Nav.AdminUsers" xml:space="preserve"><value>Utilizadores</value></data>
+  <data name="Admin.Users.Title" xml:space="preserve"><value>Utilizadores</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Desbloquear uma conta bloqueada, ou desativar e reativar um utilizador.</value></data>
+  <data name="Admin.Users.User" xml:space="preserve"><value>Utilizador</value></data>
+  <data name="Admin.Users.Status" xml:space="preserve"><value>Estado</value></data>
+  <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>Administrador do sistema</value></data>
+  <data name="Admin.Users.State.Disabled" xml:space="preserve"><value>Desativado</value></data>
+  <data name="Admin.Users.State.LockedOut" xml:space="preserve"><value>Bloqueado</value></data>
+  <data name="Admin.Users.State.Active" xml:space="preserve"><value>Ativo</value></data>
+  <data name="Admin.Users.Unlock" xml:space="preserve"><value>Desbloquear</value></data>
+  <data name="Admin.Users.Enable" xml:space="preserve"><value>Ativar</value></data>
+  <data name="Admin.Users.Disable" xml:space="preserve"><value>Desativar</value></data>
 </root>

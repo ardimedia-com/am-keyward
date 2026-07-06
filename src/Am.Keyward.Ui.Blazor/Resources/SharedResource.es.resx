@@ -222,4 +222,16 @@
   <data name="NotFound.Body" xml:space="preserve"><value>Lo sentimos, el contenido que buscas no existe.</value></data>
   <data name="Token.UsageNote" xml:space="preserve"><value>Cómo usarlo: guarda el token en la configuración de tu app desplegada (una variable de entorno o un almacén de secretos) y haz que la app llame a la API de lectura de AM KEYWARD con la cabecera “Authorization: Bearer &lt;token&gt;” para cargar los secretos de este proyecto para su entorno, normalmente al iniciarse. Así los secretos nunca viven en los propios archivos de tu app. Si un token se filtra, usa Rotar para reemplazar su valor o Revocar para desactivarlo — tus otros tokens siguen funcionando.</value></data>
   <data name="Secret.UsageNote" xml:space="preserve"><value>Cómo encaja todo: aquí guardas un valor una vez por entorno; tu software desplegado lo lee en tiempo de ejecución con un token de cliente (consulta la página de Tokens de cliente). Cambia un valor aquí y la siguiente lectura lo recoge — sin necesidad de volver a desplegar tu app.</value></data>
+  <data name="Nav.AdminUsers" xml:space="preserve"><value>Usuarios</value></data>
+  <data name="Admin.Users.Title" xml:space="preserve"><value>Usuarios</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Desbloquear una cuenta bloqueada, o desactivar y reactivar un usuario.</value></data>
+  <data name="Admin.Users.User" xml:space="preserve"><value>Usuario</value></data>
+  <data name="Admin.Users.Status" xml:space="preserve"><value>Estado</value></data>
+  <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>Administrador del sistema</value></data>
+  <data name="Admin.Users.State.Disabled" xml:space="preserve"><value>Desactivado</value></data>
+  <data name="Admin.Users.State.LockedOut" xml:space="preserve"><value>Bloqueado</value></data>
+  <data name="Admin.Users.State.Active" xml:space="preserve"><value>Activo</value></data>
+  <data name="Admin.Users.Unlock" xml:space="preserve"><value>Desbloquear</value></data>
+  <data name="Admin.Users.Enable" xml:space="preserve"><value>Activar</value></data>
+  <data name="Admin.Users.Disable" xml:space="preserve"><value>Desactivar</value></data>
 </root>

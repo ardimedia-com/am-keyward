@@ -222,4 +222,16 @@
   <data name="NotFound.Body" xml:space="preserve"><value>Désolé, le contenu que vous recherchez n'existe pas.</value></data>
   <data name="Token.UsageNote" xml:space="preserve"><value>Comment l'utiliser : stockez le jeton dans la configuration de votre application déployée (une variable d'environnement ou un magasin de secrets), puis faites en sorte que l'application appelle l'API de lecture de AM KEYWARD avec l'en-tête « Authorization: Bearer &lt;token&gt; » pour charger les secrets de ce projet correspondant à son environnement, généralement au démarrage. Les secrets ne résident donc jamais dans les fichiers de votre application. Si un jeton est divulgué, faites-le tourner pour remplacer sa valeur ou révoquez-le pour le désactiver — vos autres jetons continuent de fonctionner.</value></data>
   <data name="Secret.UsageNote" xml:space="preserve"><value>Comment tout s'articule : vous stockez ici une valeur une fois par environnement ; votre logiciel déployé la lit à l'exécution avec un jeton client (voir la page Jetons client). Modifiez une valeur ici et la prochaine lecture la prendra en compte — sans redéploiement de votre application.</value></data>
+  <data name="Nav.AdminUsers" xml:space="preserve"><value>Utilisateurs</value></data>
+  <data name="Admin.Users.Title" xml:space="preserve"><value>Utilisateurs</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Déverrouiller un compte verrouillé, ou désactiver et réactiver un utilisateur.</value></data>
+  <data name="Admin.Users.User" xml:space="preserve"><value>Utilisateur</value></data>
+  <data name="Admin.Users.Status" xml:space="preserve"><value>Statut</value></data>
+  <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>Admin système</value></data>
+  <data name="Admin.Users.State.Disabled" xml:space="preserve"><value>Désactivé</value></data>
+  <data name="Admin.Users.State.LockedOut" xml:space="preserve"><value>Verrouillé</value></data>
+  <data name="Admin.Users.State.Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="Admin.Users.Unlock" xml:space="preserve"><value>Déverrouiller</value></data>
+  <data name="Admin.Users.Enable" xml:space="preserve"><value>Activer</value></data>
+  <data name="Admin.Users.Disable" xml:space="preserve"><value>Désactiver</value></data>
 </root>

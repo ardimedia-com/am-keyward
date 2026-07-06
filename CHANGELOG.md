@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Admin user-management UI** (system-admin only, at `/account/admin/users`): shows each account's status
+  (active / locked out / disabled) and lets an admin **unlock** a brute-force lockout, or **disable** and
+  **re-enable** an account. This is the recovery path the auth policy requires beyond lockout auto-expiry
+  (the only way back in for an administratively disabled account, and the fast path for a stuck user). An
+  admin cannot disable their own account; every action is audited. Statically rendered, antiforgery-protected.
+
 ### Security
 
 - **Software-client token lifecycle is now audited.** Issuing, rotating, revoking and updating a token

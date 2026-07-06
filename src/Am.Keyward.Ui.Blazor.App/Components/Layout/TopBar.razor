@@ -24,6 +24,10 @@
                 <summary>@context.User.Identity?.Name</summary>
                 <div class="menu-panel">
                     <a href="account/profile">@Loc["Nav.Profile"]</a>
+                    @if (context.User.HasClaim("keyward:is_system_admin", "true"))
+                    {
+                        <a href="account/admin/users">@Loc["Nav.AdminUsers"]</a>
+                    }
                     <form action="account/logout" method="post">
                         <button type="submit">@Loc["Nav.SignOut"]</button>
                     </form>

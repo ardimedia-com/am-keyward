@@ -222,4 +222,16 @@
   <data name="NotFound.Body" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
   <data name="Token.UsageNote" xml:space="preserve"><value>How to use it: store the token in your deployed app's configuration (an environment variable or secret store), then have the app call AM KEYWARD's read API with the header “Authorization: Bearer &lt;token&gt;” to load this project's secrets for its environment, typically at startup. Secrets therefore never live in your app's own files. If a token leaks, Rotate it to replace its value or Revoke it to disable it — your other tokens keep working.</value></data>
   <data name="Secret.UsageNote" xml:space="preserve"><value>How it fits together: you store a value here once per environment; your deployed software reads it at runtime with a client token (see the Client tokens page). Change a value here and the next read picks it up — no redeploy of your app needed.</value></data>
+  <data name="Nav.AdminUsers" xml:space="preserve"><value>Users</value></data>
+  <data name="Admin.Users.Title" xml:space="preserve"><value>Users</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Unlock a locked-out account, or disable and re-enable a user.</value></data>
+  <data name="Admin.Users.User" xml:space="preserve"><value>User</value></data>
+  <data name="Admin.Users.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>System admin</value></data>
+  <data name="Admin.Users.State.Disabled" xml:space="preserve"><value>Disabled</value></data>
+  <data name="Admin.Users.State.LockedOut" xml:space="preserve"><value>Locked out</value></data>
+  <data name="Admin.Users.State.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="Admin.Users.Unlock" xml:space="preserve"><value>Unlock</value></data>
+  <data name="Admin.Users.Enable" xml:space="preserve"><value>Enable</value></data>
+  <data name="Admin.Users.Disable" xml:space="preserve"><value>Disable</value></data>
 </root>

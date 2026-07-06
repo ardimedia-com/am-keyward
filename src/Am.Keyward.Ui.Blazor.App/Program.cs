@@ -3,6 +3,7 @@ using System.Text;
 using System.Threading.RateLimiting;
 using Am.Keyward.Api;
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Core.Domain;
 using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Infrastructure.Monitoring;
@@ -13,10 +14,12 @@ using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 const string managementPolicy = "Keyward.Management";
+const string systemAdminPolicy = "Keyward.SystemAdmin";
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -129,12 +132,18 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
-// The management API requires a signed-in admin (cookie scheme).
+// The management API requires a signed-in admin (cookie scheme); the system-admin policy additionally
+// requires the Keyward system-admin claim (used to gate the admin user-management UI + endpoints).
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy(managementPolicy, policy =>
     {
         policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
         policy.RequireAuthenticatedUser();
+    })
+    .AddPolicy(systemAdminPolicy, policy =>
+    {
+        policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
+        policy.RequireClaim(KeywardUserClaimsPrincipalFactory.SystemAdminClaim, "true");
     });
 
 // Runtime migration safety-net (covers the DB being swapped under the running app).
@@ -227,6 +236,56 @@ app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager)
     return Results.LocalRedirect("/");
 }).DisableAntiforgery();
 
+// Admin user-management actions (system-admin only): unlock a brute-force lockout, or disable / re-enable an
+// account. Antiforgery-protected form posts (the admin page renders the token). Every action is audited.
+var adminUsers = app.MapGroup("/account/admin/users").RequireAuthorization(systemAdminPolicy);
+
+adminUsers.MapPost("/unlock", async (HttpContext ctx, [FromForm] string userId,
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit) =>
+{
+    var user = await users.FindByIdAsync(userId);
+    if (user is not null)
+    {
+        await users.SetLockoutEndDateAsync(user, null);
+        await users.ResetAccessFailedCountAsync(user);
+        await AuditUserAdminAsync(ctx, db, audit, userId, "unlock");
+    }
+
+    return Results.LocalRedirect("/account/admin/users");
+});
+
+adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit) =>
+{
+    // Never let an admin disable their own account (self-lockout).
+    if (userId != users.GetUserId(ctx.User))
+    {
+        var user = await users.FindByIdAsync(userId);
+        if (user is not null)
+        {
+            await users.SetLockoutEnabledAsync(user, true);
+            await users.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+            await AuditUserAdminAsync(ctx, db, audit, userId, "disable");
+        }
+    }
+
+    return Results.LocalRedirect("/account/admin/users");
+});
+
+adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit) =>
+{
+    var user = await users.FindByIdAsync(userId);
+    if (user is not null)
+    {
+        await users.SetLockoutEndDateAsync(user, null);
+        await users.ResetAccessFailedCountAsync(user);
+        await AuditUserAdminAsync(ctx, db, audit, userId, "enable");
+    }
+
+    return Results.LocalRedirect("/account/admin/users");
+});
+
 // Switch UI language: store the culture cookie and reload (the cookie applies on the next request).
 app.MapPost("/culture", (HttpContext context) =>
 {
@@ -244,3 +303,18 @@ app.MapPost("/culture", (HttpContext context) =>
 }).DisableAntiforgery();
 
 app.Run();
+
+// Audit an admin user-management action to the installation-global (null-tenant) audit chain, attributed to
+// the acting admin, targeting the affected user. disable -> Revoke (access removed); unlock/enable -> Grant.
+static async Task AuditUserAdminAsync(HttpContext ctx, KeywardDbContext db, IAuditSink audit, string targetIdentityUserId, string action)
+{
+    var actorId = Guid.TryParse(ctx.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var a) ? a : (Guid?)null;
+    var targetAppUserId = await db.Users
+        .Where(u => u.Issuer == null && u.ExternalId == targetIdentityUserId)
+        .Select(u => (Guid?)u.Id)
+        .FirstOrDefaultAsync();
+
+    var auditAction = action == "disable" ? AuditAction.Revoke : AuditAction.Grant;
+    await audit.AppendAsync(new AuditRequest(null, auditAction, "AppUser", targetAppUserId, actorId));
+    await db.SaveChangesAsync();
+}

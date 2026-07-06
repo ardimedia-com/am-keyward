@@ -222,4 +222,16 @@
   <data name="NotFound.Body" xml:space="preserve"><value>Der gesuchte Inhalt existiert leider nicht.</value></data>
   <data name="Token.UsageNote" xml:space="preserve"><value>So verwendest du ihn: Hinterlege den Token in der Konfiguration deiner ausgerollten App (einer Umgebungsvariable oder einem Secret-Store) und lass die App dann die Lese-API von AM KEYWARD mit dem Header “Authorization: Bearer &lt;token&gt;” aufrufen, um die Secrets dieses Projekts für seine Umgebung zu laden, üblicherweise beim Start. Secrets liegen daher nie in den eigenen Dateien deiner App. Wenn ein Token durchsickert, rotiere ihn, um seinen Wert zu ersetzen, oder widerrufe ihn, um ihn zu deaktivieren — deine anderen Tokens funktionieren weiter.</value></data>
   <data name="Secret.UsageNote" xml:space="preserve"><value>So passt es zusammen: Du speicherst einen Wert hier einmal pro Umgebung; deine ausgerollte Software liest ihn zur Laufzeit mit einem Client-Token (siehe die Seite Client-Tokens). Änderst du hier einen Wert, übernimmt ihn der nächste Lesevorgang — ohne erneutes Ausrollen deiner App.</value></data>
+  <data name="Nav.AdminUsers" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Admin.Users.Title" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Ein gesperrtes Konto entsperren oder einen Benutzer deaktivieren und wieder aktivieren.</value></data>
+  <data name="Admin.Users.User" xml:space="preserve"><value>Benutzer</value></data>
+  <data name="Admin.Users.Status" xml:space="preserve"><value>Status</value></data>
+  <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>System-Admin</value></data>
+  <data name="Admin.Users.State.Disabled" xml:space="preserve"><value>Deaktiviert</value></data>
+  <data name="Admin.Users.State.LockedOut" xml:space="preserve"><value>Gesperrt</value></data>
+  <data name="Admin.Users.State.Active" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="Admin.Users.Unlock" xml:space="preserve"><value>Entsperren</value></data>
+  <data name="Admin.Users.Enable" xml:space="preserve"><value>Aktivieren</value></data>
+  <data name="Admin.Users.Disable" xml:space="preserve"><value>Deaktivieren</value></data>
 </root>

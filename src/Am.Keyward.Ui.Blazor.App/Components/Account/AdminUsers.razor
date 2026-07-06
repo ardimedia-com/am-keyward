@@ -1,0 +1,127 @@
+@page "/account/admin/users"
+@attribute [Authorize(Policy = "Keyward.SystemAdmin")]
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Am.Keyward.Infrastructure.Persistence
+@inject UserManager<IdentityUser> UserManager
+@inject KeywardDbContext Db
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>AM KEYWARD</PageTitle>
+
+<div class="page-header">
+    <h1>@Loc["Admin.Users.Title"]</h1>
+    <p>@Loc["Admin.Users.Desc"]</p>
+</div>
+
+<div class="card">
+    <div class="table-scroll">
+        <table>
+            <thead>
+                <tr>
+                    <th>@Loc["Admin.Users.User"]</th>
+                    <th>@Loc["Admin.Users.Status"]</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in rows)
+                {
+                    <tr>
+                        <td>
+                            @row.Name
+                            @if (row.IsSystemAdmin)
+                            {
+                                <span class="badge badge-success" style="margin-left:.4rem;">@Loc["Admin.Users.SystemAdmin"]</span>
+                            }
+                        </td>
+                        <td>
+                            @if (row.State == UserState.Disabled)
+                            {
+                                <span class="badge badge-danger">@Loc["Admin.Users.State.Disabled"]</span>
+                            }
+                            else if (row.State == UserState.LockedOut)
+                            {
+                                <span class="badge badge-warning">@Loc["Admin.Users.State.LockedOut"]</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-success">@Loc["Admin.Users.State.Active"]</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="row-actions">
+                                @if (row.State == UserState.LockedOut)
+                                {
+                                    <form method="post" action="account/admin/users/unlock">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.Unlock"]</button>
+                                    </form>
+                                }
+                                @if (row.State == UserState.Disabled)
+                                {
+                                    <form method="post" action="account/admin/users/enable">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.Enable"]</button>
+                                    </form>
+                                }
+                                else if (!row.IsSelf)
+                                {
+                                    <form method="post" action="account/admin/users/disable">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <button type="submit" class="btn-danger btn-sm">@Loc["Admin.Users.Disable"]</button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    private readonly List<Row> rows = [];
+
+    private enum UserState { Active, LockedOut, Disabled }
+
+    private sealed record Row(string Id, string Name, bool IsSystemAdmin, bool IsSelf, UserState State);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentId = AuthState is not null
+            ? UserManager.GetUserId((await AuthState).User)
+            : null;
+
+        // System-admin flags live on the domain AppUser (keyed by the Identity user id for local accounts).
+        var adminIds = await Db.Users
+            .Where(u => u.Issuer == null && u.IsSystemAdmin)
+            .Select(u => u.ExternalId)
+            .ToListAsync();
+        var admins = adminIds.ToHashSet();
+
+        var now = DateTimeOffset.UtcNow;
+        foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
+        {
+            var state = user.LockoutEnd switch
+            {
+                { } end when end >= DateTimeOffset.MaxValue.AddDays(-1) => UserState.Disabled,
+                { } end when end > now => UserState.LockedOut,
+                _ => UserState.Active,
+            };
+
+            rows.Add(new Row(
+                user.Id,
+                user.UserName ?? user.Email ?? user.Id,
+                admins.Contains(user.Id),
+                user.Id == currentId,
+                state));
+        }
+    }
+}
