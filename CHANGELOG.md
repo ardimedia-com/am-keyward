@@ -94,6 +94,11 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **`AddKeywardSoftwareClientApi` now registers the read API's per-token rate-limiter policy itself**, so a
+  host can call `MapKeywardClientApi()` without hand-registering the `keyward-software-client` limiter (which
+  the endpoint requires — previously a runtime footgun for embedders). It composes with any limiter the host
+  registers, and the limits are tunable via an options lambda; the host still adds `app.UseRateLimiter()`. The
+  reference shell dropped its ~20 lines of limiter wiring.
 - **CI now runs the integration/isolation tests against a real SQL Server.** A new `integration-tests.yml`
   workflow stands up a SQL Server service container (Developer edition) on Linux, so the tenant-isolation,
   row-level-security and audit-chain guarantees are actually exercised on every push/PR — the existing

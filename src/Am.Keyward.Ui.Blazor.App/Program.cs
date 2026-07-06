@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.RateLimiting;
 using Am.Keyward.Api;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
@@ -15,7 +12,6 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 const string managementPolicy = "Keyward.Management";
@@ -116,28 +112,11 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-// Software-client token authentication + per-token rate limiting (read API).
+// Software-client token authentication + per-token rate limiting (read API). The library registers the
+// Keyward.SoftwareClient scheme, its authorization policy AND the per-token rate-limiter policy, so the host
+// only adds the middleware (app.UseRateLimiter, below). Pass a lambda to AddKeywardSoftwareClientApi to tune
+// the limits.
 builder.Services.AddKeywardSoftwareClientApi();
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy(KeywardClientApi.RateLimiterPolicy, httpContext =>
-    {
-        // Partition per token, but never hold the plaintext bearer token as the (in-memory) key: hash it,
-        // so a leaked limiter dump reveals no secrets and the key is fixed-width regardless of token length.
-        var authHeader = httpContext.Request.Headers.Authorization.ToString();
-        var partitionKey = string.IsNullOrEmpty(authHeader)
-            ? "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous")
-            : "tok:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(authHeader)));
-
-        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 60,
-            Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 0,
-        });
-    });
-});
 
 // The management API requires a signed-in admin (cookie scheme); the system-admin policy additionally
 // requires the Keyward system-admin claim (used to gate the admin user-management UI + endpoints).
