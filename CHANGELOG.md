@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Pluggable KEK provider.** A new `AddKeyward(connectionString, Func<IServiceProvider, IKekProvider>)`
+  overload lets a host supply its own key-encryption-key provider (Azure Key Vault / AWS KMS / HSM), so the
+  raw KEK need never enter the application process — the previous `byte[]` overload now delegates to it and
+  stays for the file/dev case. A new `KeyRingKekProvider` holds the current KEK version plus prior versions,
+  so a KEK rotation can wrap new values under the new version while existing values still unwrap under their
+  original one during the overlap. (A background re-wrap job that migrates existing values to the new version
+  is still to come; the provider is the enabling piece.)
 - **Self-service password reset.** Forgot-password and reset-password pages (statically rendered): a user
   requests a single-use reset link and sets a new password. A successful reset **clears a brute-force lockout**
   so the user regains access immediately (but never clears an administrative disable). The flow is

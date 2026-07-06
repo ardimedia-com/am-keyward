@@ -30,6 +30,33 @@ public class CryptoTests
     }
 
     [TestMethod, TestCategory("Crypto")]
+    public async Task KeyRing_unwraps_prior_versions_during_rotation()
+    {
+        var keyA = RandomNumberGenerator.GetBytes(32);
+        var keyB = RandomNumberGenerator.GetBytes(32);
+        var dek = RandomNumberGenerator.GetBytes(32);
+
+        var ringV1 = new KeyRingKekProvider("kek:v1", new Dictionary<string, byte[]> { ["kek:v1"] = keyA });
+        var wrapped1 = await ringV1.WrapAsync(dek);
+
+        // Rotate: v2 is current (wraps new values), but v1 is retained so existing values still resolve.
+        var ringV2 = new KeyRingKekProvider("kek:v2", new Dictionary<string, byte[]> { ["kek:v1"] = keyA, ["kek:v2"] = keyB });
+        Assert.AreEqual("kek:v2", ringV2.KekId);
+        Assert.IsTrue(ringV2.CanResolve("kek:v1"));
+        Assert.IsTrue(ringV2.CanResolve("kek:v2"));
+
+        // The old value still unwraps under its original version, and new values wrap under v2.
+        CollectionAssert.AreEqual(dek, await ringV2.UnwrapAsync(wrapped1, "kek:v1"));
+        var wrapped2 = await ringV2.WrapAsync(dek);
+        CollectionAssert.AreEqual(dek, await ringV2.UnwrapAsync(wrapped2, "kek:v2"));
+
+        // A ring that has dropped v1 can no longer resolve the old value (the re-wrap job must run first).
+        var ringV2Only = new KeyRingKekProvider("kek:v2", new Dictionary<string, byte[]> { ["kek:v2"] = keyB });
+        Assert.IsFalse(ringV2Only.CanResolve("kek:v1"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(async () => await ringV2Only.UnwrapAsync(wrapped1, "kek:v1"));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
     public async Task Tampered_ciphertext_fails()
     {
         var backend = NewBackend();

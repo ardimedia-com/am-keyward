@@ -90,6 +90,10 @@ var keywardConn = builder.Configuration.GetConnectionString("Keyward")!;
 var (kek, kekId) = LoadKekFromYourProvider();
 builder.Services.AddKeyward(keywardConn, kek, kekId);
 
+// Prefer this overload when the KEK stays in a KMS/HSM (the raw key never enters the process). Supply your
+// own IKekProvider, or a KeyRingKekProvider holding the current + prior versions during a KEK rotation:
+// builder.Services.AddKeyward(keywardConn, sp => new KeyRingKekProvider(currentKekId, keksByVersion));
+
 // Tell the embedded UI which tenant/project to operate in (from your own selection logic).
 builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
 

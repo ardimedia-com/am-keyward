@@ -12,12 +12,24 @@ namespace Am.Keyward.Infrastructure;
 public static class ServiceCollectionExtensions
 {
     /// <summary>
-    /// Registers AM KEYWARD against a SQL Server database and an in-memory KEK (file/env-loaded by the
-    /// host). The migrations-history table is scoped to the <c>amkeyward</c> schema so it never collides
-    /// with the host's migrations. Tenant isolation is wired up here: the ambient tenant context, the
-    /// SESSION_CONTEXT interceptor (row-level-security backstop) and the central authorization service.
+    /// Registers AM KEYWARD against a SQL Server database with an in-memory KEK (file/env-loaded by the host).
+    /// Convenience overload for the reference shell / dev; production hosts that keep the KEK in a KMS/HSM
+    /// should use the <see cref="AddKeyward(IServiceCollection, string, Func{IServiceProvider, IKekProvider})"/>
+    /// overload so the raw key never has to enter the host process.
     /// </summary>
-    public static IServiceCollection AddKeyward(this IServiceCollection services, string connectionString, byte[] kek, string kekId)
+    public static IServiceCollection AddKeyward(this IServiceCollection services, string connectionString, byte[] kek, string kekId) =>
+        services.AddKeyward(connectionString, _ => new StaticKekProvider(kek, kekId));
+
+    /// <summary>
+    /// Registers AM KEYWARD against a SQL Server database with a caller-supplied <see cref="IKekProvider"/>
+    /// (e.g. an Azure Key Vault / AWS KMS / HSM-backed provider), so the key-encryption key can stay in the
+    /// external key store and never enter the application process. The migrations-history table is scoped to
+    /// the <c>amkeyward</c> schema so it never collides with the host's migrations. Tenant isolation is wired
+    /// up here: the ambient tenant context, the SESSION_CONTEXT interceptor (row-level-security backstop) and
+    /// the central authorization service.
+    /// </summary>
+    public static IServiceCollection AddKeyward(
+        this IServiceCollection services, string connectionString, Func<IServiceProvider, IKekProvider> kekProviderFactory)
     {
         // One ambient tenant context per scope, exposed as both the read port (ICurrentTenant) and the
         // host-edge write port (ITenantScopeSetter).
@@ -44,7 +56,7 @@ public static class ServiceCollectionExtensions
                     sp.GetRequiredService<TenantSessionContextInterceptor>(),
                     sp.GetRequiredService<AuditChainInterceptor>()));
 
-        services.AddSingleton<IKekProvider>(new StaticKekProvider(kek, kekId));
+        services.AddSingleton<IKekProvider>(kekProviderFactory);
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
         services.AddScoped<IAuditSubjectDirectory, DbAuditSubjectDirectory>();
