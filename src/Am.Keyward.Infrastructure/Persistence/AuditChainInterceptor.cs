@@ -16,7 +16,10 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// </summary>
 public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor
 {
-    private const string LockResource = "Keyward_AuditChain";
+    // Per-tenant lock resource: appends for different tenants serialize on different locks and no longer
+    // contend on one installation-wide lock. The tenant-less (personal/system) chain shares one resource.
+    private static string LockResourceFor(Guid? tenantId) =>
+        tenantId is { } t ? $"Keyward_AuditChain_{t:N}" : "Keyward_AuditChain_system";
 
     // Mirrors TenantSessionContextInterceptor: opening the connection ourselves bypasses EF's
     // ConnectionOpened interceptor, so we must set the row-level-security session context here too.
@@ -25,7 +28,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;";
 
     private DbConnection? _connectionOpenedHere;
-    private bool _lockHeld;
+    private readonly List<string> _heldLocks = [];
 
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken ct = default)
@@ -53,11 +56,6 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             await SetSessionContextAsync(connection, ct).ConfigureAwait(false); // EF's interceptor didn't fire
         }
 
-        await ExecuteAsync(connection,
-            $"EXEC sp_getapplock @Resource = N'{LockResource}', @LockMode = 'Exclusive', @LockOwner = 'Session';", ct)
-            .ConfigureAwait(false);
-        _lockHeld = true;
-
         // Read the chain head with the row-level-security READ bypass on: a group's tenant may differ from
         // the ambient session tenant (a null/personal chain written while a tenant is in scope, or a
         // cross-tenant break-glass entry), and RLS would otherwise hide those rows so the head read returns
@@ -66,8 +64,16 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         await SetBypassAsync(connection, on: true, ct).ConfigureAwait(false);
         try
         {
-            foreach (var group in pending.GroupBy(e => e.TenantId))
+            // Order groups by tenant so a multi-tenant save always takes its per-tenant locks in the same
+            // order across writers — no deadlock. Each group's lock is held until after commit (ReleaseAsync).
+            foreach (var group in pending.GroupBy(e => e.TenantId).OrderBy(g => g.Key))
             {
+                var resource = LockResourceFor(group.Key);
+                await ExecuteAsync(connection,
+                    $"EXEC sp_getapplock @Resource = N'{resource}', @LockMode = 'Exclusive', @LockOwner = 'Session';", ct)
+                    .ConfigureAwait(false);
+                _heldLocks.Add(resource);
+
                 var (sequence, previousHash) = await ReadHeadAsync(connection, group.Key, ct).ConfigureAwait(false);
                 foreach (var entry in group.OrderBy(e => e.OccurredAt))
                 {
@@ -102,25 +108,28 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
 
     private async Task ReleaseAsync(DbContext? context, CancellationToken ct)
     {
-        if (!_lockHeld && _connectionOpenedHere is null)
+        if (_heldLocks.Count == 0 && _connectionOpenedHere is null)
         {
             return;
         }
 
         var connection = context?.Database.GetDbConnection();
-        if (_lockHeld && connection is { State: ConnectionState.Open })
+        if (_heldLocks.Count > 0 && connection is { State: ConnectionState.Open })
         {
-            try
+            foreach (var resource in _heldLocks)
             {
-                await ExecuteAsync(connection, $"EXEC sp_releaseapplock @Resource = N'{LockResource}', @LockOwner = 'Session';", ct).ConfigureAwait(false);
-            }
-            catch
-            {
-                // Best-effort: closing the connection (or session end) releases a session-scoped lock anyway.
+                try
+                {
+                    await ExecuteAsync(connection, $"EXEC sp_releaseapplock @Resource = N'{resource}', @LockOwner = 'Session';", ct).ConfigureAwait(false);
+                }
+                catch
+                {
+                    // Best-effort: closing the connection (or session end) releases a session-scoped lock anyway.
+                }
             }
         }
 
-        _lockHeld = false;
+        _heldLocks.Clear();
 
         if (_connectionOpenedHere is not null)
         {

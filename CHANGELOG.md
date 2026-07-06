@@ -90,6 +90,9 @@ All notable changes to this project are documented here, following
 
 - Blazor circuit retention raised to 30 minutes (`DisconnectedCircuitRetentionPeriod`) so a short network
   drop or device sleep returns to a live session instead of a full reload.
+- The audit-chain append lock is now **per tenant** (`Keyward_AuditChain_{tenantId}`) instead of one
+  installation-wide lock, so audited operations (including reads) for different tenants no longer serialize
+  against each other. A multi-tenant save takes its locks in a deterministic order to avoid deadlock.
 
 - Accessibility and layout hardening of the embedded UI pages (`Secrets`, `Tokens`, `VaultWorkspace`) and
   the reference shell's `NotFound` page: associate `<label>`s with their inputs, add `aria-label`s to
