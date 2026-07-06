@@ -17,7 +17,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class CryptoShreddingTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Actor_is_pseudonymized_and_pii_is_crypto_shreddable()

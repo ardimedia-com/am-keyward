@@ -19,7 +19,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class SoftwareSecretIntegrationTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     /// <summary>Opens a DI scope with the server-authoritative tenant scope established (as a host edge would).</summary>
     private static IServiceScope ScopeFor(ServiceProvider provider, Guid tenantId)

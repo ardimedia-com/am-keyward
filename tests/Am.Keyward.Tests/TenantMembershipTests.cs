@@ -17,7 +17,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class TenantMembershipTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Membership_authorizes_member_and_system_admin_but_not_a_non_member()

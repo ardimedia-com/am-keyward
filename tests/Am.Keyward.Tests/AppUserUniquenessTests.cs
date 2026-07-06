@@ -17,7 +17,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class AppUserUniquenessTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Local_user_external_id_is_unique_but_the_same_id_is_allowed_across_issuers()

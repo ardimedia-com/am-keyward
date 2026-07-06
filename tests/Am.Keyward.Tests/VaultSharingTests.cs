@@ -16,7 +16,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class VaultSharingTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Tenant_vault_is_accessible_only_through_grants()

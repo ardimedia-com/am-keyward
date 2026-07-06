@@ -21,7 +21,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class AuditAndMonitoringRlsTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Personal_vault_audit_chain_does_not_fork_while_a_tenant_is_in_scope()

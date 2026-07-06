@@ -15,7 +15,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class AuditChainTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Intact_chain_verifies_and_tampering_is_detected()

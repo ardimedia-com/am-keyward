@@ -23,7 +23,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class TenantIsolationTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
     private const string Key = "ConnectionStrings:Main";
 
     [TestMethod, TestCategory("Integration")]

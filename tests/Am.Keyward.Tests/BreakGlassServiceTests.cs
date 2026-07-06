@@ -19,7 +19,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class BreakGlassServiceTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Dual_control_request_approve_consume_with_non_repudiable_sink()

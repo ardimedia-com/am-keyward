@@ -94,6 +94,13 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **Test database bootstrap is now self-contained and config-driven** (prep for running the isolation gate in
+  CI). The integration tests read their connection string from `appsettings.json` (localhost default),
+  overridable by `ConnectionStrings__Keyward` so CI can point at a SQL-auth server (password from a CI secret,
+  never committed). An assembly bootstrap applies the migrations (creating the schema, no separate `dotnet ef`
+  step) and provisions the least-privilege `amkeyward_app` login from `db/setup-logins.sql` with generated
+  passwords — so the SQL Server row-level-security test now runs in every test run instead of being skipped
+  unless an operator set `KEYWARD_APP_TEST_CONNECTION` by hand.
 - **Breaking (library API):** the central access-policy port `IAuthorizationService` is renamed to
   `IKeywardAccessPolicy`, so it no longer collides with ASP.NET Core's
   `Microsoft.AspNetCore.Authorization.IAuthorizationService` in an embedding host (no more alias-`using`).

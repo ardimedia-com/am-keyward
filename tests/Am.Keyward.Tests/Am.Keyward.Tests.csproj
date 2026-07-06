@@ -9,6 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageReference Include="MSTest" Version="4.0.2" />
     <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
@@ -16,6 +18,13 @@
 
   <ItemGroup>
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <!-- Test DB config (localhost default; CI overrides ConnectionStrings__Keyward) and the login-setup script
+       the assembly bootstrap runs to provision the least-privilege amkeyward_app login for the RLS test. -->
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\db\setup-logins.sql" Link="setup-logins.sql" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

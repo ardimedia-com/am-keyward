@@ -20,7 +20,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class KekIntegrityTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Consistent_when_kek_resolves_and_flags_an_unresolvable_kek()

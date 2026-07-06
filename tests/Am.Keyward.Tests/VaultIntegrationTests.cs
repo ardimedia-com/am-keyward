@@ -16,7 +16,7 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class VaultIntegrationTests
 {
-    private const string ConnectionString = "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+    private static readonly string ConnectionString = TestConfig.ConnectionString;
 
     [TestMethod, TestCategory("Integration")]
     public async Task Create_read_personal_vault_roundtrips_and_is_encrypted_at_rest()
