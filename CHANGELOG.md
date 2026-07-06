@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.1.1-preview] - 2026-07-06
+
 ### Added
 
 - **New `Am.Keyward.AspNetCore` hosting-glue package** so an embedding host no longer copy-pastes the
