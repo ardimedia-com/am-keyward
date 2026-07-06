@@ -98,7 +98,9 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdent
 builder.Services.AddIdentityCore<IdentityUser>(options =>
     {
         options.User.RequireUniqueEmail = true;
-        options.SignIn.RequireConfirmedAccount = false;
+        // Require a confirmed e-mail before sign-in. Registration then never reveals whether an address is
+        // already taken (it always shows "check your e-mail"), and an unconfirmed self-signup can't sign in.
+        options.SignIn.RequireConfirmedAccount = true;
         // Password policy: a strong minimum length matters more than mandatory symbols (a long passphrase
         // beats forced punctuation). See auth-policy-and-session-implementation.md (Part 1).
         options.Password.RequiredLength = 12;

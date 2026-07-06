@@ -9,4 +9,6 @@ namespace Am.Keyward.Ui.Blazor.App.Identity;
 public interface IAccountEmailSender
 {
     Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default);
+
+    Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default);
 }

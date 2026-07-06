@@ -1,8 +1,11 @@
 @page "/account/register"
 @using System.ComponentModel.DataAnnotations
+@using System.Text
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Am.Keyward.Ui.Blazor.App.Identity
 @inject UserManager<IdentityUser> UserManager
-@inject SignInManager<IdentityUser> SignInManager
+@inject IAccountEmailSender EmailSender
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
 
@@ -11,37 +14,44 @@
 <h1>@Loc["Register.Title"]</h1>
 <p>@Loc["Register.FirstAdmin"]</p>
 
-@if (errorMessage is not null)
+@if (submitted)
 {
-    <p style="color:#b00020;"><strong>@errorMessage</strong></p>
+    <div class="notice" role="status">@Loc["Register.CheckEmail"]</div>
 }
+else
+{
+    @if (errorMessage is not null)
+    {
+        <p style="color:#b00020;"><strong>@errorMessage</strong></p>
+    }
 
-<EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-    <DataAnnotationsValidator />
-    <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
-        <label>@Loc["Register.Email"]
-            <InputText @bind-Value="Input.Email" autocomplete="username" />
-        </label>
-        <label>@Loc["Register.Password"]
-            <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
-        </label>
-        <label>@Loc["Register.Confirm"]
-            <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
-        </label>
-        <ValidationSummary />
-        <button type="submit">@Loc["Register.Submit"]</button>
-    </div>
-</EditForm>
+    <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+        <DataAnnotationsValidator />
+        <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
+            <label>@Loc["Register.Email"]
+                <InputText @bind-Value="Input.Email" autocomplete="username" />
+            </label>
+            <label>@Loc["Register.Password"]
+                <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
+            </label>
+            <label>@Loc["Register.Confirm"]
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
+            </label>
+            <ValidationSummary />
+            <button type="submit">@Loc["Register.Submit"]</button>
+        </div>
+    </EditForm>
 
-<p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
+    <p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
+}
 
 @code {
     // No initializer on a [SupplyParameterFromForm] property (BL0008: a form post could overwrite it with
     // null); default it in OnInitialized so a GET render still has a model to bind.
     [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
-    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     private string? errorMessage;
+    private bool submitted;
 
     protected override void OnInitialized() => Input ??= new();
 
@@ -49,17 +59,31 @@
     {
         var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
         var result = await UserManager.CreateAsync(user, Input.Password);
-        if (!result.Succeeded)
+        if (result.Succeeded)
         {
-            errorMessage = string.Join(" ", result.Errors.Select(e => e.Description));
+            // Send a confirmation link; the account is inactive until confirmed (RequireConfirmedAccount).
+            var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+            var link = Nav.GetUriWithQueryParameters(
+                Nav.ToAbsoluteUri("account/confirm-email").AbsoluteUri,
+                new Dictionary<string, object?> { ["userId"] = user.Id, ["token"] = encoded });
+            await EmailSender.SendEmailConfirmationLinkAsync(Input.Email, link);
+            submitted = true;
             return;
         }
 
-        // SignInAsync builds the principal via the claims factory, which creates the domain AppUser
-        // (first account => system admin) and stamps the keyward:user_id claim into the cookie. New sign-in
-        // gets a session cookie (isPersistent: false) — persistence is opt-in only, via the login page.
-        await SignInManager.SignInAsync(user, isPersistent: false);
-        Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
+        // Enumeration-safe: a duplicate e-mail must not be distinguishable from a fresh signup — show the same
+        // "check your e-mail" confirmation (and send nothing). Only surface non-enumerating errors (e.g. a weak
+        // password), which don't reveal whether the address exists.
+        if (result.Errors.All(e => e.Code.StartsWith("Duplicate", StringComparison.Ordinal)))
+        {
+            submitted = true;
+            return;
+        }
+
+        errorMessage = string.Join(" ", result.Errors
+            .Where(e => !e.Code.StartsWith("Duplicate", StringComparison.Ordinal))
+            .Select(e => e.Description));
     }
 
     private sealed class InputModel

@@ -7,6 +7,12 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **E-mail confirmation on registration (enumeration-safe).** Registration now creates the account inactive
+  and sends a confirmation link (`RequireConfirmedAccount`); it always shows the same "check your e-mail"
+  result whether or not the address is already registered, so it no longer leaks account existence via a
+  duplicate-e-mail error. A new `/account/confirm-email` page activates the account from the link, after which
+  the user can sign in (an unconfirmed account cannot). Delivery reuses `IAccountEmailSender` (reference
+  maildrop sender); localized in all six UI languages.
 - **Pluggable KEK provider.** A new `AddKeyward(connectionString, Func<IServiceProvider, IKekProvider>)`
   overload lets a host supply its own key-encryption-key provider (Azure Key Vault / AWS KMS / HSM), so the
   raw KEK need never enter the application process — the previous `byte[]` overload now delegates to it and

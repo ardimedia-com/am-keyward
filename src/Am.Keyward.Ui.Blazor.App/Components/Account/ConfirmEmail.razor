@@ -1,0 +1,51 @@
+@page "/account/confirm-email"
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@inject UserManager<IdentityUser> UserManager
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>AM KEYWARD</PageTitle>
+
+<h1>@Loc["Confirm.Title"]</h1>
+
+@if (confirmed is true)
+{
+    <div class="notice" role="status">
+        @Loc["Confirm.Done"] <a href="account/login">@Loc["Login.Submit"]</a>
+    </div>
+}
+else if (confirmed is false)
+{
+    <p style="color:#b00020;"><strong>@Loc["Confirm.Invalid"]</strong></p>
+}
+
+@code {
+    [SupplyParameterFromQuery] private string? UserId { get; set; }
+    [SupplyParameterFromQuery] private string? Token { get; set; }
+
+    private bool? confirmed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(UserId) || string.IsNullOrEmpty(Token))
+        {
+            confirmed = false;
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            confirmed = false;
+            return;
+        }
+
+        string token;
+        try { token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Token)); }
+        catch (FormatException) { confirmed = false; return; }
+
+        var result = await UserManager.ConfirmEmailAsync(user, token);
+        confirmed = result.Succeeded;
+    }
+}

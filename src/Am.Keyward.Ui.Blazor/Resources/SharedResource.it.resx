@@ -243,4 +243,8 @@
   <data name="Reset.Set.Submit" xml:space="preserve"><value>Imposta password</value></data>
   <data name="Reset.Set.Done" xml:space="preserve"><value>La tua password è stata reimpostata.</value></data>
   <data name="Reset.Set.Invalid" xml:space="preserve"><value>Questo link non è valido o è scaduto. Richiedine uno nuovo.</value></data>
+  <data name="Register.CheckEmail" xml:space="preserve"><value>Se questo indirizzo e-mail è nuovo, è stato inviato un link di conferma. Confermalo, poi accedi.</value></data>
+  <data name="Confirm.Title" xml:space="preserve"><value>Conferma e-mail</value></data>
+  <data name="Confirm.Done" xml:space="preserve"><value>La tua e-mail è confermata. Ora puoi accedere:</value></data>
+  <data name="Confirm.Invalid" xml:space="preserve"><value>Questo link di conferma non è valido o è scaduto.</value></data>
 </root>

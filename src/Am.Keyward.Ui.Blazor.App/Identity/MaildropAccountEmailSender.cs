@@ -23,7 +23,15 @@ public sealed class MaildropAccountEmailSender(
     IClock clock,
     ILogger<MaildropAccountEmailSender> logger) : IAccountEmailSender
 {
-    public async Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default)
+    public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default) =>
+        DropAsync("password-reset", email, "AM KEYWARD password reset",
+            $"Open this single-use link to set a new password:\r\n{resetLink}\r\n", ct);
+
+    public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default) =>
+        DropAsync("confirm-email", email, "AM KEYWARD e-mail confirmation",
+            $"Confirm your e-mail address to activate your account:\r\n{confirmLink}\r\n", ct);
+
+    private async Task DropAsync(string kind, string email, string subject, string message, CancellationToken ct)
     {
         var dir = string.IsNullOrWhiteSpace(options.Value.MaildropPath)
             ? Path.Combine(environment.ContentRootPath, "maildrop")
@@ -31,17 +39,14 @@ public sealed class MaildropAccountEmailSender(
         Directory.CreateDirectory(dir);
 
         var stamp = clock.UtcNow.UtcDateTime.ToString("yyyyMMdd-HHmmssfff");
-        var path = Path.Combine(dir, $"password-reset-{stamp}.txt");
-        var body =
-            $"To: {email}\r\n" +
-            $"Subject: AM KEYWARD password reset\r\n\r\n" +
-            $"Open this single-use link to set a new password:\r\n{resetLink}\r\n";
+        var path = Path.Combine(dir, $"{kind}-{stamp}.txt");
+        var body = $"To: {email}\r\nSubject: {subject}\r\n\r\n{message}";
 
         await File.WriteAllTextAsync(path, body, ct).ConfigureAwait(false);
 
         // Do NOT log the link/token — it is a single-use secret. Log only that a mail was dropped.
         logger.LogInformation(
-            "Password-reset e-mail written to the maildrop folder for {Email}. Configure a real IAccountEmailSender (SMTP) for production delivery. Environment: {Environment}.",
-            email, environment.EnvironmentName);
+            "Account e-mail ({Kind}) written to the maildrop folder for {Email}. Configure a real IAccountEmailSender (SMTP) for production delivery. Environment: {Environment}.",
+            kind, email, environment.EnvironmentName);
     }
 }

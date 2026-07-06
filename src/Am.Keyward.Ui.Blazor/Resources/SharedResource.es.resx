@@ -243,4 +243,8 @@
   <data name="Reset.Set.Submit" xml:space="preserve"><value>Establecer contraseña</value></data>
   <data name="Reset.Set.Done" xml:space="preserve"><value>Tu contraseña ha sido restablecida.</value></data>
   <data name="Reset.Set.Invalid" xml:space="preserve"><value>Este enlace no es válido o ha caducado. Solicita uno nuevo.</value></data>
+  <data name="Register.CheckEmail" xml:space="preserve"><value>Si esta dirección de correo es nueva, se ha enviado un enlace de confirmación. Confírmalo y luego inicia sesión.</value></data>
+  <data name="Confirm.Title" xml:space="preserve"><value>Confirmar correo</value></data>
+  <data name="Confirm.Done" xml:space="preserve"><value>Tu correo está confirmado. Ya puedes iniciar sesión:</value></data>
+  <data name="Confirm.Invalid" xml:space="preserve"><value>Este enlace de confirmación no es válido o ha caducado.</value></data>
 </root>
