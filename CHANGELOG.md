@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **SMTP delivery for account e-mails** (password reset, e-mail confirmation) via MailKit. When
+  `AccountEmail:Smtp:Host` is configured the shell sends real e-mail (relay/port/from tunable); otherwise it
+  keeps dropping mail to the local `maildrop` folder. Machine-local settings go in a gitignored
+  `appsettings.Local.json` (loaded optionally at startup, never committed) — see the new
+  `appsettings.Local.example.json` template; pick the relay per LAN/environment per `smtp-relay-hosts.md`.
+
 ## [0.1.1-preview] - 2026-07-06
 
 ### Added

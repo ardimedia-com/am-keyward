@@ -496,3 +496,8 @@ breakglass-audit.jsonl
 # Reference maildrop (password-reset e-mails written to disk when no SMTP sender is configured)
 maildrop/
 **/maildrop/
+
+# Machine-local config overrides (SMTP relay host, local secrets) — never committed. Copy
+# appsettings.Local.example.json to appsettings.Local.json and fill in per machine.
+appsettings.Local.json
+**/appsettings.Local.json

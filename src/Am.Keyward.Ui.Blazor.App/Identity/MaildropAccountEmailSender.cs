@@ -9,6 +9,28 @@ public sealed class AccountEmailOptions
 
     /// <summary>Folder the reference maildrop sender writes account e-mails to. Empty -> ContentRoot/maildrop.</summary>
     public string? MaildropPath { get; set; }
+
+    /// <summary>SMTP relay settings. When <see cref="SmtpOptions.Host"/> is set, account e-mails are actually
+    /// sent over SMTP; otherwise they are dropped to the maildrop folder.</summary>
+    public SmtpOptions Smtp { get; set; } = new();
+}
+
+/// <summary>SMTP relay settings for account e-mails (password reset, e-mail confirmation).</summary>
+public sealed class SmtpOptions
+{
+    /// <summary>Relay host, e.g. <c>smtptest.ardimedia.com</c>. Empty selects the maildrop sender instead.</summary>
+    public string? Host { get; set; }
+
+    /// <summary>Relay port. Default 25 (typical internal relay).</summary>
+    public int Port { get; set; } = 25;
+
+    /// <summary>From address for account e-mails (required when <see cref="Host"/> is set).</summary>
+    public string From { get; set; } = "";
+
+    /// <summary>Optional relay credentials — internal relays usually need none.</summary>
+    public string? User { get; set; }
+
+    public string? Password { get; set; }
 }
 
 /// <summary>

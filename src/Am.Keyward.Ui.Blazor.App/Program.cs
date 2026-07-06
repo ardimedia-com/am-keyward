@@ -20,6 +20,10 @@ const string systemAdminPolicy = "Keyward.SystemAdmin";
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Machine-local overrides (e.g. the SMTP relay host, local secrets) — gitignored, never committed, optional
+// so a machine without it still runs. The one hand-added config file we allow (see follow-framework-conventions.md).
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 builder.Services.AddRazorComponents()
     // Hold a disconnected circuit longer so a short network drop / device sleep returns to a live session
     // instead of a full reload (server memory cost is negligible for this low-concurrency admin UI).
@@ -91,7 +95,16 @@ builder.Services.AddHttpContextAccessor();
 // Account e-mail delivery (password-reset link). The reference shell drops mails to a local folder; a real
 // deployment replaces IAccountEmailSender with an SMTP sender.
 builder.Services.Configure<AccountEmailOptions>(builder.Configuration.GetSection(AccountEmailOptions.SectionName));
-builder.Services.AddScoped<IAccountEmailSender, MaildropAccountEmailSender>();
+// Send over SMTP when a relay host is configured (e.g. appsettings.Local.json -> smtptest.ardimedia.com);
+// otherwise drop the mail to a local file. See smtp-relay-hosts.md for the relay host per LAN/environment.
+if (!string.IsNullOrWhiteSpace(builder.Configuration[$"{AccountEmailOptions.SectionName}:Smtp:Host"]))
+{
+    builder.Services.AddScoped<IAccountEmailSender, SmtpAccountEmailSender>();
+}
+else
+{
+    builder.Services.AddScoped<IAccountEmailSender, MaildropAccountEmailSender>();
+}
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<IdentityUser>, KeywardUserClaimsPrincipalFactory>();
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
 builder.Services.AddIdentityCore<IdentityUser>(options =>
