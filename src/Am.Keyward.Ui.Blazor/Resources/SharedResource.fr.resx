@@ -80,6 +80,7 @@
   <data name="Login.FirstAdminHint" xml:space="preserve"><value>(le premier compte devient administrateur système)</value></data>
   <data name="Login.Invalid" xml:space="preserve"><value>E-mail ou mot de passe invalide.</value></data>
   <data name="Login.LockedOut" xml:space="preserve"><value>Ce compte est temporairement verrouillé après trop de tentatives échouées. Réessayez plus tard.</value></data>
+  <data name="Login.Unconfirmed.Resent" xml:space="preserve"><value>Votre compte n'est pas encore confirmé. Nous vous avons envoyé un nouveau lien de confirmation — vérifiez votre e-mail.</value></data>
   <data name="Register.Title" xml:space="preserve"><value>S'inscrire</value></data>
   <data name="Register.FirstAdmin" xml:space="preserve"><value>Le premier compte créé devient l'administrateur système.</value></data>
   <data name="Register.Email" xml:space="preserve"><value>E-mail</value></data>

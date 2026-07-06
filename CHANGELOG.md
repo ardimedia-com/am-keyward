@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Resend the e-mail-confirmation link from the sign-in page.** Signing in with the right password on an
+  unconfirmed account previously just showed "invalid" with no way forward. Now it re-sends the confirmation
+  link and says the account isn't confirmed yet. It is gated on the **correct password** (a wrong password
+  still gets the same generic message), so it can neither enumerate addresses nor spam arbitrary inboxes — per
+  the auth policy. A transient delivery failure is logged, not surfaced.
 - **SMTP delivery for account e-mails** (password reset, e-mail confirmation) via MailKit. When
   `AccountEmail:Smtp:Host` is configured the shell sends real e-mail (relay/port/from tunable); otherwise it
   keeps dropping mail to the local `maildrop` folder. Machine-local settings go in a gitignored

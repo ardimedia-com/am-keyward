@@ -1,7 +1,13 @@
 @page "/account/login"
 @using System.ComponentModel.DataAnnotations
+@using System.Text
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using Am.Keyward.Ui.Blazor.App.Identity
 @inject SignInManager<IdentityUser> SignInManager
+@inject UserManager<IdentityUser> UserManager
+@inject IAccountEmailSender EmailSender
+@inject ILogger<Login> Logger
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
 
@@ -9,6 +15,10 @@
 
 <h1>@Loc["Login.Title"]</h1>
 
+@if (infoMessage is not null)
+{
+    <div class="notice" role="status">@infoMessage</div>
+}
 @if (errorMessage is not null)
 {
     <p style="color:#b00020;"><strong>@errorMessage</strong></p>
@@ -42,6 +52,7 @@
     [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
 
     private string? errorMessage;
+    private string? infoMessage;
 
     protected override void OnInitialized() => Input ??= new();
 
@@ -56,7 +67,53 @@
             return;
         }
 
-        errorMessage = result.IsLockedOut ? Loc["Login.LockedOut"] : Loc["Login.Invalid"];
+        if (result.IsLockedOut)
+        {
+            errorMessage = Loc["Login.LockedOut"];
+            return;
+        }
+
+        // IsNotAllowed means a known reason blocks sign-in — for us, an unconfirmed e-mail
+        // (RequireConfirmedAccount). Re-send the confirmation link, but ONLY when the password is also correct,
+        // so this can neither enumerate addresses nor spam arbitrary inboxes (auth policy). A wrong password
+        // falls through to the same generic "invalid" message, revealing nothing.
+        if (result.IsNotAllowed && await TryResendConfirmationAsync())
+        {
+            infoMessage = Loc["Login.Unconfirmed.Resent"];
+            return;
+        }
+
+        errorMessage = Loc["Login.Invalid"];
+    }
+
+    private async Task<bool> TryResendConfirmationAsync()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email);
+        if (user is null
+            || await UserManager.IsEmailConfirmedAsync(user)
+            || !await UserManager.CheckPasswordAsync(user, Input.Password))
+        {
+            return false;
+        }
+
+        var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var link = Nav.GetUriWithQueryParameters(
+            Nav.ToAbsoluteUri("account/confirm-email").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = user.Id, ["token"] = encoded });
+
+        try
+        {
+            await EmailSender.SendEmailConfirmationLinkAsync(user.Email!, link);
+        }
+        catch (Exception ex)
+        {
+            // A transient delivery failure must not break sign-in; the user can retry. Still show the same
+            // message (the operator sees the delivery error in the logs).
+            Logger.LogError(ex, "Failed to re-send the confirmation e-mail to {Email}.", user.Email);
+        }
+
+        return true;
     }
 
     private sealed class InputModel
