@@ -97,6 +97,12 @@ All notable changes to this project are documented here, following
 - The audit-chain append lock is now **per tenant** (`Keyward_AuditChain_{tenantId}`) instead of one
   installation-wide lock, so audited operations (including reads) for different tenants no longer serialize
   against each other. A multi-tenant save takes its locks in a deterministic order to avoid deadlock.
+- The scoped `KeywardDbContext` now **clears its change tracker after each save**, so a long-lived Blazor
+  Server circuit no longer accumulates tracked entities (memory) or serves stale, identity-resolved reads
+  after another circuit updated a row. This gives the long-lived context short-lived-context behaviour
+  between operations without the larger `AddDbContextFactory` refactor (which would rewire the shared audit
+  unit-of-work across the persistence layer for a perf-only gain); safe because no operation reuses a tracked
+  entity across two saves.
 
 - Accessibility and layout hardening of the embedded UI pages (`Secrets`, `Tokens`, `VaultWorkspace`) and
   the reference shell's `NotFound` page: associate `<label>`s with their inputs, add `aria-label`s to

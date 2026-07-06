@@ -48,13 +48,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();
         services.AddScoped<AuditChainInterceptor>();
+        services.AddSingleton<ChangeTrackerResetInterceptor>();
 
         services.AddDbContext<KeywardDbContext>((sp, options) =>
             options.UseSqlServer(connectionString, sql =>
                     sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
                 .AddInterceptors(
                     sp.GetRequiredService<TenantSessionContextInterceptor>(),
-                    sp.GetRequiredService<AuditChainInterceptor>()));
+                    sp.GetRequiredService<AuditChainInterceptor>(),
+                    // Clear the change tracker after each save so the circuit-scoped context does not
+                    // accumulate tracked entities or serve stale reads across a long-lived Blazor circuit.
+                    sp.GetRequiredService<ChangeTrackerResetInterceptor>()));
 
         services.AddSingleton<IKekProvider>(kekProviderFactory);
         services.AddSingleton<IClock, SystemClock>();

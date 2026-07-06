@@ -149,6 +149,41 @@ public class VaultIntegrationTests
         }
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task A_reused_circuit_scoped_context_does_not_serve_stale_reads_after_an_update()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        Guid itemId;
+        using (var scope = ScopeForUser(provider, userId))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            var vaultId = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "V"));
+            itemId = await vaults.AddItemAsync(new AddVaultItemCommand(userId, vaultId, null, ItemType.SecureNote, "Note", "v1"));
+        }
+
+        // A long-lived (Blazor-circuit-like) scope reads the item — which tracks it — then another scope updates it.
+        using var circuit = ScopeForUser(provider, userId);
+        var circuitVaults = circuit.ServiceProvider.GetRequiredService<IVaultService>();
+        Assert.AreEqual("v1", (await circuitVaults.GetItemAsync(userId, itemId))!.Content);
+
+        using (var other = ScopeForUser(provider, userId))
+        {
+            await other.ServiceProvider.GetRequiredService<IVaultService>()
+                .UpdateItemAsync(new UpdateVaultItemCommand(userId, itemId, "Note", null, "v2"));
+        }
+
+        // Re-reading through the SAME long-lived context must return the fresh value, not the stale tracked one
+        // (the change-tracker reset after each save keeps the circuit-scoped context from serving stale reads).
+        Assert.AreEqual("v2", (await circuitVaults.GetItemAsync(userId, itemId))!.Content);
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
