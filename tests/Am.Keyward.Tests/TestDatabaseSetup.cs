@@ -36,12 +36,14 @@ public static class TestDatabaseSetup
             // local database is already up to date.
             await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().Database.MigrateAsync();
         }
-        catch when (!IsCi)
+        catch when (!RequireDatabase)
         {
-            return; // Local: SQL unreachable or no DDL rights — the integration tests skip themselves.
+            return; // SQL unreachable or no DDL rights — the integration tests skip themselves.
         }
-        // In CI (CI=true) a migration failure is NOT swallowed: the integration/isolation tests must actually
-        // run, so an unreachable database fails the build instead of silently skipping.
+        // When KEYWARD_REQUIRE_DB=true (set only by the SQL-backed CI job) a migration failure is NOT
+        // swallowed: the integration/isolation tests must actually run, so an unreachable database fails the
+        // build instead of silently skipping. (Keyed on this explicit flag, not the ambient CI=true that
+        // GitHub sets on every runner — the plain windows build has no SQL and must still skip.)
 
         try
         {
@@ -56,16 +58,18 @@ public static class TestDatabaseSetup
             }.ConnectionString;
             Environment.SetEnvironmentVariable("KEYWARD_APP_TEST_CONNECTION", appConnectionString);
         }
-        catch when (!IsCi)
+        catch when (!RequireDatabase)
         {
-            // Local: provisioning server logins needs a sysadmin connection; where it is unavailable the
-            // row-level-security test stays inconclusive (the app-layer isolation tests still run). In CI this
-            // is not swallowed, so the RLS test is guaranteed to run.
+            // Provisioning server logins needs a sysadmin connection; where it is unavailable the
+            // row-level-security test stays inconclusive (the app-layer isolation tests still run). When
+            // KEYWARD_REQUIRE_DB=true this is not swallowed, so the RLS test is guaranteed to run.
         }
     }
 
-    private static bool IsCi =>
-        string.Equals(Environment.GetEnvironmentVariable("CI"), "true", StringComparison.OrdinalIgnoreCase);
+    // Set only by the SQL-backed CI job (integration-tests.yml), NOT the ambient CI=true GitHub sets on every
+    // runner — so the plain windows build (no SQL) still skips the integration tests instead of failing.
+    private static bool RequireDatabase =>
+        string.Equals(Environment.GetEnvironmentVariable("KEYWARD_REQUIRE_DB"), "true", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Runs the real <c>db/setup-logins.sql</c> (with generated passwords) batch-by-batch — EF/ADO
     /// cannot execute a multi-batch <c>GO</c> script in one call, so split on the <c>GO</c> separators.</summary>

@@ -35,9 +35,11 @@ jobs:
 
     env:
       # The test bootstrap (TestDatabaseSetup) migrates the schema and provisions the amkeyward_app login as
-      # SA; CI=true makes an unreachable database FAIL the build instead of silently skipping.
+      # SA. KEYWARD_REQUIRE_DB=true makes an unreachable database FAIL this job instead of silently skipping —
+      # keyed on this explicit flag (only this SQL-backed job sets it), not the ambient CI=true GitHub sets on
+      # every runner, so the plain windows build in ci.yml still skips the integration tests.
       ConnectionStrings__Keyward: "Server=localhost,1433;Database=amkeyward;User Id=sa;Password=Str0ngCiP4ss_2026x;Encrypt=False;TrustServerCertificate=True"
-      CI: "true"
+      KEYWARD_REQUIRE_DB: "true"
 
     steps:
       - uses: actions/checkout@v7
