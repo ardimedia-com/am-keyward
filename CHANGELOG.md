@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Self-service password reset.** Forgot-password and reset-password pages (statically rendered): a user
+  requests a single-use reset link and sets a new password. A successful reset **clears a brute-force lockout**
+  so the user regains access immediately (but never clears an administrative disable). The flow is
+  enumeration-safe (the forgot page always shows the same confirmation) and links from the sign-in page.
+  Delivery goes through a new `IAccountEmailSender`; the reference shell ships a file **maildrop** sender
+  (writes the e-mail to a local folder, configurable via `AccountEmail:MaildropPath`) that a real deployment
+  replaces with an SMTP sender.
 - **Admin user-management UI** (system-admin only, at `/account/admin/users`): shows each account's status
   (active / locked out / disabled) and lets an admin **unlock** a brute-force lockout, or **disable** and
   **re-enable** an account. This is the recovery path the auth policy requires beyond lockout auto-expiry

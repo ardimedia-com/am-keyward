@@ -234,4 +234,13 @@
   <data name="Admin.Users.Unlock" xml:space="preserve"><value>Entsperren</value></data>
   <data name="Admin.Users.Enable" xml:space="preserve"><value>Aktivieren</value></data>
   <data name="Admin.Users.Disable" xml:space="preserve"><value>Deaktivieren</value></data>
+  <data name="Reset.Forgot.Link" xml:space="preserve"><value>Passwort vergessen?</value></data>
+  <data name="Reset.Forgot.Title" xml:space="preserve"><value>Passwort zurücksetzen</value></data>
+  <data name="Reset.Forgot.Desc" xml:space="preserve"><value>Gib deine E-Mail-Adresse ein, wir senden dir einen Link zum Setzen eines neuen Passworts.</value></data>
+  <data name="Reset.Forgot.Submit" xml:space="preserve"><value>Link senden</value></data>
+  <data name="Reset.Forgot.Sent" xml:space="preserve"><value>Falls zu dieser Adresse ein Konto besteht, wurde ein Link zum Zurücksetzen gesendet.</value></data>
+  <data name="Reset.Set.Title" xml:space="preserve"><value>Neues Passwort setzen</value></data>
+  <data name="Reset.Set.Submit" xml:space="preserve"><value>Passwort setzen</value></data>
+  <data name="Reset.Set.Done" xml:space="preserve"><value>Dein Passwort wurde zurückgesetzt.</value></data>
+  <data name="Reset.Set.Invalid" xml:space="preserve"><value>Dieser Link ist ungültig oder abgelaufen. Fordere einen neuen an.</value></data>
 </root>

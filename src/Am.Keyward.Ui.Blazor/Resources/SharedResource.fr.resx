@@ -234,4 +234,13 @@
   <data name="Admin.Users.Unlock" xml:space="preserve"><value>Déverrouiller</value></data>
   <data name="Admin.Users.Enable" xml:space="preserve"><value>Activer</value></data>
   <data name="Admin.Users.Disable" xml:space="preserve"><value>Désactiver</value></data>
+  <data name="Reset.Forgot.Link" xml:space="preserve"><value>Mot de passe oublié ?</value></data>
+  <data name="Reset.Forgot.Title" xml:space="preserve"><value>Réinitialiser le mot de passe</value></data>
+  <data name="Reset.Forgot.Desc" xml:space="preserve"><value>Saisissez votre e-mail, nous vous enverrons un lien pour définir un nouveau mot de passe.</value></data>
+  <data name="Reset.Forgot.Submit" xml:space="preserve"><value>Envoyer le lien</value></data>
+  <data name="Reset.Forgot.Sent" xml:space="preserve"><value>Si un compte existe pour cette adresse, un lien de réinitialisation a été envoyé.</value></data>
+  <data name="Reset.Set.Title" xml:space="preserve"><value>Définir un nouveau mot de passe</value></data>
+  <data name="Reset.Set.Submit" xml:space="preserve"><value>Définir le mot de passe</value></data>
+  <data name="Reset.Set.Done" xml:space="preserve"><value>Votre mot de passe a été réinitialisé.</value></data>
+  <data name="Reset.Set.Invalid" xml:space="preserve"><value>Ce lien est invalide ou a expiré. Demandez-en un nouveau.</value></data>
 </root>

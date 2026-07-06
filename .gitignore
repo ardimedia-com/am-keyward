@@ -492,3 +492,7 @@ kek.dev.key
 # AM KEYWARD - break-glass out-of-band trail (must stay outside the repo)
 breakglass-audit.jsonl
 
+
+# Reference maildrop (password-reset e-mails written to disk when no SMTP sender is configured)
+maildrop/
+**/maildrop/

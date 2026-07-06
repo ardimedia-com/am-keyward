@@ -88,6 +88,11 @@ builder.Services.AddDbContext<KeywardIdentityDbContext>(options =>
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
+
+// Account e-mail delivery (password-reset link). The reference shell drops mails to a local folder; a real
+// deployment replaces IAccountEmailSender with an SMTP sender.
+builder.Services.Configure<AccountEmailOptions>(builder.Configuration.GetSection(AccountEmailOptions.SectionName));
+builder.Services.AddScoped<IAccountEmailSender, MaildropAccountEmailSender>();
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<IdentityUser>, KeywardUserClaimsPrincipalFactory>();
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
 builder.Services.AddIdentityCore<IdentityUser>(options =>
