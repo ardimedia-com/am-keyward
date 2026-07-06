@@ -1,0 +1,47 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/src/Am.Keyward.Ui.Blazor.App/Am.Keyward.Ui.Blazor.App.csproj"
+			],
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		// Dev: run the app via dotnet watch in a dedicated integrated terminal (Ctrl+Shift+P ->
+		// "Tasks: Run Task" -> "app: dotnet watch"). Auto-restarts on C#/Razor changes; no Tailwind step
+		// because this project uses plain CSS (app.css + the RCL's scoped KeywardUi.razor.css), not Tailwind.
+		{
+			"label": "app: dotnet watch",
+			"detail": "Blazor app via dotnet watch (Development, https) — auto-restarts on C#/Razor changes.",
+			"type": "process",
+			"command": "dotnet",
+			"args": [
+				"watch",
+				"--project",
+				"src/Am.Keyward.Ui.Blazor.App/Am.Keyward.Ui.Blazor.App.csproj",
+				"--launch-profile",
+				"https"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}",
+				"env": {
+					"ASPNETCORE_ENVIRONMENT": "Development"
+				}
+			},
+			"isBackground": true,
+			"problemMatcher": [],
+			"presentation": {
+				"panel": "dedicated",
+				"reveal": "always"
+			}
+		}
+	]
+}
