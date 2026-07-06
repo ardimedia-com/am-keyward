@@ -24,7 +24,7 @@
                 <summary>@context.User.Identity?.Name</summary>
                 <div class="menu-panel">
                     <a href="account/profile">@Loc["Nav.Profile"]</a>
-                    @if (context.User.HasClaim("keyward:is_system_admin", "true"))
+                    @if (context.User.HasClaim(KeywardClaims.SystemAdmin, "true"))
                     {
                         <a href="account/admin/users">@Loc["Nav.AdminUsers"]</a>
                     }

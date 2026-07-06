@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Am.Keyward.AspNetCore;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Identity;
 using Am.Keyward.Infrastructure.Persistence;
@@ -19,18 +20,15 @@ public sealed class KeywardUserClaimsPrincipalFactory(
     KeywardDbContext db,
     IClock clock) : UserClaimsPrincipalFactory<IdentityUser>(userManager, optionsAccessor)
 {
-    public const string UserIdClaim = "keyward:user_id";
-    public const string SystemAdminClaim = "keyward:is_system_admin";
-
     protected override async Task<ClaimsIdentity> GenerateClaimsAsync(IdentityUser user)
     {
         var identity = await base.GenerateClaimsAsync(user);
 
         var appUser = await EnsureAppUserAsync(user);
-        identity.AddClaim(new Claim(UserIdClaim, appUser.Id.ToString()));
+        identity.AddClaim(new Claim(KeywardClaims.UserId, appUser.Id.ToString()));
         if (appUser.IsSystemAdmin)
         {
-            identity.AddClaim(new Claim(SystemAdminClaim, "true"));
+            identity.AddClaim(new Claim(KeywardClaims.SystemAdmin, "true"));
         }
 
         return identity;

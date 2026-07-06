@@ -16,7 +16,7 @@
                 <label>@Loc["Profile.Email"]</label>
                 <div>@context.User.Identity?.Name</div>
             </div>
-            @if (context.User.HasClaim("keyward:is_system_admin", "true"))
+            @if (context.User.HasClaim(KeywardClaims.SystemAdmin, "true"))
             {
                 <p><span class="badge badge-success">@Loc["Profile.SystemAdmin"]</span></p>
             }

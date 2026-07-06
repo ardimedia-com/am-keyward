@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/Am.Keyward.Api/Am.Keyward.Api.csproj" />
+    <Project Path="src/Am.Keyward.AspNetCore/Am.Keyward.AspNetCore.csproj" />
     <Project Path="src/Am.Keyward.Contracts/Am.Keyward.Contracts.csproj" />
     <Project Path="src/Am.Keyward.Core/Am.Keyward.Core.csproj" />
     <Project Path="src/Am.Keyward.Infrastructure/Am.Keyward.Infrastructure.csproj" />

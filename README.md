@@ -102,21 +102,21 @@ builder.Services.AddKeywardSoftwareClientApi();
 ```
 
 **2. Bind identity at the edge.** The libraries are identity-agnostic: they read `ICurrentUser` /
-`ICurrentTenant`, which you set from *your* auth. Map your signed-in principal to a Keyward `AppUser` id and
-set it (plus the active tenant) per request and per Blazor circuit:
+`ICurrentTenant`, which you set from *your* auth. Your auth layer stamps the Keyward `AppUser` id onto the
+signed-in principal as the `KeywardClaims.UserId` claim (however you map it — ASP.NET Identity, external
+OIDC, ...); the `Am.Keyward.AspNetCore` package then establishes the current **user** on both the HTTP and
+the Blazor-circuit path for you:
 
 ```csharp
-app.Use(async (context, next) =>
-{
-    if (TryGetKeywardUserId(context.User, out var userId))
-        context.RequestServices.GetRequiredService<IUserScopeSetter>().SetUser(userId);
-    context.RequestServices.GetRequiredService<ITenantScopeSetter>().SetTenant(ResolveActiveTenant(context.User));
-    await next();
-});
+builder.Services.AddKeywardBlazorUserScope();   // circuit handler: current user per Blazor circuit
+// ...
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseKeywardCurrentUser();                     // middleware: current user per HTTP request
 ```
 
-(For interactive Blazor circuits, set the same via a `CircuitHandler` — see the reference shell's
-`DemoTenantCircuitHandler`.)
+**Tenant** selection stays yours (it is app-specific) — set `ITenantScopeSetter` per request/circuit from
+your own logic (the reference shell pins a fixed demo tenant via `DemoTenantCircuitHandler`).
 
 **3. Discover the feature pages.** The pages live under the `/amkeyward/*` route prefix (so they can't
 collide with your routes). Add the RCL assembly to both the endpoint and the router:

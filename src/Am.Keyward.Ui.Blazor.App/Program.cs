@@ -1,4 +1,5 @@
 using Am.Keyward.Api;
+using Am.Keyward.AspNetCore;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Infrastructure;
@@ -58,7 +59,9 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SetDefaultCulture("en").AddSupportedCultures(cultures).AddSupportedUICultures(cultures);
 });
 
-// Demo-only: every circuit operates inside the seeded demo tenant (sign-in identifies the user, not the tenant yet).
+// Per-circuit scope: the reusable Keyward user handler establishes the current user from the circuit's auth
+// state; the demo tenant handler pins the (demo-only) tenant — sign-in identifies the user, not the tenant yet.
+builder.Services.AddKeywardBlazorUserScope();
 builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
 // The workspace context the embedded Keyward UI pages (RCL) read for their tenant/project. The reference
@@ -129,7 +132,7 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(systemAdminPolicy, policy =>
     {
         policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
-        policy.RequireClaim(KeywardUserClaimsPrincipalFactory.SystemAdminClaim, "true");
+        policy.RequireClaim(KeywardClaims.SystemAdmin, "true");
     });
 
 // Runtime migration safety-net (covers the DB being swapped under the running app).
@@ -180,17 +183,9 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Establish the server-authoritative current user from the authenticated principal for this request
-// (HTTP path; the Blazor circuit sets it from its authentication state — see DemoTenantCircuitHandler).
-app.Use(async (context, next) =>
-{
-    if (Guid.TryParse(context.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var userId))
-    {
-        context.RequestServices.GetRequiredService<IUserScopeSetter>().SetUser(userId);
-    }
-
-    await next();
-});
+// Establish the server-authoritative current user from the authenticated principal for this request (HTTP
+// path; the Blazor circuit path is covered by AddKeywardBlazorUserScope's circuit handler).
+app.UseKeywardCurrentUser();
 
 app.UseRateLimiter();
 
@@ -294,7 +289,7 @@ app.Run();
 // the acting admin, targeting the affected user. disable -> Revoke (access removed); unlock/enable -> Grant.
 static async Task AuditUserAdminAsync(HttpContext ctx, KeywardDbContext db, IAuditSink audit, string targetIdentityUserId, string action)
 {
-    var actorId = Guid.TryParse(ctx.User.FindFirst(KeywardUserClaimsPrincipalFactory.UserIdClaim)?.Value, out var a) ? a : (Guid?)null;
+    var actorId = Guid.TryParse(ctx.User.FindFirst(KeywardClaims.UserId)?.Value, out var a) ? a : (Guid?)null;
     var targetAppUserId = await db.Users
         .Where(u => u.Issuer == null && u.ExternalId == targetIdentityUserId)
         .Select(u => (Guid?)u.Id)

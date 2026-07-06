@@ -13,6 +13,7 @@
     <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
     <ProjectReference Include="..\Am.Keyward.Infrastructure\Am.Keyward.Infrastructure.csproj" />
     <ProjectReference Include="..\Am.Keyward.Api\Am.Keyward.Api.csproj" />
+    <ProjectReference Include="..\Am.Keyward.AspNetCore\Am.Keyward.AspNetCore.csproj" />
     <ProjectReference Include="..\Am.Keyward.Ui.Blazor\Am.Keyward.Ui.Blazor.csproj" />
   </ItemGroup>
 

@@ -7,6 +7,14 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **New `Am.Keyward.AspNetCore` hosting-glue package** so an embedding host no longer copy-pastes the
+  wiring from the reference shell. It provides `KeywardClaims` (the `keyward:user_id` /
+  `keyward:is_system_admin` claim names, one source of truth), `app.UseKeywardCurrentUser()` (HTTP middleware
+  that establishes the server-authoritative current user from the principal) and `AddKeywardBlazorUserScope()`
+  (the Blazor Server circuit-handler counterpart). It is identity-provider-agnostic — the host's auth layer
+  stamps the claims (ASP.NET Identity, external OIDC, ...), this package consumes them — so it forces no
+  ASP.NET Core Identity dependency. Tenant selection stays the host's own concern. The reference shell now
+  consumes the package instead of hand-rolling the middleware and per-circuit user handler.
 - **E-mail confirmation on registration (enumeration-safe).** Registration now creates the account inactive
   and sends a confirmation link (`RequireConfirmedAccount`); it always shows the same "check your e-mail"
   result whether or not the address is already registered, so it no longer leaks account existence via a
