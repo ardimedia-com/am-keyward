@@ -61,14 +61,14 @@
   <data name="Nav.Home" xml:space="preserve"><value>Start</value></data>
   <data name="Nav.PersonalVaults" xml:space="preserve"><value>Persönliche Tresore</value></data>
   <data name="Nav.TeamVaults" xml:space="preserve"><value>Team-Tresore</value></data>
-  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software-Zugangsdaten</value></data>
-  <data name="Nav.ClientTokens" xml:space="preserve"><value>Client-Tokens</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software-Secrets</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>App-Tokens</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Anmelden</value></data>
   <data name="Nav.SignOut" xml:space="preserve"><value>Abmelden</value></data>
   <data name="Language" xml:space="preserve"><value>Sprache</value></data>
-  <data name="Home.Tagline" xml:space="preserve"><value>Ein quelloffener, .NET-nativer Zugangsdaten- und Secrets-Manager — Software-Zugangsdaten und persönliche Tresore.</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Bewahrt die Zugangsdaten von dir und deiner Organisation sicher an einem Ort auf: Passwörter und Logins liegen in persönlichen und geteilten Team-Tresoren, stark verschlüsselt. Zusätzlich versorgt es deine ausgerollte Software zur Laufzeit mit ihren Secrets — API-Schlüssel, Connection-Strings und mehr, pro Applikation und Umgebung. Du bestimmst, wer was sieht, und jeder Zugriff wird protokolliert.</value></data>
   <data name="Home.QuickLinks" xml:space="preserve"><value>Schnellzugriff</value></data>
-  <data name="Home.SignInPrompt" xml:space="preserve"><value>Melde dich an, um deine Tresore und Software-Zugangsdaten zu verwalten.</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Melde dich an, um deine Tresore und Software-Secrets zu verwalten.</value></data>
   <data name="Home.Register" xml:space="preserve"><value>Registrieren</value></data>
   <data name="Login.Title" xml:space="preserve"><value>Anmelden</value></data>
   <data name="Login.Email" xml:space="preserve"><value>E-Mail</value></data>
@@ -90,13 +90,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Bereits ein Konto?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Anmelden</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Persönliche Tresore</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Deine privaten Tresore für persönliche Logins, sichere Notizen und andere Secrets. Sie gehören dir allein — verschlüsselt, sodass niemand sonst sie lesen kann, nicht einmal ein Administrator. Nutze sie wie einen persönlichen Passwortmanager: speichere pro Website ein Login, zeige das Passwort nur an, wenn du es brauchst, und ordne Einträge in Ordnern.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Deine privaten Tresore — verschlüsselt und nur für dich sichtbar. Speichere Logins, sichere Notizen und andere Secrets.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Team-Tresore</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Tresore, die deinem Mandanten (deiner Organisation) gehören und über Berechtigungen mit Kollegen geteilt werden. Nutze sie für Zugangsdaten, die ein Team gemeinsam braucht — geteilte Service-Konten, WLAN-Schlüssel, Lizenzschlüssel — wobei du pro Person festlegst, wer jeden Tresor lesen, bearbeiten oder verwalten darf. Das Teilen ist explizit: Ein Kollege sieht nur die Tresore, die du ihm gewährst.</value></data>
-  <data name="Page.Secrets.Title" xml:space="preserve"><value>Software-Zugangsdaten</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Software-Zugangsdaten sind die Maschinen-Secrets, die deine Anwendungen zur Laufzeit brauchen — API-Schlüssel, Connection-Strings, Signierschlüssel und Ähnliches — verschlüsselt gespeichert und nach Umgebung gruppiert (Development / Test / Preview / Production). Statt diese Werte in die eigenen Konfigurationsdateien deiner App zu schreiben, holt sie deine ausgerollte Software beim Start von hier über die Lese-API, mit einem Client-Token. Auf dieser Seite erstellst und verwaltest du die Werte; auf der Seite Client-Tokens stellst du die Tokens aus, mit denen deine Software sie liest.</value></data>
-  <data name="Page.Tokens.Title" xml:space="preserve"><value>Client-Tokens</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Mit Client-Tokens authentifiziert sich deine ausgerollte Software gegenüber AM KEYWARD und liest zur Laufzeit die Software-Zugangsdaten dieses Projekts — sodass Secrets nie in der eigenen Konfiguration der App liegen müssen. Jeder Token ist auf eine einzige Umgebung beschränkt, sodass ein durchgesickerter Production-Token trotzdem kein Development lesen kann. Der geheime Wert des Tokens wird nur einmal angezeigt, bei der Ausstellung — kopiere ihn sofort und hinterlege ihn in der Konfiguration deiner App.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Tresore, die deine Organisation teilt — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Software-Secrets</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Die Werte, die deine Anwendungen zur Laufzeit lesen — API-Schlüssel, Connection-Strings und mehr, pro Applikation und Umgebung. Links wählst du die Applikation.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>App-Tokens</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Mit einem App-Token meldet sich deine ausgerollte Software an und liest die Software-Secrets der links gewählten Applikation. Jeder Token gehört zu genau EINER Umgebung und liefert nur deren Werte — der Production-Token liest die Production-Werte, der Test-Token die Test-Werte. Ein durchgesickerter Test-Token kann darum nie Production-Secrets preisgeben.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>Profil ansehen</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Profil</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Dein Konto.</value></data>
@@ -123,7 +123,7 @@
   <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Deine Tresore</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team-Tresore gehören dem Mandanten und werden über Berechtigungen mit Personen geteilt. Du siehst jene, die dir gehören oder auf die dir Zugriff gewährt wurde. Wenn du einen Tresor teilst, kann ein Kollege seine Einträge lesen oder bearbeiten.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Persönliche Tresore gehören nur dir — niemand sonst kann sie sehen. Verwende sie für deine eigenen Logins, Notizen und Secrets.</value></data>
-  <data name="Vault.List.Empty" xml:space="preserve"><value>Noch keine Tresore — erstelle unten einen.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>Noch keine Tresore.</value></data>
   <data name="Vault.Filter" xml:space="preserve"><value>Tresore filtern…</value></data>
   <data name="Vault.NewNameTeam" xml:space="preserve"><value>Name des neuen Team-Tresors</value></data>
   <data name="Vault.NewNamePersonal" xml:space="preserve"><value>Name des neuen Tresors</value></data>
@@ -134,14 +134,13 @@
   <data name="Vault.Import.Title" xml:space="preserve"><value>Logins importieren</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Lade einen Browser-Passwortexport hoch (Microsoft Edge / Chrome CSV: name, url, username, password, note). Jede Zeile wird zu einem Login-Eintrag in diesem Tresor.</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Ordner</value></data>
-  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Ordner sind optionale Bezeichnungen, um Einträge innerhalb eines Tresors zu gruppieren. Beim Löschen eines Ordners bleiben seine Einträge erhalten (sie wandern zurück in die Tresor-Wurzel).</value></data>
-  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Ordner filtern…</value></data>
-  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Ordner löschen?</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Ordner gruppieren die Einträge eines Tresors und können Unterordner enthalten. Beim Löschen eines Ordners bleiben Inhalte erhalten — Einträge und Unterordner wandern in den übergeordneten Ordner.</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Diesen Ordner löschen? Seine Einträge und Unterordner wandern in den übergeordneten Ordner.</value></data>
   <data name="Vault.Folders.NewName" xml:space="preserve"><value>Name des neuen Ordners</value></data>
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Ordner hinzufügen</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Einträge</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Eintrag hinzufügen</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>Ein Tresor-Eintrag ist ein gespeichertes Secret. Ein Login enthält eine Website-Adresse, einen Benutzernamen und ein Passwort — ideal für Anmeldedaten; die anderen Typen enthalten eine sichere Notiz oder einen einzelnen Secret-Wert. Werte sind verschlüsselt gespeichert und werden nur angezeigt, wenn du Ansehen wählst. Um einen Eintrag zu entfernen, wähle zuerst Löschen…, um seine Detailansicht zu öffnen, und bestätige dann — damit nichts versehentlich gelöscht wird.</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Ein Eintrag ist ein gespeichertes Secret — ein Website-Login, eine sichere Notiz oder ein einzelner Wert. Werte bleiben verschlüsselt; klicke auf einen Eintrag für Details.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>in</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>“{0}” bearbeiten</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>z. B. GitHub</value></data>
@@ -192,18 +191,16 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret gelöscht.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Neuer Token (kopiere ihn jetzt — er wird nicht erneut angezeigt):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Token ausstellen</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Stelle pro Anwendung und Umgebung einen Token aus. Gib ihm einen klaren Namen (zu welcher App oder welchem Dienst er gehört), optional eine Notiz (wo er läuft, Eigentümer, Ticket) und optional ein Ablaufdatum, nach dem er nicht mehr funktioniert. Jeden Token auf eine einzige Umgebung zu beschränken hält den Schaden klein, falls einer einmal durchsickert.</value></data>
-  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Stelle pro Anwendung und Umgebung einen Token aus. Den Namen vergibt der Server automatisch als «applikation-umgebung» (bei Bedarf durchnummeriert) — du kannst aber auch einen eigenen setzen, z. B. mit Host- oder Zweck-Zusatz. Optional: eine Notiz (wo er läuft, Eigentümer, Ticket) und ein Ablaufdatum, nach dem er nicht mehr funktioniert. Jeden Token auf eine einzige Umgebung zu beschränken hält den Schaden klein, falls einer einmal durchsickert.</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Notiz (optional)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>wo er verwendet wird, Eigentümer, Ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Läuft ab in (Tagen, optional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Vorhandene Tokens</value></data>
   <data name="Token.Existing.Desc" xml:space="preserve"><value>Jeder Token wird mit seinem Präfix (dem sichtbaren Anfang des Werts, um ihn zu erkennen), Erstellungsdatum, Ablauf und Status aufgeführt. Bearbeiten ändert Name und Notiz; Rotieren stellt einen frischen geheimen Wert für denselben Token aus und macht den alten sofort ungültig (nutze es planmässig oder nach einem vermuteten Leck); Widerrufen deaktiviert ihn dauerhaft.</value></data>
-  <data name="Token.Edit.Title" xml:space="preserve"><value>Token bearbeiten</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>Noch keine Tokens — stelle oben einen aus.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Tokens filtern…</value></data>
-  <data name="Token.Prefix" xml:space="preserve"><value>Präfix</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Kennung (Token-Anfang)</value></data>
   <data name="Token.Created" xml:space="preserve"><value>Erstellt</value></data>
   <data name="Token.Expires" xml:space="preserve"><value>Läuft ab</value></data>
   <data name="Token.Status" xml:space="preserve"><value>Status</value></data>
@@ -221,11 +218,11 @@
   <data name="Error.RequestId" xml:space="preserve"><value>Anfrage-ID:</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Nicht gefunden</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Der gesuchte Inhalt existiert leider nicht.</value></data>
-  <data name="Token.UsageNote" xml:space="preserve"><value>So verwendest du ihn: Hinterlege den Token in der Konfiguration deiner ausgerollten App (einer Umgebungsvariable oder einem Secret-Store) und lass die App dann die Lese-API von AM KEYWARD mit dem Header “Authorization: Bearer &lt;token&gt;” aufrufen, um die Secrets dieses Projekts für seine Umgebung zu laden, üblicherweise beim Start. Secrets liegen daher nie in den eigenen Dateien deiner App. Wenn ein Token durchsickert, rotiere ihn, um seinen Wert zu ersetzen, oder widerrufe ihn, um ihn zu deaktivieren — deine anderen Tokens funktionieren weiter.</value></data>
-  <data name="Secret.UsageNote" xml:space="preserve"><value>So passt es zusammen: Du speicherst einen Wert hier einmal pro Umgebung; deine ausgerollte Software liest ihn zur Laufzeit mit einem Client-Token (siehe die Seite Client-Tokens). Änderst du hier einen Wert, übernimmt ihn der nächste Lesevorgang — ohne erneutes Ausrollen deiner App.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>So funktioniert das Auslesen: Hinterlege den Token in der Konfiguration deiner ausgerollten App (Umgebungsvariable oder Secret-Store) und rufe die Lese-API dieses Servers mit dem HTTP-Header «Authorization: Bearer &lt;token&gt;» auf. GET /keyward/api/v1/secrets liefert ALLE Secrets der Token-Umgebung als JSON (Schlüssel → Wert; typischerweise beim App-Start in die Konfiguration geladen); GET /keyward/api/v1/secrets/{Schlüssel} liefert einen einzelnen Wert. Projekt UND Umgebung leitet der Server allein aus dem Token ab — die App übermittelt sonst nichts. Beispiel: curl -H 'Authorization: Bearer amkw_...' https://keyward.example.com/keyward/api/v1/secrets. Wenn ein Token durchsickert: Rotieren ersetzt seinen Wert, Widerrufen deaktiviert ihn — deine anderen Tokens laufen weiter.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>So passt es zusammen: Du speicherst einen Wert hier einmal pro Umgebung; deine ausgerollte Software liest ihn zur Laufzeit mit einem App-Token (siehe die Seite App-Tokens). Änderst du hier einen Wert, übernimmt ihn der nächste Lesevorgang — ohne erneutes Ausrollen deiner App.</value></data>
   <data name="Nav.AdminUsers" xml:space="preserve"><value>Benutzer</value></data>
   <data name="Admin.Users.Title" xml:space="preserve"><value>Benutzer</value></data>
-  <data name="Admin.Users.Desc" xml:space="preserve"><value>Ein gesperrtes Konto entsperren oder einen Benutzer deaktivieren und wieder aktivieren.</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Alle Konten dieser Installation: entsperre ein gesperrtes Konto, deaktiviere oder reaktiviere es und weise die Tenant-Rolle zu — Mitglieder nutzen den Tenant, Tenant-Admins verwalten ihn. Der letzte Tenant-Admin kann nie herabgestuft werden.</value></data>
   <data name="Admin.Users.User" xml:space="preserve"><value>Benutzer</value></data>
   <data name="Admin.Users.Status" xml:space="preserve"><value>Status</value></data>
   <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>System-Admin</value></data>
@@ -248,4 +245,360 @@
   <data name="Confirm.Title" xml:space="preserve"><value>E-Mail bestätigen</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Deine E-Mail ist bestätigt. Du kannst dich jetzt anmelden:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Dieser Bestätigungslink ist ungültig oder abgelaufen.</value></data>
+  <data name="Page.Personal.Help" xml:space="preserve">
+    <value>Deine privaten Tresore für persönliche Logins, sichere Notizen und andere Secrets. Sie gehören dir allein — verschlüsselt, sodass niemand sonst sie lesen kann, nicht einmal ein Administrator. Nutze sie wie einen persönlichen Passwortmanager: speichere pro Website ein Login, zeige das Passwort nur an, wenn du es brauchst, und ordne Einträge in Ordnern.</value>
+  </data>
+  <data name="Page.Team.Help" xml:space="preserve">
+    <value>Tresore, die deinem Mandanten (deiner Organisation) gehören und über Berechtigungen mit Kollegen geteilt werden. Nutze sie für Zugangsdaten, die ein Team gemeinsam braucht — geteilte Service-Konten, WLAN-Schlüssel, Lizenzschlüssel — wobei du pro Person festlegst, wer jeden Tresor lesen, bearbeiten oder verwalten darf. Das Teilen ist explizit: Ein Kollege sieht nur die Tresore, die du ihm gewährst.</value>
+  </data>
+  <data name="Page.Secrets.Help" xml:space="preserve">
+    <value>Software-Secrets sind die Maschinen-Secrets, die deine Anwendungen zur Laufzeit brauchen — API-Schlüssel, Connection-Strings, Signierschlüssel und Ähnliches — verschlüsselt gespeichert und nach Umgebung gruppiert (Development / Test / Preview / Production). Statt diese Werte in die eigenen Konfigurationsdateien deiner App zu schreiben, holt sie deine ausgerollte Software beim Start von hier über die Lese-API, mit einem App-Token. Auf dieser Seite erstellst und verwaltest du die Werte; auf der Seite App-Tokens stellst du die Tokens aus, mit denen deine Software sie liest.</value>
+  </data>
+  <data name="Page.Tokens.Help" xml:space="preserve">
+    <value>Mit App-Tokens authentifiziert sich deine ausgerollte Software gegenüber {0} und liest zur Laufzeit die Software-Secrets dieses Projekts — sodass Secrets nie in der eigenen Konfiguration der App liegen müssen. Jeder Token ist auf eine einzige Umgebung beschränkt, sodass ein durchgesickerter Production-Token trotzdem kein Development lesen kann. Der geheime Wert des Tokens wird nur einmal angezeigt, bei der Ausstellung — kopiere ihn sofort und hinterlege ihn in der Konfiguration deiner App.</value>
+  </data>
+  <data name="Nav.Group.Vaults" xml:space="preserve">
+    <value>Tresore</value>
+  </data>
+  <data name="Nav.Group.Software" xml:space="preserve">
+    <value>Software</value>
+  </data>
+  <data name="Common.HowItWorks" xml:space="preserve">
+    <value>Wie funktioniert das?</value>
+  </data>
+  <data name="Home.Tile.Personal" xml:space="preserve">
+    <value>Deine privaten Logins, sicheren Notizen und Secrets — verschlüsselt und nur für dich sichtbar; nicht einmal ein Administrator kann sie lesen. Wie ein persönlicher Passwortmanager: zum Beispiel ein Website-Login, eine PIN oder ein Lizenzschlüssel.</value>
+  </data>
+  <data name="Home.Tile.Team" xml:space="preserve">
+    <value>Gemeinsame Tresore für deine Organisation — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf. Für Zugangsdaten, die ein Team gemeinsam braucht: zum Beispiel das WLAN-Passwort, ein geteiltes Service-Konto oder Lizenzschlüssel.</value>
+  </data>
+  <data name="Home.Tile.Secrets" xml:space="preserve">
+    <value>Werte, die deine Anwendungen zur Laufzeit lesen, statt sie in Konfigurationsdateien abzulegen — gepflegt pro Umgebung (Development bis Production): zum Beispiel ein API-Schlüssel, ein Datenbank-Connection-String oder ein Signierschlüssel. Änderungen wirken ohne erneutes Ausrollen deiner App.</value>
+  </data>
+  <data name="Home.Tile.Tokens" xml:space="preserve">
+    <value>Der Schlüssel, mit dem sich deine ausgerollte Software bei {0} anmeldet und die Software-Secrets dieses Projekts liest. Jeder Token gilt für genau eine Umgebung und lässt sich jederzeit rotieren oder widerrufen — du hinterlegst ihn einmal in der Konfiguration deiner App.</value>
+  </data>
+  <data name="Vault.Manage.Title" xml:space="preserve">
+    <value>Tresor-Einstellungen</value>
+  </data>
+  <data name="Vault.Manage.Desc" xml:space="preserve">
+    <value>Diesen Tresor umbenennen oder endgültig löschen.</value>
+  </data>
+  <data name="Vault.Items.FolderAll" xml:space="preserve">
+    <value>Alle Ordner</value>
+  </data>
+  <data name="Vault.ConfirmDeleteItem" xml:space="preserve">
+    <value>Diesen Eintrag löschen? Dies kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="Type.Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Type.SecureNote" xml:space="preserve">
+    <value>Sichere Notiz</value>
+  </data>
+  <data name="Type.ApiCredential" xml:space="preserve">
+    <value>API-Zugangsdaten</value>
+  </data>
+  <data name="Type.ConnectionString" xml:space="preserve">
+    <value>Connection-String</value>
+  </data>
+  <data name="Type.Generic" xml:space="preserve">
+    <value>Allgemein</value>
+  </data>
+  <data name="Permission.Read" xml:space="preserve">
+    <value>Lesen</value>
+  </data>
+  <data name="Permission.Write" xml:space="preserve">
+    <value>Schreiben</value>
+  </data>
+  <data name="Permission.Manage" xml:space="preserve">
+    <value>Verwalten</value>
+  </data>
+  <data name="Home.Group.Vaults.Desc" xml:space="preserve">
+    <value>Für dich und dein Team — Passwörter und Geheimnisse, die Menschen verwenden.</value>
+  </data>
+  <data name="Home.Group.Software.Desc" xml:space="preserve">
+    <value>Für deine Anwendungen — Secrets, die Software zur Laufzeit automatisch liest.</value>
+  </data>
+  <data name="Vault.CreateCard.Title" xml:space="preserve">
+    <value>Neuer Tresor</value>
+  </data>
+  <data name="Vault.CreateCard.DescPersonal" xml:space="preserve">
+    <value>Ein Tresor ist wie ein beschrifteter Ordner für zusammengehörende Einträge — sein Name sagt dir auf einen Blick, was drin ist. Mehrere Tresore helfen, Lebensbereiche zu trennen: zum Beispiel «Privat» für eigene Logins, «Arbeit» für Berufliches, «Familie» für zu Hause genutzte Konten oder «Banking» für besonders Sensibles.</value>
+  </data>
+  <data name="Vault.CreateCard.DescTeam" xml:space="preserve">
+    <value>Der Name sagt allen Berechtigten auf einen Blick, was drin ist. Mehrere Tresore lohnen sich, weil jeder Tresor separat geteilt wird: je Team oder Abteilung («IT», «Buchhaltung»), je Funktion oder Aufgabe («Online-Bestellungen», «Verträge»), je Kunde oder Projekt, oder «Infrastruktur» für Server- und WLAN-Zugänge, die nur Administratoren sehen sollen.</value>
+  </data>
+  <data name="Vault.Suggest.Label" xml:space="preserve">
+    <value>Vorschläge:</value>
+  </data>
+  <data name="Vault.Suggest.Personal" xml:space="preserve">
+    <value>Privat,Arbeit,Familie,Banking</value>
+  </data>
+  <data name="Vault.Suggest.Team" xml:space="preserve">
+    <value>IT,Buchhaltung,Online-Bestellungen,Verträge,Infrastruktur,Kunden</value>
+  </data>
+  <data name="Vault.Default.Cta" xml:space="preserve">
+    <value>Standard-Tresor «{0}» erstellen</value>
+  </data>
+  <data name="Nav.Group.Admin" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Admin.Users.TenantRole" xml:space="preserve">
+    <value>Tenant-Rolle</value>
+  </data>
+  <data name="Admin.Users.Role.TenantAdmin" xml:space="preserve">
+    <value>Tenant-Admin</value>
+  </data>
+  <data name="Admin.Users.Role.Member" xml:space="preserve">
+    <value>Mitglied</value>
+  </data>
+  <data name="Admin.Users.MakeTenantAdmin" xml:space="preserve">
+    <value>Zum Tenant-Admin machen</value>
+  </data>
+  <data name="Admin.Users.MakeMember" xml:space="preserve">
+    <value>Zu Mitglied machen</value>
+  </data>
+  <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
+    <value>Das Konto «{0}» endgültig löschen? Persönliche Tresore und Zugriffe werden entfernt. Dies kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>Kopieren</value>
+  </data>
+  <data name="Common.Open" xml:space="preserve">
+    <value>Öffnen</value>
+  </data>
+  <data name="Vault.SelectHint" xml:space="preserve">
+    <value>Oder wähle links einen Tresor, um seine Einträge zu sehen.</value>
+  </data>
+  <data name="Vault.Search.Placeholder" xml:space="preserve">
+    <value>In allen Tresoren suchen (Name, URL, Benutzername, Notiz)…</value>
+  </data>
+  <data name="Vault.Search.Title" xml:space="preserve">
+    <value>Suchergebnisse</value>
+  </data>
+  <data name="Vault.Search.Count" xml:space="preserve">
+    <value>{0} passende Einträge — das Passwort-Feld wird nie durchsucht.</value>
+  </data>
+  <data name="Vault.Search.Empty" xml:space="preserve">
+    <value>Keine Einträge entsprechen deiner Suche.</value>
+  </data>
+  <data name="Vault.Folders.Properties" xml:space="preserve">
+    <value>Ordner-Eigenschaften</value>
+  </data>
+  <data name="Vault.Folders.NewSub" xml:space="preserve">
+    <value>Neuer Unterordner</value>
+  </data>
+  <data name="Vault.Move.Label" xml:space="preserve">
+    <value>Verschieben nach:</value>
+  </data>
+  <data name="Vault.Move.Action" xml:space="preserve">
+    <value>Verschieben</value>
+  </data>
+  <data name="Vault.Msg.Moved" xml:space="preserve">
+    <value>Eintrag verschoben.</value>
+  </data>
+  <data name="Vault.Select.Count" xml:space="preserve">
+    <value>{0} ausgewählt</value>
+  </data>
+  <data name="Vault.Select.Clear" xml:space="preserve">
+    <value>Auswahl aufheben</value>
+  </data>
+  <data name="Vault.Msg.FolderMoved" xml:space="preserve">
+    <value>Ordner verschoben.</value>
+  </data>
+  <data name="Vault.Share.Boundary" xml:space="preserve">
+    <value>Der Tresor ist zugleich Berechtigungs- und Verschlüsselungsgrenze: Jeder Eintrag ist kryptografisch an seinen Tresor gebunden, und eine Freigabe gilt immer für den ganzen Tresor — Ordner sind reine Organisation, keine Sicherheitsgrenze. Braucht ein anderer Personenkreis Zugriff, verwende einen eigenen Tresor (z. B. «IT», «Buchhaltung», «Kunden») und teile ihn separat.</value>
+  </data>
+  <data name="Nav.Groups" xml:space="preserve">
+    <value>Gruppen</value>
+  </data>
+  <data name="Page.Groups.Title" xml:space="preserve">
+    <value>Gruppen</value>
+  </data>
+  <data name="Page.Groups.Desc" xml:space="preserve">
+    <value>Benannte Gruppen von Mitgliedern — teile einen Tresor einmal mit einer Gruppe (z. B. «IT») statt mit jeder Person einzeln. Tenant-Admins verwalten Gruppen; die Admins einer Gruppe verwalten deren Mitglieder.</value>
+  </data>
+  <data name="Groups.Empty" xml:space="preserve">
+    <value>Noch keine Gruppen.</value>
+  </data>
+  <data name="Groups.New.Placeholder" xml:space="preserve">
+    <value>Name der neuen Gruppe</value>
+  </data>
+  <data name="Groups.Create" xml:space="preserve">
+    <value>Gruppe erstellen</value>
+  </data>
+  <data name="Groups.MemberCount" xml:space="preserve">
+    <value>{0} Mitglied(er)</value>
+  </data>
+  <data name="Groups.Members.Desc" xml:space="preserve">
+    <value>Wer zu dieser Gruppe gehört. Alle hier erhalten, was der Gruppe gewährt wird (z. B. geteilte Tresore).</value>
+  </data>
+  <data name="Groups.Members.Empty" xml:space="preserve">
+    <value>Noch keine Mitglieder.</value>
+  </data>
+  <data name="Groups.Members.SelectUser" xml:space="preserve">
+    <value>Person auswählen…</value>
+  </data>
+  <data name="Groups.Members.Add" xml:space="preserve">
+    <value>Hinzufügen</value>
+  </data>
+  <data name="Groups.Role" xml:space="preserve">
+    <value>Rolle</value>
+  </data>
+  <data name="GroupRole.Member" xml:space="preserve">
+    <value>Mitglied</value>
+  </data>
+  <data name="GroupRole.Admin" xml:space="preserve">
+    <value>Gruppen-Admin</value>
+  </data>
+  <data name="Groups.MakeAdmin" xml:space="preserve">
+    <value>Zum Gruppen-Admin machen</value>
+  </data>
+  <data name="Groups.Remove" xml:space="preserve">
+    <value>Entfernen</value>
+  </data>
+  <data name="Groups.Delete" xml:space="preserve">
+    <value>Gruppe löschen</value>
+  </data>
+  <data name="Groups.ConfirmDelete" xml:space="preserve">
+    <value>Die Gruppe «{0}» löschen? Ihre Mitgliedschaften und alle ihr gewährten Zugriffe werden entfernt.</value>
+  </data>
+  <data name="Groups.Msg.Created" xml:space="preserve">
+    <value>Gruppe erstellt.</value>
+  </data>
+  <data name="Groups.Msg.Renamed" xml:space="preserve">
+    <value>Gruppe umbenannt.</value>
+  </data>
+  <data name="Groups.Msg.Deleted" xml:space="preserve">
+    <value>Gruppe gelöscht.</value>
+  </data>
+  <data name="Groups.Badge" xml:space="preserve">
+    <value>Gruppe</value>
+  </data>
+  <data name="Vault.Share.People" xml:space="preserve">
+    <value>Personen</value>
+  </data>
+  <data name="Vault.Share.Groups" xml:space="preserve">
+    <value>Gruppen</value>
+  </data>
+  <data name="Vault.Share.Revoke" xml:space="preserve">
+    <value>Entziehen</value>
+  </data>
+  <data name="Vault.Msg.Revoked" xml:space="preserve">
+    <value>Zugriff entzogen.</value>
+  </data>
+  <data name="Groups.SelectHint" xml:space="preserve">
+    <value>Wähle links eine Gruppe, um ihre Mitglieder zu sehen.</value>
+  </data>
+  <data name="Groups.Settings.Title" xml:space="preserve">
+    <value>Gruppen-Einstellungen</value>
+  </data>
+  <data name="Groups.Settings.Desc" xml:space="preserve">
+    <value>Diese Gruppe umbenennen oder endgültig löschen.</value>
+  </data>
+  <data name="Groups.AddMember.Title" xml:space="preserve">
+    <value>Mitglied hinzufügen</value>
+  </data>
+  <data name="Groups.Members.Title" xml:space="preserve">
+    <value>Mitglieder</value>
+  </data>
+  <data name="Vault.Export.Title" xml:space="preserve">
+    <value>Logins exportieren</value>
+  </data>
+  <data name="Vault.Export.Desc" xml:space="preserve">
+    <value>Lädt die LOGIN-Einträge dieses Tresors als browser-kompatible CSV herunter (name, url, username, password, note) — wieder importierbar hier oder in Microsoft Edge / Google Chrome. Die Datei enthält die Passwörter im KLARTEXT: sicher aufbewahren und nach Gebrauch löschen. Andere Eintragstypen (Notizen, Werte) sind nicht Teil dieses Formats.</value>
+  </data>
+  <data name="Vault.Export.Create" xml:space="preserve">
+    <value>CSV erstellen</value>
+  </data>
+  <data name="Vault.Export.Download" xml:space="preserve">
+    <value>CSV herunterladen</value>
+  </data>
+  <data name="Vault.Export.Ready" xml:space="preserve">
+    <value>{0} Login(s) zum Herunterladen bereit.</value>
+  </data>
+  <data name="Secret.SelectHint" xml:space="preserve">
+    <value>Wähle links einen Eintrag, um seine Werte pro Umgebung zu sehen und zu setzen.</value>
+  </data>
+  <data name="Secret.ConfirmDelete" xml:space="preserve">
+    <value>«{0}» in allen Umgebungen löschen? Software, die diesen Schlüssel liest, erhält keinen Wert mehr.</value>
+  </data>
+  <data name="Token.SelectHint" xml:space="preserve">
+    <value>Wähle links einen Token, um seine Details zu sehen, ihn zu rotieren oder zu widerrufen.</value>
+  </data>
+  <data name="Token.ConfirmRevoke" xml:space="preserve">
+    <value>«{0}» widerrufen? Software mit diesem Token verliert sofort den Zugriff — das kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="Token.Expires.Never" xml:space="preserve">
+    <value>Nie</value>
+  </data>
+  <data name="Secret.Envs.Title" xml:space="preserve">
+    <value>Umgebungen</value>
+  </data>
+  <data name="Secret.Envs.Desc" xml:space="preserve">
+    <value>Die Umgebungen dieser Applikation — jedes Secret hält pro Umgebung einen Wert, und jeder App-Token gilt für genau eine. Eine neue Umgebung erhält automatisch einen App-Token (noch ohne Wert) und steht sofort für alle Secrets bereit. Beim Löschen einer Umgebung werden ihre Werte und ihre App-Tokens mitgelöscht; die letzte Umgebung kann nicht gelöscht werden.</value>
+  </data>
+  <data name="Secret.Envs.NewName" xml:space="preserve">
+    <value>Name der neuen Umgebung</value>
+  </data>
+  <data name="Secret.Envs.Add" xml:space="preserve">
+    <value>Umgebung hinzufügen</value>
+  </data>
+  <data name="Secret.Envs.Msg.Added" xml:space="preserve">
+    <value>Umgebung hinzugefügt — inklusive App-Token (noch ohne Wert).</value>
+  </data>
+  <data name="Secret.Envs.ConfirmDelete" xml:space="preserve">
+    <value>Die Umgebung «{0}» löschen? Alle Werte in dieser Umgebung werden gelöscht und ihre App-Tokens widerrufen. Dies kann nicht rückgängig gemacht werden.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Renamed" xml:space="preserve">
+    <value>Umgebung umbenannt.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Deleted" xml:space="preserve">
+    <value>Umgebung gelöscht.</value>
+  </data>
+  <data name="Token.Reactivate" xml:space="preserve"><value>Wieder aktivieren</value></data>
+  <data name="Token.ConfirmDelete" xml:space="preserve"><value>Token «{0}» endgültig löschen? Software, die ihn noch verwendet, kann sofort keine Secrets mehr lesen, und der Eintrag verschwindet aus dieser Liste (anders als Widerrufen nicht rückgängig machbar).</value></data>
+  <data name="Token.Msg.Reactivated" xml:space="preserve"><value>Token wieder aktiviert — sein bisheriger Wert funktioniert wieder (das Ablaufdatum bleibt unverändert).</value></data>
+  <data name="Token.Msg.Deleted" xml:space="preserve"><value>Token gelöscht.</value></data>
+  <data name="Nav.Applications" xml:space="preserve"><value>Applikationen</value></data>
+  <data name="Page.Apps.Title" xml:space="preserve"><value>Applikationen</value></data>
+  <data name="Page.Apps.Desc" xml:space="preserve"><value>Eine Applikation steht für EINE ausgerollte Software und bündelt deren Umgebungen, Software-Secrets und App-Tokens. So liest jeder Token nur die Secrets seiner eigenen Applikation.</value></data>
+  <data name="Page.Apps.Help" xml:space="preserve"><value>Lege pro ausgerollter Software eine Applikation an (z. B. «webshop», «backend»). Jede Applikation hat ihre eigenen Umgebungen (etwa Development/Test/Production), ihre eigenen Software-Secrets und ihre eigenen App-Tokens. Diese Trennung ist die Sicherheitsgrenze: Ein Token gehört immer zu genau einer Applikation und einer Umgebung — er kann nie die Secrets einer anderen Applikation oder Umgebung lesen. Jede Umgebung erhält automatisch einen App-Token OHNE Wert; den Wert erzeugst du auf der App-Tokens-Seite, wenn du ihn wirklich brauchst — bis dahin kann sich der Platzhalter nicht anmelden. Das Löschen einer Applikation entfernt auch ihre Umgebungen, Secrets und Tokens.</value></data>
+  <data name="App.Empty" xml:space="preserve"><value>Noch keine Applikationen — ein Tenant-Admin legt links eine an.</value></data>
+  <data name="App.SelectHint" xml:space="preserve"><value>Wähle links eine Applikation.</value></data>
+  <data name="App.NoneHint" xml:space="preserve"><value>Es gibt noch keine Applikation. Lege zuerst auf der Seite «Applikationen» eine an — sie bündelt Umgebungen, Software-Secrets und App-Tokens einer ausgerollten Software.</value></data>
+  <data name="App.GoToApps" xml:space="preserve"><value>Zu den Applikationen</value></data>
+  <data name="App.New.Placeholder" xml:space="preserve"><value>Neue Applikation…</value></data>
+  <data name="App.Create" xml:space="preserve"><value>Applikation anlegen</value></data>
+  <data name="App.Settings.Title" xml:space="preserve"><value>Applikations-Einstellungen</value></data>
+  <data name="App.Settings.Desc" xml:space="preserve"><value>Benenne die Applikation um — oder lösche sie in der Gefahrenzone unten.</value></data>
+  <data name="App.Delete" xml:space="preserve"><value>Applikation löschen</value></data>
+  <data name="App.ConfirmDelete" xml:space="preserve"><value>Applikation «{0}» endgültig löschen? Ihre Umgebungen, ALLE Software-Secrets (inklusive aller Versionen) und ALLE App-Tokens werden mitgelöscht — Software, die noch Tokens dieser Applikation verwendet, kann sofort keine Secrets mehr lesen.</value></data>
+  <data name="App.Msg.Created" xml:space="preserve"><value>Applikation angelegt — mit den Standard-Umgebungen und je einem App-Token (noch ohne Wert).</value></data>
+  <data name="App.Msg.Renamed" xml:space="preserve"><value>Applikation umbenannt.</value></data>
+  <data name="App.Msg.Deleted" xml:space="preserve"><value>Applikation gelöscht.</value></data>
+  <data name="App.OpenSecrets" xml:space="preserve"><value>Software-Secrets öffnen</value></data>
+  <data name="App.OpenTokens" xml:space="preserve"><value>App-Tokens öffnen</value></data>
+  <data name="Home.Tile.Apps" xml:space="preserve"><value>Eine Applikation pro ausgerollter Software — bündelt ihre Umgebungen, Secrets und App-Tokens.</value></data>
+  <data name="Token.NameOptional" xml:space="preserve"><value>Name (optional)</value></data>
+  <data name="App.Content.Title" xml:space="preserve"><value>Software-Secrets &amp; App-Tokens</value></data>
+  <data name="App.Content.Desc" xml:space="preserve"><value>Öffnet die jeweilige Seite mit dieser Applikation vorausgewählt.</value></data>
+  <data name="Token.Status.Pending" xml:space="preserve"><value>Kein Wert</value></data>
+  <data name="Token.GenerateValue" xml:space="preserve"><value>Token-Wert erzeugen</value></data>
+  <data name="Token.Msg.Generated" xml:space="preserve"><value>Token-Wert erzeugt — kopiere ihn jetzt, er wird nicht erneut angezeigt.</value></data>
+  <data name="Theme.Color" xml:space="preserve"><value>Farbschema</value></data>
+  <data name="Theme.Dark" xml:space="preserve"><value>Hell/Dunkel umschalten</value></data>
+  <data name="Nav.DefaultEnvs" xml:space="preserve"><value>Standard-Umgebungen</value></data>
+  <data name="Page.DefaultEnvs.Title" xml:space="preserve"><value>Standard-Umgebungen</value></data>
+  <data name="Page.DefaultEnvs.Desc" xml:space="preserve"><value>Das Umgebungs-Set, das jede NEUE Applikation beim Anlegen erhält (inklusive je einem App-Token ohne Wert). Bestehende Applikationen sind nicht betroffen — deren Umgebungen pflegst du auf der Seite Applikationen.</value></data>
+  <data name="DefaultEnvs.BuiltInHint" xml:space="preserve"><value>Diese Organisation nutzt das eingebaute Standard-Set. «Anpassen» kopiert es in eine bearbeitbare, in der Datenbank gespeicherte Liste.</value></data>
+  <data name="DefaultEnvs.Customize" xml:space="preserve"><value>Anpassen</value></data>
+  <data name="DefaultEnvs.ConfirmDelete" xml:space="preserve"><value>Standard-Umgebung «{0}» entfernen? Neue Applikationen erhalten sie dann nicht mehr; bestehende Applikationen sind nicht betroffen. (Werden alle Einträge entfernt, gilt wieder das eingebaute Standard-Set.)</value></data>
+  <data name="DefaultEnvs.Msg.Customized" xml:space="preserve"><value>Standard-Set übernommen — du kannst es jetzt bearbeiten.</value></data>
+  <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Standard-Umgebung hinzugefügt.</value></data>
+  <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Eintrag entfernt — es gilt wieder das eingebaute Standard-Set.</value></data>
+  <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>Der Schlüssel «{0}» existiert bereits. Wähle ihn links in der Liste und setze seine Werte dort pro Umgebung — es wurde nichts überschrieben.</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-Mail erhalten, wenn App-Tokens bald ablaufen (30/20/10 Tage vorher, ab 9 Tagen täglich).</value></data>
+  <data name="Profile.Notify.Saved" xml:space="preserve"><value>Benachrichtigungs-Einstellung gespeichert.</value></data>
 </root>

@@ -10,12 +10,25 @@
                 <rect x="35" y="38" width="8" height="4.5" rx="1.5" />
                 <rect x="35" y="46" width="5.5" height="4.5" rx="1.5" />
             </g>
-        </svg>AM KEYWARD
+        </svg>@KeywardOptions.ProductName
     </a>
 </div>
 
 <nav class="nav-links">
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">@Loc["Nav.Home"]</NavLink>
-    @* The Keyward section links come from the RCL so routes aren't hardcoded here. *@
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><KeywardIcon Name="house" /><span>@Loc["Nav.Home"]</span></NavLink>
+    @* The Keyward section links (grouped, with icons) come from the RCL so routes aren't hardcoded here. *@
     <KeywardNav />
+    @* Administration — shell-specific composition, so it lives here, not in the RCL. Groups are visible
+       to every signed-in user (group admins manage their members there); the user administration stays
+       system-admin-only. *@
+    <AuthorizeView>
+        <div class="nav-group-label">@Loc["Nav.Group.Admin"]</div>
+    </AuthorizeView>
+    <AuthorizeView Policy="Keyward.SystemAdmin">
+        <NavLink class="nav-link" href="account/admin/users"><KeywardIcon Name="shield" /><span>@Loc["Nav.AdminUsers"]</span></NavLink>
+    </AuthorizeView>
+    <AuthorizeView>
+        <NavLink class="nav-link" href="@KeywardRoutes.Groups"><KeywardIcon Name="users-round" /><span>@Loc["Nav.Groups"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.DefaultEnvironments"><KeywardIcon Name="layers" /><span>@Loc["Nav.DefaultEnvs"]</span></NavLink>
+    </AuthorizeView>
 </nav>

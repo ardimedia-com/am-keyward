@@ -2,12 +2,13 @@
 @attribute [Authorize(Policy = "Keyward.SystemAdmin")]
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
+@using Am.Keyward.Core.Domain
 @using Am.Keyward.Infrastructure.Persistence
 @inject UserManager<IdentityUser> UserManager
 @inject KeywardDbContext Db
 @inject IStringLocalizer<SharedResource> Loc
 
-<PageTitle>AM KEYWARD</PageTitle>
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 <div class="page-header">
     <h1>@Loc["Admin.Users.Title"]</h1>
@@ -21,6 +22,7 @@
                 <tr>
                     <th>@Loc["Admin.Users.User"]</th>
                     <th>@Loc["Admin.Users.Status"]</th>
+                    <th>@Loc["Admin.Users.TenantRole"]</th>
                     <th></th>
                 </tr>
             </thead>
@@ -50,6 +52,20 @@
                             }
                         </td>
                         <td>
+                            @if (row.TenantRole == TenantRole.TenantAdmin)
+                            {
+                                <span class="badge badge-success">@Loc["Admin.Users.Role.TenantAdmin"]</span>
+                            }
+                            else if (row.TenantRole == TenantRole.Member)
+                            {
+                                <span class="badge">@Loc["Admin.Users.Role.Member"]</span>
+                            }
+                            else
+                            {
+                                <span class="muted">—</span>
+                            }
+                        </td>
+                        <td>
                             <div class="row-actions">
                                 @if (row.State == UserState.LockedOut)
                                 {
@@ -75,9 +91,49 @@
                                         <button type="submit" class="btn-danger btn-sm">@Loc["Admin.Users.Disable"]</button>
                                     </form>
                                 }
+                                @* Tenant-role actions need the domain user (created at first sign-in). Never
+                                   offer demoting the LAST tenant admin — the tenant must keep one. *@
+                                @if (row.HasDomainUser && row.TenantRole != TenantRole.TenantAdmin)
+                                {
+                                    <form method="post" action="account/admin/users/role">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <input type="hidden" name="role" value="@nameof(TenantRole.TenantAdmin)" />
+                                        <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.MakeTenantAdmin"]</button>
+                                    </form>
+                                }
+                                else if (row.TenantRole == TenantRole.TenantAdmin && tenantAdminCount > 1)
+                                {
+                                    <form method="post" action="account/admin/users/role">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <input type="hidden" name="role" value="@nameof(TenantRole.Member)" />
+                                        <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.MakeMember"]</button>
+                                    </form>
+                                }
+                                @if (CanDelete(row))
+                                {
+                                    <a class="btn btn-danger btn-sm" href="account/admin/users?confirmDelete=@row.Id">@Loc["Common.DeleteEllipsis"]</a>
+                                }
                             </div>
                         </td>
                     </tr>
+                    @if (ConfirmDelete == row.Id && CanDelete(row))
+                    {
+                        <tr>
+                            <td colspan="4">
+                                <div class="notice notice-error" style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
+                                    <span>@Loc["Admin.Users.ConfirmDelete", row.Name]</span>
+                                    <form method="post" action="account/admin/users/delete" style="margin:0;">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="userId" value="@row.Id" />
+                                        <button type="submit" class="btn-danger btn-sm">@Loc["Common.Yes"]</button>
+                                    </form>
+                                    <a class="btn btn-ghost btn-sm" href="account/admin/users">@Loc["Common.Cancel"]</a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
                 }
             </tbody>
         </table>
@@ -86,12 +142,22 @@
 
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+    [SupplyParameterFromQuery] private string? ConfirmDelete { get; set; }
 
     private readonly List<Row> rows = [];
+    private int tenantAdminCount;
+    private int systemAdminCount;
+
+    // Mirrors the server-side guards: never self, never the last tenant admin, never the last system admin.
+    private bool CanDelete(Row row) =>
+        !row.IsSelf
+        && !(row.TenantRole == TenantRole.TenantAdmin && tenantAdminCount <= 1)
+        && !(row.IsSystemAdmin && systemAdminCount <= 1);
 
     private enum UserState { Active, LockedOut, Disabled }
 
-    private sealed record Row(string Id, string Name, bool IsSystemAdmin, bool IsSelf, UserState State);
+    private sealed record Row(string Id, string Name, bool IsSystemAdmin, bool IsSelf, UserState State,
+        bool HasDomainUser, TenantRole? TenantRole);
 
     protected override async Task OnInitializedAsync()
     {
@@ -99,12 +165,21 @@
             ? UserManager.GetUserId((await AuthState).User)
             : null;
 
-        // System-admin flags live on the domain AppUser (keyed by the Identity user id for local accounts).
-        var adminIds = await Db.Users
-            .Where(u => u.Issuer == null && u.IsSystemAdmin)
-            .Select(u => u.ExternalId)
+        // System-admin flag and the demo-tenant membership role live on the domain side (AppUser /
+        // TenantMemberships), keyed by the Identity user id for local accounts.
+        var domainUsers = await Db.Users
+            .Where(u => u.Issuer == null && u.ExternalId != null)
+            .Select(u => new { u.Id, u.ExternalId, u.IsSystemAdmin })
             .ToListAsync();
-        var admins = adminIds.ToHashSet();
+        var byExternalId = domainUsers.ToDictionary(u => u.ExternalId!, u => u);
+
+        var domainIds = domainUsers.Select(u => u.Id).ToList();
+        var roles = await Db.TenantMemberships
+            .Where(m => m.TenantId == Demo.TenantId && domainIds.Contains(m.UserId))
+            .ToDictionaryAsync(m => m.UserId, m => m.Role);
+
+        tenantAdminCount = roles.Count(r => r.Value == TenantRole.TenantAdmin);
+        systemAdminCount = domainUsers.Count(u => u.IsSystemAdmin);
 
         var now = DateTimeOffset.UtcNow;
         foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
@@ -116,12 +191,15 @@
                 _ => UserState.Active,
             };
 
+            var domain = byExternalId.GetValueOrDefault(user.Id);
             rows.Add(new Row(
                 user.Id,
                 user.UserName ?? user.Email ?? user.Id,
-                admins.Contains(user.Id),
+                domain?.IsSystemAdmin ?? false,
                 user.Id == currentId,
-                state));
+                state,
+                domain is not null,
+                domain is not null && roles.TryGetValue(domain.Id, out var role) ? role : null));
         }
     }
 }

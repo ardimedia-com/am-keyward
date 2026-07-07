@@ -1,24 +1,65 @@
 @page "/"
 @inject IStringLocalizer<SharedResource> Loc
 
-<PageTitle>AM KEYWARD</PageTitle>
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 <div class="page-header">
-    <h1>AM KEYWARD</h1>
+    <h1>@KeywardOptions.ProductName</h1>
     <p>@Loc["Home.Tagline"]</p>
 </div>
 
 <AuthorizeView>
     <Authorized>
-        <div class="card">
-            <h3>@Loc["Home.QuickLinks"]</h3>
-            <div class="row" style="margin-top:.5rem;">
-                <a class="btn" href="@KeywardRoutes.PersonalVaults">@Loc["Nav.PersonalVaults"]</a>
-                <a class="btn btn-ghost" href="@KeywardRoutes.TeamVaults">@Loc["Nav.TeamVaults"]</a>
-                <a class="btn btn-ghost" href="@KeywardRoutes.SoftwareCredentials">@Loc["Nav.SoftwareCredentials"]</a>
-                <a class="btn btn-ghost" href="@KeywardRoutes.ClientTokens">@Loc["Nav.ClientTokens"]</a>
+        @* Two groups mirroring the sidebar: vaults are for people, software credentials for applications.
+           Each tile explains its section with concrete examples, so a first-time user knows where to go. *@
+        <section class="home-group">
+            <h2>@Loc["Nav.Group.Vaults"]</h2>
+            <p class="muted">@Loc["Home.Group.Vaults.Desc"]</p>
+            <div class="tile-grid tile-grid-2">
+                <a class="tile tile-rich" href="@KeywardRoutes.PersonalVaults">
+                    <KeywardIcon Name="lock" Size="22" />
+                    <span>
+                        <span class="tile-title">@Loc["Nav.PersonalVaults"]</span>
+                        <span class="tile-desc">@Loc["Home.Tile.Personal"]</span>
+                    </span>
+                </a>
+                <a class="tile tile-rich" href="@KeywardRoutes.TeamVaults">
+                    <KeywardIcon Name="users" Size="22" />
+                    <span>
+                        <span class="tile-title">@Loc["Nav.TeamVaults"]</span>
+                        <span class="tile-desc">@Loc["Home.Tile.Team"]</span>
+                    </span>
+                </a>
             </div>
-        </div>
+        </section>
+
+        <section class="home-group">
+            <h2>@Loc["Nav.Group.Software"]</h2>
+            <p class="muted">@Loc["Home.Group.Software.Desc"]</p>
+            <div class="tile-grid tile-grid-2">
+                <a class="tile tile-rich" href="@KeywardRoutes.Applications">
+                    <KeywardIcon Name="package" Size="22" />
+                    <span>
+                        <span class="tile-title">@Loc["Nav.Applications"]</span>
+                        <span class="tile-desc">@Loc["Home.Tile.Apps"]</span>
+                    </span>
+                </a>
+                <a class="tile tile-rich" href="@KeywardRoutes.SoftwareCredentials">
+                    <KeywardIcon Name="key" Size="22" />
+                    <span>
+                        <span class="tile-title">@Loc["Nav.SoftwareCredentials"]</span>
+                        <span class="tile-desc">@Loc["Home.Tile.Secrets"]</span>
+                    </span>
+                </a>
+                <a class="tile tile-rich" href="@KeywardRoutes.ClientTokens">
+                    <KeywardIcon Name="ticket" Size="22" />
+                    <span>
+                        <span class="tile-title">@Loc["Nav.ClientTokens"]</span>
+                        <span class="tile-desc">@Loc["Home.Tile.Tokens", KeywardOptions.ProductName]</span>
+                    </span>
+                </a>
+            </div>
+        </section>
     </Authorized>
     <NotAuthorized>
         <div class="card">

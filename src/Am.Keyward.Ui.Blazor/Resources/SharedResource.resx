@@ -61,14 +61,14 @@
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
   <data name="Nav.PersonalVaults" xml:space="preserve"><value>Personal vaults</value></data>
   <data name="Nav.TeamVaults" xml:space="preserve"><value>Team vaults</value></data>
-  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software credentials</value></data>
-  <data name="Nav.ClientTokens" xml:space="preserve"><value>Client tokens</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software secrets</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>App tokens</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Sign in</value></data>
   <data name="Nav.SignOut" xml:space="preserve"><value>Sign out</value></data>
   <data name="Language" xml:space="preserve"><value>Language</value></data>
-  <data name="Home.Tagline" xml:space="preserve"><value>An open-source, .NET-native credential &amp; secrets manager — software credentials and human vaults.</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Keeps your and your organization's credentials safe in one place: passwords and logins live in personal and shared team vaults, strongly encrypted. It also supplies your deployed software with its secrets at runtime — API keys, connection strings and more, per application and environment. You decide who sees what, and every access is logged.</value></data>
   <data name="Home.QuickLinks" xml:space="preserve"><value>Quick links</value></data>
-  <data name="Home.SignInPrompt" xml:space="preserve"><value>Sign in to manage your vaults and software credentials.</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Sign in to manage your vaults and software secrets.</value></data>
   <data name="Home.Register" xml:space="preserve"><value>Register</value></data>
   <data name="Login.Title" xml:space="preserve"><value>Sign in</value></data>
   <data name="Login.Email" xml:space="preserve"><value>Email</value></data>
@@ -90,13 +90,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Already have an account?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Sign in</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Personal vaults</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Your private vaults for personal logins, secure notes and other secrets. They belong to you alone — encrypted so that nobody else, not even an administrator, can read them. Use them the way you would a personal password manager: store a login per website, reveal the password only when you need it, and organize items into folders.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Your private vaults — encrypted and visible to you alone. Store logins, secure notes and other secrets.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Team vaults</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Vaults owned by your organization (tenant) and shared with colleagues through access grants. Use them for credentials a team needs in common — shared service accounts, Wi-Fi keys, licence keys — where you decide per person who may read, edit or manage each vault. Sharing is explicit: a colleague sees only the vaults you grant them.</value></data>
-  <data name="Page.Secrets.Title" xml:space="preserve"><value>Software credentials</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Software credentials are the machine secrets your applications need at runtime — API keys, connection strings, signing keys and the like — stored encrypted and grouped by environment (Development / Test / Preview / Production). Instead of putting these values in your app's own config files, your deployed software fetches them from here at startup through the read API, using a client token. On this page you create and manage the values; on the Client tokens page you issue the tokens your software uses to read them.</value></data>
-  <data name="Page.Tokens.Title" xml:space="preserve"><value>Client tokens</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Client tokens let your deployed software authenticate to AM KEYWARD and read this project's software credentials at runtime — so secrets never have to live in the app's own config. Each token is scoped to a single environment, so a leaked Production token still cannot read Development. The token's secret value is shown only once, when you issue it — copy it immediately and store it in your app's configuration.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Vaults your organization shares — you decide per person who may read, edit or manage.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Software secrets</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>The values your applications read at runtime — API keys, connection strings and more, per application and environment. Pick the application on the left.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>App tokens</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Your deployed software signs in with a app token to read the software secrets of the application selected on the left. Each token belongs to exactly ONE environment and returns only that environment's values — the Production token reads the Production values, the Test token the Test values. A leaked Test token can therefore never expose Production secrets.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>View profile</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Profile</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Your account.</value></data>
@@ -123,7 +123,7 @@
   <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Your vaults</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team vaults belong to the tenant and are shared with people via grants. You see the ones you own or were given access to. Sharing a vault lets a colleague read or edit its items.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Personal vaults are yours alone — nobody else can see them. Use them for your own logins, notes and secrets.</value></data>
-  <data name="Vault.List.Empty" xml:space="preserve"><value>No vaults yet — create one below.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>No vaults yet.</value></data>
   <data name="Vault.Filter" xml:space="preserve"><value>Filter vaults…</value></data>
   <data name="Vault.NewNameTeam" xml:space="preserve"><value>New team vault name</value></data>
   <data name="Vault.NewNamePersonal" xml:space="preserve"><value>New vault name</value></data>
@@ -134,14 +134,13 @@
   <data name="Vault.Import.Title" xml:space="preserve"><value>Import logins</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Upload a browser password export (Microsoft Edge / Chrome CSV: name, url, username, password, note). Each row becomes a Login item in this vault.</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Folders</value></data>
-  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Folders are optional labels to group items inside a vault. Deleting a folder keeps its items (they move back to the vault root).</value></data>
-  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Filter folders…</value></data>
-  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Delete folder?</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Folders group the items of a vault and can contain subfolders. Deleting a folder keeps its contents — items and subfolders move up to the parent folder.</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Delete this folder? Its items and subfolders move up to the parent folder.</value></data>
   <data name="Vault.Folders.NewName" xml:space="preserve"><value>New folder name</value></data>
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Add folder</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Items</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Add item</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>A vault item is one stored secret. A Login holds a website address, username and password — ideal for sign-in credentials; the other types hold a secure note or a single secret value. Values are encrypted at rest and only revealed when you choose View. To remove an item, choose Delete… to open its detail first, then confirm — so nothing is deleted by accident.</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>One item is one stored secret — a website login, a secure note or a single value. Values stay encrypted; click an item to see its details.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>in</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Edit “{0}”</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>e.g. GitHub</value></data>
@@ -192,18 +191,16 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret deleted.</value></data>
   <data name="Token.New" xml:space="preserve"><value>New token (copy it now — it will not be shown again):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Issue a token</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Issue one token per application and environment. Give it a clear name (which app or service it belongs to), an optional note (where it runs, owner, ticket) and an optional expiry after which it stops working. Scoping each token to a single environment keeps the blast radius small if one ever leaks.</value></data>
-  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Issue one token per application and environment. The server names it “application-environment” automatically (numbered when needed) — or give it your own name, e.g. with a host or purpose suffix. Optional: a note (where it runs, owner, ticket) and an expiry date after which it stops working. Restricting each token to a single environment keeps the damage small if one ever leaks.</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Note (optional)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>where it's used, owner, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expires in (days, optional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Issue token</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Existing tokens</value></data>
   <data name="Token.Existing.Desc" xml:space="preserve"><value>Each token is listed with its prefix (the visible start of the value, to identify it), creation date, expiry and status. Edit changes its name and note; Rotate issues a fresh secret value for the same token and immediately invalidates the old one (use it on a schedule or after a suspected leak); Revoke permanently disables it.</value></data>
-  <data name="Token.Edit.Title" xml:space="preserve"><value>Edit token</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>No tokens yet — issue one above.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filter tokens…</value></data>
-  <data name="Token.Prefix" xml:space="preserve"><value>Prefix</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Identifier (token start)</value></data>
   <data name="Token.Created" xml:space="preserve"><value>Created</value></data>
   <data name="Token.Expires" xml:space="preserve"><value>Expires</value></data>
   <data name="Token.Status" xml:space="preserve"><value>Status</value></data>
@@ -221,11 +218,11 @@
   <data name="Error.RequestId" xml:space="preserve"><value>Request ID:</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Not Found</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Sorry, the content you are looking for does not exist.</value></data>
-  <data name="Token.UsageNote" xml:space="preserve"><value>How to use it: store the token in your deployed app's configuration (an environment variable or secret store), then have the app call AM KEYWARD's read API with the header “Authorization: Bearer &lt;token&gt;” to load this project's secrets for its environment, typically at startup. Secrets therefore never live in your app's own files. If a token leaks, Rotate it to replace its value or Revoke it to disable it — your other tokens keep working.</value></data>
-  <data name="Secret.UsageNote" xml:space="preserve"><value>How it fits together: you store a value here once per environment; your deployed software reads it at runtime with a client token (see the Client tokens page). Change a value here and the next read picks it up — no redeploy of your app needed.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>How reading works: store the token in your deployed app's configuration (an environment variable or secret store) and call this server's read API with the HTTP header “Authorization: Bearer &lt;token&gt;”. GET /keyward/api/v1/secrets returns ALL secrets of the token's environment as JSON (key → value; typically loaded into the app's configuration at startup); GET /keyward/api/v1/secrets/{key} returns a single value. The server derives project AND environment solely from the token — the app sends nothing else. Example: curl -H 'Authorization: Bearer amkw_...' https://keyward.example.com/keyward/api/v1/secrets. If a token leaks: Rotate replaces its value, Revoke disables it — your other tokens keep working.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>How it fits together: you store a value here once per environment; your deployed software reads it at runtime with a app token (see the App tokens page). Change a value here and the next read picks it up — no redeploy of your app needed.</value></data>
   <data name="Nav.AdminUsers" xml:space="preserve"><value>Users</value></data>
   <data name="Admin.Users.Title" xml:space="preserve"><value>Users</value></data>
-  <data name="Admin.Users.Desc" xml:space="preserve"><value>Unlock a locked-out account, or disable and re-enable a user.</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>All accounts of this installation: unlock a locked account, disable or re-enable it, and assign the tenant role — members use the tenant, tenant admins manage it. The last tenant admin can never be demoted.</value></data>
   <data name="Admin.Users.User" xml:space="preserve"><value>User</value></data>
   <data name="Admin.Users.Status" xml:space="preserve"><value>Status</value></data>
   <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>System admin</value></data>
@@ -248,4 +245,360 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirm e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Your e-mail is confirmed. You can now sign in:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>This confirmation link is invalid or has expired.</value></data>
+  <data name="Page.Personal.Help" xml:space="preserve">
+    <value>Your private vaults for personal logins, secure notes and other secrets. They belong to you alone — encrypted so that nobody else, not even an administrator, can read them. Use them the way you would a personal password manager: store a login per website, reveal the password only when you need it, and organize items into folders.</value>
+  </data>
+  <data name="Page.Team.Help" xml:space="preserve">
+    <value>Vaults owned by your organization (tenant) and shared with colleagues through access grants. Use them for credentials a team needs in common — shared service accounts, Wi-Fi keys, licence keys — where you decide per person who may read, edit or manage each vault. Sharing is explicit: a colleague sees only the vaults you grant them.</value>
+  </data>
+  <data name="Page.Secrets.Help" xml:space="preserve">
+    <value>Software secrets are the machine secrets your applications need at runtime — API keys, connection strings, signing keys and the like — stored encrypted and grouped by environment (Development / Test / Preview / Production). Instead of putting these values in your app's own config files, your deployed software fetches them from here at startup through the read API, using a app token. On this page you create and manage the values; on the App tokens page you issue the tokens your software uses to read them.</value>
+  </data>
+  <data name="Page.Tokens.Help" xml:space="preserve">
+    <value>App tokens let your deployed software authenticate to {0} and read this project's software secrets at runtime — so secrets never have to live in the app's own config. Each token is scoped to a single environment, so a leaked Production token still cannot read Development. The token's secret value is shown only once, when you issue it — copy it immediately and store it in your app's configuration.</value>
+  </data>
+  <data name="Nav.Group.Vaults" xml:space="preserve">
+    <value>Vaults</value>
+  </data>
+  <data name="Nav.Group.Software" xml:space="preserve">
+    <value>Software</value>
+  </data>
+  <data name="Common.HowItWorks" xml:space="preserve">
+    <value>How does this work?</value>
+  </data>
+  <data name="Home.Tile.Personal" xml:space="preserve">
+    <value>Your private logins, secure notes and secrets — encrypted and visible to you alone; not even an administrator can read them. Like a personal password manager: for example a website login, a PIN or a licence key.</value>
+  </data>
+  <data name="Home.Tile.Team" xml:space="preserve">
+    <value>Shared vaults for your organization — you decide per person who may read, edit or manage. For credentials a team needs together: for example the Wi-Fi password, a shared service account or licence keys.</value>
+  </data>
+  <data name="Home.Tile.Secrets" xml:space="preserve">
+    <value>Values your applications read at runtime, instead of keeping them in config files — maintained per environment (Development to Production): for example an API key, a database connection string or a signing key. Changes take effect without redeploying your app.</value>
+  </data>
+  <data name="Home.Tile.Tokens" xml:space="preserve">
+    <value>The key your deployed software uses to sign in to {0} and read this project's software secrets. Each token is valid for exactly one environment and can be rotated or revoked at any time — you store it once in your app's configuration.</value>
+  </data>
+  <data name="Vault.Manage.Title" xml:space="preserve">
+    <value>Vault settings</value>
+  </data>
+  <data name="Vault.Manage.Desc" xml:space="preserve">
+    <value>Rename this vault, or delete it permanently.</value>
+  </data>
+  <data name="Vault.Items.FolderAll" xml:space="preserve">
+    <value>All folders</value>
+  </data>
+  <data name="Vault.ConfirmDeleteItem" xml:space="preserve">
+    <value>Delete this item? This cannot be undone.</value>
+  </data>
+  <data name="Type.Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Type.SecureNote" xml:space="preserve">
+    <value>Secure note</value>
+  </data>
+  <data name="Type.ApiCredential" xml:space="preserve">
+    <value>API credential</value>
+  </data>
+  <data name="Type.ConnectionString" xml:space="preserve">
+    <value>Connection string</value>
+  </data>
+  <data name="Type.Generic" xml:space="preserve">
+    <value>Generic</value>
+  </data>
+  <data name="Permission.Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Permission.Write" xml:space="preserve">
+    <value>Write</value>
+  </data>
+  <data name="Permission.Manage" xml:space="preserve">
+    <value>Manage</value>
+  </data>
+  <data name="Home.Group.Vaults.Desc" xml:space="preserve">
+    <value>For you and your team — passwords and secrets that people use.</value>
+  </data>
+  <data name="Home.Group.Software.Desc" xml:space="preserve">
+    <value>For your applications — secrets that software reads automatically at runtime.</value>
+  </data>
+  <data name="Vault.CreateCard.Title" xml:space="preserve">
+    <value>New vault</value>
+  </data>
+  <data name="Vault.CreateCard.DescPersonal" xml:space="preserve">
+    <value>A vault is like a labelled folder for entries that belong together — its name tells you at a glance what is inside. Several vaults help you separate areas of life: for example “Private” for your own logins, “Work” for job-related ones, “Family” for accounts you use at home, or “Banking” for the especially sensitive.</value>
+  </data>
+  <data name="Vault.CreateCard.DescTeam" xml:space="preserve">
+    <value>The name tells everyone with access what is inside at a glance. Several vaults pay off because each vault is shared separately: one per team or department (“IT”, “Accounting”), one per function or task (“Online orders”, “Contracts”), one per customer or project, or “Infrastructure” for server and Wi-Fi credentials that only administrators should see.</value>
+  </data>
+  <data name="Vault.Suggest.Label" xml:space="preserve">
+    <value>Suggestions:</value>
+  </data>
+  <data name="Vault.Suggest.Personal" xml:space="preserve">
+    <value>Private,Work,Family,Banking</value>
+  </data>
+  <data name="Vault.Suggest.Team" xml:space="preserve">
+    <value>IT,Accounting,Online orders,Contracts,Infrastructure,Customers</value>
+  </data>
+  <data name="Vault.Default.Cta" xml:space="preserve">
+    <value>Create default vault “{0}”</value>
+  </data>
+  <data name="Nav.Group.Admin" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Admin.Users.TenantRole" xml:space="preserve">
+    <value>Tenant role</value>
+  </data>
+  <data name="Admin.Users.Role.TenantAdmin" xml:space="preserve">
+    <value>Tenant admin</value>
+  </data>
+  <data name="Admin.Users.Role.Member" xml:space="preserve">
+    <value>Member</value>
+  </data>
+  <data name="Admin.Users.MakeTenantAdmin" xml:space="preserve">
+    <value>Make tenant admin</value>
+  </data>
+  <data name="Admin.Users.MakeMember" xml:space="preserve">
+    <value>Make member</value>
+  </data>
+  <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
+    <value>Delete the account “{0}” permanently? Their personal vaults and access are removed. This cannot be undone.</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Common.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Vault.SelectHint" xml:space="preserve">
+    <value>Or pick a vault on the left to see its items.</value>
+  </data>
+  <data name="Vault.Search.Placeholder" xml:space="preserve">
+    <value>Search all vaults (name, URL, username, note)…</value>
+  </data>
+  <data name="Vault.Search.Title" xml:space="preserve">
+    <value>Search results</value>
+  </data>
+  <data name="Vault.Search.Count" xml:space="preserve">
+    <value>{0} matching item(s) — the password field is never searched.</value>
+  </data>
+  <data name="Vault.Search.Empty" xml:space="preserve">
+    <value>No items match your search.</value>
+  </data>
+  <data name="Vault.Folders.Properties" xml:space="preserve">
+    <value>Folder properties</value>
+  </data>
+  <data name="Vault.Folders.NewSub" xml:space="preserve">
+    <value>New subfolder</value>
+  </data>
+  <data name="Vault.Move.Label" xml:space="preserve">
+    <value>Move to:</value>
+  </data>
+  <data name="Vault.Move.Action" xml:space="preserve">
+    <value>Move</value>
+  </data>
+  <data name="Vault.Msg.Moved" xml:space="preserve">
+    <value>Item moved.</value>
+  </data>
+  <data name="Vault.Select.Count" xml:space="preserve">
+    <value>{0} selected</value>
+  </data>
+  <data name="Vault.Select.Clear" xml:space="preserve">
+    <value>Clear selection</value>
+  </data>
+  <data name="Vault.Msg.FolderMoved" xml:space="preserve">
+    <value>Folder moved.</value>
+  </data>
+  <data name="Vault.Share.Boundary" xml:space="preserve">
+    <value>A vault is both the permission and the encryption boundary: every item is cryptographically bound to its vault, and a share always applies to the whole vault — folders are pure organization, not a security boundary. If a different set of people needs access, use a separate vault (e.g. “IT”, “Accounting”, “Customers”) and share it separately.</value>
+  </data>
+  <data name="Nav.Groups" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Page.Groups.Title" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Page.Groups.Desc" xml:space="preserve">
+    <value>Named sets of members — share a vault once with a group (e.g. “IT”) instead of with each person individually. Tenant admins manage groups; a group's own admins manage its members.</value>
+  </data>
+  <data name="Groups.Empty" xml:space="preserve">
+    <value>No groups yet.</value>
+  </data>
+  <data name="Groups.New.Placeholder" xml:space="preserve">
+    <value>Name of the new group</value>
+  </data>
+  <data name="Groups.Create" xml:space="preserve">
+    <value>Create group</value>
+  </data>
+  <data name="Groups.MemberCount" xml:space="preserve">
+    <value>{0} member(s)</value>
+  </data>
+  <data name="Groups.Members.Desc" xml:space="preserve">
+    <value>Who belongs to this group. Everyone here receives whatever the group is granted (e.g. shared vaults).</value>
+  </data>
+  <data name="Groups.Members.Empty" xml:space="preserve">
+    <value>No members yet.</value>
+  </data>
+  <data name="Groups.Members.SelectUser" xml:space="preserve">
+    <value>Select a person…</value>
+  </data>
+  <data name="Groups.Members.Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Groups.Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="GroupRole.Member" xml:space="preserve">
+    <value>Member</value>
+  </data>
+  <data name="GroupRole.Admin" xml:space="preserve">
+    <value>Group admin</value>
+  </data>
+  <data name="Groups.MakeAdmin" xml:space="preserve">
+    <value>Make group admin</value>
+  </data>
+  <data name="Groups.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Groups.Delete" xml:space="preserve">
+    <value>Delete group</value>
+  </data>
+  <data name="Groups.ConfirmDelete" xml:space="preserve">
+    <value>Delete the group “{0}”? Its memberships and every access granted to it are removed.</value>
+  </data>
+  <data name="Groups.Msg.Created" xml:space="preserve">
+    <value>Group created.</value>
+  </data>
+  <data name="Groups.Msg.Renamed" xml:space="preserve">
+    <value>Group renamed.</value>
+  </data>
+  <data name="Groups.Msg.Deleted" xml:space="preserve">
+    <value>Group deleted.</value>
+  </data>
+  <data name="Groups.Badge" xml:space="preserve">
+    <value>Group</value>
+  </data>
+  <data name="Vault.Share.People" xml:space="preserve">
+    <value>People</value>
+  </data>
+  <data name="Vault.Share.Groups" xml:space="preserve">
+    <value>Groups</value>
+  </data>
+  <data name="Vault.Share.Revoke" xml:space="preserve">
+    <value>Revoke</value>
+  </data>
+  <data name="Vault.Msg.Revoked" xml:space="preserve">
+    <value>Access revoked.</value>
+  </data>
+  <data name="Groups.SelectHint" xml:space="preserve">
+    <value>Pick a group on the left to see its members.</value>
+  </data>
+  <data name="Groups.Settings.Title" xml:space="preserve">
+    <value>Group settings</value>
+  </data>
+  <data name="Groups.Settings.Desc" xml:space="preserve">
+    <value>Rename this group, or delete it permanently.</value>
+  </data>
+  <data name="Groups.AddMember.Title" xml:space="preserve">
+    <value>Add member</value>
+  </data>
+  <data name="Groups.Members.Title" xml:space="preserve">
+    <value>Members</value>
+  </data>
+  <data name="Vault.Export.Title" xml:space="preserve">
+    <value>Export logins</value>
+  </data>
+  <data name="Vault.Export.Desc" xml:space="preserve">
+    <value>Downloads this vault's LOGIN items as a browser-compatible CSV (name, url, username, password, note) — re-importable here or in Microsoft Edge / Google Chrome. The file contains the passwords in PLAIN TEXT: store it safely and delete it after use. Other item types (notes, values) are not part of this format.</value>
+  </data>
+  <data name="Vault.Export.Create" xml:space="preserve">
+    <value>Create CSV</value>
+  </data>
+  <data name="Vault.Export.Download" xml:space="preserve">
+    <value>Download CSV</value>
+  </data>
+  <data name="Vault.Export.Ready" xml:space="preserve">
+    <value>{0} login(s) ready to download.</value>
+  </data>
+  <data name="Secret.SelectHint" xml:space="preserve">
+    <value>Pick a credential on the left to see and set its values per environment.</value>
+  </data>
+  <data name="Secret.ConfirmDelete" xml:space="preserve">
+    <value>Delete “{0}” in every environment? Software reading this key will no longer receive a value.</value>
+  </data>
+  <data name="Token.SelectHint" xml:space="preserve">
+    <value>Pick a token on the left to see its details, rotate or revoke it.</value>
+  </data>
+  <data name="Token.ConfirmRevoke" xml:space="preserve">
+    <value>Revoke “{0}”? Software using this token immediately loses access — this cannot be undone.</value>
+  </data>
+  <data name="Token.Expires.Never" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="Secret.Envs.Title" xml:space="preserve">
+    <value>Environments</value>
+  </data>
+  <data name="Secret.Envs.Desc" xml:space="preserve">
+    <value>This application's environments — every secret holds one value per environment, and every app token is valid for exactly one. A new environment automatically gets an app token (without a value yet) and is immediately available to all secrets. Deleting an environment deletes its values and its app tokens with it; the last environment cannot be deleted.</value>
+  </data>
+  <data name="Secret.Envs.NewName" xml:space="preserve">
+    <value>Name of the new environment</value>
+  </data>
+  <data name="Secret.Envs.Add" xml:space="preserve">
+    <value>Add environment</value>
+  </data>
+  <data name="Secret.Envs.Msg.Added" xml:space="preserve">
+    <value>Environment added — including an app token (without a value yet).</value>
+  </data>
+  <data name="Secret.Envs.ConfirmDelete" xml:space="preserve">
+    <value>Delete the environment “{0}”? All values in this environment are deleted and its app tokens are revoked. This cannot be undone.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Renamed" xml:space="preserve">
+    <value>Environment renamed.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Deleted" xml:space="preserve">
+    <value>Environment deleted.</value>
+  </data>
+  <data name="Token.Reactivate" xml:space="preserve"><value>Reactivate</value></data>
+  <data name="Token.ConfirmDelete" xml:space="preserve"><value>Delete token “{0}” permanently? Software still using it stops reading secrets immediately, and the entry disappears from this list (unlike Revoke, this cannot be undone).</value></data>
+  <data name="Token.Msg.Reactivated" xml:space="preserve"><value>Token reactivated — its existing value works again (the expiry date is unchanged).</value></data>
+  <data name="Token.Msg.Deleted" xml:space="preserve"><value>Token deleted.</value></data>
+  <data name="Nav.Applications" xml:space="preserve"><value>Applications</value></data>
+  <data name="Page.Apps.Title" xml:space="preserve"><value>Applications</value></data>
+  <data name="Page.Apps.Desc" xml:space="preserve"><value>An application represents ONE deployed piece of software and bundles its environments, software secrets and app tokens. That way every token reads only its own application's secrets.</value></data>
+  <data name="Page.Apps.Help" xml:space="preserve"><value>Create one application per deployed piece of software (e.g. “webshop”, “backend”). Each application has its own environments (such as Development/Test/Production), its own software secrets and its own app tokens. This separation is the security boundary: a token always belongs to exactly one application and one environment — it can never read another application's or environment's secrets. Every environment automatically gets an app token WITHOUT a value; you generate the value on the app-tokens page when you actually need it — until then the placeholder cannot authenticate. Deleting an application also removes its environments, secrets and tokens.</value></data>
+  <data name="App.Empty" xml:space="preserve"><value>No applications yet — a tenant admin creates one on the left.</value></data>
+  <data name="App.SelectHint" xml:space="preserve"><value>Select an application on the left.</value></data>
+  <data name="App.NoneHint" xml:space="preserve"><value>There is no application yet. Create one on the Applications page first — it bundles one deployed software's environments, software secrets and app tokens.</value></data>
+  <data name="App.GoToApps" xml:space="preserve"><value>Go to Applications</value></data>
+  <data name="App.New.Placeholder" xml:space="preserve"><value>New application…</value></data>
+  <data name="App.Create" xml:space="preserve"><value>Create application</value></data>
+  <data name="App.Settings.Title" xml:space="preserve"><value>Application settings</value></data>
+  <data name="App.Settings.Desc" xml:space="preserve"><value>Rename the application — or delete it in the danger zone below.</value></data>
+  <data name="App.Delete" xml:space="preserve"><value>Delete application</value></data>
+  <data name="App.ConfirmDelete" xml:space="preserve"><value>Delete application “{0}” permanently? Its environments, ALL software secrets (including every version) and ALL app tokens are deleted with it — software still using this application's tokens stops reading secrets immediately.</value></data>
+  <data name="App.Msg.Created" xml:space="preserve"><value>Application created — with the default environments and one app token (without a value yet) per environment.</value></data>
+  <data name="App.Msg.Renamed" xml:space="preserve"><value>Application renamed.</value></data>
+  <data name="App.Msg.Deleted" xml:space="preserve"><value>Application deleted.</value></data>
+  <data name="App.OpenSecrets" xml:space="preserve"><value>Open software secrets</value></data>
+  <data name="App.OpenTokens" xml:space="preserve"><value>Open app tokens</value></data>
+  <data name="Home.Tile.Apps" xml:space="preserve"><value>One application per deployed piece of software — bundles its environments, secrets and app tokens.</value></data>
+  <data name="Token.NameOptional" xml:space="preserve"><value>Name (optional)</value></data>
+  <data name="App.Content.Title" xml:space="preserve"><value>Software secrets &amp; app tokens</value></data>
+  <data name="App.Content.Desc" xml:space="preserve"><value>Opens the page with this application preselected.</value></data>
+  <data name="Token.Status.Pending" xml:space="preserve"><value>No value</value></data>
+  <data name="Token.GenerateValue" xml:space="preserve"><value>Generate token value</value></data>
+  <data name="Token.Msg.Generated" xml:space="preserve"><value>Token value generated — copy it now; it will not be shown again.</value></data>
+  <data name="Theme.Color" xml:space="preserve"><value>Color theme</value></data>
+  <data name="Theme.Dark" xml:space="preserve"><value>Toggle light/dark</value></data>
+  <data name="Nav.DefaultEnvs" xml:space="preserve"><value>Default environments</value></data>
+  <data name="Page.DefaultEnvs.Title" xml:space="preserve"><value>Default environments</value></data>
+  <data name="Page.DefaultEnvs.Desc" xml:space="preserve"><value>The environment set every NEW application starts with (including one pending app token per environment). Existing applications are not affected — their environments are managed on the Applications page.</value></data>
+  <data name="DefaultEnvs.BuiltInHint" xml:space="preserve"><value>This organization uses the built-in default set. “Customize” copies it into an editable list stored in the database.</value></data>
+  <data name="DefaultEnvs.Customize" xml:space="preserve"><value>Customize</value></data>
+  <data name="DefaultEnvs.ConfirmDelete" xml:space="preserve"><value>Remove default environment “{0}”? New applications will no longer get it; existing applications are not affected. (Removing all entries returns to the built-in default set.)</value></data>
+  <data name="DefaultEnvs.Msg.Customized" xml:space="preserve"><value>Default set copied — you can now edit it.</value></data>
+  <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Default environment added.</value></data>
+  <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Entry removed — the built-in default set applies again.</value></data>
+  <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>The key “{0}” already exists. Select it in the list on the left and set its values per environment there — nothing was overwritten.</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-mail me when app tokens are about to expire (30/20/10 days ahead, then daily from 9 days).</value></data>
+  <data name="Profile.Notify.Saved" xml:space="preserve"><value>Notification setting saved.</value></data>
 </root>

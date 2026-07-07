@@ -61,14 +61,14 @@
   <data name="Nav.Home" xml:space="preserve"><value>Accueil</value></data>
   <data name="Nav.PersonalVaults" xml:space="preserve"><value>Coffres personnels</value></data>
   <data name="Nav.TeamVaults" xml:space="preserve"><value>Coffres d'équipe</value></data>
-  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Identifiants logiciels</value></data>
-  <data name="Nav.ClientTokens" xml:space="preserve"><value>Jetons client</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Secrets logiciels</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>Jetons d'app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Se connecter</value></data>
   <data name="Nav.SignOut" xml:space="preserve"><value>Se déconnecter</value></data>
   <data name="Language" xml:space="preserve"><value>Langue</value></data>
-  <data name="Home.Tagline" xml:space="preserve"><value>Un gestionnaire d'identifiants et de secrets open source, natif .NET — identifiants logiciels et coffres personnels.</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Garde vos accès et ceux de votre organisation en sécurité au même endroit : mots de passe et identifiants vivent dans des coffres personnels et d'équipe partagés, fortement chiffrés. Il fournit aussi à vos logiciels déployés leurs secrets à l'exécution — clés API, chaînes de connexion et plus, par application et environnement. Vous décidez qui voit quoi, et chaque accès est journalisé.</value></data>
   <data name="Home.QuickLinks" xml:space="preserve"><value>Liens rapides</value></data>
-  <data name="Home.SignInPrompt" xml:space="preserve"><value>Connectez-vous pour gérer vos coffres et identifiants logiciels.</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Connectez-vous pour gérer vos coffres et secrets logiciels.</value></data>
   <data name="Home.Register" xml:space="preserve"><value>S'inscrire</value></data>
   <data name="Login.Title" xml:space="preserve"><value>Se connecter</value></data>
   <data name="Login.Email" xml:space="preserve"><value>E-mail</value></data>
@@ -90,13 +90,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Vous avez déjà un compte ?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Se connecter</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Coffres personnels</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos coffres privés pour vos identifiants personnels, vos notes sécurisées et vos autres secrets. Ils n'appartiennent qu'à vous — chiffrés de sorte que personne d'autre, pas même un administrateur, ne puisse les lire. Utilisez-les comme un gestionnaire de mots de passe personnel : enregistrez un identifiant par site web, ne révélez le mot de passe que lorsque vous en avez besoin et organisez les éléments en dossiers.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos coffres privés — chiffrés et visibles par vous seul. Stockez identifiants, notes sécurisées et autres secrets.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Coffres d'équipe</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres appartenant à votre organisation (locataire) et partagés avec des collègues via des autorisations d'accès. Utilisez-les pour les identifiants dont une équipe a besoin en commun — comptes de service partagés, clés Wi-Fi, clés de licence — où vous décidez, personne par personne, qui peut lire, modifier ou gérer chaque coffre. Le partage est explicite : un collègue ne voit que les coffres que vous lui accordez.</value></data>
-  <data name="Page.Secrets.Title" xml:space="preserve"><value>Identifiants logiciels</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Les identifiants logiciels sont les secrets machine dont vos applications ont besoin à l'exécution — clés API, chaînes de connexion, clés de signature et similaires — stockés chiffrés et regroupés par environnement (Development / Test / Preview / Production). Au lieu de placer ces valeurs dans les fichiers de configuration de votre application, votre logiciel déployé les récupère ici au démarrage via l'API de lecture, à l'aide d'un jeton client. Sur cette page, vous créez et gérez les valeurs ; sur la page Jetons client, vous émettez les jetons que votre logiciel utilise pour les lire.</value></data>
-  <data name="Page.Tokens.Title" xml:space="preserve"><value>Jetons client</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Les jetons client permettent à votre logiciel déployé de s'authentifier auprès de AM KEYWARD et de lire les identifiants logiciels de ce projet à l'exécution — afin que les secrets n'aient jamais à résider dans les fichiers de configuration de l'application. Chaque jeton est limité à un seul environnement, de sorte qu'un jeton Production divulgué ne peut malgré tout pas lire Development. La valeur secrète du jeton n'est affichée qu'une seule fois, lors de son émission — copiez-la immédiatement et stockez-la dans la configuration de votre application.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres partagés par votre organisation — vous décidez par personne qui peut lire, modifier ou gérer.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Secrets logiciels</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Les valeurs que vos applications lisent à l'exécution — clés API, chaînes de connexion et plus, par application et environnement. Choisissez l'application à gauche.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>Jetons d'app</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Votre logiciel déployé se connecte avec un jeton d'app pour lire les secrets logiciels de l'application sélectionnée à gauche. Chaque jeton appartient à exactement UN environnement et ne renvoie que ses valeurs — le jeton Production lit les valeurs de Production, le jeton Test celles de Test. Un jeton Test divulgué ne peut donc jamais exposer des secrets de Production.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>Voir le profil</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Profil</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>Votre compte.</value></data>
@@ -123,7 +123,7 @@
   <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Vos coffres</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Les coffres d'équipe appartiennent au locataire et sont partagés avec des personnes via des autorisations. Vous voyez ceux que vous possédez ou auxquels on vous a donné accès. Partager un coffre permet à un collègue de lire ou de modifier ses éléments.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Les coffres personnels n'appartiennent qu'à vous — personne d'autre ne peut les voir. Utilisez-les pour vos propres identifiants, notes et secrets.</value></data>
-  <data name="Vault.List.Empty" xml:space="preserve"><value>Aucun coffre pour l'instant — créez-en un ci-dessous.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>Pas encore de coffre.</value></data>
   <data name="Vault.Filter" xml:space="preserve"><value>Filtrer les coffres…</value></data>
   <data name="Vault.NewNameTeam" xml:space="preserve"><value>Nom du nouveau coffre d'équipe</value></data>
   <data name="Vault.NewNamePersonal" xml:space="preserve"><value>Nom du nouveau coffre</value></data>
@@ -134,14 +134,13 @@
   <data name="Vault.Import.Title" xml:space="preserve"><value>Importer des identifiants</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Téléversez un export de mots de passe de navigateur (CSV Microsoft Edge / Chrome : name, url, username, password, note). Chaque ligne devient un élément Identifiant dans ce coffre.</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Dossiers</value></data>
-  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Les dossiers sont des étiquettes facultatives pour regrouper les éléments dans un coffre. Supprimer un dossier conserve ses éléments (ils reviennent à la racine du coffre).</value></data>
-  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Filtrer les dossiers…</value></data>
-  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Supprimer le dossier ?</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>Les dossiers regroupent les entrées d'un coffre et peuvent contenir des sous-dossiers. La suppression d'un dossier conserve son contenu — entrées et sous-dossiers remontent dans le dossier parent.</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Supprimer ce dossier ? Ses entrées et sous-dossiers remontent dans le dossier parent.</value></data>
   <data name="Vault.Folders.NewName" xml:space="preserve"><value>Nom du nouveau dossier</value></data>
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Ajouter un dossier</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Éléments</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Ajouter un élément</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>Un élément de coffre est un secret stocké. Un Identifiant contient une adresse de site web, un nom d'utilisateur et un mot de passe — idéal pour les identifiants de connexion ; les autres types contiennent une note sécurisée ou une seule valeur secrète. Les valeurs sont chiffrées au repos et ne sont révélées que lorsque vous choisissez Afficher. Pour retirer un élément, choisissez Supprimer… pour ouvrir d'abord son détail, puis confirmez — afin que rien ne soit supprimé par accident.</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Une entrée est un secret enregistré — un identifiant de site, une note sécurisée ou une valeur unique. Les valeurs restent chiffrées ; cliquez sur une entrée pour les détails.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>dans</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Modifier « {0} »</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>p. ex. GitHub</value></data>
@@ -192,18 +191,16 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret supprimé.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et par environnement. Donnez-lui un nom clair (l'application ou le service auquel il appartient), une note facultative (où il s'exécute, propriétaire, ticket) et une expiration facultative après laquelle il cesse de fonctionner. Limiter chaque jeton à un seul environnement réduit le rayon d'impact si l'un d'eux venait à être divulgué.</value></data>
-  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et environnement. Le serveur le nomme automatiquement « application-environnement » (numéroté au besoin) — ou donnez-lui votre propre nom, p. ex. avec un suffixe d'hôte ou d'usage. Facultatif : une note (où il tourne, propriétaire, ticket) et une date d'expiration après laquelle il cesse de fonctionner. Restreindre chaque jeton à un seul environnement limite les dégâts si l'un fuit un jour.</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>où il est utilisé, propriétaire, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expire dans (jours, facultatif)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Jetons existants</value></data>
   <data name="Token.Existing.Desc" xml:space="preserve"><value>Chaque jeton est répertorié avec son préfixe (le début visible de la valeur, pour l'identifier), sa date de création, son expiration et son statut. Modifier change son nom et sa note ; Faire tourner émet une nouvelle valeur secrète pour le même jeton et invalide immédiatement l'ancienne (utilisez-la de façon planifiée ou après une fuite suspectée) ; Révoquer le désactive définitivement.</value></data>
-  <data name="Token.Edit.Title" xml:space="preserve"><value>Modifier le jeton</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>Aucun jeton pour l'instant — émettez-en un ci-dessus.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filtrer les jetons…</value></data>
-  <data name="Token.Prefix" xml:space="preserve"><value>Préfixe</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Identifiant (début du jeton)</value></data>
   <data name="Token.Created" xml:space="preserve"><value>Créé</value></data>
   <data name="Token.Expires" xml:space="preserve"><value>Expire</value></data>
   <data name="Token.Status" xml:space="preserve"><value>Statut</value></data>
@@ -221,11 +218,11 @@
   <data name="Error.RequestId" xml:space="preserve"><value>ID de la demande :</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Introuvable</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Désolé, le contenu que vous recherchez n'existe pas.</value></data>
-  <data name="Token.UsageNote" xml:space="preserve"><value>Comment l'utiliser : stockez le jeton dans la configuration de votre application déployée (une variable d'environnement ou un magasin de secrets), puis faites en sorte que l'application appelle l'API de lecture de AM KEYWARD avec l'en-tête « Authorization: Bearer &lt;token&gt; » pour charger les secrets de ce projet correspondant à son environnement, généralement au démarrage. Les secrets ne résident donc jamais dans les fichiers de votre application. Si un jeton est divulgué, faites-le tourner pour remplacer sa valeur ou révoquez-le pour le désactiver — vos autres jetons continuent de fonctionner.</value></data>
-  <data name="Secret.UsageNote" xml:space="preserve"><value>Comment tout s'articule : vous stockez ici une valeur une fois par environnement ; votre logiciel déployé la lit à l'exécution avec un jeton client (voir la page Jetons client). Modifiez une valeur ici et la prochaine lecture la prendra en compte — sans redéploiement de votre application.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>Comment fonctionne la lecture : stockez le jeton dans la configuration de votre application déployée (variable d'environnement ou coffre à secrets) et appelez l'API de lecture de ce serveur avec l'en-tête HTTP « Authorization: Bearer &lt;token&gt; ». GET /keyward/api/v1/secrets renvoie TOUS les secrets de l'environnement du jeton en JSON (clé → valeur ; généralement chargés dans la configuration au démarrage) ; GET /keyward/api/v1/secrets/{clé} renvoie une seule valeur. Le serveur déduit le projet ET l'environnement uniquement du jeton — l'application n'envoie rien d'autre. Exemple : curl -H 'Authorization: Bearer amkw_...' https://keyward.example.com/keyward/api/v1/secrets. Si un jeton fuite : Renouveler remplace sa valeur, Révoquer le désactive — vos autres jetons continuent de fonctionner.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>Comment tout s'articule : vous stockez ici une valeur une fois par environnement ; votre logiciel déployé la lit à l'exécution avec un jeton d'app (voir la page Jetons d'app). Modifiez une valeur ici et la prochaine lecture la prendra en compte — sans redéploiement de votre application.</value></data>
   <data name="Nav.AdminUsers" xml:space="preserve"><value>Utilisateurs</value></data>
   <data name="Admin.Users.Title" xml:space="preserve"><value>Utilisateurs</value></data>
-  <data name="Admin.Users.Desc" xml:space="preserve"><value>Déverrouiller un compte verrouillé, ou désactiver et réactiver un utilisateur.</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Tous les comptes de cette installation : déverrouillez un compte verrouillé, désactivez-le ou réactivez-le, et attribuez le rôle du tenant — les membres utilisent le tenant, les admins du tenant le gèrent. Le dernier admin du tenant ne peut jamais être rétrogradé.</value></data>
   <data name="Admin.Users.User" xml:space="preserve"><value>Utilisateur</value></data>
   <data name="Admin.Users.Status" xml:space="preserve"><value>Statut</value></data>
   <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>Admin système</value></data>
@@ -248,4 +245,360 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirmer l'e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Votre e-mail est confirmé. Vous pouvez maintenant vous connecter :</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Ce lien de confirmation est invalide ou a expiré.</value></data>
+  <data name="Page.Personal.Help" xml:space="preserve">
+    <value>Vos coffres privés pour vos identifiants personnels, vos notes sécurisées et vos autres secrets. Ils n'appartiennent qu'à vous — chiffrés de sorte que personne d'autre, pas même un administrateur, ne puisse les lire. Utilisez-les comme un gestionnaire de mots de passe personnel : enregistrez un identifiant par site web, ne révélez le mot de passe que lorsque vous en avez besoin et organisez les éléments en dossiers.</value>
+  </data>
+  <data name="Page.Team.Help" xml:space="preserve">
+    <value>Coffres appartenant à votre organisation (locataire) et partagés avec des collègues via des autorisations d'accès. Utilisez-les pour les identifiants dont une équipe a besoin en commun — comptes de service partagés, clés Wi-Fi, clés de licence — où vous décidez, personne par personne, qui peut lire, modifier ou gérer chaque coffre. Le partage est explicite : un collègue ne voit que les coffres que vous lui accordez.</value>
+  </data>
+  <data name="Page.Secrets.Help" xml:space="preserve">
+    <value>Les secrets logiciels sont les secrets machine dont vos applications ont besoin à l'exécution — clés API, chaînes de connexion, clés de signature et similaires — stockés chiffrés et regroupés par environnement (Development / Test / Preview / Production). Au lieu de placer ces valeurs dans les fichiers de configuration de votre application, votre logiciel déployé les récupère ici au démarrage via l'API de lecture, à l'aide d'un jeton d'app. Sur cette page, vous créez et gérez les valeurs ; sur la page Jetons d'app, vous émettez les jetons que votre logiciel utilise pour les lire.</value>
+  </data>
+  <data name="Page.Tokens.Help" xml:space="preserve">
+    <value>Les jetons d'app permettent à votre logiciel déployé de s'authentifier auprès de {0} et de lire les secrets logiciels de ce projet à l'exécution — afin que les secrets n'aient jamais à résider dans les fichiers de configuration de l'application. Chaque jeton est limité à un seul environnement, de sorte qu'un jeton Production divulgué ne peut malgré tout pas lire Development. La valeur secrète du jeton n'est affichée qu'une seule fois, lors de son émission — copiez-la immédiatement et stockez-la dans la configuration de votre application.</value>
+  </data>
+  <data name="Nav.Group.Vaults" xml:space="preserve">
+    <value>Coffres</value>
+  </data>
+  <data name="Nav.Group.Software" xml:space="preserve">
+    <value>Logiciels</value>
+  </data>
+  <data name="Common.HowItWorks" xml:space="preserve">
+    <value>Comment ça marche ?</value>
+  </data>
+  <data name="Home.Tile.Personal" xml:space="preserve">
+    <value>Vos identifiants privés, notes sécurisées et secrets — chiffrés et visibles par vous seul ; même un administrateur ne peut pas les lire. Comme un gestionnaire de mots de passe personnel : par exemple un identifiant de site web, un code PIN ou une clé de licence.</value>
+  </data>
+  <data name="Home.Tile.Team" xml:space="preserve">
+    <value>Coffres partagés pour votre organisation — vous décidez par personne qui peut lire, modifier ou gérer. Pour les identifiants dont une équipe a besoin en commun : par exemple le mot de passe Wi-Fi, un compte de service partagé ou des clés de licence.</value>
+  </data>
+  <data name="Home.Tile.Secrets" xml:space="preserve">
+    <value>Valeurs que vos applications lisent à l'exécution, au lieu de les garder dans des fichiers de configuration — gérées par environnement (Development à Production) : par exemple une clé API, une chaîne de connexion de base de données ou une clé de signature. Les changements prennent effet sans redéployer votre application.</value>
+  </data>
+  <data name="Home.Tile.Tokens" xml:space="preserve">
+    <value>La clé avec laquelle votre logiciel déployé se connecte à {0} et lit les secrets logiciels de ce projet. Chaque jeton vaut pour exactement un environnement et peut être renouvelé ou révoqué à tout moment — vous le stockez une fois dans la configuration de votre application.</value>
+  </data>
+  <data name="Vault.Manage.Title" xml:space="preserve">
+    <value>Paramètres du coffre</value>
+  </data>
+  <data name="Vault.Manage.Desc" xml:space="preserve">
+    <value>Renommer ce coffre ou le supprimer définitivement.</value>
+  </data>
+  <data name="Vault.Items.FolderAll" xml:space="preserve">
+    <value>Tous les dossiers</value>
+  </data>
+  <data name="Vault.ConfirmDeleteItem" xml:space="preserve">
+    <value>Supprimer cette entrée ? Cette action est irréversible.</value>
+  </data>
+  <data name="Type.Login" xml:space="preserve">
+    <value>Identifiant</value>
+  </data>
+  <data name="Type.SecureNote" xml:space="preserve">
+    <value>Note sécurisée</value>
+  </data>
+  <data name="Type.ApiCredential" xml:space="preserve">
+    <value>Identifiants API</value>
+  </data>
+  <data name="Type.ConnectionString" xml:space="preserve">
+    <value>Chaîne de connexion</value>
+  </data>
+  <data name="Type.Generic" xml:space="preserve">
+    <value>Générique</value>
+  </data>
+  <data name="Permission.Read" xml:space="preserve">
+    <value>Lecture</value>
+  </data>
+  <data name="Permission.Write" xml:space="preserve">
+    <value>Écriture</value>
+  </data>
+  <data name="Permission.Manage" xml:space="preserve">
+    <value>Gestion</value>
+  </data>
+  <data name="Home.Group.Vaults.Desc" xml:space="preserve">
+    <value>Pour vous et votre équipe — mots de passe et secrets utilisés par des personnes.</value>
+  </data>
+  <data name="Home.Group.Software.Desc" xml:space="preserve">
+    <value>Pour vos applications — des secrets que les logiciels lisent automatiquement à l'exécution.</value>
+  </data>
+  <data name="Vault.CreateCard.Title" xml:space="preserve">
+    <value>Nouveau coffre</value>
+  </data>
+  <data name="Vault.CreateCard.DescPersonal" xml:space="preserve">
+    <value>Un coffre est comme un dossier étiqueté pour des entrées qui vont ensemble — son nom vous dit d'un coup d'œil ce qu'il contient. Plusieurs coffres aident à séparer les domaines de vie : par exemple « Privé » pour vos identifiants personnels, « Travail » pour le professionnel, « Famille » pour les comptes utilisés à la maison, ou « Banque » pour le plus sensible.</value>
+  </data>
+  <data name="Vault.CreateCard.DescTeam" xml:space="preserve">
+    <value>Le nom indique d'un coup d'œil à toutes les personnes autorisées ce que contient le coffre. Plusieurs coffres sont utiles car chaque coffre se partage séparément : un par équipe ou service (« IT », « Comptabilité »), un par fonction ou tâche (« Commandes en ligne », « Contrats »), un par client ou projet, ou « Infrastructure » pour les accès serveurs et Wi-Fi réservés aux administrateurs.</value>
+  </data>
+  <data name="Vault.Suggest.Label" xml:space="preserve">
+    <value>Suggestions :</value>
+  </data>
+  <data name="Vault.Suggest.Personal" xml:space="preserve">
+    <value>Privé,Travail,Famille,Banque</value>
+  </data>
+  <data name="Vault.Suggest.Team" xml:space="preserve">
+    <value>IT,Comptabilité,Commandes en ligne,Contrats,Infrastructure,Clients</value>
+  </data>
+  <data name="Vault.Default.Cta" xml:space="preserve">
+    <value>Créer le coffre par défaut « {0} »</value>
+  </data>
+  <data name="Nav.Group.Admin" xml:space="preserve">
+    <value>Administration</value>
+  </data>
+  <data name="Admin.Users.TenantRole" xml:space="preserve">
+    <value>Rôle du tenant</value>
+  </data>
+  <data name="Admin.Users.Role.TenantAdmin" xml:space="preserve">
+    <value>Admin du tenant</value>
+  </data>
+  <data name="Admin.Users.Role.Member" xml:space="preserve">
+    <value>Membre</value>
+  </data>
+  <data name="Admin.Users.MakeTenantAdmin" xml:space="preserve">
+    <value>Promouvoir admin du tenant</value>
+  </data>
+  <data name="Admin.Users.MakeMember" xml:space="preserve">
+    <value>Rétrograder en membre</value>
+  </data>
+  <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
+    <value>Supprimer définitivement le compte « {0} » ? Ses coffres personnels et ses accès seront retirés. Cette action est irréversible.</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>Copier</value>
+  </data>
+  <data name="Common.Open" xml:space="preserve">
+    <value>Ouvrir</value>
+  </data>
+  <data name="Vault.SelectHint" xml:space="preserve">
+    <value>Ou choisissez un coffre à gauche pour voir ses entrées.</value>
+  </data>
+  <data name="Vault.Search.Placeholder" xml:space="preserve">
+    <value>Rechercher dans tous les coffres (nom, URL, identifiant, note)…</value>
+  </data>
+  <data name="Vault.Search.Title" xml:space="preserve">
+    <value>Résultats de recherche</value>
+  </data>
+  <data name="Vault.Search.Count" xml:space="preserve">
+    <value>{0} entrée(s) correspondante(s) — le champ mot de passe n'est jamais parcouru.</value>
+  </data>
+  <data name="Vault.Search.Empty" xml:space="preserve">
+    <value>Aucune entrée ne correspond à votre recherche.</value>
+  </data>
+  <data name="Vault.Folders.Properties" xml:space="preserve">
+    <value>Propriétés du dossier</value>
+  </data>
+  <data name="Vault.Folders.NewSub" xml:space="preserve">
+    <value>Nouveau sous-dossier</value>
+  </data>
+  <data name="Vault.Move.Label" xml:space="preserve">
+    <value>Déplacer vers :</value>
+  </data>
+  <data name="Vault.Move.Action" xml:space="preserve">
+    <value>Déplacer</value>
+  </data>
+  <data name="Vault.Msg.Moved" xml:space="preserve">
+    <value>Entrée déplacée.</value>
+  </data>
+  <data name="Vault.Select.Count" xml:space="preserve">
+    <value>{0} sélectionné(s)</value>
+  </data>
+  <data name="Vault.Select.Clear" xml:space="preserve">
+    <value>Effacer la sélection</value>
+  </data>
+  <data name="Vault.Msg.FolderMoved" xml:space="preserve">
+    <value>Dossier déplacé.</value>
+  </data>
+  <data name="Vault.Share.Boundary" xml:space="preserve">
+    <value>Le coffre est à la fois la frontière des permissions et du chiffrement : chaque entrée est cryptographiquement liée à son coffre, et un partage vaut toujours pour le coffre entier — les dossiers ne sont que de l'organisation, pas une frontière de sécurité. Si un autre cercle de personnes doit avoir accès, utilisez un coffre séparé (p. ex. « IT », « Comptabilité », « Clients ») et partagez-le séparément.</value>
+  </data>
+  <data name="Nav.Groups" xml:space="preserve">
+    <value>Groupes</value>
+  </data>
+  <data name="Page.Groups.Title" xml:space="preserve">
+    <value>Groupes</value>
+  </data>
+  <data name="Page.Groups.Desc" xml:space="preserve">
+    <value>Des ensembles nommés de membres — partagez un coffre une seule fois avec un groupe (p. ex. « IT ») au lieu de chaque personne individuellement. Les admins du tenant gèrent les groupes ; les admins d'un groupe gèrent ses membres.</value>
+  </data>
+  <data name="Groups.Empty" xml:space="preserve">
+    <value>Pas encore de groupe.</value>
+  </data>
+  <data name="Groups.New.Placeholder" xml:space="preserve">
+    <value>Nom du nouveau groupe</value>
+  </data>
+  <data name="Groups.Create" xml:space="preserve">
+    <value>Créer le groupe</value>
+  </data>
+  <data name="Groups.MemberCount" xml:space="preserve">
+    <value>{0} membre(s)</value>
+  </data>
+  <data name="Groups.Members.Desc" xml:space="preserve">
+    <value>Qui appartient à ce groupe. Chacun ici reçoit ce qui est accordé au groupe (p. ex. des coffres partagés).</value>
+  </data>
+  <data name="Groups.Members.Empty" xml:space="preserve">
+    <value>Pas encore de membre.</value>
+  </data>
+  <data name="Groups.Members.SelectUser" xml:space="preserve">
+    <value>Choisir une personne…</value>
+  </data>
+  <data name="Groups.Members.Add" xml:space="preserve">
+    <value>Ajouter</value>
+  </data>
+  <data name="Groups.Role" xml:space="preserve">
+    <value>Rôle</value>
+  </data>
+  <data name="GroupRole.Member" xml:space="preserve">
+    <value>Membre</value>
+  </data>
+  <data name="GroupRole.Admin" xml:space="preserve">
+    <value>Admin du groupe</value>
+  </data>
+  <data name="Groups.MakeAdmin" xml:space="preserve">
+    <value>Promouvoir admin du groupe</value>
+  </data>
+  <data name="Groups.Remove" xml:space="preserve">
+    <value>Retirer</value>
+  </data>
+  <data name="Groups.Delete" xml:space="preserve">
+    <value>Supprimer le groupe</value>
+  </data>
+  <data name="Groups.ConfirmDelete" xml:space="preserve">
+    <value>Supprimer le groupe « {0} » ? Ses appartenances et tous les accès qui lui ont été accordés seront retirés.</value>
+  </data>
+  <data name="Groups.Msg.Created" xml:space="preserve">
+    <value>Groupe créé.</value>
+  </data>
+  <data name="Groups.Msg.Renamed" xml:space="preserve">
+    <value>Groupe renommé.</value>
+  </data>
+  <data name="Groups.Msg.Deleted" xml:space="preserve">
+    <value>Groupe supprimé.</value>
+  </data>
+  <data name="Groups.Badge" xml:space="preserve">
+    <value>Groupe</value>
+  </data>
+  <data name="Vault.Share.People" xml:space="preserve">
+    <value>Personnes</value>
+  </data>
+  <data name="Vault.Share.Groups" xml:space="preserve">
+    <value>Groupes</value>
+  </data>
+  <data name="Vault.Share.Revoke" xml:space="preserve">
+    <value>Révoquer</value>
+  </data>
+  <data name="Vault.Msg.Revoked" xml:space="preserve">
+    <value>Accès révoqué.</value>
+  </data>
+  <data name="Groups.SelectHint" xml:space="preserve">
+    <value>Choisissez un groupe à gauche pour voir ses membres.</value>
+  </data>
+  <data name="Groups.Settings.Title" xml:space="preserve">
+    <value>Paramètres du groupe</value>
+  </data>
+  <data name="Groups.Settings.Desc" xml:space="preserve">
+    <value>Renommer ce groupe ou le supprimer définitivement.</value>
+  </data>
+  <data name="Groups.AddMember.Title" xml:space="preserve">
+    <value>Ajouter un membre</value>
+  </data>
+  <data name="Groups.Members.Title" xml:space="preserve">
+    <value>Membres</value>
+  </data>
+  <data name="Vault.Export.Title" xml:space="preserve">
+    <value>Exporter les identifiants</value>
+  </data>
+  <data name="Vault.Export.Desc" xml:space="preserve">
+    <value>Télécharge les entrées LOGIN de ce coffre en CSV compatible navigateur (name, url, username, password, note) — réimportable ici ou dans Microsoft Edge / Google Chrome. Le fichier contient les mots de passe EN CLAIR : conservez-le en lieu sûr et supprimez-le après usage. Les autres types d'entrées (notes, valeurs) ne font pas partie de ce format.</value>
+  </data>
+  <data name="Vault.Export.Create" xml:space="preserve">
+    <value>Créer le CSV</value>
+  </data>
+  <data name="Vault.Export.Download" xml:space="preserve">
+    <value>Télécharger le CSV</value>
+  </data>
+  <data name="Vault.Export.Ready" xml:space="preserve">
+    <value>{0} identifiant(s) prêt(s) à télécharger.</value>
+  </data>
+  <data name="Secret.SelectHint" xml:space="preserve">
+    <value>Choisissez une entrée à gauche pour voir et définir ses valeurs par environnement.</value>
+  </data>
+  <data name="Secret.ConfirmDelete" xml:space="preserve">
+    <value>Supprimer « {0} » dans tous les environnements ? Les logiciels lisant cette clé ne recevront plus de valeur.</value>
+  </data>
+  <data name="Token.SelectHint" xml:space="preserve">
+    <value>Choisissez un jeton à gauche pour voir ses détails, le renouveler ou le révoquer.</value>
+  </data>
+  <data name="Token.ConfirmRevoke" xml:space="preserve">
+    <value>Révoquer « {0} » ? Les logiciels utilisant ce jeton perdent immédiatement l'accès — irréversible.</value>
+  </data>
+  <data name="Token.Expires.Never" xml:space="preserve">
+    <value>Jamais</value>
+  </data>
+  <data name="Secret.Envs.Title" xml:space="preserve">
+    <value>Environnements</value>
+  </data>
+  <data name="Secret.Envs.Desc" xml:space="preserve">
+    <value>Les environnements de cette application — chaque secret a une valeur par environnement, et chaque jeton d'app vaut pour exactement un. Un nouvel environnement reçoit automatiquement un jeton d'app (encore sans valeur) et est immédiatement disponible pour tous les secrets. Supprimer un environnement supprime ses valeurs et ses jetons d'app ; le dernier environnement ne peut pas être supprimé.</value>
+  </data>
+  <data name="Secret.Envs.NewName" xml:space="preserve">
+    <value>Nom du nouvel environnement</value>
+  </data>
+  <data name="Secret.Envs.Add" xml:space="preserve">
+    <value>Ajouter l'environnement</value>
+  </data>
+  <data name="Secret.Envs.Msg.Added" xml:space="preserve">
+    <value>Environnement ajouté — avec un jeton d'app (encore sans valeur).</value>
+  </data>
+  <data name="Secret.Envs.ConfirmDelete" xml:space="preserve">
+    <value>Supprimer l'environnement « {0} » ? Toutes les valeurs de cet environnement seront supprimées et ses jetons d'app révoqués. Cette action est irréversible.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Renamed" xml:space="preserve">
+    <value>Environnement renommé.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Deleted" xml:space="preserve">
+    <value>Environnement supprimé.</value>
+  </data>
+  <data name="Token.Reactivate" xml:space="preserve"><value>Réactiver</value></data>
+  <data name="Token.ConfirmDelete" xml:space="preserve"><value>Supprimer définitivement le jeton « {0} » ? Le logiciel qui l'utilise encore ne pourra plus lire les secrets immédiatement, et l'entrée disparaît de cette liste (contrairement à la révocation, c'est irréversible).</value></data>
+  <data name="Token.Msg.Reactivated" xml:space="preserve"><value>Jeton réactivé — sa valeur existante fonctionne à nouveau (la date d'expiration reste inchangée).</value></data>
+  <data name="Token.Msg.Deleted" xml:space="preserve"><value>Jeton supprimé.</value></data>
+  <data name="Nav.Applications" xml:space="preserve"><value>Applications</value></data>
+  <data name="Page.Apps.Title" xml:space="preserve"><value>Applications</value></data>
+  <data name="Page.Apps.Desc" xml:space="preserve"><value>Une application représente UN logiciel déployé et regroupe ses environnements, ses secrets logiciels et ses jetons d'app. Ainsi, chaque jeton ne lit que les secrets de sa propre application.</value></data>
+  <data name="Page.Apps.Help" xml:space="preserve"><value>Créez une application par logiciel déployé (p. ex. « webshop », « backend »). Chaque application a ses propres environnements (Development/Test/Production, par exemple), ses propres secrets logiciels et ses propres jetons d'app. Cette séparation est la frontière de sécurité : un jeton appartient toujours à exactement une application et un environnement — il ne peut jamais lire les secrets d'une autre application ou d'un autre environnement. Chaque environnement reçoit automatiquement un jeton d'app SANS valeur ; vous générez la valeur sur la page des jetons d'app quand vous en avez réellement besoin — d'ici là, le jeton en attente ne peut pas s'authentifier. Supprimer une application supprime aussi ses environnements, secrets et jetons.</value></data>
+  <data name="App.Empty" xml:space="preserve"><value>Pas encore d'applications — un admin du tenant en crée une à gauche.</value></data>
+  <data name="App.SelectHint" xml:space="preserve"><value>Sélectionnez une application à gauche.</value></data>
+  <data name="App.NoneHint" xml:space="preserve"><value>Il n'y a pas encore d'application. Créez-en d'abord une sur la page « Applications » — elle regroupe les environnements, secrets logiciels et jetons d'app d'un logiciel déployé.</value></data>
+  <data name="App.GoToApps" xml:space="preserve"><value>Vers les applications</value></data>
+  <data name="App.New.Placeholder" xml:space="preserve"><value>Nouvelle application…</value></data>
+  <data name="App.Create" xml:space="preserve"><value>Créer l'application</value></data>
+  <data name="App.Settings.Title" xml:space="preserve"><value>Paramètres de l'application</value></data>
+  <data name="App.Settings.Desc" xml:space="preserve"><value>Renommez l'application — ou supprimez-la dans la zone de danger ci-dessous.</value></data>
+  <data name="App.Delete" xml:space="preserve"><value>Supprimer l'application</value></data>
+  <data name="App.ConfirmDelete" xml:space="preserve"><value>Supprimer définitivement l'application « {0} » ? Ses environnements, TOUS les secrets logiciels (avec toutes leurs versions) et TOUS les jetons d'app sont supprimés avec elle — le logiciel qui utilise encore les jetons de cette application ne pourra plus lire les secrets immédiatement.</value></data>
+  <data name="App.Msg.Created" xml:space="preserve"><value>Application créée — avec les environnements par défaut et un jeton d'app (encore sans valeur) par environnement.</value></data>
+  <data name="App.Msg.Renamed" xml:space="preserve"><value>Application renommée.</value></data>
+  <data name="App.Msg.Deleted" xml:space="preserve"><value>Application supprimée.</value></data>
+  <data name="App.OpenSecrets" xml:space="preserve"><value>Ouvrir les secrets logiciels</value></data>
+  <data name="App.OpenTokens" xml:space="preserve"><value>Ouvrir les jetons d'app</value></data>
+  <data name="Home.Tile.Apps" xml:space="preserve"><value>Une application par logiciel déployé — regroupe ses environnements, secrets et jetons d'app.</value></data>
+  <data name="Token.NameOptional" xml:space="preserve"><value>Nom (facultatif)</value></data>
+  <data name="App.Content.Title" xml:space="preserve"><value>Secrets logiciels &amp; jetons d'app</value></data>
+  <data name="App.Content.Desc" xml:space="preserve"><value>Ouvre la page avec cette application présélectionnée.</value></data>
+  <data name="Token.Status.Pending" xml:space="preserve"><value>Sans valeur</value></data>
+  <data name="Token.GenerateValue" xml:space="preserve"><value>Générer la valeur du jeton</value></data>
+  <data name="Token.Msg.Generated" xml:space="preserve"><value>Valeur du jeton générée — copiez-la maintenant, elle ne sera plus affichée.</value></data>
+  <data name="Theme.Color" xml:space="preserve"><value>Thème de couleurs</value></data>
+  <data name="Theme.Dark" xml:space="preserve"><value>Basculer clair/sombre</value></data>
+  <data name="Nav.DefaultEnvs" xml:space="preserve"><value>Environnements par défaut</value></data>
+  <data name="Page.DefaultEnvs.Title" xml:space="preserve"><value>Environnements par défaut</value></data>
+  <data name="Page.DefaultEnvs.Desc" xml:space="preserve"><value>Le jeu d'environnements que chaque NOUVELLE application reçoit à sa création (avec un jeton d'app sans valeur par environnement). Les applications existantes ne sont pas concernées — leurs environnements se gèrent sur la page Applications.</value></data>
+  <data name="DefaultEnvs.BuiltInHint" xml:space="preserve"><value>Cette organisation utilise le jeu par défaut intégré. « Personnaliser » le copie dans une liste modifiable enregistrée en base de données.</value></data>
+  <data name="DefaultEnvs.Customize" xml:space="preserve"><value>Personnaliser</value></data>
+  <data name="DefaultEnvs.ConfirmDelete" xml:space="preserve"><value>Retirer l'environnement par défaut « {0} » ? Les nouvelles applications ne le recevront plus ; les applications existantes ne sont pas concernées. (Si toutes les entrées sont retirées, le jeu intégré s'applique à nouveau.)</value></data>
+  <data name="DefaultEnvs.Msg.Customized" xml:space="preserve"><value>Jeu par défaut copié — vous pouvez maintenant le modifier.</value></data>
+  <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Environnement par défaut ajouté.</value></data>
+  <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Entrée retirée — le jeu par défaut intégré s'applique à nouveau.</value></data>
+  <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>La clé « {0} » existe déjà. Sélectionnez-la dans la liste à gauche et définissez-y ses valeurs par environnement — rien n'a été écrasé.</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>Recevoir un e-mail quand des jetons d'app arrivent à expiration (30/20/10 jours avant, puis chaque jour à partir de 9 jours).</value></data>
+  <data name="Profile.Notify.Saved" xml:space="preserve"><value>Préférence de notification enregistrée.</value></data>
 </root>

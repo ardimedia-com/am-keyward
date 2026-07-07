@@ -25,14 +25,33 @@
     border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+::deep .nav-group-label {
+    padding: .9rem .75rem .3rem;
+    font-size: .68rem;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--sidebar-muted);
+    user-select: none;
+}
+
 ::deep .nav-link {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: .55rem;
     padding: .5rem .75rem;
     border-radius: 6px;
     color: var(--sidebar-fg);
     font-size: .9rem;
     text-decoration: none;
 }
+
+::deep .nav-link .kw-icon {
+    flex-shrink: 0;
+    opacity: .8;
+}
+
+::deep .nav-link.active .kw-icon { opacity: 1; }
 
 ::deep .nav-link:hover {
     background: var(--sidebar-active-bg);

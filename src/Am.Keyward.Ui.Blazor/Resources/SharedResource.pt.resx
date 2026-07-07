@@ -61,14 +61,14 @@
   <data name="Nav.Home" xml:space="preserve"><value>Início</value></data>
   <data name="Nav.PersonalVaults" xml:space="preserve"><value>Cofres pessoais</value></data>
   <data name="Nav.TeamVaults" xml:space="preserve"><value>Cofres da equipa</value></data>
-  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Credenciais de software</value></data>
-  <data name="Nav.ClientTokens" xml:space="preserve"><value>Tokens de cliente</value></data>
+  <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Segredos de software</value></data>
+  <data name="Nav.ClientTokens" xml:space="preserve"><value>Tokens de app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Iniciar sessão</value></data>
   <data name="Nav.SignOut" xml:space="preserve"><value>Terminar sessão</value></data>
   <data name="Language" xml:space="preserve"><value>Idioma</value></data>
-  <data name="Home.Tagline" xml:space="preserve"><value>Um gestor de credenciais e segredos de código aberto, nativo de .NET — credenciais de software e cofres pessoais.</value></data>
+  <data name="Home.Tagline" xml:space="preserve"><value>Guarda as tuas credenciais e as da tua organização em segurança num só lugar: palavras-passe e logins vivem em cofres pessoais e de equipa partilhados, fortemente cifrados. Além disso fornece ao teu software implantado os seus segredos em tempo de execução — chaves de API, cadeias de ligação e mais, por aplicação e ambiente. Tu decides quem vê o quê, e cada acesso fica registado.</value></data>
   <data name="Home.QuickLinks" xml:space="preserve"><value>Ligações rápidas</value></data>
-  <data name="Home.SignInPrompt" xml:space="preserve"><value>Inicie sessão para gerir os seus cofres e credenciais de software.</value></data>
+  <data name="Home.SignInPrompt" xml:space="preserve"><value>Inicie sessão para gerir os seus cofres e segredos de software.</value></data>
   <data name="Home.Register" xml:space="preserve"><value>Registar</value></data>
   <data name="Login.Title" xml:space="preserve"><value>Iniciar sessão</value></data>
   <data name="Login.Email" xml:space="preserve"><value>E-mail</value></data>
@@ -90,13 +90,13 @@
   <data name="Register.HaveAccount" xml:space="preserve"><value>Já tem uma conta?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Iniciar sessão</value></data>
   <data name="Page.Personal.Title" xml:space="preserve"><value>Cofres pessoais</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Os seus cofres privados para inícios de sessão pessoais, notas seguras e outros segredos. Pertencem-lhe só a si — encriptados de forma a que mais ninguém, nem sequer um administrador, os possa ler. Utilize-os como utilizaria um gestor de palavras-passe pessoal: guarde um início de sessão por site, mostre a palavra-passe apenas quando precisar dela e organize os itens em pastas.</value></data>
+  <data name="Page.Personal.Desc" xml:space="preserve"><value>Os teus cofres privados — cifrados e visíveis apenas para ti. Guarda logins, notas seguras e outros segredos.</value></data>
   <data name="Page.Team.Title" xml:space="preserve"><value>Cofres da equipa</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Cofres pertencentes à sua organização (inquilino) e partilhados com colegas através de permissões de acesso. Utilize-os para credenciais de que uma equipa precisa em comum — contas de serviço partilhadas, chaves de Wi-Fi, chaves de licença — em que decide, por pessoa, quem pode ler, editar ou gerir cada cofre. A partilha é explícita: um colega só vê os cofres a que lhe concede acesso.</value></data>
-  <data name="Page.Secrets.Title" xml:space="preserve"><value>Credenciais de software</value></data>
-  <data name="Page.Secrets.Desc" xml:space="preserve"><value>As credenciais de software são os segredos de máquina de que as suas aplicações precisam em tempo de execução — chaves de API, cadeias de ligação, chaves de assinatura e afins — armazenados encriptados e agrupados por ambiente (Development / Test / Preview / Production). Em vez de colocar estes valores nos ficheiros de configuração da própria aplicação, o seu software implementado obtém-nos aqui no arranque, através da API de leitura, utilizando um token de cliente. Nesta página cria e gere os valores; na página Tokens de cliente emite os tokens que o seu software utiliza para os ler.</value></data>
-  <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de cliente</value></data>
-  <data name="Page.Tokens.Desc" xml:space="preserve"><value>Os tokens de cliente permitem que o seu software implementado se autentique no AM KEYWARD e leia as credenciais de software deste projeto em tempo de execução — para que os segredos nunca tenham de residir na própria configuração da aplicação. Cada token está limitado a um único ambiente, pelo que um token de Production comprometido continua a não conseguir ler Development. O valor secreto do token é mostrado apenas uma vez, no momento da emissão — copie-o de imediato e guarde-o na configuração da sua aplicação.</value></data>
+  <data name="Page.Team.Desc" xml:space="preserve"><value>Cofres partilhados pela tua organização — decides por pessoa quem pode ler, editar ou gerir.</value></data>
+  <data name="Page.Secrets.Title" xml:space="preserve"><value>Segredos de software</value></data>
+  <data name="Page.Secrets.Desc" xml:space="preserve"><value>Os valores que as tuas aplicações leem em tempo de execução — chaves de API, cadeias de ligação e mais, por aplicação e ambiente. Escolhe a aplicação à esquerda.</value></data>
+  <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de app</value></data>
+  <data name="Page.Tokens.Desc" xml:space="preserve"><value>O teu software implantado inicia sessão com um token de app para ler os segredos de software da aplicação selecionada à esquerda. Cada token pertence a exatamente UM ambiente e devolve apenas os seus valores — o token de Production lê os valores de Production, o de Test os de Test. Um token de Test divulgado nunca pode expor segredos de Production.</value></data>
   <data name="Nav.Profile" xml:space="preserve"><value>Ver perfil</value></data>
   <data name="Profile.Title" xml:space="preserve"><value>Perfil</value></data>
   <data name="Profile.Desc" xml:space="preserve"><value>A sua conta.</value></data>
@@ -123,7 +123,7 @@
   <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Os seus cofres</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Os cofres da equipa pertencem ao inquilino e são partilhados com pessoas através de permissões. Vê aqueles que possui ou aos quais lhe foi concedido acesso. Partilhar um cofre permite que um colega leia ou edite os respetivos itens.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Os cofres pessoais são só seus — mais ninguém os pode ver. Utilize-os para os seus próprios inícios de sessão, notas e segredos.</value></data>
-  <data name="Vault.List.Empty" xml:space="preserve"><value>Ainda não há cofres — crie um abaixo.</value></data>
+  <data name="Vault.List.Empty" xml:space="preserve"><value>Ainda não há cofres.</value></data>
   <data name="Vault.Filter" xml:space="preserve"><value>Filtrar cofres…</value></data>
   <data name="Vault.NewNameTeam" xml:space="preserve"><value>Nome do novo cofre da equipa</value></data>
   <data name="Vault.NewNamePersonal" xml:space="preserve"><value>Nome do novo cofre</value></data>
@@ -134,14 +134,13 @@
   <data name="Vault.Import.Title" xml:space="preserve"><value>Importar inícios de sessão</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Carregue uma exportação de palavras-passe do navegador (CSV do Microsoft Edge / Chrome: name, url, username, password, note). Cada linha torna-se um item de Início de sessão neste cofre.</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Pastas</value></data>
-  <data name="Vault.Folders.Desc" xml:space="preserve"><value>As pastas são etiquetas opcionais para agrupar itens dentro de um cofre. Eliminar uma pasta mantém os seus itens (que voltam para a raiz do cofre).</value></data>
-  <data name="Vault.Folders.Filter" xml:space="preserve"><value>Filtrar pastas…</value></data>
-  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Eliminar pasta?</value></data>
+  <data name="Vault.Folders.Desc" xml:space="preserve"><value>As pastas agrupam as entradas de um cofre e podem conter subpastas. Ao eliminar uma pasta o conteúdo mantém-se — entradas e subpastas sobem para a pasta superior.</value></data>
+  <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Eliminar esta pasta? As suas entradas e subpastas sobem para a pasta superior.</value></data>
   <data name="Vault.Folders.NewName" xml:space="preserve"><value>Nome da nova pasta</value></data>
   <data name="Vault.Folders.Add" xml:space="preserve"><value>Adicionar pasta</value></data>
   <data name="Vault.Items.Title" xml:space="preserve"><value>Itens</value></data>
   <data name="Vault.Items.Add" xml:space="preserve"><value>Adicionar item</value></data>
-  <data name="Vault.Items.Desc" xml:space="preserve"><value>Um item de cofre é um segredo armazenado. Um Início de sessão contém um endereço de site, nome de utilizador e palavra-passe — ideal para credenciais de início de sessão; os outros tipos contêm uma nota segura ou um único valor secreto. Os valores são encriptados em repouso e só são mostrados quando escolhe Ver. Para remover um item, escolha Eliminar… para abrir primeiro o respetivo detalhe e depois confirme — para que nada seja eliminado por engano.</value></data>
+  <data name="Vault.Items.Desc" xml:space="preserve"><value>Uma entrada é um segredo guardado — um login de site, uma nota segura ou um valor único. Os valores permanecem cifrados; clica numa entrada para ver os detalhes.</value></data>
   <data name="Vault.Items.InFolder" xml:space="preserve"><value>em</value></data>
   <data name="Vault.Items.EditNamed" xml:space="preserve"><value>Editar “{0}”</value></data>
   <data name="Vault.Items.NamePlaceholder" xml:space="preserve"><value>p. ex. GitHub</value></data>
@@ -192,18 +191,16 @@
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Segredo eliminado.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Novo token (copie-o agora — não voltará a ser mostrado):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emitir um token</value></data>
-  <data name="Token.Issue.Desc" xml:space="preserve"><value>Emita um token por aplicação e ambiente. Dê-lhe um nome claro (a que aplicação ou serviço pertence), uma nota opcional (onde é executado, responsável, bilhete) e uma validade opcional após a qual deixa de funcionar. Limitar cada token a um único ambiente mantém o raio de impacto reduzido caso algum dia seja comprometido.</value></data>
-  <data name="Token.NamePlaceholder" xml:space="preserve"><value>orders-service prod</value></data>
+  <data name="Token.Issue.Desc" xml:space="preserve"><value>Emite um token por aplicação e ambiente. O servidor atribui-lhe automaticamente o nome «aplicação-ambiente» (numerado se necessário) — ou dá-lhe um nome próprio, p. ex. com um sufixo de host ou finalidade. Opcional: uma nota (onde é usado, proprietário, ticket) e uma data de expiração após a qual deixa de funcionar. Restringir cada token a um único ambiente limita os danos se algum vazar.</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (opcional)</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>onde é utilizado, responsável, bilhete…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expira em (dias, opcional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
   <data name="Token.Existing.Title" xml:space="preserve"><value>Tokens existentes</value></data>
   <data name="Token.Existing.Desc" xml:space="preserve"><value>Cada token é listado com o respetivo prefixo (o início visível do valor, para o identificar), data de criação, validade e estado. Editar altera o respetivo nome e nota; Rodar emite um novo valor secreto para o mesmo token e invalida de imediato o anterior (utilize-o de forma agendada ou após uma suspeita de fuga); Revogar desativa-o permanentemente.</value></data>
-  <data name="Token.Edit.Title" xml:space="preserve"><value>Editar token</value></data>
   <data name="Token.Empty" xml:space="preserve"><value>Ainda não há tokens — emita um acima.</value></data>
   <data name="Token.Filter" xml:space="preserve"><value>Filtrar tokens…</value></data>
-  <data name="Token.Prefix" xml:space="preserve"><value>Prefixo</value></data>
+  <data name="Token.Prefix" xml:space="preserve"><value>Identificador (início do token)</value></data>
   <data name="Token.Created" xml:space="preserve"><value>Criado</value></data>
   <data name="Token.Expires" xml:space="preserve"><value>Expira</value></data>
   <data name="Token.Status" xml:space="preserve"><value>Estado</value></data>
@@ -221,11 +218,11 @@
   <data name="Error.RequestId" xml:space="preserve"><value>ID do pedido:</value></data>
   <data name="NotFound.Title" xml:space="preserve"><value>Não encontrado</value></data>
   <data name="NotFound.Body" xml:space="preserve"><value>Lamentamos, o conteúdo que procura não existe.</value></data>
-  <data name="Token.UsageNote" xml:space="preserve"><value>Como utilizá-lo: guarde o token na configuração da sua aplicação implementada (uma variável de ambiente ou um cofre de segredos) e, em seguida, faça a aplicação chamar a API de leitura do AM KEYWARD com o cabeçalho “Authorization: Bearer &lt;token&gt;” para carregar os segredos deste projeto para o seu ambiente, normalmente no arranque. Os segredos nunca residem, assim, nos ficheiros da própria aplicação. Se um token for comprometido, utilize Rodar para substituir o respetivo valor ou Revogar para o desativar — os seus outros tokens continuam a funcionar.</value></data>
-  <data name="Secret.UsageNote" xml:space="preserve"><value>Como tudo se encaixa: guarda aqui um valor uma vez por ambiente; o seu software implementado lê-o em tempo de execução com um token de cliente (consulte a página Tokens de cliente). Altere aqui um valor e a leitura seguinte passa a utilizá-lo — sem necessidade de reimplementar a sua aplicação.</value></data>
+  <data name="Token.UsageNote" xml:space="preserve"><value>Como funciona a leitura: guarda o token na configuração da tua aplicação implantada (variável de ambiente ou cofre de segredos) e chama a API de leitura deste servidor com o cabeçalho HTTP «Authorization: Bearer &lt;token&gt;». GET /keyward/api/v1/secrets devolve TODOS os segredos do ambiente do token como JSON (chave → valor; normalmente carregados na configuração no arranque); GET /keyward/api/v1/secrets/{chave} devolve um único valor. O servidor deriva o projeto E o ambiente unicamente do token — a aplicação não envia mais nada. Exemplo: curl -H 'Authorization: Bearer amkw_...' https://keyward.example.com/keyward/api/v1/secrets. Se um token vazar: Rodar substitui o seu valor, Revogar desativa-o — os teus outros tokens continuam a funcionar.</value></data>
+  <data name="Secret.UsageNote" xml:space="preserve"><value>Como tudo se encaixa: guarda aqui um valor uma vez por ambiente; o seu software implementado lê-o em tempo de execução com um token de app (consulte a página Tokens de app). Altere aqui um valor e a leitura seguinte passa a utilizá-lo — sem necessidade de reimplementar a sua aplicação.</value></data>
   <data name="Nav.AdminUsers" xml:space="preserve"><value>Utilizadores</value></data>
   <data name="Admin.Users.Title" xml:space="preserve"><value>Utilizadores</value></data>
-  <data name="Admin.Users.Desc" xml:space="preserve"><value>Desbloquear uma conta bloqueada, ou desativar e reativar um utilizador.</value></data>
+  <data name="Admin.Users.Desc" xml:space="preserve"><value>Todas as contas desta instalação: desbloqueia uma conta bloqueada, desativa-a ou reativa-a e atribui a função no tenant — os membros usam o tenant, os admins do tenant gerem-no. O último admin do tenant nunca pode ser despromovido.</value></data>
   <data name="Admin.Users.User" xml:space="preserve"><value>Utilizador</value></data>
   <data name="Admin.Users.Status" xml:space="preserve"><value>Estado</value></data>
   <data name="Admin.Users.SystemAdmin" xml:space="preserve"><value>Administrador do sistema</value></data>
@@ -248,4 +245,360 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirmar e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>O seu e-mail está confirmado. Já pode iniciar sessão:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Este link de confirmação é inválido ou expirou.</value></data>
+  <data name="Page.Personal.Help" xml:space="preserve">
+    <value>Os seus cofres privados para inícios de sessão pessoais, notas seguras e outros segredos. Pertencem-lhe só a si — encriptados de forma a que mais ninguém, nem sequer um administrador, os possa ler. Utilize-os como utilizaria um gestor de palavras-passe pessoal: guarde um início de sessão por site, mostre a palavra-passe apenas quando precisar dela e organize os itens em pastas.</value>
+  </data>
+  <data name="Page.Team.Help" xml:space="preserve">
+    <value>Cofres pertencentes à sua organização (inquilino) e partilhados com colegas através de permissões de acesso. Utilize-os para credenciais de que uma equipa precisa em comum — contas de serviço partilhadas, chaves de Wi-Fi, chaves de licença — em que decide, por pessoa, quem pode ler, editar ou gerir cada cofre. A partilha é explícita: um colega só vê os cofres a que lhe concede acesso.</value>
+  </data>
+  <data name="Page.Secrets.Help" xml:space="preserve">
+    <value>As segredos de software são os segredos de máquina de que as suas aplicações precisam em tempo de execução — chaves de API, cadeias de ligação, chaves de assinatura e afins — armazenados encriptados e agrupados por ambiente (Development / Test / Preview / Production). Em vez de colocar estes valores nos ficheiros de configuração da própria aplicação, o seu software implementado obtém-nos aqui no arranque, através da API de leitura, utilizando um token de app. Nesta página cria e gere os valores; na página Tokens de app emite os tokens que o seu software utiliza para os ler.</value>
+  </data>
+  <data name="Page.Tokens.Help" xml:space="preserve">
+    <value>Os tokens de app permitem que o seu software implementado se autentique no {0} e leia as segredos de software deste projeto em tempo de execução — para que os segredos nunca tenham de residir na própria configuração da aplicação. Cada token está limitado a um único ambiente, pelo que um token de Production comprometido continua a não conseguir ler Development. O valor secreto do token é mostrado apenas uma vez, no momento da emissão — copie-o de imediato e guarde-o na configuração da sua aplicação.</value>
+  </data>
+  <data name="Nav.Group.Vaults" xml:space="preserve">
+    <value>Cofres</value>
+  </data>
+  <data name="Nav.Group.Software" xml:space="preserve">
+    <value>Software</value>
+  </data>
+  <data name="Common.HowItWorks" xml:space="preserve">
+    <value>Como funciona?</value>
+  </data>
+  <data name="Home.Tile.Personal" xml:space="preserve">
+    <value>Os teus logins privados, notas seguras e segredos — cifrados e visíveis apenas para ti; nem mesmo um administrador os pode ler. Como um gestor de palavras-passe pessoal: por exemplo um login de um site, um PIN ou uma chave de licença.</value>
+  </data>
+  <data name="Home.Tile.Team" xml:space="preserve">
+    <value>Cofres partilhados para a tua organização — decides por pessoa quem pode ler, editar ou gerir. Para credenciais de que uma equipa precisa em conjunto: por exemplo a palavra-passe do Wi-Fi, uma conta de serviço partilhada ou chaves de licença.</value>
+  </data>
+  <data name="Home.Tile.Secrets" xml:space="preserve">
+    <value>Valores que as tuas aplicações leem em tempo de execução, em vez de os manter em ficheiros de configuração — mantidos por ambiente (de Development a Production): por exemplo uma chave de API, uma cadeia de ligação à base de dados ou uma chave de assinatura. As alterações têm efeito sem reimplantar a aplicação.</value>
+  </data>
+  <data name="Home.Tile.Tokens" xml:space="preserve">
+    <value>A chave com que o teu software implantado inicia sessão no {0} e lê as segredos de software deste projeto. Cada token vale para exatamente um ambiente e pode ser rodado ou revogado a qualquer momento — guarda-lo uma vez na configuração da tua aplicação.</value>
+  </data>
+  <data name="Vault.Manage.Title" xml:space="preserve">
+    <value>Definições do cofre</value>
+  </data>
+  <data name="Vault.Manage.Desc" xml:space="preserve">
+    <value>Renomeia este cofre ou elimina-o permanentemente.</value>
+  </data>
+  <data name="Vault.Items.FolderAll" xml:space="preserve">
+    <value>Todas as pastas</value>
+  </data>
+  <data name="Vault.ConfirmDeleteItem" xml:space="preserve">
+    <value>Eliminar esta entrada? Não pode ser anulado.</value>
+  </data>
+  <data name="Type.Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Type.SecureNote" xml:space="preserve">
+    <value>Nota segura</value>
+  </data>
+  <data name="Type.ApiCredential" xml:space="preserve">
+    <value>Credenciais de API</value>
+  </data>
+  <data name="Type.ConnectionString" xml:space="preserve">
+    <value>Cadeia de ligação</value>
+  </data>
+  <data name="Type.Generic" xml:space="preserve">
+    <value>Genérico</value>
+  </data>
+  <data name="Permission.Read" xml:space="preserve">
+    <value>Leitura</value>
+  </data>
+  <data name="Permission.Write" xml:space="preserve">
+    <value>Escrita</value>
+  </data>
+  <data name="Permission.Manage" xml:space="preserve">
+    <value>Gestão</value>
+  </data>
+  <data name="Home.Group.Vaults.Desc" xml:space="preserve">
+    <value>Para ti e a tua equipa — palavras-passe e segredos usados por pessoas.</value>
+  </data>
+  <data name="Home.Group.Software.Desc" xml:space="preserve">
+    <value>Para as tuas aplicações — segredos que o software lê automaticamente em tempo de execução.</value>
+  </data>
+  <data name="Vault.CreateCard.Title" xml:space="preserve">
+    <value>Novo cofre</value>
+  </data>
+  <data name="Vault.CreateCard.DescPersonal" xml:space="preserve">
+    <value>Um cofre é como uma pasta etiquetada para entradas que pertencem juntas — o nome diz-te num relance o que contém. Vários cofres ajudam a separar áreas: por exemplo «Privado» para os teus logins, «Trabalho» para o profissional, «Família» para contas usadas em casa, ou «Banca» para o especialmente sensível.</value>
+  </data>
+  <data name="Vault.CreateCard.DescTeam" xml:space="preserve">
+    <value>O nome diz num relance a todas as pessoas autorizadas o que contém. Vários cofres compensam porque cada cofre é partilhado separadamente: um por equipa ou departamento («TI», «Contabilidade»), um por função ou tarefa («Encomendas online», «Contratos»), um por cliente ou projeto, ou «Infraestrutura» para acessos a servidores e Wi-Fi que só os administradores devem ver.</value>
+  </data>
+  <data name="Vault.Suggest.Label" xml:space="preserve">
+    <value>Sugestões:</value>
+  </data>
+  <data name="Vault.Suggest.Personal" xml:space="preserve">
+    <value>Privado,Trabalho,Família,Banca</value>
+  </data>
+  <data name="Vault.Suggest.Team" xml:space="preserve">
+    <value>TI,Contabilidade,Encomendas online,Contratos,Infraestrutura,Clientes</value>
+  </data>
+  <data name="Vault.Default.Cta" xml:space="preserve">
+    <value>Criar o cofre predefinido «{0}»</value>
+  </data>
+  <data name="Nav.Group.Admin" xml:space="preserve">
+    <value>Administração</value>
+  </data>
+  <data name="Admin.Users.TenantRole" xml:space="preserve">
+    <value>Função no tenant</value>
+  </data>
+  <data name="Admin.Users.Role.TenantAdmin" xml:space="preserve">
+    <value>Admin do tenant</value>
+  </data>
+  <data name="Admin.Users.Role.Member" xml:space="preserve">
+    <value>Membro</value>
+  </data>
+  <data name="Admin.Users.MakeTenantAdmin" xml:space="preserve">
+    <value>Tornar admin do tenant</value>
+  </data>
+  <data name="Admin.Users.MakeMember" xml:space="preserve">
+    <value>Tornar membro</value>
+  </data>
+  <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
+    <value>Eliminar permanentemente a conta «{0}»? Os seus cofres pessoais e acessos serão removidos. Não pode ser anulado.</value>
+  </data>
+  <data name="Common.Copy" xml:space="preserve">
+    <value>Copiar</value>
+  </data>
+  <data name="Common.Open" xml:space="preserve">
+    <value>Abrir</value>
+  </data>
+  <data name="Vault.SelectHint" xml:space="preserve">
+    <value>Ou escolhe um cofre à esquerda para ver as suas entradas.</value>
+  </data>
+  <data name="Vault.Search.Placeholder" xml:space="preserve">
+    <value>Pesquisar em todos os cofres (nome, URL, utilizador, nota)…</value>
+  </data>
+  <data name="Vault.Search.Title" xml:space="preserve">
+    <value>Resultados da pesquisa</value>
+  </data>
+  <data name="Vault.Search.Count" xml:space="preserve">
+    <value>{0} entrada(s) correspondente(s) — o campo de palavra-passe nunca é pesquisado.</value>
+  </data>
+  <data name="Vault.Search.Empty" xml:space="preserve">
+    <value>Nenhuma entrada corresponde à tua pesquisa.</value>
+  </data>
+  <data name="Vault.Folders.Properties" xml:space="preserve">
+    <value>Propriedades da pasta</value>
+  </data>
+  <data name="Vault.Folders.NewSub" xml:space="preserve">
+    <value>Nova subpasta</value>
+  </data>
+  <data name="Vault.Move.Label" xml:space="preserve">
+    <value>Mover para:</value>
+  </data>
+  <data name="Vault.Move.Action" xml:space="preserve">
+    <value>Mover</value>
+  </data>
+  <data name="Vault.Msg.Moved" xml:space="preserve">
+    <value>Entrada movida.</value>
+  </data>
+  <data name="Vault.Select.Count" xml:space="preserve">
+    <value>{0} selecionadas</value>
+  </data>
+  <data name="Vault.Select.Clear" xml:space="preserve">
+    <value>Limpar seleção</value>
+  </data>
+  <data name="Vault.Msg.FolderMoved" xml:space="preserve">
+    <value>Pasta movida.</value>
+  </data>
+  <data name="Vault.Share.Boundary" xml:space="preserve">
+    <value>O cofre é ao mesmo tempo a fronteira de permissões e de cifragem: cada entrada está criptograficamente ligada ao seu cofre, e uma partilha aplica-se sempre ao cofre inteiro — as pastas são pura organização, não uma fronteira de segurança. Se um grupo de pessoas diferente precisar de acesso, usa um cofre separado (p. ex. «TI», «Contabilidade», «Clientes») e partilha-o separadamente.</value>
+  </data>
+  <data name="Nav.Groups" xml:space="preserve">
+    <value>Grupos</value>
+  </data>
+  <data name="Page.Groups.Title" xml:space="preserve">
+    <value>Grupos</value>
+  </data>
+  <data name="Page.Groups.Desc" xml:space="preserve">
+    <value>Conjuntos nomeados de membros — partilha um cofre uma única vez com um grupo (p. ex. «TI») em vez de com cada pessoa. Os admins do tenant gerem os grupos; os admins de um grupo gerem os seus membros.</value>
+  </data>
+  <data name="Groups.Empty" xml:space="preserve">
+    <value>Ainda não há grupos.</value>
+  </data>
+  <data name="Groups.New.Placeholder" xml:space="preserve">
+    <value>Nome do novo grupo</value>
+  </data>
+  <data name="Groups.Create" xml:space="preserve">
+    <value>Criar grupo</value>
+  </data>
+  <data name="Groups.MemberCount" xml:space="preserve">
+    <value>{0} membro(s)</value>
+  </data>
+  <data name="Groups.Members.Desc" xml:space="preserve">
+    <value>Quem pertence a este grupo. Todos aqui recebem o que for concedido ao grupo (p. ex. cofres partilhados).</value>
+  </data>
+  <data name="Groups.Members.Empty" xml:space="preserve">
+    <value>Ainda não há membros.</value>
+  </data>
+  <data name="Groups.Members.SelectUser" xml:space="preserve">
+    <value>Seleciona uma pessoa…</value>
+  </data>
+  <data name="Groups.Members.Add" xml:space="preserve">
+    <value>Adicionar</value>
+  </data>
+  <data name="Groups.Role" xml:space="preserve">
+    <value>Função</value>
+  </data>
+  <data name="GroupRole.Member" xml:space="preserve">
+    <value>Membro</value>
+  </data>
+  <data name="GroupRole.Admin" xml:space="preserve">
+    <value>Admin do grupo</value>
+  </data>
+  <data name="Groups.MakeAdmin" xml:space="preserve">
+    <value>Tornar admin do grupo</value>
+  </data>
+  <data name="Groups.Remove" xml:space="preserve">
+    <value>Remover</value>
+  </data>
+  <data name="Groups.Delete" xml:space="preserve">
+    <value>Eliminar grupo</value>
+  </data>
+  <data name="Groups.ConfirmDelete" xml:space="preserve">
+    <value>Eliminar o grupo «{0}»? As suas pertenças e todos os acessos concedidos serão removidos.</value>
+  </data>
+  <data name="Groups.Msg.Created" xml:space="preserve">
+    <value>Grupo criado.</value>
+  </data>
+  <data name="Groups.Msg.Renamed" xml:space="preserve">
+    <value>Grupo renomeado.</value>
+  </data>
+  <data name="Groups.Msg.Deleted" xml:space="preserve">
+    <value>Grupo eliminado.</value>
+  </data>
+  <data name="Groups.Badge" xml:space="preserve">
+    <value>Grupo</value>
+  </data>
+  <data name="Vault.Share.People" xml:space="preserve">
+    <value>Pessoas</value>
+  </data>
+  <data name="Vault.Share.Groups" xml:space="preserve">
+    <value>Grupos</value>
+  </data>
+  <data name="Vault.Share.Revoke" xml:space="preserve">
+    <value>Revogar</value>
+  </data>
+  <data name="Vault.Msg.Revoked" xml:space="preserve">
+    <value>Acesso revogado.</value>
+  </data>
+  <data name="Groups.SelectHint" xml:space="preserve">
+    <value>Escolhe um grupo à esquerda para ver os seus membros.</value>
+  </data>
+  <data name="Groups.Settings.Title" xml:space="preserve">
+    <value>Definições do grupo</value>
+  </data>
+  <data name="Groups.Settings.Desc" xml:space="preserve">
+    <value>Renomeia este grupo ou elimina-o permanentemente.</value>
+  </data>
+  <data name="Groups.AddMember.Title" xml:space="preserve">
+    <value>Adicionar membro</value>
+  </data>
+  <data name="Groups.Members.Title" xml:space="preserve">
+    <value>Membros</value>
+  </data>
+  <data name="Vault.Export.Title" xml:space="preserve">
+    <value>Exportar logins</value>
+  </data>
+  <data name="Vault.Export.Desc" xml:space="preserve">
+    <value>Descarrega as entradas LOGIN deste cofre como CSV compatível com browsers (name, url, username, password, note) — reimportável aqui ou no Microsoft Edge / Google Chrome. O ficheiro contém as palavras-passe em TEXTO SIMPLES: guarda-o em segurança e elimina-o após o uso. Os outros tipos de entrada (notas, valores) não fazem parte deste formato.</value>
+  </data>
+  <data name="Vault.Export.Create" xml:space="preserve">
+    <value>Criar CSV</value>
+  </data>
+  <data name="Vault.Export.Download" xml:space="preserve">
+    <value>Transferir CSV</value>
+  </data>
+  <data name="Vault.Export.Ready" xml:space="preserve">
+    <value>{0} login(s) prontos para transferir.</value>
+  </data>
+  <data name="Secret.SelectHint" xml:space="preserve">
+    <value>Escolhe uma entrada à esquerda para ver e definir os seus valores por ambiente.</value>
+  </data>
+  <data name="Secret.ConfirmDelete" xml:space="preserve">
+    <value>Eliminar «{0}» em todos os ambientes? O software que lê esta chave deixará de receber um valor.</value>
+  </data>
+  <data name="Token.SelectHint" xml:space="preserve">
+    <value>Escolhe um token à esquerda para ver os seus detalhes, rodá-lo ou revogá-lo.</value>
+  </data>
+  <data name="Token.ConfirmRevoke" xml:space="preserve">
+    <value>Revogar «{0}»? O software que usa este token perde imediatamente o acesso — não pode ser anulado.</value>
+  </data>
+  <data name="Token.Expires.Never" xml:space="preserve">
+    <value>Nunca</value>
+  </data>
+  <data name="Secret.Envs.Title" xml:space="preserve">
+    <value>Ambientes</value>
+  </data>
+  <data name="Secret.Envs.Desc" xml:space="preserve">
+    <value>Os ambientes desta aplicação — cada segredo tem um valor por ambiente, e cada token de app vale para exatamente um. Um ambiente novo recebe automaticamente um token de app (ainda sem valor) e fica imediatamente disponível para todos os segredos. Eliminar um ambiente elimina os seus valores e os seus tokens de app; o último ambiente não pode ser eliminado.</value>
+  </data>
+  <data name="Secret.Envs.NewName" xml:space="preserve">
+    <value>Nome do novo ambiente</value>
+  </data>
+  <data name="Secret.Envs.Add" xml:space="preserve">
+    <value>Adicionar ambiente</value>
+  </data>
+  <data name="Secret.Envs.Msg.Added" xml:space="preserve">
+    <value>Ambiente adicionado — incluindo um token de app (ainda sem valor).</value>
+  </data>
+  <data name="Secret.Envs.ConfirmDelete" xml:space="preserve">
+    <value>Eliminar o ambiente «{0}»? Todos os valores neste ambiente serão eliminados e os seus tokens de app revogados. Não pode ser anulado.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Renamed" xml:space="preserve">
+    <value>Ambiente renomeado.</value>
+  </data>
+  <data name="Secret.Envs.Msg.Deleted" xml:space="preserve">
+    <value>Ambiente eliminado.</value>
+  </data>
+  <data name="Token.Reactivate" xml:space="preserve"><value>Reativar</value></data>
+  <data name="Token.ConfirmDelete" xml:space="preserve"><value>Eliminar definitivamente o token «{0}»? O software que ainda o usa deixa imediatamente de ler segredos e a entrada desaparece desta lista (ao contrário de revogar, não é reversível).</value></data>
+  <data name="Token.Msg.Reactivated" xml:space="preserve"><value>Token reativado — o seu valor existente volta a funcionar (a data de expiração mantém-se).</value></data>
+  <data name="Token.Msg.Deleted" xml:space="preserve"><value>Token eliminado.</value></data>
+  <data name="Nav.Applications" xml:space="preserve"><value>Aplicações</value></data>
+  <data name="Page.Apps.Title" xml:space="preserve"><value>Aplicações</value></data>
+  <data name="Page.Apps.Desc" xml:space="preserve"><value>Uma aplicação representa UM software implantado e agrupa os seus ambientes, segredos de software e tokens de app. Assim, cada token lê apenas os segredos da sua própria aplicação.</value></data>
+  <data name="Page.Apps.Help" xml:space="preserve"><value>Cria uma aplicação por cada software implantado (p. ex. «webshop», «backend»). Cada aplicação tem os seus próprios ambientes (como Development/Test/Production), os seus próprios segredos de software e os seus próprios tokens de app. Esta separação é a fronteira de segurança: um token pertence sempre a exatamente uma aplicação e um ambiente — nunca pode ler os segredos de outra aplicação ou ambiente. Cada ambiente recebe automaticamente um token de app SEM valor; geras o valor na página de tokens de app quando realmente precisares — até lá, o marcador de posição não consegue autenticar-se. Eliminar uma aplicação remove também os seus ambientes, segredos e tokens.</value></data>
+  <data name="App.Empty" xml:space="preserve"><value>Ainda não há aplicações — um admin do tenant cria uma à esquerda.</value></data>
+  <data name="App.SelectHint" xml:space="preserve"><value>Seleciona uma aplicação à esquerda.</value></data>
+  <data name="App.NoneHint" xml:space="preserve"><value>Ainda não existe nenhuma aplicação. Cria primeiro uma na página «Aplicações» — agrupa os ambientes, segredos de software e tokens de app de um software implantado.</value></data>
+  <data name="App.GoToApps" xml:space="preserve"><value>Ir para as aplicações</value></data>
+  <data name="App.New.Placeholder" xml:space="preserve"><value>Nova aplicação…</value></data>
+  <data name="App.Create" xml:space="preserve"><value>Criar aplicação</value></data>
+  <data name="App.Settings.Title" xml:space="preserve"><value>Definições da aplicação</value></data>
+  <data name="App.Settings.Desc" xml:space="preserve"><value>Renomeia a aplicação — ou elimina-a na zona de perigo abaixo.</value></data>
+  <data name="App.Delete" xml:space="preserve"><value>Eliminar aplicação</value></data>
+  <data name="App.ConfirmDelete" xml:space="preserve"><value>Eliminar definitivamente a aplicação «{0}»? Os seus ambientes, TODOS os segredos de software (com todas as versões) e TODOS os tokens de app são eliminados com ela — o software que ainda usa tokens desta aplicação deixa imediatamente de ler segredos.</value></data>
+  <data name="App.Msg.Created" xml:space="preserve"><value>Aplicação criada — com os ambientes predefinidos e um token de app (ainda sem valor) por ambiente.</value></data>
+  <data name="App.Msg.Renamed" xml:space="preserve"><value>Aplicação renomeada.</value></data>
+  <data name="App.Msg.Deleted" xml:space="preserve"><value>Aplicação eliminada.</value></data>
+  <data name="App.OpenSecrets" xml:space="preserve"><value>Abrir os segredos de software</value></data>
+  <data name="App.OpenTokens" xml:space="preserve"><value>Abrir os tokens de app</value></data>
+  <data name="Home.Tile.Apps" xml:space="preserve"><value>Uma aplicação por software implantado — agrupa os seus ambientes, segredos e tokens de app.</value></data>
+  <data name="Token.NameOptional" xml:space="preserve"><value>Nome (opcional)</value></data>
+  <data name="App.Content.Title" xml:space="preserve"><value>Segredos de software &amp; tokens de app</value></data>
+  <data name="App.Content.Desc" xml:space="preserve"><value>Abre a página com esta aplicação pré-selecionada.</value></data>
+  <data name="Token.Status.Pending" xml:space="preserve"><value>Sem valor</value></data>
+  <data name="Token.GenerateValue" xml:space="preserve"><value>Gerar o valor do token</value></data>
+  <data name="Token.Msg.Generated" xml:space="preserve"><value>Valor do token gerado — copia-o agora, não voltará a ser mostrado.</value></data>
+  <data name="Theme.Color" xml:space="preserve"><value>Tema de cor</value></data>
+  <data name="Theme.Dark" xml:space="preserve"><value>Alternar claro/escuro</value></data>
+  <data name="Nav.DefaultEnvs" xml:space="preserve"><value>Ambientes predefinidos</value></data>
+  <data name="Page.DefaultEnvs.Title" xml:space="preserve"><value>Ambientes predefinidos</value></data>
+  <data name="Page.DefaultEnvs.Desc" xml:space="preserve"><value>O conjunto de ambientes que cada NOVA aplicação recebe ao ser criada (incluindo um token de app sem valor por ambiente). As aplicações existentes não são afetadas — os seus ambientes gerem-se na página Aplicações.</value></data>
+  <data name="DefaultEnvs.BuiltInHint" xml:space="preserve"><value>Esta organização usa o conjunto predefinido integrado. «Personalizar» copia-o para uma lista editável guardada na base de dados.</value></data>
+  <data name="DefaultEnvs.Customize" xml:space="preserve"><value>Personalizar</value></data>
+  <data name="DefaultEnvs.ConfirmDelete" xml:space="preserve"><value>Remover o ambiente predefinido «{0}»? As novas aplicações deixam de o receber; as aplicações existentes não são afetadas. (Removendo todas as entradas, volta a valer o conjunto integrado.)</value></data>
+  <data name="DefaultEnvs.Msg.Customized" xml:space="preserve"><value>Conjunto predefinido copiado — agora podes editá-lo.</value></data>
+  <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Ambiente predefinido adicionado.</value></data>
+  <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Entrada removida — volta a valer o conjunto predefinido integrado.</value></data>
+  <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>A chave «{0}» já existe. Seleciona-a na lista à esquerda e define aí os seus valores por ambiente — nada foi substituído.</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>Receber um e-mail quando tokens de app estiverem a expirar (30/20/10 dias antes, depois diariamente a partir de 9 dias).</value></data>
+  <data name="Profile.Notify.Saved" xml:space="preserve"><value>Preferência de notificação guardada.</value></data>
 </root>

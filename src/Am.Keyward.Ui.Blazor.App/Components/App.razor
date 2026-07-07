@@ -5,7 +5,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
-    <title>AM KEYWARD</title>
+    <script>
+        // Apply the per-browser theme BEFORE first paint (no flash of the wrong scheme);
+        // js/keyward-theme.js re-applies it after Blazor enhanced navigations.
+        try {
+            if (localStorage.getItem('amkeyward-dark') === '1') { document.documentElement.classList.add('dark'); }
+            var kwTheme = localStorage.getItem('amkeyward-theme');
+            if (kwTheme) { document.documentElement.setAttribute('data-theme', kwTheme); }
+        } catch (e) { /* localStorage unavailable */ }
+    </script>
+    <title>@KeywardOptions.ProductName</title>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     @* The Keyward RCL's component-scoped CSS is bundled into this app styles bundle automatically. *@
@@ -19,6 +28,7 @@
 <body>
     <Routes />
     <ReconnectModal />
+    <script src="@Assets["js/keyward-theme.js"]"></script>
     <script src="@Assets["_framework/blazor.web.js"]"></script>
 </body>
 

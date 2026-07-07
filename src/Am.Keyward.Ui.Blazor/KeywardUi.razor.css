@@ -29,6 +29,47 @@
     font-size: 15px;
 }
 
+/* Dark mode + colour themes: the HOST toggles .dark / [data-theme] on <html> (see the reference shell's
+   keyward-theme.js) and these rules re-tint the embedded UI to match. A host without a theme switcher
+   simply never sets them and gets the light indigo default. */
+.dark .keyward-ui {
+    color-scheme: dark;
+
+    --kw-bg: #12151a;
+    --kw-surface: #1a1f27;
+    --kw-muted: #242b35;
+    --kw-text: #e7eaee;
+    --kw-muted-text: #98a1ad;
+    --kw-border: #2d3541;
+
+    --kw-primary: #6366f1;
+    --kw-primary-hover: #818cf8;
+
+    --kw-success: #34d399;
+    --kw-danger: #f87171;
+    --kw-warning: #fbbf24;
+
+    --kw-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="mono"] .keyward-ui { --kw-primary: #52525b; --kw-primary-hover: #3f3f46; }
+.dark[data-theme="mono"] .keyward-ui { --kw-primary: #a1a1aa; --kw-primary-hover: #d4d4d8; --kw-primary-foreground: #18181b; }
+
+[data-theme="storm"] .keyward-ui { --kw-primary: #64748b; --kw-primary-hover: #475569; }
+.dark[data-theme="storm"] .keyward-ui { --kw-primary: #94a3b8; --kw-primary-hover: #cbd5e1; --kw-primary-foreground: #0f172a; }
+
+[data-theme="midnight"] .keyward-ui { --kw-primary: #18181b; --kw-primary-hover: #333338; }
+.dark[data-theme="midnight"] .keyward-ui { --kw-primary: #e4e4e7; --kw-primary-hover: #f4f4f5; --kw-primary-foreground: #18181b; }
+
+[data-theme="pastel"] .keyward-ui { --kw-primary: #a78bfa; --kw-primary-hover: #8b5cf6; }
+.dark[data-theme="pastel"] .keyward-ui { --kw-primary: #c4b5fd; --kw-primary-hover: #ddd6fe; --kw-primary-foreground: #312e81; }
+
+[data-theme="amber"] .keyward-ui { --kw-primary: #d97706; --kw-primary-hover: #b45309; }
+.dark[data-theme="amber"] .keyward-ui { --kw-primary: #f59e0b; --kw-primary-hover: #fbbf24; --kw-primary-foreground: #451a03; }
+
+[data-theme="ocean"] .keyward-ui { --kw-primary: #0284c7; --kw-primary-hover: #0369a1; }
+.dark[data-theme="ocean"] .keyward-ui { --kw-primary: #38bdf8; --kw-primary-hover: #7dd3fc; --kw-primary-foreground: #082f49; }
+
 .keyward-ui ::deep h1, .keyward-ui ::deep h2, .keyward-ui ::deep h3 {
     color: var(--kw-text);
     letter-spacing: -0.01em;
@@ -61,11 +102,11 @@
 .keyward-ui ::deep .btn {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    padding: .5rem .9rem;
-    font-size: .9rem;
+    gap: .5rem;
+    padding: .65rem 1.1rem;
+    font-size: .95rem;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.1;
     color: var(--kw-primary-foreground);
     background: var(--kw-primary);
     border: 1px solid var(--kw-primary);
@@ -97,7 +138,7 @@
 .keyward-ui ::deep .btn-danger:hover,
 .keyward-ui ::deep button.btn-danger:hover { background: color-mix(in srgb, var(--kw-danger) 10%, transparent); }
 
-.keyward-ui ::deep .btn-sm, .keyward-ui ::deep button.btn-sm { padding: .3rem .6rem; font-size: .8rem; }
+.keyward-ui ::deep .btn-sm, .keyward-ui ::deep button.btn-sm { padding: .4rem .75rem; font-size: .85rem; }
 
 /* Forms */
 .keyward-ui ::deep label { font-size: .85rem; font-weight: 500; color: var(--kw-text); }
@@ -178,3 +219,349 @@
 .keyward-ui ::deep .notice { padding: .6rem .8rem; border-radius: var(--kw-radius); font-size: .85rem; margin: .5rem 0; border: 1px solid var(--kw-border); background: var(--kw-muted); }
 .keyward-ui ::deep .notice-error { background: color-mix(in srgb, var(--kw-danger) 10%, transparent); color: var(--kw-danger); border-color: color-mix(in srgb, var(--kw-danger) 30%, transparent); }
 .keyward-ui ::deep .notice-reveal { background: color-mix(in srgb, var(--kw-primary) 8%, transparent); border-color: color-mix(in srgb, var(--kw-primary) 30%, transparent); }
+
+/* Icons (inline SVG, KeywardIcon) */
+.keyward-ui ::deep .kw-icon { flex-shrink: 0; vertical-align: -2px; }
+
+/* Global search across all vaults (above the workspace) */
+.keyward-ui ::deep .ws-search {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    max-width: 32rem;
+    margin-bottom: .9rem;
+    padding: .15rem .6rem;
+    background: var(--kw-surface);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+}
+.keyward-ui ::deep .ws-search > .kw-icon { color: var(--kw-muted-text); flex-shrink: 0; }
+.keyward-ui ::deep .ws-search input { border: none; background: transparent; padding: .45rem 0; }
+.keyward-ui ::deep .ws-search input:focus { outline: none; }
+.keyward-ui ::deep .ws-search:focus-within { border-color: var(--kw-primary); outline: 2px solid color-mix(in srgb, var(--kw-primary) 35%, transparent); outline-offset: 1px; }
+
+/* Master-detail workspace: tree pane left, content right; stacks on narrow screens */
+.keyward-ui ::deep .workspace {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+@media (max-width: 860px) {
+    .keyward-ui ::deep .workspace { grid-template-columns: 1fr; }
+}
+
+/* Fill mode (KeywardUi Fill="true"): the page header, notices and the search box stay put while the tree
+   and the content pane scroll independently. The host opts its content area out of scrolling (see the
+   reference shell's MainLayout css: .content:has(> .keyward-ui.kw-fill)). */
+.keyward-ui.kw-fill {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+.keyward-ui.kw-fill ::deep .workspace {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+}
+.keyward-ui.kw-fill ::deep .ws-tree { overflow-y: auto; min-height: 0; }
+.keyward-ui.kw-fill ::deep .ws-main {
+    overflow-y: auto;
+    min-height: 0;
+    padding-bottom: .25rem;
+    display: flex;
+    flex-direction: column;
+}
+.keyward-ui.kw-fill ::deep .ws-main > * { flex-shrink: 0; }
+
+/* Item list: heading + filter stay pinned, ONLY the rows scroll. The card fills the remaining pane
+   height; with areas above it keeps a sensible minimum and the pane scrolls to it. */
+.keyward-ui.kw-fill ::deep .list-card {
+    flex: 1 1 auto;
+    min-height: 22rem;
+    display: flex;
+    flex-direction: column;
+}
+.keyward-ui.kw-fill ::deep .list-card .list-head { flex-shrink: 0; padding-bottom: .5rem; }
+.keyward-ui.kw-fill ::deep .list-card .list-rows {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 0;
+}
+@media (max-width: 860px) {
+    /* Stacked panes: back to one page scroll. */
+    .keyward-ui.kw-fill { display: block; }
+    .keyward-ui.kw-fill ::deep .ws-tree,
+    .keyward-ui.kw-fill ::deep .ws-main { overflow-y: visible; }
+}
+
+/* Tree pane (vaults + folders) */
+.keyward-ui ::deep .ws-tree {
+    background: var(--kw-surface);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    box-shadow: var(--kw-shadow);
+    padding: .6rem;
+}
+.keyward-ui ::deep .ws-tree-title {
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    color: var(--kw-muted-text);
+    padding: .25rem .5rem .5rem;
+    user-select: none;
+}
+.keyward-ui ::deep button.tree-node {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: .5rem;
+    padding: .45rem .6rem;
+    background: transparent;
+    color: var(--kw-text);
+    border: none;
+    border-radius: 6px;
+    font-size: .9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+}
+.keyward-ui ::deep button.tree-node:hover { background: var(--kw-muted); border: none; }
+.keyward-ui ::deep button.tree-node.active {
+    background: color-mix(in srgb, var(--kw-primary) 10%, transparent);
+    color: var(--kw-primary);
+}
+.keyward-ui ::deep button.tree-node .kw-icon { color: var(--kw-muted-text); flex-shrink: 0; }
+.keyward-ui ::deep button.tree-node.active .kw-icon { color: var(--kw-primary); }
+.keyward-ui ::deep .tree-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Indent comes as an inline style per tree depth (subfolders nest one step further each level). */
+.keyward-ui ::deep .tree-child { font-size: .85rem; font-weight: 400; }
+/* Container for one level of child nodes (e.g. an application's secrets/tokens): indents the whole block. */
+.keyward-ui ::deep .tree-children { padding-left: 1.1rem; }
+.keyward-ui ::deep .tree-count { margin-left: auto; font-size: .75rem; color: var(--kw-muted-text); display: inline-flex; align-items: center; }
+.keyward-ui ::deep .tree-create {
+    display: flex;
+    gap: .4rem;
+    margin-top: .75rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--kw-border);
+}
+.keyward-ui ::deep .tree-create input { font-size: .85rem; }
+.keyward-ui ::deep .ws-main { min-width: 0; }
+
+/* Password-manager style item rows */
+.keyward-ui ::deep .list-rows {
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    overflow: hidden;
+    margin-top: .5rem;
+}
+.keyward-ui ::deep div.list-row,
+.keyward-ui ::deep button.list-row {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem .9rem;
+    background: var(--kw-surface);
+    color: var(--kw-text);
+    border: none;
+    border-bottom: 1px solid var(--kw-border);
+    border-radius: 0;
+    font-size: .9rem;
+    cursor: pointer;
+    text-align: left;
+}
+.keyward-ui ::deep div.list-row:last-child,
+.keyward-ui ::deep button.list-row:last-child { border-bottom: none; }
+.keyward-ui ::deep button.list-row:hover { background: var(--kw-muted); border-color: var(--kw-border); }
+.keyward-ui ::deep .list-row .kw-icon { color: var(--kw-muted-text); flex-shrink: 0; }
+.keyward-ui ::deep .list-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keyward-ui ::deep .list-row-meta { margin-left: auto; display: flex; align-items: center; gap: .6rem; color: var(--kw-muted-text); font-size: .8rem; flex-shrink: 0; }
+
+/* Item detail: two-column field grid (label above a read-only value box with copy/reveal) */
+.keyward-ui ::deep .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .9rem 1.25rem;
+    margin-top: .75rem;
+}
+@media (max-width: 720px) {
+    .keyward-ui ::deep .detail-grid { grid-template-columns: 1fr; }
+}
+.keyward-ui ::deep .detail-field { display: flex; flex-direction: column; gap: .3rem; }
+.keyward-ui ::deep .detail-grid > .wide { grid-column: 1 / -1; }
+.keyward-ui ::deep .detail-grid > .field { margin-bottom: 0; }
+.keyward-ui ::deep .detail-value {
+    display: flex;
+    align-items: center;
+    gap: .3rem;
+    min-height: 2.3rem;
+    padding: .45rem .6rem;
+    background: var(--kw-muted);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    font-size: .9rem;
+}
+.keyward-ui ::deep .detail-value .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keyward-ui ::deep .detail-value code { background: transparent; padding: 0; }
+.keyward-ui ::deep .icon-btn,
+.keyward-ui ::deep button.icon-btn,
+.keyward-ui ::deep a.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: .25rem;
+    background: transparent;
+    color: var(--kw-muted-text);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.keyward-ui ::deep .icon-btn:hover { background: color-mix(in srgb, var(--kw-primary) 12%, transparent); color: var(--kw-primary); border: none; }
+
+/* Clickable name-suggestion chips (prefill the create field) */
+.keyward-ui ::deep button.chip {
+    padding: .25rem .7rem;
+    font-size: .8rem;
+    font-weight: 500;
+    background: var(--kw-muted);
+    color: var(--kw-text);
+    border: 1px solid var(--kw-border);
+    border-radius: 999px;
+}
+.keyward-ui ::deep button.chip:hover {
+    background: var(--kw-muted);
+    border-color: var(--kw-primary);
+    color: var(--kw-primary);
+}
+
+/* Friendly empty state */
+.keyward-ui ::deep .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .5rem;
+    padding: 2rem 1rem;
+    margin: .75rem 0;
+    color: var(--kw-muted-text);
+    text-align: center;
+    border: 1px dashed var(--kw-border);
+    border-radius: var(--kw-radius);
+}
+.keyward-ui ::deep .empty-state p { margin: 0; }
+
+/* Back-navigation row above a detail view */
+.keyward-ui ::deep .back-row { margin-bottom: .75rem; }
+
+/* Collapsible secondary section (a card whose body opens on demand) */
+.keyward-ui ::deep details.section { padding: 0; }
+.keyward-ui ::deep details.section > summary {
+    display: flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .85rem 1.25rem;
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--kw-text);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+.keyward-ui ::deep details.section > summary::-webkit-details-marker { display: none; }
+.keyward-ui ::deep details.section > summary::after {
+    content: "";
+    margin-left: auto;
+    width: .45rem;
+    height: .45rem;
+    border-right: 2px solid var(--kw-muted-text);
+    border-bottom: 2px solid var(--kw-muted-text);
+    transform: rotate(45deg);
+    transition: transform .15s ease;
+}
+.keyward-ui ::deep details.section[open] > summary::after { transform: rotate(-135deg); }
+.keyward-ui ::deep details.section > summary .kw-icon { color: var(--kw-muted-text); }
+.keyward-ui ::deep details.section > .section-body {
+    padding: .9rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--kw-border);
+}
+
+/* Collapsible "How does this work?" help under a page header */
+.keyward-ui ::deep details.help { margin-top: .4rem; }
+.keyward-ui ::deep details.help > summary {
+    display: inline-block;
+    font-size: .85rem;
+    color: var(--kw-primary);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+.keyward-ui ::deep details.help > summary::-webkit-details-marker { display: none; }
+.keyward-ui ::deep details.help > summary:hover { text-decoration: underline; }
+.keyward-ui ::deep details.help > div {
+    margin-top: .4rem;
+    padding: .7rem .9rem;
+    font-size: .85rem;
+    color: var(--kw-text);
+    background: var(--kw-muted);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    max-width: 52rem;
+}
+.keyward-ui ::deep details.help > div p { margin: 0 0 .5rem; }
+.keyward-ui ::deep details.help > div p:last-child { margin-bottom: 0; }
+
+/* Clickable list rows (open the item on click) */
+.keyward-ui ::deep tr.row-click { cursor: pointer; }
+.keyward-ui ::deep tr.row-click:hover td { background: var(--kw-muted); }
+
+/* Multi-select via Ctrl+click (toggle) and Shift+click (range); selected rows are tinted. */
+.keyward-ui ::deep .list-row.selected { background: color-mix(in srgb, var(--kw-primary) 8%, transparent); }
+.keyward-ui ::deep .list-row { user-select: none; }
+
+/* Bulk action bar (appears in the pinned list head while a selection exists) */
+.keyward-ui ::deep .bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-top: .6rem;
+    padding: .5rem .7rem;
+    font-size: .88rem;
+    font-weight: 500;
+    background: color-mix(in srgb, var(--kw-primary) 7%, transparent);
+    border: 1px solid color-mix(in srgb, var(--kw-primary) 25%, transparent);
+    border-radius: var(--kw-radius);
+}
+
+/* Drag & drop: a list row can be dragged onto a tree node (folder = move into it, vault = its root) */
+.keyward-ui ::deep button.list-row[draggable="true"] { cursor: grab; }
+.keyward-ui ::deep button.tree-node.drag-over {
+    outline: 2px dashed var(--kw-primary);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--kw-primary) 8%, transparent);
+}
+
+/* Move panel in the item detail (target vault + folder) */
+.keyward-ui ::deep .move-panel {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: .9rem;
+    border-top: 1px solid var(--kw-border);
+}
+
+/* Danger zone inside a settings section */
+.keyward-ui ::deep .danger-zone {
+    margin-top: 1rem;
+    padding: .9rem 1rem;
+    font-size: .85rem;
+    border: 1px solid color-mix(in srgb, var(--kw-danger) 30%, transparent);
+    border-radius: var(--kw-radius);
+    background: color-mix(in srgb, var(--kw-danger) 4%, transparent);
+}

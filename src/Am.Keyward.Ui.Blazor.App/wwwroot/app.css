@@ -1,6 +1,10 @@
 /* AM KEYWARD theme — hand-written CSS variables + components (no Bootstrap/Tailwind).
    Inspired by the win-smtp-relay admin look: neutral surfaces, clean cards/tables/badges, a dark sidebar. */
 
+/* Padding/borders count into declared widths — without this, .content (width:100% + padding) grows
+   beyond the viewport and produces permanent horizontal + vertical scrollbars. */
+*, *::before, *::after { box-sizing: border-box; }
+
 :root {
     color-scheme: light;
 
@@ -29,6 +33,50 @@
     --radius: 8px;
     --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10);
 }
+
+/* ---------- Dark mode + colour themes (html.dark / html[data-theme], toggled by keyward-theme.js) ---------- */
+
+:root.dark {
+    /* Native UI (option popups, scrollbars, carets) renders dark too. */
+    color-scheme: dark;
+
+    --bg: #12151a;
+    --surface: #1a1f27;
+    --muted: #242b35;
+    --text: #e7eaee;
+    --muted-text: #98a1ad;
+    --border: #2d3541;
+
+    --primary: #6366f1;
+    --primary-hover: #818cf8;
+    --primary-foreground: #ffffff;
+
+    --success: #34d399;
+    --danger: #f87171;
+    --warning: #fbbf24;
+
+    --sidebar-bg: #141922;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Colour themes change the accent; everything else follows the light/dark base. */
+:root[data-theme="mono"] { --primary: #52525b; --primary-hover: #3f3f46; }
+:root.dark[data-theme="mono"] { --primary: #a1a1aa; --primary-hover: #d4d4d8; --primary-foreground: #18181b; }
+
+:root[data-theme="storm"] { --primary: #64748b; --primary-hover: #475569; }
+:root.dark[data-theme="storm"] { --primary: #94a3b8; --primary-hover: #cbd5e1; --primary-foreground: #0f172a; }
+
+:root[data-theme="midnight"] { --primary: #18181b; --primary-hover: #333338; }
+:root.dark[data-theme="midnight"] { --primary: #e4e4e7; --primary-hover: #f4f4f5; --primary-foreground: #18181b; }
+
+:root[data-theme="pastel"] { --primary: #a78bfa; --primary-hover: #8b5cf6; }
+:root.dark[data-theme="pastel"] { --primary: #c4b5fd; --primary-hover: #ddd6fe; --primary-foreground: #312e81; }
+
+:root[data-theme="amber"] { --primary: #d97706; --primary-hover: #b45309; }
+:root.dark[data-theme="amber"] { --primary: #f59e0b; --primary-hover: #fbbf24; --primary-foreground: #451a03; }
+
+:root[data-theme="ocean"] { --primary: #0284c7; --primary-hover: #0369a1; }
+:root.dark[data-theme="ocean"] { --primary: #38bdf8; --primary-hover: #7dd3fc; --primary-foreground: #082f49; }
 
 html, body {
     margin: 0;
@@ -73,11 +121,11 @@ button,
 .btn {
     display: inline-flex;
     align-items: center;
-    gap: .4rem;
-    padding: .5rem .9rem;
-    font-size: .9rem;
+    gap: .5rem;
+    padding: .65rem 1.1rem;
+    font-size: .95rem;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.1;
     color: var(--primary-foreground);
     background: var(--primary);
     border: 1px solid var(--primary);
@@ -111,7 +159,7 @@ button.btn-danger {
 .btn-danger:hover,
 button.btn-danger:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 
-.btn-sm, button.btn-sm { padding: .3rem .6rem; font-size: .8rem; }
+.btn-sm, button.btn-sm { padding: .4rem .75rem; font-size: .85rem; }
 
 /* Forms */
 label { font-size: .85rem; font-weight: 500; color: var(--text); }
@@ -210,6 +258,39 @@ input:focus, select:focus, textarea:focus {
 .menu-panel a:hover,
 .menu-panel button:hover { background: var(--muted); text-decoration: none; }
 
+/* Topbar theme controls: neutral trigger button + swatch list; the active check mark and the sun/moon
+   swap are pure CSS reacting to html[data-theme] / html.dark, so no circuit is needed. */
+button.theme-btn {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: .35rem .55rem;
+    font-size: .85rem;
+}
+button.theme-btn:hover { background: var(--muted); border-color: var(--border); }
+.theme-menu > summary { display: inline-flex; align-items: center; padding: .42rem .55rem; }
+.menu-panel button.theme-item { display: flex; align-items: center; gap: .45rem; }
+.theme-swatch {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+}
+.theme-check { display: none; margin-left: auto; color: var(--primary); }
+html:not([data-theme]) .theme-check[data-for="default"],
+html[data-theme="mono"] .theme-check[data-for="mono"],
+html[data-theme="storm"] .theme-check[data-for="storm"],
+html[data-theme="midnight"] .theme-check[data-for="midnight"],
+html[data-theme="pastel"] .theme-check[data-for="pastel"],
+html[data-theme="amber"] .theme-check[data-for="amber"],
+html[data-theme="ocean"] .theme-check[data-for="ocean"] { display: inline-flex; }
+.icon-sun { display: inline-flex; }
+.icon-moon { display: none; }
+.dark .icon-sun { display: none; }
+.dark .icon-moon { display: inline-flex; }
+
 /* Inline detail / edit panel shown above a list (same page) */
 .panel {
     border: 1px solid var(--border);
@@ -259,6 +340,53 @@ tr:last-child td { border-bottom: none; }
 .notice { padding: .6rem .8rem; border-radius: var(--radius); font-size: .85rem; margin: .5rem 0; border: 1px solid var(--border); background: var(--muted); }
 .notice-error { background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
 .notice-reveal { background: color-mix(in srgb, var(--primary) 8%, transparent); border-color: color-mix(in srgb, var(--primary) 30%, transparent); }
+
+/* Icons (inline SVG, KeywardIcon) */
+.kw-icon { flex-shrink: 0; vertical-align: -2px; }
+
+/* Clickable tiles (Home dashboard) */
+.tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: .75rem;
+    margin: .75rem 0;
+}
+/* Exactly two tiles per row (Home dashboard groups); stacks on narrow screens */
+.tile-grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 64rem; }
+@media (max-width: 900px) { .tile-grid-2 { grid-template-columns: 1fr; } }
+
+/* A themed group of tiles under the page header (heading + muted intro + grid) */
+.home-group { margin-bottom: 1.75rem; }
+.home-group h2 { margin: 0 0 .1rem; }
+.home-group > .muted { margin: 0 0 .25rem; font-size: .88rem; }
+.tile {
+    display: flex;
+    align-items: center;
+    gap: .7rem;
+    padding: .9rem 1rem;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    text-align: left;
+    text-decoration: none;
+    font-size: .95rem;
+    font-weight: 500;
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+.tile:hover {
+    background: var(--surface);
+    border-color: var(--primary);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+}
+.tile .kw-icon { color: var(--primary); }
+.tile-rich { align-items: flex-start; padding: 1.1rem 1.15rem; }
+.tile-rich .kw-icon { margin-top: .15rem; }
+.tile-rich > span { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.tile-title { color: var(--text); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile-desc { color: var(--muted-text); font-size: .82rem; font-weight: 400; line-height: 1.45; }
 
 /* Blazor error UI */
 #blazor-error-ui {

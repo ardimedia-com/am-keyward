@@ -3,6 +3,25 @@
 @inject NavigationManager Nav
 
 <header class="topbar">
+    @* Colour theme + dark mode: purely client-side (plain onclick into keyward-theme.js, no circuit) —
+       the CSS reacts to html.dark / html[data-theme]; the check marks and sun/moon swap are CSS-driven. *@
+    <details class="menu theme-menu">
+        <summary title="@Loc["Theme.Color"]"><KeywardIcon Name="palette" Size="15" /></summary>
+        <div class="menu-panel">
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('')"><span class="theme-swatch" style="background:#4f46e5"></span>Indigo<span class="theme-check" data-for="default"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('mono')"><span class="theme-swatch" style="background:#52525b"></span>Mono<span class="theme-check" data-for="mono"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('storm')"><span class="theme-swatch" style="background:#64748b"></span>Storm<span class="theme-check" data-for="storm"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('midnight')"><span class="theme-swatch" style="background:#18181b"></span>Midnight<span class="theme-check" data-for="midnight"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('pastel')"><span class="theme-swatch" style="background:#a78bfa"></span>Pastel<span class="theme-check" data-for="pastel"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('amber')"><span class="theme-swatch" style="background:#d97706"></span>Amber<span class="theme-check" data-for="amber"><KeywardIcon Name="check" Size="14" /></span></button>
+            <button type="button" class="theme-item" onclick="keywardTheme.setTheme('ocean')"><span class="theme-swatch" style="background:#0284c7"></span>Ocean<span class="theme-check" data-for="ocean"><KeywardIcon Name="check" Size="14" /></span></button>
+        </div>
+    </details>
+    <button type="button" class="theme-btn" onclick="keywardTheme.toggleDark()" title="@Loc["Theme.Dark"]" aria-label="@Loc["Theme.Dark"]">
+        <span class="icon-sun"><KeywardIcon Name="sun" Size="15" /></span>
+        <span class="icon-moon"><KeywardIcon Name="moon" Size="15" /></span>
+    </button>
+
     <details class="menu">
         <summary>🌐 @CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToUpperInvariant()</summary>
         <div class="menu-panel">
@@ -24,10 +43,7 @@
                 <summary>@context.User.Identity?.Name</summary>
                 <div class="menu-panel">
                     <a href="account/profile">@Loc["Nav.Profile"]</a>
-                    @if (context.User.HasClaim(KeywardClaims.SystemAdmin, "true"))
-                    {
-                        <a href="account/admin/users">@Loc["Nav.AdminUsers"]</a>
-                    }
+                    @* User administration lives in the sidebar's Administration group — not duplicated here. *@
                     <form action="account/logout" method="post">
                         <button type="submit">@Loc["Nav.SignOut"]</button>
                     </form>
