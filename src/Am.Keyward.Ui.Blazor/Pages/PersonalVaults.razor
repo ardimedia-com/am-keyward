@@ -3,12 +3,16 @@
 @attribute [Authorize]
 @inject IStringLocalizer<SharedResource> Loc
 
-<PageTitle>AM KEYWARD</PageTitle>
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
 
-<KeywardUi>
+<KeywardUi Fill="true">
     <div class="page-header">
         <h1>@Loc["Page.Personal.Title"]</h1>
         <p>@Loc["Page.Personal.Desc"]</p>
+        <details class="help">
+            <summary>@Loc["Common.HowItWorks"]</summary>
+            <div>@Loc["Page.Personal.Help"]</div>
+        </details>
     </div>
 
     <VaultWorkspace Team="false" />

@@ -2,7 +2,7 @@
 @attribute [Authorize]
 @inject NavigationManager Nav
 
-<PageTitle>AM KEYWARD</PageTitle>
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 @code {
     protected override void OnInitialized() => Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);

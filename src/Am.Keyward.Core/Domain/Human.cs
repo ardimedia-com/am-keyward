@@ -58,9 +58,9 @@ public sealed class Vault
         CreatedAt = createdAt;
     }
 
-    public Folder AddFolder(Guid id, string name, DateTimeOffset createdAt)
+    public Folder AddFolder(Guid id, string name, DateTimeOffset createdAt, Guid? parentFolderId = null)
     {
-        var folder = new Folder(id, Id, TenantId, OwnerUserId, name, createdAt);
+        var folder = new Folder(id, Id, TenantId, OwnerUserId, name, createdAt, parentFolderId);
         _folders.Add(folder);
         return folder;
     }
@@ -86,10 +86,13 @@ public sealed class Folder
     public Guid? TenantId { get; private set; }
     public Guid? OwnerUserId { get; private set; }
 
+    /// <summary>Optional parent folder (same vault) — folders form a tree; null = vault root.</summary>
+    public Guid? ParentFolderId { get; private set; }
+
     public string Name { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    public Folder(Guid id, Guid vaultId, Guid? tenantId, Guid? ownerUserId, string name, DateTimeOffset createdAt)
+    public Folder(Guid id, Guid vaultId, Guid? tenantId, Guid? ownerUserId, string name, DateTimeOffset createdAt, Guid? parentFolderId = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -100,6 +103,7 @@ public sealed class Folder
         VaultId = vaultId;
         TenantId = tenantId;
         OwnerUserId = ownerUserId;
+        ParentFolderId = parentFolderId;
         Name = name.Trim();
         CreatedAt = createdAt;
     }
@@ -113,6 +117,9 @@ public sealed class Folder
 
         Name = name.Trim();
     }
+
+    /// <summary>Reparents the folder within its vault (null = vault root). Cycle checks are the service's job.</summary>
+    public void MoveTo(Guid? parentFolderId) => ParentFolderId = parentFolderId;
 }
 
 /// <summary>Aggregate root: a typed item in a vault (optionally in a folder), with a version chain.</summary>

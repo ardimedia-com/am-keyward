@@ -1,11 +1,10 @@
-using Am.Keyward.Core.Application;
-
-namespace Am.Keyward.Ui.Blazor;
+namespace Am.Keyward.Core.Application;
 
 /// <summary>
-/// Parses a browser password-export CSV (Microsoft Edge / Google Chrome format, header columns
-/// <c>name,url,username,password,note</c> — extra/missing columns and quoted fields are tolerated) into
-/// <see cref="ImportedLogin"/> rows for the vault importer.
+/// The browser password-export CSV format (Microsoft Edge / Google Chrome, header columns
+/// <c>name,url,username,password,note</c>). <see cref="Parse"/> reads such a file (extra/missing columns
+/// and quoted fields are tolerated) for the vault importer; <see cref="Write"/> produces one for the vault
+/// exporter — so an AM KEYWARD export can be re-imported here or into a browser, and vice versa.
 /// </summary>
 public static class EdgePasswordCsv
 {
@@ -36,6 +35,36 @@ public static class EdgePasswordCsv
         }
 
         return result;
+    }
+
+
+    /// <summary>Writes the Edge/Chrome-compatible CSV (RFC-4180 quoting) for <paramref name="logins"/>.</summary>
+    public static string Write(IReadOnlyList<ImportedLogin> logins)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append("name,url,username,password,note\r\n");
+        foreach (var l in logins)
+        {
+            sb.Append(Escape(l.Name)).Append(',')
+              .Append(Escape(l.Url)).Append(',')
+              .Append(Escape(l.Username)).Append(',')
+              .Append(Escape(l.Password)).Append(',')
+              .Append(Escape(l.Note)).Append("\r\n");
+        }
+
+        return sb.ToString();
+    }
+
+    private static string Escape(string value)
+    {
+        if (value.Length == 0)
+        {
+            return value;
+        }
+
+        return value.IndexOfAny([',', '"', '\r', '\n']) >= 0
+            ? "\"" + value.Replace("\"", "\"\"") + "\""
+            : value;
     }
 
     private static int IndexOf(List<string> header, params string[] names) => header.FindIndex(names.Contains);

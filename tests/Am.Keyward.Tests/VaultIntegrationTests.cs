@@ -184,6 +184,206 @@ public class VaultIntegrationTests
         Assert.AreEqual("v2", (await circuitVaults.GetItemAsync(userId, itemId))!.Content);
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Folders_form_a_tree_and_deleting_one_reparents_children_and_items()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        var vaultId = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Tree"));
+        var parent = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, vaultId, "Parent"));
+        var child = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, vaultId, "Child", parent));
+        var grandchild = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, vaultId, "Grandchild", child));
+        var itemInChild = await vaults.AddItemAsync(new AddVaultItemCommand(userId, vaultId, child, ItemType.SecureNote, "Note", "in child"));
+
+        var folders = await vaults.ListFoldersAsync(userId, vaultId);
+        Assert.AreEqual(parent, folders.Single(f => f.Id == child).ParentFolderId);
+        Assert.AreEqual(child, folders.Single(f => f.Id == grandchild).ParentFolderId);
+
+        // A parent from another vault is refused (tree stays within one vault).
+        var otherVault = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Other"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.AddFolderAsync(new AddVaultFolderCommand(userId, otherVault, "X", parent)));
+
+        // Deleting the middle folder moves its child folder AND its item up to the deleted folder's parent.
+        await vaults.DeleteFolderAsync(userId, vaultId, child);
+        folders = await vaults.ListFoldersAsync(userId, vaultId);
+        Assert.AreEqual(parent, folders.Single(f => f.Id == grandchild).ParentFolderId);
+        var items = await vaults.ListItemsAsync(userId, vaultId);
+        Assert.AreEqual(parent, items.Single(i => i.Id == itemInChild).FolderId);
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Move_changes_folder_within_a_vault_and_reencrypts_across_vaults()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        var source = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Source"));
+        var target = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Target"));
+        var folder = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, source, "Inbox"));
+        var targetFolder = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, target, "Archive"));
+        var itemId = await vaults.AddItemAsync(new AddVaultItemCommand(userId, source, null, ItemType.SecureNote, "Note", "move-me-secret"));
+
+        // Within the vault: just a folder change, same item id.
+        var movedId = await vaults.MoveItemAsync(userId, itemId, source, folder);
+        Assert.AreEqual(itemId, movedId);
+        Assert.AreEqual(folder, (await vaults.ListItemsAsync(userId, source)).Single().FolderId);
+
+        // Across vaults: new id in the target (re-encrypted there), gone from the source, content intact.
+        movedId = await vaults.MoveItemAsync(userId, itemId, target, targetFolder);
+        Assert.AreNotEqual(itemId, movedId);
+        Assert.IsEmpty(await vaults.ListItemsAsync(userId, source));
+        var moved = (await vaults.ListItemsAsync(userId, target)).Single();
+        Assert.AreEqual(targetFolder, moved.FolderId);
+        Assert.AreEqual("move-me-secret", await vaults.ReadItemAsync(userId, movedId));
+
+        // A folder that belongs to a DIFFERENT vault than the target is refused.
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.MoveItemAsync(userId, movedId, source, targetFolder));
+
+        // Batch move: several items travel together (atomically, one SaveChanges).
+        var a = await vaults.AddItemAsync(new AddVaultItemCommand(userId, source, null, ItemType.SecureNote, "A", "a"));
+        var b = await vaults.AddItemAsync(new AddVaultItemCommand(userId, source, null, ItemType.SecureNote, "B", "b"));
+        await vaults.MoveItemsAsync(userId, [a, b], target, null);
+        Assert.IsEmpty(await vaults.ListItemsAsync(userId, source));
+        Assert.HasCount(3, await vaults.ListItemsAsync(userId, target));
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Folder_move_reparents_within_a_vault_and_takes_the_subtree_across_vaults()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        var source = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Source"));
+        var target = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Target"));
+        var top = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, source, "Top"));
+        var mid = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, source, "Mid", top));
+        var leaf = await vaults.AddFolderAsync(new AddVaultFolderCommand(userId, source, "Leaf", mid));
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, source, mid, ItemType.SecureNote, "InMid", "subtree-secret"));
+
+        // Reparent within the vault: Mid moves to the root.
+        Assert.AreEqual(mid, await vaults.MoveFolderAsync(userId, mid, source, null));
+        Assert.IsNull((await vaults.ListFoldersAsync(userId, source)).Single(f => f.Id == mid).ParentFolderId);
+
+        // Cycle guard: Top cannot move under its own descendant chain (Mid was under Top; move Top under Leaf after re-nesting Mid).
+        await vaults.MoveFolderAsync(userId, mid, source, top);
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.MoveFolderAsync(userId, top, source, leaf));
+
+        // Across vaults: the subtree (Top > Mid > Leaf) and the item inside move together, content intact.
+        var movedTop = await vaults.MoveFolderAsync(userId, top, target, null);
+        Assert.IsEmpty(await vaults.ListFoldersAsync(userId, source));
+        Assert.IsEmpty(await vaults.ListItemsAsync(userId, source));
+        var targetFolders = await vaults.ListFoldersAsync(userId, target);
+        Assert.HasCount(3, targetFolders);
+        var movedMid = targetFolders.Single(f => f.Name == "Mid");
+        Assert.AreEqual(movedTop, movedMid.ParentFolderId);
+        Assert.AreEqual(movedMid.Id, targetFolders.Single(f => f.Name == "Leaf").ParentFolderId);
+        var movedItem = (await vaults.ListItemsAsync(userId, target)).Single();
+        Assert.AreEqual(movedMid.Id, movedItem.FolderId);
+        Assert.AreEqual("subtree-secret", await vaults.ReadItemAsync(userId, movedItem.Id));
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Export_roundtrips_logins_through_the_edge_csv()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        var vaultId = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Exportable"));
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, vaultId, null, ItemType.Login, "GitHub",
+            LoginContent.ToJson("https://github.com", "octo@example.com", "p4ss,with\"quote", "note, with comma")));
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, vaultId, null, ItemType.Login, "Router",
+            LoginContent.ToJson("http://192.168.1.1", "admin", "simple", "")));
+        // Not part of the login CSV format:
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, vaultId, null, ItemType.SecureNote, "Note", "keep me"));
+
+        var exported = await vaults.ExportVaultLoginsAsync(userId, vaultId);
+        Assert.HasCount(2, exported);
+
+        // The CSV survives a full write -> parse round trip, including escaping — so a file exported here
+        // can be re-imported unchanged.
+        var reparsed = EdgePasswordCsv.Parse(EdgePasswordCsv.Write(exported));
+        CollectionAssert.AreEqual(exported.ToList(), reparsed.ToList());
+        Assert.AreEqual("p4ss,with\"quote", reparsed.Single(l => l.Name == "GitHub").Password);
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Search_finds_items_by_any_content_field_but_never_by_password()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        // Two vaults, so the search demonstrably spans ALL of the user's vaults.
+        var vault1 = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "First"));
+        var vault2 = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Second"));
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, vault1, null, ItemType.Login, "GitHub",
+            LoginContent.ToJson("https://github.com", "octo-user@example.com", "hunter2-password", "work account")));
+        await vaults.AddItemAsync(new AddVaultItemCommand(userId, vault2, null, ItemType.SecureNote, "Wifi",
+            "the office wifi key is stored here"));
+
+        // Matches by login username (field content, not the item name) …
+        var byUsername = await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "octo-user");
+        Assert.HasCount(1, byUsername);
+        Assert.AreEqual("Username", byUsername[0].MatchedField);
+        Assert.AreEqual("First", byUsername[0].VaultName);
+
+        // … by a secure note's value in the OTHER vault …
+        var byValue = await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "office wifi");
+        Assert.HasCount(1, byValue);
+        Assert.AreEqual("Value", byValue[0].MatchedField);
+        Assert.AreEqual("Second", byValue[0].VaultName);
+
+        // … by item name; and NEVER by a login's password.
+        Assert.HasCount(1, await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "github"));
+        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "hunter2-password"));
+
+        // Too-short queries return nothing instead of everything.
+        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "o"));
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();
