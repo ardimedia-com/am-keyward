@@ -6,7 +6,8 @@ namespace Am.Keyward.Tests;
 /// Central test configuration. The database connection string comes from <c>appsettings.json</c> (a localhost
 /// default committed in the repo, no secret), overridable by the standard <c>ConnectionStrings__Keyward</c>
 /// environment variable so CI can point the integration tests at a SQL-auth server (its password stays in a
-/// CI secret, never in the repo).
+/// CI secret, never in the repo). The tests use their OWN database (<c>amkeywardtest</c>) — never the app's
+/// dev database <c>amkeyward</c>, whose data would otherwise be polluted with seeded test users/tenants.
 /// </summary>
 internal static class TestConfig
 {
@@ -21,6 +22,6 @@ internal static class TestConfig
             .Build();
 
         return config.GetConnectionString("Keyward")
-            ?? "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
+            ?? "Server=localhost;Database=amkeywardtest;Integrated Security=True;Encrypt=False";
     }
 }

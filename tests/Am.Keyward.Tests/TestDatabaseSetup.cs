@@ -81,7 +81,11 @@ public static class TestDatabaseSetup
             return;
         }
 
+        // The template targets the production database name; point its USE at the database this test run
+        // actually uses (amkeywardtest locally/CI), otherwise the users would be created in the wrong DB.
+        var databaseName = new SqlConnectionStringBuilder(sysadminConnectionString).InitialCatalog;
         var script = (await File.ReadAllTextAsync(scriptPath))
+            .Replace("USE amkeyward;", $"USE [{databaseName}];")
             .Replace("<set-a-strong-migrator-password>", migratorPassword)
             .Replace("<set-a-strong-app-password>", appPassword);
 

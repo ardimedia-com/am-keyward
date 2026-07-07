@@ -38,7 +38,8 @@ jobs:
       # SA. KEYWARD_REQUIRE_DB=true makes an unreachable database FAIL this job instead of silently skipping —
       # keyed on this explicit flag (only this SQL-backed job sets it), not the ambient CI=true GitHub sets on
       # every runner, so the plain windows build in ci.yml still skips the integration tests.
-      ConnectionStrings__Keyward: "Server=localhost,1433;Database=amkeyward;User Id=sa;Password=Str0ngCiP4ss_2026x;Encrypt=False;TrustServerCertificate=True"
+      # Same dedicated test-database name as local runs (amkeywardtest), so tests never share a DB with an app.
+      ConnectionStrings__Keyward: "Server=localhost,1433;Database=amkeywardtest;User Id=sa;Password=Str0ngCiP4ss_2026x;Encrypt=False;TrustServerCertificate=True"
       KEYWARD_REQUIRE_DB: "true"
 
     steps:
