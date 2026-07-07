@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IKeywardAccessPolicy, TenantAuthorizationService>();
         services.AddScoped<ITenantMembership, TenantMembershipService>();
+        services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();
         services.AddScoped<AuditChainInterceptor>();
@@ -73,6 +74,11 @@ public static class ServiceCollectionExtensions
         services.AddScoped<SoftwareSecretService>();
         services.AddScoped<ISoftwareSecretService>(sp => sp.GetRequiredService<SoftwareSecretService>());
         services.AddScoped<ISoftwareSecretReader>(sp => sp.GetRequiredService<SoftwareSecretService>());
+
+        // Software projects ("Applications" in the UI): the unit bundling environments, secrets and tokens —
+        // plus the tenant's default environment set every new application starts with.
+        services.AddScoped<IProjectService, ProjectService>();
+        services.AddScoped<IDefaultEnvironmentService, DefaultEnvironmentService>();
 
         // Software-client tokens: management + authentication, and a best-effort expiry watcher.
         services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();

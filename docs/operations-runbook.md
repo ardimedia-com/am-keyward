@@ -45,8 +45,9 @@ untested KEK backup is not a backup. Schedule a periodic backup-verify drill.
 
 `IKekIntegrityVerifier` scans every stored envelope and reports any whose `kekId` the current provider
 cannot resolve. It runs automatically on a schedule (the ops monitor, hourly) and surfaces through the
-health endpoint; run it on demand after any restore. It must run with a login able to read all rows
-(row-level security hides cross-tenant rows from the least-privilege runtime login by design).
+health endpoint; run it on demand after any restore. It runs under the system read bypass (a FILTER-only
+`SESSION_CONTEXT` flag), so it scans every tenant under the normal least-privilege runtime login — no
+elevated login is needed.
 
 ## KEK rotation
 
@@ -73,12 +74,14 @@ A leaked KEK exposes any DEK an attacker can also reach. Re-wrapping does **not*
 The audit chain stores an **opaque pseudonym** for each actor, not their identity. The actor's PII lives
 in the `AuditSubjects` table, encrypted under a **per-subject key**. Erasing a data subject
 (`IAuditSubjectDirectory.EraseAsync`) destroys that PII so it is irrecoverable, while the pseudonym stays
-in the immutable audit chain — the chain still verifies intact. Personal-vault retention on account
-deletion is **90 days, then delete**.
+in the immutable audit chain — the chain still verifies intact. Deleting an account removes the user's
+personal vaults (items and encrypted versions cascade) **immediately, in the same operation** — there is
+no retention/grace window; if your policy requires one, export first or delay the deletion itself.
 
 ## Monitoring & health
 
-Two HTTP endpoints (anonymous, body-free by default — put detail behind your own auth if you expose them):
+Two HTTP endpoints (anonymous, detail-free by default — the body is just the status word; put detail
+behind your own auth if you expose them):
 
 - `GET /health` — **liveness**: a live KEK wrap/unwrap probe. Unhealthy ⇒ the KEK store is unreachable and
   nothing can be decrypted.

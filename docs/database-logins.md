@@ -50,9 +50,8 @@ Server=<host>;Database=amkeyward;User Id=amkeyward_app;Password=...;Encrypt=True
 
 Local development uses Integrated Security, which can both migrate and run, so you do not need these
 logins to work on AM KEYWARD. They exist for production-like privilege separation and to verify RLS end
-to end. To run the row-level-security integration test against the least-privilege login, create the
-logins and point an environment variable at the app connection string before running the tests:
-
-```
-setx KEYWARD_APP_TEST_CONNECTION "Server=localhost;Database=amkeyward;User Id=amkeyward_app;Password=...;Encrypt=False"
-```
+to end. The integration tests take care of this themselves: the test bootstrap migrates the dedicated
+**`amkeywardtest`** database and runs `db/setup-logins.sql` against it (generated passwords), so the
+row-level-security test runs out of the box. `KEYWARD_APP_TEST_CONNECTION` is only an optional override
+if you want the RLS test to use a login/database you provisioned yourself; the tests' base connection
+string can be overridden via `ConnectionStrings__Keyward`.

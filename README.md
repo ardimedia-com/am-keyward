@@ -76,10 +76,20 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 
 ## Embedding in your own ASP.NET Core / Blazor app
 
-AM KEYWARD is library-first: you add it to your own Blazor Web App and it brings its services, API, and
-feature UI. There are no published NuGet packages yet, so reference the projects directly
-(`Am.Keyward.Infrastructure`, `Am.Keyward.Api`, `Am.Keyward.Ui.Blazor`) via `ProjectReference` (e.g. as a
-git submodule) until packages ship.
+AM KEYWARD is library-first: you add it to your own **.NET 10 Blazor Web App (interactive server)** and it
+brings its services, API, and feature UI. Reference it either as the published **preview NuGet packages**
+(`dotnet add package Am.Keyward.Infrastructure --prerelease`, same for `Am.Keyward.AspNetCore`,
+`Am.Keyward.Ui.Blazor`, and `Am.Keyward.Api` if you expose the REST APIs) or as direct `ProjectReference`s
+(e.g. a git submodule).
+
+**0. Prerequisites** — the Keyward pages are interactive-server and `[Authorize]`-protected, so your app
+needs interactivity, auth-state cascading and (that's all — localization comes with `AddKeywardUi`):
+
+```csharp
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
+builder.Services.AddCascadingAuthenticationState();   // [Authorize]/<AuthorizeView> need the cascade
+// ...plus your own cookie/OIDC authentication setup.
+```
 
 **1. Register the services** — one call wires up the EF Core `DbContext` (schema `amkeyward`), envelope
 crypto, audit, vaults, tokens, break-glass and monitoring:
@@ -94,11 +104,16 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // own IKekProvider, or a KeyRingKekProvider holding the current + prior versions during a KEK rotation:
 // builder.Services.AddKeyward(keywardConn, sp => new KeyRingKekProvider(currentKekId, keksByVersion));
 
-// Tell the embedded UI which tenant/project to operate in (from your own selection logic).
+// Tell the embedded UI which tenant to operate in (from your own selection logic), and register the UI's
+// own services (circuit-scoped state + localization for the Keyward strings, six languages built in).
+// ProductName is what your users see (browser tab, brand, texts, e-mails); default "AM KEYWARD".
+// PublicBaseUrl (optional) enables absolute links in notification e-mails sent by background jobs.
 builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
-
-// Optional: the software-client read API + its named "Keyward.SoftwareClient" bearer scheme.
-builder.Services.AddKeywardSoftwareClientApi();
+builder.Services.AddKeywardUi(o =>
+{
+    o.ProductName = "Contoso Secrets";
+    o.PublicBaseUrl = "https://secrets.contoso.com";
+});
 ```
 
 **2. Bind identity at the edge.** The libraries are identity-agnostic: they read `ICurrentUser` /
@@ -112,14 +127,26 @@ builder.Services.AddKeywardBlazorUserScope();   // circuit handler: current user
 // ...
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseAntiforgery();                            // MUST come after auth — tokens bind to the signed-in user
 app.UseKeywardCurrentUser();                     // middleware: current user per HTTP request
 ```
 
-**Tenant** selection stays yours (it is app-specific) — set `ITenantScopeSetter` per request/circuit from
-your own logic (the reference shell pins a fixed demo tenant via `DemoTenantCircuitHandler`).
+- **`KeywardClaims.UserId` must be a GUID that exists in Keyward's `Users` table (`AppUser`).** Keyward does
+  not create these rows for you: on first sign-in, create the `Tenant`, the `AppUser` and a
+  `TenantMembership` (role `TenantAdmin` for managers) through `KeywardDbContext` — see the reference
+  shell's `KeywardUserClaimsPrincipalFactory` (JIT `AppUser` + membership, first user becomes system admin)
+  and `Demo.EnsureSeededAsync` (tenant seed). Without these rows the pages render empty and read-only.
+- **Tenant selection stays yours** (it is app-specific): register a `CircuitHandler` that calls
+  `ITenantScopeSetter.SetTenant(...)` in `OnCircuitOpenedAsync` with the same tenant your
+  `IKeywardWorkspaceContext` returns — see the reference shell's 15-line `DemoTenantCircuitHandler`. If the
+  circuit scope is missing, every page fails with *"Tenant scope mismatch"*.
+- **Symptom check:** a Keyward page stuck at "Loading…" for a signed-in user means the circuit has no
+  Keyward user — verify `AddKeywardBlazorUserScope()` is registered and the principal carries a valid-GUID
+  `KeywardClaims.UserId`.
 
 **3. Discover the feature pages.** The pages live under the `/amkeyward/*` route prefix (so they can't
-collide with your routes). Add the RCL assembly to both the endpoint and the router:
+collide with your routes). Add the RCL assembly to the endpoint and the router — and route through
+`AuthorizeRouteView` (a plain `RouteView` ignores `[Authorize]`):
 
 ```csharp
 app.MapRazorComponents<App>()
@@ -127,7 +154,13 @@ app.MapRazorComponents<App>()
    .AddAdditionalAssemblies(typeof(Am.Keyward.Ui.Blazor.KeywardRoutes).Assembly);
 ```
 ```razor
-<Router AppAssembly="..." AdditionalAssemblies="new[] { typeof(Am.Keyward.Ui.Blazor.KeywardRoutes).Assembly }" />
+<Router AppAssembly="..." AdditionalAssemblies="new[] { typeof(Am.Keyward.Ui.Blazor.KeywardRoutes).Assembly }">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>@* redirect to your login *@</NotAuthorized>
+        </AuthorizeRouteView>
+    </Found>
+</Router>
 ```
 
 **4. Drop the navigation into your layout** (localized, auth-aware, no hardcoded routes):
@@ -136,10 +169,36 @@ app.MapRazorComponents<App>()
 <KeywardNav />
 ```
 
+Style its `.nav-link` / `.nav-group-label` classes in your layout (see the reference shell's
+`NavMenu.razor.css`) — the nav deliberately adopts the host's look. `KeywardNav` lists the end-user pages;
+place links to the admin pages (`KeywardRoutes.Groups`, `KeywardRoutes.DefaultEnvironments`) in your own
+administration section.
+
+**5. Optional REST APIs.** The software-client read API (deployed apps fetch their secrets with a bearer
+token) needs the service registration, the rate-limiter middleware AND the endpoint mapping — the endpoints
+don't exist otherwise:
+
+```csharp
+builder.Services.AddKeywardSoftwareClientApi();  // "Keyward.SoftwareClient" scheme + rate-limiter policy
+// ...
+app.UseRateLimiter();                            // the mapped group requires the middleware
+app.MapKeywardClientApi();                       // GET /keyward/api/v1/secrets[/{key}]
+// Optional management REST API, guarded by YOUR admin policy:
+app.MapKeywardApi(authorizationPolicy: "YourAdminPolicy");
+```
+
 **Styling and routes come for free.** The UI theme is component-scoped CSS in the RCL, so it is folded into
-your app's standard `{Assembly}.styles.css` bundle automatically — no extra stylesheet `<link>` needed.
-Override the look by redefining the `--kw-*` CSS variables on `.keyward-ui`. The feature routes are the
-`/amkeyward/*` namespace; use the `KeywardRoutes` constants for links.
+your app's standard `{Assembly}.styles.css` bundle automatically — no extra stylesheet `<link>` needed (the
+template's existing bundle link covers it). Override the look by redefining the `--kw-*` CSS variables on
+`.keyward-ui`; dark mode / color themes react to `html.dark` / `html[data-theme="…"]` if your host toggles
+them (see the reference shell's `js/keyward-theme.js`) — with no toggling you get the light default. The
+vault/application pages use `<KeywardUi Fill="true">`: in a plain layout they render with a normal page
+scroll; for the pinned header + independently scrolling panes, make your content container a fixed-height
+flex column and add `.your-content:has(> .keyward-ui.kw-fill) { overflow: hidden; display: flex;
+flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). To pin the UI language, add
+`UseRequestLocalization` with your supported cultures; without it the pages follow the server culture
+(en/de/fr/it/es/pt ship built in). The feature routes are the `/amkeyward/*` namespace; use the
+`KeywardRoutes` constants for links.
 
 ### Database & migrations
 
@@ -155,7 +214,7 @@ Override the look by redefining the `--kw-*` CSS variables on `.keyward-ui`. The
   `DbContext`; the connection string only says *where* the database is. Apply Keyward's migrations one of
   these ways (the reference shell does the first two):
   - call `MigrateAsync()` at startup — this **creates the database if it doesn't exist** and applies pending
-    migrations:
+    migrations (`using Am.Keyward.Infrastructure.Persistence;`):
     ```csharp
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().Database.MigrateAsync();
@@ -165,8 +224,12 @@ Override the look by redefining the `--kw-*` CSS variables on `.keyward-ui`. The
     config section (`Enabled`, `CheckIntervalSeconds`);
   - or apply them out-of-band in your deploy step (`dotnet ef database update`).
 - **Two database logins (production).** Migrate with an elevated DDL login and run with a **least-privilege
-  login that is an RLS subject** (not `db_owner`/`sysadmin`, which would bypass row-level security). Local
-  development uses Integrated Security for both. See [docs/database-logins.md](docs/database-logins.md).
+  login that is an RLS subject** (not `db_owner`/`sysadmin`, which would bypass row-level security). Note
+  this **excludes the startup-`MigrateAsync` option in production**: the app runs on `amkeyward_app` (which
+  cannot DDL and must not be `db_owner`, or RLS is silently off), so apply migrations out-of-band with the
+  migrator login and give `AddKeyward` only the runtime connection string; startup-migrate is for
+  development, where one Integrated-Security login plays both roles. Run `db/setup-logins.sql` once after
+  the first migration. See [docs/database-logins.md](docs/database-logins.md).
 
 ## Tech
 

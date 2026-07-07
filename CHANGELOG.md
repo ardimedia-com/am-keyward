@@ -7,6 +7,95 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Expiry mails link to the app-tokens page.** New optional `KeywardUiOptions.PublicBaseUrl` (shell config
+  `Keyward:PublicBaseUrl`): when set, the token-expiry notification carries an "Open app tokens" button
+  with an absolute link; without it the mail stays link-free (background jobs have no request to derive a
+  URL from).
+- **E-mail notifications for expiring app tokens.** A background job checks hourly and e-mails
+  administrators when app tokens approach their expiry, on a fixed schedule: 30, 20 and 10 days ahead, then
+  DAILY from 9 days (`TokenExpiryNoticePolicy`, unit-tested; per-token dedupe via a new
+  `LastExpiryNoticeDaysLeft` column that a rotation resets, migration `TokenExpiryNotifications`).
+  Recipients opt in on their **profile page** (new checkbox, visible to tenant/system admins; stored as
+  `AppUser.NotifyTokenExpiry`) and must administer the token's tenant. The mail lists each due token with
+  its application, environment and expiry date, in the branded card layout via SMTP or maildrop
+  (`IAccountEmailSender.SendAsync`); a token is only marked notified after at least one mail went out.
+
+- **Default environments are database-backed and editable under Administration.** New page "Default
+  environments" (sidebar, next to Users/Groups): the environment set every NEW application starts with. A
+  tenant without custom rows shows the built-in set (Development/Test/Preview/Production) read-only;
+  "Customize" copies it into editable rows (add/rename/delete, tenant-admin gated, audited), and removing
+  all rows deliberately returns to the built-in set. Existing applications are never touched. New
+  `TenantDefaultEnvironments` table (unique per tenant+name, EF tenant filter + row-level security,
+  migration `TenantDefaultEnvironments`); `IProjectService.CreateAsync` seeds new applications from the
+  tenant's set. Integration test covers built-in → customize → trimmed set → back to built-in.
+
+- **Color themes + dark mode.** The topbar gets a palette menu (Indigo default, Mono, Storm, Midnight,
+  Pastel, Amber, Ocean) and a light/dark toggle, per the win-smtp-relay admin pattern: the choice is stored
+  per browser in localStorage, applied to `<html>` before first paint (no flash) and re-applied after
+  Blazor enhanced navigations (`js/keyward-theme.js`); the controls are plain onclick JS, so they work on
+  every page without a circuit. Both the shell variables and the embedded RCL's `--kw-*` variables react
+  to `html.dark` / `html[data-theme]` — an embedding host gets themable pages by toggling the same
+  class/attribute.
+
+- **Host-configurable product name.** New `KeywardUiOptions.ProductName` on `AddKeywardUi(...)` — shown in
+  the browser tab, the sidebar brand, the Home title and the texts that mention the product (localized via
+  a format placeholder). The reference shell reads `Keyward:ProductName` from configuration and names the
+  demo "Beispiel AG Secrets Verwaltung".
+
+- **Pending app tokens per environment.** Creating an application (and adding an environment) automatically
+  creates one app token per environment as a **pending placeholder without a secret** — visible and named
+  (`<application>-<environment>`) but unable to authenticate until its first value is minted on the
+  app-tokens page ("Generate token value", with an expiry choice; shown once like any issued token).
+  Deleting an environment now **deletes** its tokens along with its values (previously they were revoked) —
+  they could never read anything again, and the deletion itself stays in the audit chain. The `TokenPrefix`
+  unique index is filtered to minted tokens (migration `PendingAppTokens`). Integration test covers the
+  create → mint → add/delete-environment lifecycle.
+
+- **Applications as a first-class UI concept.** The domain always scoped software secrets, environments and
+  client tokens to a `Project` — the UI now surfaces it (labelled "Application"): a new **Applications**
+  page (master-detail) creates, renames and deletes applications (delete confirms and cascades environments,
+  secrets and tokens; create seeds the default environment set), and manages **each application's own
+  environments** (the standalone Environments admin page moved here, since environments were always
+  per-project). The Software-Secrets and Client-Tokens pages get the application as the top level of their
+  left tree; the selection is remembered across pages (new circuit-scoped `KeywardUiState`, registered via
+  `AddKeywardUi()`). The token name suggestion becomes `<application>-<environment>-`. One application per
+  deployed piece of software makes least-privilege the visible default: a token can never read another
+  application's secrets. New `IProjectService` (list/create/rename/delete, tenant-admin gated, audited) with
+  integration tests. **Breaking (embedding):** `IKeywardWorkspaceContext.ProjectId` is gone — hosts supply
+  only the tenant; the application is chosen inside the UI.
+
+- **Client-token lifecycle: reactivate and delete.** A revoked token can be reactivated — its existing
+  secret authenticates again, with the expiry date untouched (an expired one stays expired until rotated) —
+  and any token can be permanently deleted after a confirmation. Both actions are audited (reactivate as
+  Grant, delete as Delete) and covered by an integration test.
+- **Tokens show their environment.** The token list and the detail card now display the environment a token
+  is bound to (badge in the list, field in the detail grid), and the issue form pre-fills the token name
+  with an `<environment>-` prefix that follows the environment selection until you type your own name. The
+  name/note edit fields moved from the bottom of the detail card into its header, where the title was.
+
+- **User-friendly UI rework** (navigation + the overloaded vault page), following the win-smtp-relay admin
+  patterns. Navigation: grouped sidebar sections ("Vaults" / "Software") with inline SVG icons (new
+  `KeywardIcon`, Lucide outlines, zero dependencies); the Home page is now a dashboard of explanatory tiles
+  (icon + name + one-line purpose per section). Vaults: the single five-card page became a **master-detail
+  workspace** — a tree of vaults and their folders (with item counts and a compact create field) on the
+  left, and on the right either the item list (password-manager-style rows: type icon, name, folder, type
+  badge) or one item's detail as a **two-column field grid with copy-to-clipboard and reveal/hide buttons**,
+  like a browser password manager. A lone vault opens automatically; adding an item preselects the folder
+  chosen in the tree. Folders, CSV import, sharing and vault settings (rename + danger-zone delete) live in
+  collapsible sections with their explanations inside; deleting an item asks for confirmation. Tokens: the
+  issue form opens on demand instead of always occupying the top of the page. All long page intros were
+  shortened to one line with the full explanation behind a localized "How does this work?" expander (the
+  previous texts were kept, moved to `Page.*.Help`). Item types and share permissions show localized labels.
+  Localized in all six UI languages.
+
+- **Branded HTML account e-mails.** Password-reset and e-mail-confirmation mails now render in the shared
+  Ardimedia card layout (light page, white card, "AM KEYWARD · Ardimedia" header, bold title, a "bulletproof"
+  CTA button with a plain-text link fallback, muted footer) with a plain-text alternative from the same
+  source, so HTML and text can't drift apart. Table layout + inline CSS + no images for mail-client safety
+  (incl. Outlook Classic), a print stylesheet for A4, and body/footer sizes per `email-typography.md`. The
+  SMTP sender ships `multipart/alternative`; the reference maildrop sender writes the card as an openable
+  `.html` next to the `.txt`. Self-contained port of the amvs `Am.App.MessageTemplates` card (that library is
+  on the private feed and can't be referenced from this public repo).
 - **Resend the e-mail-confirmation link from the sign-in page.** Signing in with the right password on an
   unconfirmed account previously just showed "invalid" with no way forward. Now it re-sends the confirmation
   link and says the account isn't confirmed yet. It is gated on the **correct password** (a wrong password
@@ -17,6 +106,199 @@ All notable changes to this project are documented here, following
   keeps dropping mail to the local `maildrop` folder. Machine-local settings go in a gitignored
   `appsettings.Local.json` (loaded optionally at startup, never committed) — see the new
   `appsettings.Local.example.json` template; pick the relay per LAN/environment per `smtp-relay-hosts.md`.
+
+- **Folder hierarchy (subfolders).** Folders can now nest (new `ParentFolderId`, migration
+  `FolderHierarchy`); the tree shows them properly indented per level, creating a folder while one is
+  selected creates a subfolder inside it, and deleting a folder moves its child folders AND items up to
+  its parent instead of dumping them at the vault root. A parent from another vault is refused. Covered by
+  an integration test.
+- **Selection-dependent work areas.** What the right pane shows follows the tree selection, always ending
+  with the selection's items (title + filter pinned, rows scroll). Vault node: collapsed areas — vault
+  settings (and sharing for team vaults), folders (create at root), import, add entry (two-column grid,
+  like the detail view) — followed by the vault's root items; a folder behaves like a vault of its own:
+  "Folder properties" (rename, create a subfolder, delete with contents moving up), import, add-entry, then
+  its items. Vault-level areas never appear under an item's detail or edit view.
+- **Move items between folders and vaults — including drag & drop and multi-select.** An item's detail view
+  has a "Move to" panel (target vault + target folder); in the list, rows can simply be dragged onto a
+  folder or vault node in the tree (the target highlights). Several items at once: Ctrl+click toggles a
+  row's selection, Shift+click selects a range — a bulk bar above the list then moves the whole selection,
+  and dragging any selected row takes the selection along.
+  Within a vault a move is a folder change; across vaults the service decrypts and re-encrypts the content
+  under the target vault's cryptographic binding (new item id there, removed from the source) — new
+  `IVaultService.MoveItemAsync`/`MoveItemsAsync` (a batch is one atomic SaveChanges), audited on both sides
+  and covered by integration tests. **Folders move the same way**: drag a folder in the tree onto another
+  folder (it becomes a subfolder) or onto a vault (to its root — another vault takes the whole subtree
+  along, folders recreated and every contained item re-encrypted, in one atomic save). A folder can never
+  be moved into itself or one of its descendants (`IVaultService.MoveFolderAsync`).
+- **Pinned chrome while scrolling.** The sidebar, top bar, page title/description and the global search box
+  stay visible; on the vault pages the tree and the content pane scroll independently, and inside the item
+  list the heading + filter box stay pinned while only the rows scroll (small screens fall back to normal
+  page scrolling).
+- **Search across all vaults.** A search box above the vault workspace (personal and team pages) finds
+  items in every vault the user can read, matching any field: the item name and the decrypted content —
+  login URL, username and note, or the value of the other item types. Login **passwords are deliberately
+  never matched** (standard password-manager behavior; the result list says so). Matching happens
+  server-side in `IVaultService.SearchItemsAsync` (content is encrypted at rest), debounced in the UI;
+  results show the vault and the matched field, and open the item on click. One audit entry per executed
+  search instead of one per decrypted item. Covered by an integration test (matches by username/value/name
+  across two vaults, never by password).
+- **Vault export (browser-compatible CSV).** A vault's LOGIN items can be exported as an Edge/Chrome-
+  compatible CSV (`name,url,username,password,note`) and re-imported here or into a browser — the writer
+  and parser share one format definition (`EdgePasswordCsv`, moved to Core, round-trip covered by an
+  integration test including quoting). Personal vaults: the owner exports; **team vaults: tenant admins
+  only** (a Manage grant is deliberately not enough) — enforced server-side and covered by a test. The UI
+  warns that the file contains plain-text passwords; one audit event per export. Download works without
+  any JavaScript (data-URL anchor).
+- **Software credentials and client tokens as master-detail.** Both pages now follow the vault pattern:
+  the keys/tokens as a selection list on the left, the selected entry's details on the right (secrets: the
+  per-environment value table with reveal; tokens: prefix/created/expires/note as a field grid with
+  rotate/revoke and inline rename) plus a collapsed "add"/"issue" area. Deleting a credential and revoking
+  a token now ask for confirmation.
+- **Groups: share a vault once with "IT" instead of each person.** New tenant groups (page "Groups" under
+  the Administration nav section, after Users; same master-detail pattern as the vaults — groups as a tree
+  on the left, the selected group's areas on the right: group settings, add member, then the member list):
+  tenant admins create/rename/delete groups; members are managed by tenant admins or the group's own
+  admins (role member / group admin). The team-vault "Share" area now offers **people and
+  groups** as principals, shows who holds which grant (group shares are badged) and can **revoke** any
+  grant. Authorization and the shared-vault list honor group grants (a member sees and reads a vault shared
+  with their group; leaving the group or revoking the grant takes it away). New tables `UserGroups` /
+  `GroupMemberships` (tenant-scoped: query filter + row-level security, migration `Groups`), new
+  `IGroupService`, `ShareWithGroupAsync`/`RevokeShareAsync`; every mutation audited; covered by integration
+  tests (access via group until revoked; lifecycle restricted to tenant admins).
+- **Vault guidance for first-time users.** With no vault selected, the workspace explains why a vault gets a
+  name and when several vaults make sense (with concrete examples), offers clickable name suggestions
+  (Private/Work/Family/Banking; IT/Accounting/Infrastructure/Customers for team vaults) that prefill the
+  create field, and — when no vault exists yet — a one-click default vault. The Home dashboard is grouped
+  into two labelled sections (vaults for people / software credentials for applications), two example-rich
+  tiles per row.
+
+- **Tenant-role management and account deletion in the admin area.** The user administration
+  (`/account/admin/users`, system admins only) now shows each account's tenant role (member / tenant admin)
+  and can promote or demote it; the last tenant admin can never be demoted (guarded in the UI and
+  server-side). Accounts can be **deleted** (offboarding) after an inline confirmation: the Identity login,
+  tenant memberships, access grants and personal vaults are removed — never yourself, never the last tenant
+  admin, never the last system admin; the domain user row is kept so the audit chain's actor references stay
+  intact. Administration is also reachable from the left navigation (a new "Administration" group, visible
+  to system admins only). Every action is audited.
+
+### Changed
+
+- **Account e-mails carry the configured product name.** Password-reset, e-mail-confirmation and the
+  token-expiry notification now use `KeywardUiOptions.ProductName` in the subject, the card header and the
+  body texts (previously hardcoded "AM KEYWARD").
+
+- The freshly issued/rotated token value is now strictly one-time per page visit: any navigation (or
+  switching the application) discards it — previously it could still be on screen after leaving the
+  app-tokens page and returning.
+- The app-token list is sorted by name (it was newest-first), matching applications, environments and
+  secrets, which were already alphabetical.
+
+- **"Add secret" no longer silently upserts an existing key.** Creating a secret whose key already exists
+  now shows "the key already exists — select it on the left" instead of writing a new value version to the
+  existing key (changing an existing key's values is the per-environment table's job). The add area's
+  feedback ("Secret … created." / duplicate warning) now appears inside that area instead of below the
+  detail card.
+
+- **Larger action buttons** (shell + embedded UI) for a friendlier, easier-to-hit look; the compact
+  `btn-sm` inline actions grew slightly too.
+- **User-focused Home tagline** in all six languages (what the product does for its users, in three
+  sentences) instead of the technical "open-source, .NET-native …" line.
+- The topbar user menu no longer duplicates the "Users" administration link — user administration lives
+  only in the sidebar's Administration group.
+
+- **App-token names are unique per application** (on issue and on rename), so tokens stay identifiable in
+  lists and audits. Multiple tokens per (application, environment) remain deliberately allowed — one per
+  deployed host, or an overlap token during a zero-downtime swap — they just need distinct names.
+- **App-token names are auto-assigned by default.** The name field on the issue form is optional: left
+  empty, the server names the token `<application>-<environment>` (numbered `-2`, `-3`, … when taken); a
+  custom name (e.g. a host/purpose suffix) stays possible. The environment badge was dropped from the token
+  list and detail header — the environment is in the name and in the detail's Environment field anyway.
+
+- **UI rename: "Client tokens" → "App tokens"** in all six languages, matching the new Applications concept
+  (a token always belongs to one application). Routes, resource keys and code identifiers
+  (`SoftwareClientToken` etc.) are unchanged.
+
+- Team-vault naming guidance now also shows **function/task-based vaults** ("Online orders", "Contracts")
+  alongside the team/department, customer/project and infrastructure examples — with matching suggestion
+  chips (all six languages).
+
+- Account-e-mail subject/content is now defined once (`AccountEmailMessages`) and shared by both the SMTP and
+  maildrop senders, so every transport renders the identical message.
+
+- **Admin-definable environments.** A project's environments are no longer a fixed set: they have their own
+  "Environments" page in the Administration nav section (next to Users and Groups) — everyone can see them,
+  tenant admins (and system admins) manage them: **add, rename and delete** (delete asks for confirmation;
+  it removes the environment's secret values and its app tokens (initially revoked; later changed to
+  delete, see the pending-app-tokens entry) — values and tokens bind by id,
+  so a rename follows automatically everywhere; the project's last environment cannot be deleted). New
+  `ISoftwareSecretService` methods `ListEnvironmentsAsync`/`AddEnvironmentAsync`/`RenameEnvironmentAsync`/
+  `DeleteEnvironmentAsync`, all audited and covered by an integration test. The environment selects for
+  secrets AND client tokens are sourced from the project's live list instead of being hardcoded; new
+  environments appear immediately in every secret's value table.
+- **"Software credentials" renamed to "Software secrets"** (all six languages, including every text that
+  referenced the section) — the values are secret configuration values per environment (API keys,
+  connection strings, signing keys), not only credentials; the domain model already called them
+  `SoftwareSecret`. Routes and code identifiers are unchanged.
+- **Client-token usability.** The expiry when issuing is now a choice (1/10/30/60/90/180/360 days or
+  never, default 90); the "Prefix" field is labelled "Identifier (token start)" — it is the token's visible
+  beginning for recognizing which token is configured where, not a second credential. The secrets value
+  table gained a per-environment reveal eye (in addition to the all-values toggle) and the current/new
+  value columns now share the full available width.
+
+### Fixed
+
+- **Deleting a vault now deletes its items and their encrypted versions** (new
+  `FK_VaultItems_Vaults_VaultId` cascade, migration `VaultItemCascadeAndNameConstraints`) — previously
+  `VaultItems` had no foreign key, so a vault or account deletion left the items' ciphertext orphaned in
+  the database forever (invisible to every query, but retained). The migration also removes any existing
+  orphaned item rows. Found in the 2026-07-07 deep review.
+- **Race-proof name uniqueness in the database**: unique indexes on `Projects(TenantId, Name)` and
+  `SoftwareClientTokens(TenantId, ProjectId, Name)` back the application-level checks (same migration;
+  pre-existing duplicates are suffixed `-dupN`).
+- **Embedding no longer requires host localization setup**: `AddKeywardUi()` registers `AddLocalization()`
+  itself and the RCL carries a `ResourceLocation` assembly attribute, so the Keyward strings resolve
+  regardless of the host's `ResourcesPath` (previously a foreign host crashed without `AddLocalization`
+  and showed raw resource keys without `ResourcesPath = "Resources"`).
+- **Token-expiry mails are per-tenant isolated**: one failing tenant no longer aborts the run for the
+  remaining tenants, and the dedupe marks are saved per tenant — previously a failure after a successful
+  send could re-send identical notices on the next run.
+- **Bulk credential deletion is fully audited**: deleting an application or an environment now writes one
+  audit entry per removed app token (plus the project/environment entry), keeping the per-token lifecycle
+  trail complete.
+- Rolling back the `PendingAppTokens` migration no longer fails when pending placeholders exist; switching
+  applications on the app-tokens page no longer briefly shows the previous application's tokens.
+- Documentation corrected against the code (2026-07-07 deep review): README embedding guide rewritten as a
+  complete, verified checklist (prerequisites incl. `AddCascadingAuthenticationState`/`AuthorizeRouteView`,
+  domain-data bootstrap of Tenant/AppUser/TenantMembership, tenant circuit handler, `MapKeywardClientApi` +
+  `UseRateLimiter`, `MapKeywardApi`, antiforgery-after-auth order, `.kw-fill` host CSS, published preview
+  packages instead of "no packages yet", `Am.Keyward.AspNetCore` in the reference list); the
+  software-client API doc gained the token lifecycle (pending placeholders, auto-names, uniqueness,
+  reactivate/delete, rotation window restart, expiry e-mails) and dropped the stale "no tenant membership
+  check" warning; the runbook no longer promises an unimplemented 90-day vault retention and reflects the
+  system-read bypass; the database-logins doc reflects the self-provisioning test setup.
+
+- **Rotating an (expired) token now actually renews it.** Rotation previously replaced only the secret and
+  kept the old absolute expiry — rotating an expired token produced a new token that was dead on arrival,
+  and the Created date never changed. Rotation now restarts the validity window: Created becomes the
+  rotation time and, unless a new expiry is passed, the ORIGINAL lifetime is re-applied from now (a 10-day
+  token becomes a fresh 10-day token; a never-expiring one stays never-expiring). Covered by an integration
+  test.
+- **Antiforgery failure on admin form posts.** `app.UseAntiforgery()` ran before
+  `UseAuthentication`/`UseAuthorization`, binding every antiforgery token to the anonymous user; the first
+  form POST on an authenticated page (e.g. disabling a user) then failed with "the provided antiforgery
+  token was meant for a different claims-based user". The middleware now runs after authentication, as the
+  framework requires. Anonymous account pages (login/register) never tripped it, which is why it went
+  unnoticed.
+- **Permanent horizontal + vertical scrollbars.** The shell was missing a global `box-sizing: border-box`,
+  so the content area (`width:100%` plus padding) grew slightly beyond the viewport on every page.
+- **Vault share candidates are scoped to tenant members.** The "share with user" dropdown listed every
+  installation-global user — including test residue and, in a shared installation, other tenants' users.
+  Candidates now come from explicit `TenantMemberships`; the reference shell ensures a demo-tenant
+  membership for each UI user at sign-in (existing users are backfilled on their next sign-in).
+- **Integration tests use their own database.** The tests ran against the app's dev database (`amkeyward`)
+  and polluted it with hundreds of seeded test users; they now target a dedicated `amkeywardtest` database
+  (locally and in CI), and the login-provisioning script targets the test database taken from the
+  connection string instead of a hardcoded name.
 
 ## [0.1.1-preview] - 2026-07-06
 

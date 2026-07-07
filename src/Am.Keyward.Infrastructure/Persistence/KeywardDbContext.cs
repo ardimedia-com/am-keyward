@@ -30,8 +30,11 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<TenantMembership> TenantMemberships => Set<TenantMembership>();
+    public DbSet<UserGroup> Groups => Set<UserGroup>();
+    public DbSet<GroupMembership> GroupMemberships => Set<GroupMembership>();
     public DbSet<Project> Projects => Set<Project>();
     public DbSet<RuntimeEnvironment> RuntimeEnvironments => Set<RuntimeEnvironment>();
+    public DbSet<TenantDefaultEnvironment> TenantDefaultEnvironments => Set<TenantDefaultEnvironment>();
     public DbSet<SoftwareSecret> SoftwareSecrets => Set<SoftwareSecret>();
     public DbSet<SecretValue> SecretValues => Set<SecretValue>();
     public DbSet<SecretVersion> SecretVersions => Set<SecretVersion>();
@@ -99,6 +102,27 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => x.UserId);
         });
 
+        // Groups: tenant-scoped principals for vault sharing (share once with "IT" instead of each person).
+        model.Entity<UserGroup>(e =>
+        {
+            e.ToTable("UserGroups");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
+        model.Entity<GroupMembership>(e =>
+        {
+            e.ToTable("GroupMemberships");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Role).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => new { x.GroupId, x.UserId }).IsUnique();
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => x.TenantId);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
         model.Entity<Project>(e =>
         {
             e.ToTable("Projects");
@@ -106,8 +130,19 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
             e.Property(x => x.OwnerType).HasConversion<string>().HasMaxLength(16);
             e.HasIndex(x => x.TenantId);
+            // The application-service check enforces this too; the index is the race-proof backstop.
+            e.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
             e.HasMany(x => x.Environments).WithOne().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Environments).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
+        });
+
+        model.Entity<TenantDefaultEnvironment>(e =>
+        {
+            e.ToTable("TenantDefaultEnvironments");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasConversion(envNameConverter).HasMaxLength(128).IsRequired();
+            e.HasIndex(x => new { x.TenantId, x.Name }).IsUnique();
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
@@ -162,8 +197,12 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Note).HasMaxLength(1024).IsRequired();
             e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
             e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
-            e.HasIndex(x => x.TokenPrefix).IsUnique();
+            // Unique lookup handle for issued tokens; pending placeholders share the empty prefix, so the
+            // uniqueness is filtered to minted values.
+            e.HasIndex(x => x.TokenPrefix).IsUnique().HasFilter("[TokenPrefix] <> ''");
             e.HasIndex(x => new { x.TenantId, x.ProjectId });
+            // The service-level name check enforces this too; the index is the race-proof backstop.
+            e.HasIndex(x => new { x.TenantId, x.ProjectId, x.Name }).IsUnique();
             // Installation-global authentication table: deliberately NO tenant query filter and NOT in the
             // row-level-security policy — it must be looked up by prefix BEFORE the tenant is known. The
             // record carries TenantId only to scope the request once the token is authenticated. It holds
@@ -196,6 +235,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => x.VaultId);
             e.HasIndex(x => x.TenantId);
             e.HasIndex(x => x.OwnerUserId);
+            // Folder tree within a vault (null = vault root). Deliberately no FK: reparenting on delete is
+            // handled explicitly in the service, and the RLS policy governs the table as a whole.
+            e.HasIndex(x => x.ParentFolderId);
             e.HasQueryFilter(x =>
                 (x.TenantId != null && x.TenantId == _tenant.TenantId)
                 || (x.TenantId == null && x.OwnerUserId == _user.UserId));
@@ -211,6 +253,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => x.FolderId);
             e.HasIndex(x => x.TenantId);
             e.HasIndex(x => x.OwnerUserId);
+            // Deleting a vault MUST take its items (and, via the item cascade, their encrypted versions)
+            // with it — without this FK a vault delete leaves orphaned ciphertext rows behind forever.
+            e.HasOne<Vault>().WithMany().HasForeignKey(x => x.VaultId).OnDelete(DeleteBehavior.Cascade);
             e.HasMany(x => x.Versions).WithOne().HasForeignKey(x => x.VaultItemId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Versions).UsePropertyAccessMode(PropertyAccessMode.Field);
             e.HasQueryFilter(x =>
