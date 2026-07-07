@@ -14,6 +14,9 @@ public static class KeywardRoutes
     public const string PersonalVaults = Prefix + "/vaults/personal";
     public const string TeamVaults = Prefix + "/vaults/team";
     public const string Vaults = Prefix + "/vaults";
+    public const string Applications = Prefix + "/applications";
     public const string SoftwareCredentials = Prefix + "/secrets";
     public const string ClientTokens = Prefix + "/tokens";
+    public const string Groups = Prefix + "/groups";
+    public const string DefaultEnvironments = Prefix + "/default-environments";
 }

@@ -1,0 +1,321 @@
+@page "/amkeyward/applications"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@inject IProjectService ProjectService
+@inject ISoftwareSecretService SecretService
+@inject IGroupService GroupService
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
+@inject KeywardUiState UiState
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+@* Master-detail like the groups page: the tenant's applications ("projects" in code) on the left, the
+   selected application's settings and ITS environments on the right. Environments live here (per
+   application) because secrets and tokens are always scoped to one application's environment. *@
+<KeywardUi Fill="true">
+    <div class="page-header">
+        <h1>@Loc["Page.Apps.Title"]</h1>
+        <p>@Loc["Page.Apps.Desc"]</p>
+        <details class="help">
+            <summary>@Loc["Common.HowItWorks"]</summary>
+            <div>
+                <p>@Loc["Page.Apps.Help"]</p>
+            </div>
+        </details>
+    </div>
+
+    @if (apps is null)
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
+    else
+    {
+        <div class="workspace">
+            @* ---------- Left: the applications + create ---------- *@
+            <aside class="ws-tree">
+                <div class="ws-tree-title">@Loc["Page.Apps.Title"]</div>
+
+                @foreach (var a in apps)
+                {
+                    <button class="tree-node @(a.Id == selectedAppId ? "active" : "")" @onclick="() => SelectAppAsync(a.Id)">
+                        <KeywardIcon Name="package" /><span class="tree-label">@a.Name</span>
+                        <span class="tree-count">@a.SecretCount</span>
+                    </button>
+                }
+
+                @if (apps.Count == 0)
+                {
+                    <p class="muted" style="font-size:.85rem; padding:.25rem .5rem;">@Loc["App.Empty"]</p>
+                }
+
+                @if (canManage)
+                {
+                    <div class="tree-create">
+                        <input @bind="newAppName" @bind:event="oninput" placeholder="@(Loc["App.New.Placeholder"])" aria-label="@(Loc["App.New.Placeholder"])" />
+                        <button class="btn-sm" @onclick="CreateAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newAppName))" title="@Loc["App.Create"]"><KeywardIcon Name="plus" /></button>
+                    </div>
+                }
+            </aside>
+
+            @* ---------- Right: settings + environments of the selected application ---------- *@
+            <section class="ws-main">
+                @if (selectedAppId is null || SelectedApp is not { } selected)
+                {
+                    <div class="card">
+                        <h3>@Loc["Page.Apps.Title"]</h3>
+                        <p class="muted">@Loc["Page.Apps.Desc"]</p>
+                        @if (apps.Count == 0)
+                        {
+                            <div class="empty-state">
+                                <KeywardIcon Name="package" Size="28" />
+                                <p>@Loc["App.Empty"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted" style="font-size:.85rem;">@Loc["App.SelectHint"]</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @if (canManage)
+                    {
+                        <details class="card section">
+                            <summary><KeywardIcon Name="settings" /> @Loc["App.Settings.Title"]</summary>
+                            <div class="section-body">
+                                <p class="muted">@Loc["App.Settings.Desc"]</p>
+                                <div class="row">
+                                    <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
+                                    <button class="btn-ghost btn-sm" @onclick="RenameAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
+                                </div>
+                                <div class="danger-zone">
+                                    @if (confirmDelete)
+                                    {
+                                        <span>@Loc["App.ConfirmDelete", selected.Name]</span>
+                                        <div class="row" style="margin-top:.5rem;">
+                                            <button class="btn-danger btn-sm" @onclick="DeleteAppAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["App.Delete"]</button>
+                                    }
+                                </div>
+                            </div>
+                        </details>
+                    }
+
+                    @if (canManage)
+                    {
+                        <details class="card section">
+                            <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
+                            <div class="section-body">
+                                <div class="row">
+                                    <input @bind="newEnvName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
+                                    <button @onclick="AddEnvAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newEnvName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
+                                </div>
+                            </div>
+                        </details>
+                    }
+
+                    @* Quick hops into the application's content — the selection carries over. *@
+                    <div class="card">
+                        <h3 style="margin:0 0 .35rem; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="external-link" Size="18" />@Loc["App.Content.Title"]</h3>
+                        <p class="muted" style="margin:0 0 .6rem;">@Loc["App.Content.Desc"]</p>
+                        <div class="row">
+                            <button class="btn-ghost btn-sm" @onclick='() => Nav.NavigateTo(KeywardRoutes.SoftwareCredentials)'><KeywardIcon Name="key" Size="14" /> @Loc["App.OpenSecrets"] (@selected.SecretCount)</button>
+                            <button class="btn-ghost btn-sm" @onclick='() => Nav.NavigateTo(KeywardRoutes.ClientTokens)'><KeywardIcon Name="ticket" Size="14" /> @Loc["App.OpenTokens"] (@selected.TokenCount)</button>
+                        </div>
+                    </div>
+
+                    <div class="card list-card">
+                        <div class="list-head">
+                            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="layers" Size="18" />@selected.Name · @Loc["Secret.Envs.Title"]</h3>
+                        </div>
+                        <p class="muted" style="margin:.25rem 0 .5rem;">@Loc["Secret.Envs.Desc"]</p>
+                        @if (environments is null)
+                        {
+                            <p class="muted">@Loc["Common.Loading"]</p>
+                        }
+                        else
+                        {
+                            <div class="list-rows" style="margin:.5rem 0;">
+                                @foreach (var env in environments)
+                                {
+                                    <div class="list-row" style="cursor:default;">
+                                        <KeywardIcon Name="layers" Size="17" />
+                                        @if (renamingEnvId == env.Id)
+                                        {
+                                            <input @bind="renameEnvValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
+                                            <button class="btn-sm" @onclick="() => RenameEnvAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameEnvValue))">@Loc["Common.Save"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => renamingEnvId = null">@Loc["Common.Cancel"]</button>
+                                        }
+                                        else
+                                        {
+                                            <span class="list-row-name">@env.Name</span>
+                                            @if (canManage)
+                                            {
+                                                <span class="list-row-meta">
+                                                    <button class="btn-ghost btn-sm" @onclick="() => StartRenameEnv(env)" disabled="@busy">@Loc["Common.Rename"]</button>
+                                                    <button class="btn-danger btn-sm" @onclick="() => confirmDeleteEnvId = env.Id" disabled="@(busy || environments.Count <= 1)">@Loc["Common.DeleteEllipsis"]</button>
+                                                </span>
+                                            }
+                                        }
+                                    </div>
+                                    @if (confirmDeleteEnvId == env.Id)
+                                    {
+                                        <div class="notice notice-error" style="margin:.25rem 0;">
+                                            @Loc["Secret.Envs.ConfirmDelete", env.Name]
+                                            <div class="row" style="margin-top:.5rem;">
+                                                <button class="btn-danger btn-sm" @onclick="() => DeleteEnvAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteEnvId = null">@Loc["Common.Cancel"]</button>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                        }
+                    </div>
+
+                }
+
+                @if (status is not null)
+                {
+                    <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+                }
+            </section>
+        </div>
+    }
+</KeywardUi>
+
+@code {
+    private Guid? actorUserId;
+    private Guid tenantId;
+    private bool canManage;
+
+    private IReadOnlyList<ProjectInfo>? apps;
+    private Guid? selectedAppId;
+    private IReadOnlyList<EnvironmentInfo>? environments;
+
+    private string newAppName = "";
+    private string renameValue = "";
+    private bool confirmDelete;
+
+    private string newEnvName = "";
+    private Guid? renamingEnvId;
+    private string renameEnvValue = "";
+    private Guid? confirmDeleteEnvId;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private ProjectInfo? SelectedApp => apps?.FirstOrDefault(a => a.Id == selectedAppId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        actorUserId = CurrentUser.UserId;
+        if (actorUserId is null) return;
+        tenantId = Workspace.TenantId;
+        canManage = await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
+        await ReloadAppsAsync();
+        var remembered = UiState.SelectedProjectId;
+        if (apps!.Any(a => a.Id == remembered))
+        {
+            await SelectAppAsync(remembered!.Value);
+        }
+        else if (apps is { Count: 1 })
+        {
+            await SelectAppAsync(apps[0].Id);
+        }
+    }
+
+    private async Task ReloadAppsAsync() =>
+        apps = await ProjectService.ListAsync(tenantId);
+
+    private async Task SelectAppAsync(Guid appId)
+    {
+        selectedAppId = appId;
+        UiState.SelectedProjectId = appId;
+        confirmDelete = false;
+        renameValue = SelectedApp?.Name ?? "";
+        renamingEnvId = null;
+        confirmDeleteEnvId = null;
+        environments = await SecretService.ListEnvironmentsAsync(tenantId, appId);
+    }
+
+    private Task CreateAppAsync() => RunAsync(async () =>
+    {
+        var id = await ProjectService.CreateAsync(tenantId, newAppName, actorUserId);
+        newAppName = "";
+        await ReloadAppsAsync();
+        await SelectAppAsync(id);
+        status = (Loc["App.Msg.Created"], false);
+    }, !string.IsNullOrWhiteSpace(newAppName));
+
+    private Task RenameAppAsync() => RunAsync(async () =>
+    {
+        await ProjectService.RenameAsync(tenantId, selectedAppId!.Value, renameValue, actorUserId);
+        await ReloadAppsAsync();
+        status = (Loc["App.Msg.Renamed"], false);
+    }, selectedAppId is not null && !string.IsNullOrWhiteSpace(renameValue));
+
+    private Task DeleteAppAsync() => RunAsync(async () =>
+    {
+        await ProjectService.DeleteAsync(tenantId, selectedAppId!.Value, actorUserId);
+        selectedAppId = null;
+        UiState.SelectedProjectId = null;
+        environments = null;
+        confirmDelete = false;
+        await ReloadAppsAsync();
+        status = (Loc["App.Msg.Deleted"], false);
+    }, selectedAppId is not null);
+
+    private void StartRenameEnv(EnvironmentInfo env)
+    {
+        renamingEnvId = env.Id;
+        renameEnvValue = env.Name;
+        confirmDeleteEnvId = null;
+    }
+
+    private Task AddEnvAsync() => RunAsync(async () =>
+    {
+        await SecretService.AddEnvironmentAsync(tenantId, selectedAppId!.Value, newEnvName, actorUserId);
+        newEnvName = "";
+        await RefreshEnvironmentsAsync();
+        status = (Loc["Secret.Envs.Msg.Added"], false);
+    }, selectedAppId is not null && !string.IsNullOrWhiteSpace(newEnvName));
+
+    private Task RenameEnvAsync(Guid environmentId) => RunAsync(async () =>
+    {
+        await SecretService.RenameEnvironmentAsync(tenantId, selectedAppId!.Value, environmentId, renameEnvValue, actorUserId);
+        renamingEnvId = null;
+        await RefreshEnvironmentsAsync();
+        status = (Loc["Secret.Envs.Msg.Renamed"], false);
+    }, selectedAppId is not null && !string.IsNullOrWhiteSpace(renameEnvValue));
+
+    private Task DeleteEnvAsync(Guid environmentId) => RunAsync(async () =>
+    {
+        await SecretService.DeleteEnvironmentAsync(tenantId, selectedAppId!.Value, environmentId, actorUserId);
+        confirmDeleteEnvId = null;
+        await RefreshEnvironmentsAsync();
+        status = (Loc["Secret.Envs.Msg.Deleted"], false);
+    }, selectedAppId is not null);
+
+    private async Task RefreshEnvironmentsAsync() =>
+        environments = await SecretService.ListEnvironmentsAsync(tenantId, selectedAppId!.Value);
+
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || actorUserId is null || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}

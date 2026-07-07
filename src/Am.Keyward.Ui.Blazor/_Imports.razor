@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Web
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @using Microsoft.Extensions.Localization
+@using Microsoft.JSInterop
 @using Am.Keyward.Core.Abstractions
 @using Am.Keyward.Core.Application
 @using Am.Keyward.Core.Domain
@@ -13,3 +14,5 @@
 @using Am.Keyward.Ui.Blazor
 @using Am.Keyward.Ui.Blazor.Pages
 @using Am.Keyward.Ui.Blazor.Vaults
+@* The host-configured product name, available in every component (browser tab, brand, texts). *@
+@inject KeywardUiOptions KeywardOptions

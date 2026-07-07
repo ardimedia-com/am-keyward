@@ -21,9 +21,110 @@ public sealed class SoftwareSecretService(
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
-    IKeywardAccessPolicy authorization) : ISoftwareSecretService, ISoftwareSecretReader
+    IKeywardAccessPolicy authorization,
+    ISoftwareClientTokenService tokens) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
+
+    public async Task<IReadOnlyList<EnvironmentInfo>> ListEnvironmentsAsync(Guid tenantId, Guid projectId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+
+        var environments = await db.RuntimeEnvironments.AsNoTracking()
+            .Where(e => e.ProjectId == projectId)
+            .OrderBy(e => e.Name)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        return environments.Select(e => new EnvironmentInfo(e.Id, e.Name.Value)).ToList();
+    }
+
+    public async Task RenameEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, string newName, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+
+        var environment = await db.RuntimeEnvironments
+            .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Environment {environmentId} not found.");
+
+        var name = EnvironmentName.Create(newName);
+        if (await db.RuntimeEnvironments.AnyAsync(
+                e => e.ProjectId == projectId && e.Id != environmentId && e.Name == name, ct).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException($"Environment '{name}' already exists in this project.");
+        }
+
+        environment.Rename(name);
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Update, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task DeleteEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+
+        var environment = await db.RuntimeEnvironments
+            .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Environment {environmentId} not found.");
+
+        // A project must keep at least one environment — secrets and tokens have nowhere to live otherwise.
+        if (!await db.RuntimeEnvironments.AnyAsync(e => e.ProjectId == projectId && e.Id != environmentId, ct).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException("The project's last environment cannot be deleted.");
+        }
+
+        // Everything scoped to the environment goes with it: its secret values (versions cascade) and its
+        // app tokens (they could never read anything again — the deletion itself stays in the audit chain).
+        var values = await db.SecretValues.Where(v => v.EnvironmentId == environmentId).ToListAsync(ct).ConfigureAwait(false);
+        db.SecretValues.RemoveRange(values);
+        var environmentTokens = await db.SoftwareClientTokens
+            .Where(t => t.EnvironmentId == environmentId)
+            .ToListAsync(ct).ConfigureAwait(false);
+        db.SoftwareClientTokens.RemoveRange(environmentTokens);
+
+        db.RuntimeEnvironments.Remove(environment);
+
+        // Each destroyed credential leaves its own trace in the audit chain, plus the environment entry.
+        foreach (var token in environmentTokens)
+        {
+            await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareClientToken", token.Id, actorUserId), ct).ConfigureAwait(false);
+        }
+
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private async Task EnsureEnvironmentOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    {
+        var isOperator = actorUserId is { } actor
+            && (await db.Users.AnyAsync(u => u.Id == actor && u.IsSystemAdmin, ct).ConfigureAwait(false)
+                || await db.TenantMemberships.AnyAsync(
+                    m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
+        if (!isOperator)
+        {
+            throw new UnauthorizedAccessException("Managing environments requires the tenant-admin role.");
+        }
+    }
+
+    public async Task AddEnvironmentAsync(Guid tenantId, Guid projectId, string name, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+
+        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+
+        var project = await db.Projects.Include(p => p.Environments)
+            .FirstOrDefaultAsync(p => p.Id == projectId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Project {projectId} not found.");
+
+        var environment = project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Create(name), clock.UtcNow);
+        db.RuntimeEnvironments.Add(environment); // new child of a tracked aggregate -> mark Added explicitly
+        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, "Environment", environment.Id, actorUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+
+        // A new environment starts with a pending app token (no secret yet), like at application creation.
+        await tokens.CreatePendingAsync(tenantId, projectId, environment.Id, actorUserId, ct).ConfigureAwait(false);
+    }
 
     public async Task StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {

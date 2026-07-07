@@ -16,6 +16,9 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.9" />
+    <!-- Full localization package: lets AddKeywardUi register AddLocalization() itself and carry the
+         ResourceLocation assembly attribute, so an embedding host needs zero localization setup. -->
+    <PackageReference Include="Microsoft.Extensions.Localization" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>

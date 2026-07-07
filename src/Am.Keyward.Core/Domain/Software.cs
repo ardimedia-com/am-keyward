@@ -39,6 +39,16 @@ public sealed class Project
         CreatedAt = createdAt;
     }
 
+    public void Rename(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Project name required.", nameof(name));
+        }
+
+        Name = name.Trim();
+    }
+
     public RuntimeEnvironment AddEnvironment(Guid id, EnvironmentName name, DateTimeOffset createdAt)
     {
         if (_environments.Any(e => string.Equals(e.Name.Value, name.Value, StringComparison.OrdinalIgnoreCase)))
@@ -52,6 +62,33 @@ public sealed class Project
     }
 }
 
+/// <summary>
+/// One entry of a tenant's default environment set — the environments every NEW project ("application")
+/// starts with. Maintained under Administration; a tenant with no rows uses the built-in
+/// <see cref="ValueObjects.EnvironmentName.DefaultSet"/> (and deleting all rows returns to it).
+/// Existing projects are never touched — their environments live on the project itself.
+/// </summary>
+public sealed class TenantDefaultEnvironment
+{
+    public Guid Id { get; private set; }
+
+    /// <summary>Owning tenant (drives the tenant query filter and SQL Server row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
+    public EnvironmentName Name { get; private set; }
+    public DateTimeOffset CreatedAt { get; private set; }
+
+    public TenantDefaultEnvironment(Guid id, Guid tenantId, EnvironmentName name, DateTimeOffset createdAt)
+    {
+        Id = id;
+        TenantId = tenantId;
+        Name = name;
+        CreatedAt = createdAt;
+    }
+
+    public void Rename(EnvironmentName name) => Name = name;
+}
+
 /// <summary>A first-class environment within a project (Development/Test/Preview/Production, configurable).</summary>
 public sealed class RuntimeEnvironment
 {
@@ -63,6 +100,8 @@ public sealed class RuntimeEnvironment
 
     public EnvironmentName Name { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    public void Rename(EnvironmentName name) => Name = name;
 
     public RuntimeEnvironment(Guid id, Guid projectId, Guid tenantId, EnvironmentName name, DateTimeOffset createdAt)
     {

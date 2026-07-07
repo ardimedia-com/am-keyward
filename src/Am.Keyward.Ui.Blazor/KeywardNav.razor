@@ -1,13 +1,20 @@
 @* Reusable navigation for the embedded Keyward sections. Identity-aware (only shown when signed in) and
-   localized; uses the KeywardRoutes constants so a host never hardcodes Keyward's route strings. The host
-   decides WHERE to place it (its own layout) and may style the .nav-link class to taste. *@
+   localized; uses the KeywardRoutes constants so a host never hardcodes Keyward's route strings. Links are
+   grouped by purpose (vaults for people / software credentials for machines) with small section labels; the
+   host decides WHERE to place it (its own layout) and styles .nav-link / .nav-group-label to taste.
+   The Groups page (KeywardRoutes.Groups) is deliberately NOT listed here — it is management, so the host
+   places it in its administration section (see the reference shell's NavMenu). *@
 @inject IStringLocalizer<SharedResource> Loc
 
 <AuthorizeView>
     <Authorized>
-        <NavLink class="nav-link" href="@KeywardRoutes.PersonalVaults">@Loc["Nav.PersonalVaults"]</NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.TeamVaults">@Loc["Nav.TeamVaults"]</NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.SoftwareCredentials">@Loc["Nav.SoftwareCredentials"]</NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.ClientTokens">@Loc["Nav.ClientTokens"]</NavLink>
+        <div class="nav-group-label">@Loc["Nav.Group.Vaults"]</div>
+        <NavLink class="nav-link" href="@KeywardRoutes.PersonalVaults"><KeywardIcon Name="lock" /><span>@Loc["Nav.PersonalVaults"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.TeamVaults"><KeywardIcon Name="users" /><span>@Loc["Nav.TeamVaults"]</span></NavLink>
+
+        <div class="nav-group-label">@Loc["Nav.Group.Software"]</div>
+        <NavLink class="nav-link" href="@KeywardRoutes.Applications"><KeywardIcon Name="package" /><span>@Loc["Nav.Applications"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.SoftwareCredentials"><KeywardIcon Name="key" /><span>@Loc["Nav.SoftwareCredentials"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.ClientTokens"><KeywardIcon Name="ticket" /><span>@Loc["Nav.ClientTokens"]</span></NavLink>
     </Authorized>
 </AuthorizeView>

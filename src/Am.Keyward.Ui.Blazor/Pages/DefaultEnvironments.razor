@@ -1,0 +1,177 @@
+@page "/amkeyward/default-environments"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@inject IDefaultEnvironmentService DefaultEnvService
+@inject IGroupService GroupService
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+@* Administration page: the environment set every NEW application starts with. No rows in the database
+   means the built-in set applies (shown read-only); "Customize" copies it into editable rows, and deleting
+   all rows returns to the built-in set. Existing applications keep their own environments untouched. *@
+<KeywardUi>
+    <div class="page-header">
+        <h1>@Loc["Page.DefaultEnvs.Title"]</h1>
+        <p>@Loc["Page.DefaultEnvs.Desc"]</p>
+    </div>
+
+    @if (rows is null)
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
+    else
+    {
+        <div class="card" style="max-width:48rem;">
+            <h3>@Loc["Page.DefaultEnvs.Title"] (@EffectiveNames.Count)</h3>
+
+            @if (rows.Count == 0)
+            {
+                @* Built-in set — read-only until an admin customizes it. *@
+                <div class="list-rows" style="margin:.5rem 0;">
+                    @foreach (var name in EffectiveNames)
+                    {
+                        <div class="list-row" style="cursor:default;">
+                            <KeywardIcon Name="layers" Size="17" />
+                            <span class="list-row-name">@name</span>
+                        </div>
+                    }
+                </div>
+                <p class="muted" style="font-size:.85rem;">@Loc["DefaultEnvs.BuiltInHint"]</p>
+                @if (canManage)
+                {
+                    <button @onclick="CustomizeAsync" disabled="@busy"><KeywardIcon Name="settings" />@Loc["DefaultEnvs.Customize"]</button>
+                }
+            }
+            else
+            {
+                <div class="list-rows" style="margin:.5rem 0;">
+                    @foreach (var env in rows)
+                    {
+                        <div class="list-row" style="cursor:default;">
+                            <KeywardIcon Name="layers" Size="17" />
+                            @if (renamingId == env.Id)
+                            {
+                                <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
+                                <button class="btn-sm" @onclick="() => RenameAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Save"]</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => renamingId = null">@Loc["Common.Cancel"]</button>
+                            }
+                            else
+                            {
+                                <span class="list-row-name">@env.Name</span>
+                                @if (canManage)
+                                {
+                                    <span class="list-row-meta">
+                                        <button class="btn-ghost btn-sm" @onclick="() => StartRename(env)" disabled="@busy">@Loc["Common.Rename"]</button>
+                                        <button class="btn-danger btn-sm" @onclick="() => confirmDeleteId = env.Id" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
+                                    </span>
+                                }
+                            }
+                        </div>
+                        @if (confirmDeleteId == env.Id)
+                        {
+                            <div class="notice notice-error" style="margin:.25rem 0;">
+                                @Loc["DefaultEnvs.ConfirmDelete", env.Name]
+                                <div class="row" style="margin-top:.5rem;">
+                                    <button class="btn-danger btn-sm" @onclick="() => DeleteAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">@Loc["Common.Cancel"]</button>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+
+                @if (canManage)
+                {
+                    <div class="row" style="margin-top:.75rem;">
+                        <input @bind="newName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
+                        <button @onclick="AddAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
+                    </div>
+                }
+            }
+
+            @if (status is not null)
+            {
+                <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+            }
+        </div>
+    }
+</KeywardUi>
+
+@code {
+    private Guid? actorUserId;
+    private IReadOnlyList<DefaultEnvironmentInfo>? rows;
+    private bool canManage;
+
+    private string newName = "";
+    private Guid? renamingId;
+    private string renameValue = "";
+    private Guid? confirmDeleteId;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private IReadOnlyList<string> EffectiveNames =>
+        rows is { Count: > 0 } ? rows.Select(r => r.Name).ToList() : EnvironmentName.DefaultSet.Select(n => n.Value).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        actorUserId = CurrentUser.UserId;
+        if (actorUserId is null) return;
+        canManage = await GroupService.CanManageGroupsAsync(actorUserId.Value, Workspace.TenantId);
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync() =>
+        rows = await DefaultEnvService.ListAsync(Workspace.TenantId);
+
+    private void StartRename(DefaultEnvironmentInfo env)
+    {
+        renamingId = env.Id;
+        renameValue = env.Name;
+        confirmDeleteId = null;
+    }
+
+    private Task CustomizeAsync() => RunAsync(async () =>
+    {
+        await DefaultEnvService.CustomizeAsync(Workspace.TenantId, actorUserId);
+        await ReloadAsync();
+        status = (Loc["DefaultEnvs.Msg.Customized"], false);
+    }, true);
+
+    private Task AddAsync() => RunAsync(async () =>
+    {
+        await DefaultEnvService.AddAsync(Workspace.TenantId, newName, actorUserId);
+        newName = "";
+        await ReloadAsync();
+        status = (Loc["DefaultEnvs.Msg.Added"], false);
+    }, !string.IsNullOrWhiteSpace(newName));
+
+    private Task RenameAsync(Guid id) => RunAsync(async () =>
+    {
+        await DefaultEnvService.RenameAsync(Workspace.TenantId, id, renameValue, actorUserId);
+        renamingId = null;
+        await ReloadAsync();
+        status = (Loc["Secret.Envs.Msg.Renamed"], false);
+    }, !string.IsNullOrWhiteSpace(renameValue));
+
+    private Task DeleteAsync(Guid id) => RunAsync(async () =>
+    {
+        await DefaultEnvService.DeleteAsync(Workspace.TenantId, id, actorUserId);
+        confirmDeleteId = null;
+        await ReloadAsync();
+        status = ((rows is { Count: 0 } ? Loc["DefaultEnvs.Msg.BackToBuiltIn"] : Loc["Secret.Envs.Msg.Deleted"]), false);
+    }, true);
+
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || actorUserId is null || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}
