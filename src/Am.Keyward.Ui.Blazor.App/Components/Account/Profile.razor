@@ -1,8 +1,13 @@
 @page "/account/profile"
 @attribute [Authorize]
+@using System.Security.Claims
+@using Am.Keyward.Core.Domain
+@using Am.Keyward.Infrastructure.Persistence
+@using Microsoft.EntityFrameworkCore
+@inject KeywardDbContext Db
 @inject IStringLocalizer<SharedResource> Loc
 
-<PageTitle>AM KEYWARD</PageTitle>
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 <div class="page-header">
     <h1>@Loc["Profile.Title"]</h1>
@@ -20,9 +25,53 @@
             {
                 <p><span class="badge badge-success">@Loc["Profile.SystemAdmin"]</span></p>
             }
+
+            @if (isAdmin)
+            {
+                @* Only users who administer a tenant can receive token-expiry mail, so only they see the toggle. *@
+                <form action="account/profile/notify" method="post" style="margin-top:1rem;">
+                    <AntiforgeryToken />
+                    <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer;">
+                        <input type="checkbox" name="notify" value="true" checked="@notifyTokenExpiry" style="width:auto; margin-top:.2rem;" />
+                        <span>@Loc["Profile.Notify.Label"]</span>
+                    </label>
+                    <button type="submit" class="btn-sm" style="margin-top:.6rem;">@Loc["Common.Save"]</button>
+                </form>
+                @if (Saved == "1")
+                {
+                    <div class="notice" role="status">@Loc["Profile.Notify.Saved"]</div>
+                }
+            }
+
             <form action="account/logout" method="post" style="margin-top:1rem;">
                 <button type="submit" class="btn-danger">@Loc["Nav.SignOut"]</button>
             </form>
         </div>
     </Authorized>
 </AuthorizeView>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
+
+    [SupplyParameterFromQuery(Name = "saved")] private string? Saved { get; set; }
+
+    private bool isAdmin;
+    private bool notifyTokenExpiry;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthState is null) return;
+        var user = (await AuthState).User;
+        var identityId = user.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (identityId is null) return;
+
+        // The Keyward user record carries the preference; users are installation-global (no tenant scope).
+        var appUser = await Db.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == identityId);
+        if (appUser is null) return;
+
+        notifyTokenExpiry = appUser.NotifyTokenExpiry;
+        isAdmin = appUser.IsSystemAdmin
+            || await Db.TenantMemberships.AnyAsync(m => m.UserId == appUser.Id && m.Role == TenantRole.TenantAdmin);
+    }
+}

@@ -12,17 +12,22 @@ namespace Am.Keyward.Ui.Blazor.App.Identity;
 /// </summary>
 public sealed class SmtpAccountEmailSender(
     IOptions<AccountEmailOptions> options,
+    Am.Keyward.Ui.Blazor.KeywardUiOptions uiOptions,
     ILogger<SmtpAccountEmailSender> logger) : IAccountEmailSender
 {
-    public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default) =>
-        SendAsync(email, "AM KEYWARD password reset",
-            $"Open this single-use link to set a new password:\r\n{resetLink}\r\n", ct);
+    public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default)
+    {
+        var (subject, content) = AccountEmailMessages.PasswordReset(resetLink, uiOptions.ProductName);
+        return SendAsync(email, subject, content, ct);
+    }
 
-    public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default) =>
-        SendAsync(email, "AM KEYWARD e-mail confirmation",
-            $"Confirm your e-mail address to activate your account:\r\n{confirmLink}\r\n", ct);
+    public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default)
+    {
+        var (subject, content) = AccountEmailMessages.EmailConfirmation(confirmLink, uiOptions.ProductName);
+        return SendAsync(email, subject, content, ct);
+    }
 
-    private async Task SendAsync(string to, string subject, string body, CancellationToken ct)
+    public async Task SendAsync(string to, string subject, BrandedEmailContent content, CancellationToken ct = default)
     {
         var smtp = options.Value.Smtp;
         // This sender is only registered when a host is configured (see Program.cs), so this never trips.
@@ -32,7 +37,12 @@ public sealed class SmtpAccountEmailSender(
         message.From.Add(MailboxAddress.Parse(smtp.From));
         message.To.Add(MailboxAddress.Parse(to));
         message.Subject = subject;
-        message.Body = new TextPart("plain") { Text = body };
+        // multipart/alternative: branded HTML card + plain-text fallback, from one source (BrandedEmail).
+        message.Body = new BodyBuilder
+        {
+            HtmlBody = BrandedEmail.RenderHtml(content),
+            TextBody = BrandedEmail.RenderText(content),
+        }.ToMessageBody();
 
         using var client = new SmtpClient();
         // Auto negotiates STARTTLS when the relay offers it and falls back to plaintext for an internal relay

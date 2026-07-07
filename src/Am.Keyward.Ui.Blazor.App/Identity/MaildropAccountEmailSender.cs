@@ -43,17 +43,25 @@ public sealed class MaildropAccountEmailSender(
     IOptions<AccountEmailOptions> options,
     IHostEnvironment environment,
     IClock clock,
+    Am.Keyward.Ui.Blazor.KeywardUiOptions uiOptions,
     ILogger<MaildropAccountEmailSender> logger) : IAccountEmailSender
 {
-    public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default) =>
-        DropAsync("password-reset", email, "AM KEYWARD password reset",
-            $"Open this single-use link to set a new password:\r\n{resetLink}\r\n", ct);
+    public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default)
+    {
+        var (subject, content) = AccountEmailMessages.PasswordReset(resetLink, uiOptions.ProductName);
+        return DropAsync("password-reset", email, subject, content, ct);
+    }
 
-    public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default) =>
-        DropAsync("confirm-email", email, "AM KEYWARD e-mail confirmation",
-            $"Confirm your e-mail address to activate your account:\r\n{confirmLink}\r\n", ct);
+    public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default)
+    {
+        var (subject, content) = AccountEmailMessages.EmailConfirmation(confirmLink, uiOptions.ProductName);
+        return DropAsync("confirm-email", email, subject, content, ct);
+    }
 
-    private async Task DropAsync(string kind, string email, string subject, string message, CancellationToken ct)
+    public Task SendAsync(string email, string subject, BrandedEmailContent content, CancellationToken ct = default) =>
+        DropAsync("notification", email, subject, content, ct);
+
+    private async Task DropAsync(string kind, string email, string subject, BrandedEmailContent content, CancellationToken ct)
     {
         var dir = string.IsNullOrWhiteSpace(options.Value.MaildropPath)
             ? Path.Combine(environment.ContentRootPath, "maildrop")
@@ -61,10 +69,15 @@ public sealed class MaildropAccountEmailSender(
         Directory.CreateDirectory(dir);
 
         var stamp = clock.UtcNow.UtcDateTime.ToString("yyyyMMdd-HHmmssfff");
-        var path = Path.Combine(dir, $"{kind}-{stamp}.txt");
-        var body = $"To: {email}\r\nSubject: {subject}\r\n\r\n{message}";
 
-        await File.WriteAllTextAsync(path, body, ct).ConfigureAwait(false);
+        // The branded HTML card (openable in a browser to preview exactly what a recipient sees) plus the
+        // plain-text alternative, from the same source content (BrandedEmail).
+        var htmlPath = Path.Combine(dir, $"{kind}-{stamp}.html");
+        await File.WriteAllTextAsync(htmlPath, BrandedEmail.RenderHtml(content), ct).ConfigureAwait(false);
+
+        var textPath = Path.Combine(dir, $"{kind}-{stamp}.txt");
+        var text = $"To: {email}\r\nSubject: {subject}\r\n\r\n{BrandedEmail.RenderText(content)}";
+        await File.WriteAllTextAsync(textPath, text, ct).ConfigureAwait(false);
 
         // Do NOT log the link/token — it is a single-use secret. Log only that a mail was dropped.
         logger.LogInformation(

@@ -49,6 +49,12 @@ public sealed class AppUser
     public bool IsSystemAdmin { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
+    /// <summary>
+    /// Opt-in: this user wants e-mail notifications about app tokens nearing expiry (30/20/10 days ahead,
+    /// then daily from 9 days). Only honored for users who administer the token's tenant.
+    /// </summary>
+    public bool NotifyTokenExpiry { get; private set; }
+
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -67,6 +73,8 @@ public sealed class AppUser
     public void GrantSystemAdmin() => IsSystemAdmin = true;
 
     public void RevokeSystemAdmin() => IsSystemAdmin = false;
+
+    public void SetTokenExpiryNotification(bool enabled) => NotifyTokenExpiry = enabled;
 }
 
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>
@@ -126,14 +134,19 @@ public sealed class UserGroup
 public sealed class GroupMembership
 {
     public Guid Id { get; private set; }
+
+    /// <summary>Denormalized tenant isolation key (drives the query filter + row-level security).</summary>
+    public Guid TenantId { get; private set; }
+
     public Guid GroupId { get; private set; }
     public Guid UserId { get; private set; }
     public GroupRole Role { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
 
-    public GroupMembership(Guid id, Guid groupId, Guid userId, GroupRole role, DateTimeOffset createdAt)
+    public GroupMembership(Guid id, Guid tenantId, Guid groupId, Guid userId, GroupRole role, DateTimeOffset createdAt)
     {
         Id = id;
+        TenantId = tenantId;
         GroupId = groupId;
         UserId = userId;
         Role = role;

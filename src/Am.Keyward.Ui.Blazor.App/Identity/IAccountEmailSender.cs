@@ -11,4 +11,7 @@ public interface IAccountEmailSender
     Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default);
 
     Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default);
+
+    /// <summary>A generic branded notification (e.g. app-token expiry) — same card layout and transport.</summary>
+    Task SendAsync(string email, string subject, BrandedEmailContent content, CancellationToken ct = default);
 }

@@ -2,9 +2,11 @@ using Am.Keyward.Api;
 using Am.Keyward.AspNetCore;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
+using Am.Keyward.Core.Domain.Identity;
 using Am.Keyward.Infrastructure;
 using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Infrastructure.Monitoring;
+using Am.Keyward.Ui.Blazor;
 using Am.Keyward.Ui.Blazor.App;
 using Am.Keyward.Ui.Blazor.App.Components;
 using Am.Keyward.Ui.Blazor.App.Identity;
@@ -68,9 +70,17 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 builder.Services.AddKeywardBlazorUserScope();
 builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
-// The workspace context the embedded Keyward UI pages (RCL) read for their tenant/project. The reference
-// shell points it at the demo tenant/project; a real host supplies its own selection.
+// The workspace context the embedded Keyward UI pages (RCL) read for their tenant. The reference shell
+// points it at the demo tenant; a real host supplies its own selection. AddKeywardUi registers the RCL's
+// own circuit-scoped UI state (e.g. the application picked on the Applications page).
 builder.Services.AddScoped<Am.Keyward.Ui.Blazor.IKeywardWorkspaceContext, DemoWorkspaceContext>();
+// The product name users see (browser tab, sidebar brand, texts) and the public base URL for absolute
+// links in notification e-mails — the host names its installation.
+builder.Services.AddKeywardUi(o =>
+{
+    o.ProductName = builder.Configuration["Keyward:ProductName"] ?? o.ProductName;
+    o.PublicBaseUrl = builder.Configuration["Keyward:PublicBaseUrl"];
+});
 
 // AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside
 // the database. A real deployment supplies the connection string and a proper KEK provider.
@@ -152,6 +162,10 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.Configure<DatabaseMigrationOptions>(builder.Configuration.GetSection(DatabaseMigrationOptions.SectionName));
 builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.DatabaseMigrationBackgroundService>();
 
+// E-mails administrators (who opted in on their profile) about app tokens nearing expiry:
+// 30/20/10 days ahead, then daily from 9 days (TokenExpiryNoticePolicy).
+builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.TokenExpiryEmailService>();
+
 // Monitoring/health: a live KEK-availability probe and the cached ops-monitor snapshot (KEK integrity,
 // audit-chain integrity, token expiry). Exposed at /health (liveness) and /health/ready (readiness).
 builder.Services.AddHealthChecks()
@@ -191,10 +205,15 @@ if (!app.Environment.IsDevelopment())
 app.UseRequestLocalization();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
-app.UseAntiforgery();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// MUST come after UseAuthentication/UseAuthorization: antiforgery tokens are bound to the current
+// claims-based user. Running it earlier binds every token to the anonymous user, and the first form
+// POST on an AUTHENTICATED page then fails with "token was meant for a different claims-based user"
+// (anonymous account pages — login/register — never trip it, which is why it went unnoticed).
+app.UseAntiforgery();
 
 // Establish the server-authoritative current user from the authenticated principal for this request (HTTP
 // path; the Blazor circuit path is covered by AddKeywardBlazorUserScope's circuit handler).
@@ -229,6 +248,27 @@ app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager)
     await signInManager.SignOutAsync();
     return Results.LocalRedirect("/");
 }).DisableAntiforgery();
+
+// Per-user notification preference: e-mail when app tokens near expiry (antiforgery-protected form post
+// from the profile page; an unchecked checkbox posts no value).
+app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string? notify,
+    UserManager<IdentityUser> users, KeywardDbContext db) =>
+{
+    var identityId = users.GetUserId(ctx.User);
+    if (identityId is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    var appUser = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == identityId);
+    if (appUser is not null)
+    {
+        appUser.SetTokenExpiryNotification(notify == "true");
+        await db.SaveChangesAsync();
+    }
+
+    return Results.LocalRedirect("/account/profile?saved=1");
+}).RequireAuthorization();
 
 // Admin user-management actions (system-admin only): unlock a brute-force lockout, or disable / re-enable an
 // account. Antiforgery-protected form posts (the admin page renders the token). Every action is audited.
@@ -280,6 +320,104 @@ adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
     return Results.LocalRedirect("/account/admin/users");
 });
 
+// Delete an account (offboarding): removes the Identity login, the tenant membership(s), the user's access
+// grants and their personal vaults (folders/items/versions cascade). The domain AppUser row is kept so the
+// audit chain's actor references stay meaningful. Guards: never self, never the last tenant admin, never
+// the last system admin. The vault deletion runs in the TARGET user's scope — the row-level-security
+// predicate admits personal vaults only for their owner, so an admin delete must act on the owner's behalf.
+adminUsers.MapPost("/delete", async (HttpContext ctx, [FromForm] string userId,
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit,
+    IUserScopeSetter userScope, ITenantScopeSetter tenantScope) =>
+{
+    if (userId == users.GetUserId(ctx.User))
+    {
+        return Results.LocalRedirect("/account/admin/users");
+    }
+
+    var domainUser = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == userId);
+    if (domainUser is not null)
+    {
+        var isLastSystemAdmin = domainUser.IsSystemAdmin
+            && await db.Users.CountAsync(u => u.IsSystemAdmin) <= 1;
+        var isLastTenantAdmin = await db.TenantMemberships.AnyAsync(m =>
+                m.TenantId == Demo.TenantId && m.UserId == domainUser.Id && m.Role == TenantRole.TenantAdmin)
+            && await db.TenantMemberships.CountAsync(m =>
+                m.TenantId == Demo.TenantId && m.Role == TenantRole.TenantAdmin) <= 1;
+        if (isLastSystemAdmin || isLastTenantAdmin)
+        {
+            return Results.LocalRedirect("/account/admin/users");
+        }
+
+        // Audit FIRST (as the acting admin), then switch to the target's scope for the data removal.
+        await AuditUserAdminAsync(ctx, db, audit, userId, "delete");
+
+        userScope.SetUser(domainUser.Id);
+        tenantScope.SetTenant(Demo.TenantId);
+
+        var vaultIds = await db.Vaults
+            .Where(v => v.TenantId == null && v.OwnerUserId == domainUser.Id)
+            .Select(v => v.Id)
+            .ToListAsync();
+        db.AccessGrants.RemoveRange(await db.AccessGrants
+            .Where(g => (g.Scope.Kind == GrantScopeKind.Vault && vaultIds.Contains(g.Scope.TargetId))
+                || (g.PrincipalType == PrincipalType.User && g.PrincipalId == domainUser.Id))
+            .ToListAsync());
+        db.Vaults.RemoveRange(await db.Vaults
+            .Where(v => v.TenantId == null && v.OwnerUserId == domainUser.Id)
+            .ToListAsync());
+        db.TenantMemberships.RemoveRange(await db.TenantMemberships
+            .Where(m => m.UserId == domainUser.Id)
+            .ToListAsync());
+        await db.SaveChangesAsync();
+    }
+
+    var identityUser = await users.FindByIdAsync(userId);
+    if (identityUser is not null)
+    {
+        await users.DeleteAsync(identityUser);
+    }
+
+    return Results.LocalRedirect("/account/admin/users");
+});
+
+// Assign the demo-tenant role (Member / TenantAdmin). Creates the membership when the user has none yet
+// (e.g. not signed in since memberships were introduced). Server-side guard: the LAST tenant admin can
+// never be demoted, so the tenant always keeps one.
+adminUsers.MapPost("/role", async (HttpContext ctx, [FromForm] string userId, [FromForm] string role,
+    KeywardDbContext db, IAuditSink audit, IClock clock) =>
+{
+    if (Enum.TryParse<TenantRole>(role, out var newRole))
+    {
+        var domainUser = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == userId);
+        if (domainUser is not null)
+        {
+            var membership = await db.TenantMemberships
+                .FirstOrDefaultAsync(m => m.TenantId == Demo.TenantId && m.UserId == domainUser.Id);
+
+            var isLastAdmin = membership?.Role == TenantRole.TenantAdmin
+                && await db.TenantMemberships.CountAsync(m =>
+                    m.TenantId == Demo.TenantId && m.Role == TenantRole.TenantAdmin) <= 1;
+
+            if (!(newRole == TenantRole.Member && isLastAdmin))
+            {
+                if (membership is null)
+                {
+                    db.TenantMemberships.Add(new TenantMembership(Guid.NewGuid(), Demo.TenantId, domainUser.Id, newRole, clock.UtcNow));
+                }
+                else
+                {
+                    membership.ChangeRole(newRole);
+                }
+
+                await db.SaveChangesAsync();
+                await AuditUserAdminAsync(ctx, db, audit, userId, $"role:{newRole}");
+            }
+        }
+    }
+
+    return Results.LocalRedirect("/account/admin/users");
+});
+
 // Switch UI language: store the culture cookie and reload (the cookie applies on the next request).
 app.MapPost("/culture", (HttpContext context) =>
 {
@@ -308,7 +446,12 @@ static async Task AuditUserAdminAsync(HttpContext ctx, KeywardDbContext db, IAud
         .Select(u => (Guid?)u.Id)
         .FirstOrDefaultAsync();
 
-    var auditAction = action == "disable" ? AuditAction.Revoke : AuditAction.Grant;
+    var auditAction = action switch
+    {
+        "disable" => AuditAction.Revoke,
+        "delete" => AuditAction.Delete,
+        _ => AuditAction.Grant,
+    };
     await audit.AppendAsync(new AuditRequest(null, auditAction, "AppUser", targetAppUserId, actorId));
     await db.SaveChangesAsync();
 }
