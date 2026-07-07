@@ -1,4 +1,6 @@
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Ui.Blazor;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Ui.Blazor.App.Identity;
@@ -43,18 +45,19 @@ public sealed class MaildropAccountEmailSender(
     IOptions<AccountEmailOptions> options,
     IHostEnvironment environment,
     IClock clock,
-    Am.Keyward.Ui.Blazor.KeywardUiOptions uiOptions,
+    KeywardUiOptions uiOptions,
+    IStringLocalizer<SharedResource> loc,
     ILogger<MaildropAccountEmailSender> logger) : IAccountEmailSender
 {
     public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default)
     {
-        var (subject, content) = AccountEmailMessages.PasswordReset(resetLink, uiOptions.ProductName);
+        var (subject, content) = AccountEmailMessages.PasswordReset(loc, uiOptions.ProductName, resetLink);
         return DropAsync("password-reset", email, subject, content, ct);
     }
 
     public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default)
     {
-        var (subject, content) = AccountEmailMessages.EmailConfirmation(confirmLink, uiOptions.ProductName);
+        var (subject, content) = AccountEmailMessages.EmailConfirmation(loc, uiOptions.ProductName, confirmLink);
         return DropAsync("confirm-email", email, subject, content, ct);
     }
 

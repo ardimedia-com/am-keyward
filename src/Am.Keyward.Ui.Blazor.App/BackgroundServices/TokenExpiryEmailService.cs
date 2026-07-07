@@ -1,3 +1,4 @@
+using System.Globalization;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Am.Keyward.Core.Domain;
@@ -6,6 +7,7 @@ using Am.Keyward.Ui.Blazor;
 using Am.Keyward.Ui.Blazor.App.Identity;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 
 namespace Am.Keyward.Ui.Blazor.App.BackgroundServices;
 
@@ -116,6 +118,7 @@ public sealed class TokenExpiryEmailService(
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
         var identityUsers = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var loc = scope.ServiceProvider.GetRequiredService<IStringLocalizer<SharedResource>>();
 
         // Opted-in users who administer this tenant (its tenant admins, or installation system admins).
         var adminUserIds = await db.TenantMemberships
@@ -142,32 +145,54 @@ public sealed class TokenExpiryEmailService(
             .ToDictionaryAsync(e => e.Id, e => e.Name.Value, ct)
             .ConfigureAwait(false);
 
-        var lines = due
-            .OrderBy(x => x.DaysLeft)
-            .Select(x =>
-                $"“{x.Token.Name}” ({projectNames.GetValueOrDefault(x.Token.ProjectId, "?")} / {environmentNames.GetValueOrDefault(x.Token.EnvironmentId, "?")}) — " +
-                $"expires in {x.DaysLeft} day(s), on {x.Token.ExpiresAt!.Value.UtcDateTime:yyyy-MM-dd}.")
-            .ToList();
         // With a configured public base URL the mail carries a button straight to the app-tokens page;
         // without one it stays a plain notification.
         var tokensUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
             ? null
             : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.ClientTokens;
-        var content = new BrandedEmailContent
+
+        // This runs outside any request, so there is no request culture to follow — build the whole
+        // message under the configured notification language (English fallback). All localizer lookups are
+        // synchronous, so the culture is restored before the first await (the send loop).
+        var (subject, content) = BuildContent();
+
+        (string Subject, BrandedEmailContent Content) BuildContent()
         {
-            Brand = uiOptions.ProductName,
-            Title = "App tokens expiring soon",
-            Paragraphs =
-            [
-                "The following app tokens are approaching their expiry date. Rotate them (or issue replacements) before then, or the software using them stops reading its secrets:",
-                .. lines,
-                "Rotate a token on the app-tokens page; the new value is shown exactly once.",
-            ],
-            ButtonText = tokensUrl is null ? null : "Open app tokens",
-            ActionUrl = tokensUrl,
-            FooterNote = "You receive this because you enabled app-token expiry notifications in your profile.",
-        };
-        var subject = $"{uiOptions.ProductName}: app tokens expiring soon";
+            var previous = CultureInfo.CurrentUICulture;
+            CultureInfo.CurrentUICulture = ResolveNotificationCulture();
+            try
+            {
+                var lines = due
+                    .OrderBy(x => x.DaysLeft)
+                    .Select(x => loc[
+                        "Email.TokenExpiry.Line",
+                        x.Token.Name,
+                        projectNames.GetValueOrDefault(x.Token.ProjectId, "?"),
+                        environmentNames.GetValueOrDefault(x.Token.EnvironmentId, "?"),
+                        x.DaysLeft,
+                        x.Token.ExpiresAt!.Value.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)].Value)
+                    .ToList();
+
+                return (loc["Email.TokenExpiry.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
+                {
+                    Brand = uiOptions.ProductName,
+                    Title = loc["Email.TokenExpiry.Title"].Value,
+                    Paragraphs =
+                    [
+                        loc["Email.TokenExpiry.Intro"].Value,
+                        .. lines,
+                        loc["Email.TokenExpiry.Outro"].Value,
+                    ],
+                    ButtonText = tokensUrl is null ? null : loc["Email.TokenExpiry.Button"].Value,
+                    ActionUrl = tokensUrl,
+                    FooterNote = loc["Email.TokenExpiry.Footer"].Value,
+                });
+            }
+            finally
+            {
+                CultureInfo.CurrentUICulture = previous;
+            }
+        }
 
         var sender = scope.ServiceProvider.GetRequiredService<IAccountEmailSender>();
         var sent = 0;
@@ -199,5 +224,19 @@ public sealed class TokenExpiryEmailService(
             "Token-expiry notification sent to {RecipientCount} recipient(s) for tenant {TenantId} covering {TokenCount} token(s).",
             sent, tenantId, due.Count);
         return true;
+    }
+
+    private CultureInfo ResolveNotificationCulture()
+    {
+        if (!string.IsNullOrWhiteSpace(uiOptions.NotificationLanguage))
+        {
+            try { return CultureInfo.GetCultureInfo(uiOptions.NotificationLanguage); }
+            catch (CultureNotFoundException)
+            {
+                logger.LogWarning("Configured notification language '{Language}' is not a valid culture; falling back to English.", uiOptions.NotificationLanguage);
+            }
+        }
+
+        return CultureInfo.GetCultureInfo("en");
     }
 }

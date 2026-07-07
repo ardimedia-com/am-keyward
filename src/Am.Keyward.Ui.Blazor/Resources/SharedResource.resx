@@ -601,4 +601,23 @@
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>The key “{0}” already exists. Select it in the list on the left and set its values per environment there — nothing was overwritten.</value></data>
   <data name="Profile.Notify.Label" xml:space="preserve"><value>E-mail me when app tokens are about to expire (30/20/10 days ahead, then daily from 9 days).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Notification setting saved.</value></data>
+  <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} password reset</value></data>
+  <data name="Email.Reset.Title" xml:space="preserve"><value>Reset your password</value></data>
+  <data name="Email.Reset.Body1" xml:space="preserve"><value>We received a request to set a new password for your {0} account.</value></data>
+  <data name="Email.Reset.Body2" xml:space="preserve"><value>Click the button below to choose a new password. This link is single-use and expires shortly.</value></data>
+  <data name="Email.Reset.Button" xml:space="preserve"><value>Set a new password</value></data>
+  <data name="Email.Reset.Footer" xml:space="preserve"><value>If you did not request this, you can safely ignore this e-mail — your password stays unchanged.</value></data>
+  <data name="Email.Confirm.Subject" xml:space="preserve"><value>{0} e-mail confirmation</value></data>
+  <data name="Email.Confirm.Title" xml:space="preserve"><value>Confirm your e-mail address</value></data>
+  <data name="Email.Confirm.Body1" xml:space="preserve"><value>Welcome to {0}. Please confirm your e-mail address to activate your account.</value></data>
+  <data name="Email.Confirm.Body2" xml:space="preserve"><value>Click the button below to complete your registration.</value></data>
+  <data name="Email.Confirm.Button" xml:space="preserve"><value>Confirm e-mail address</value></data>
+  <data name="Email.Confirm.Footer" xml:space="preserve"><value>If you did not create a {0} account, you can safely ignore this e-mail.</value></data>
+  <data name="Email.TokenExpiry.Subject" xml:space="preserve"><value>{0}: app tokens expiring soon</value></data>
+  <data name="Email.TokenExpiry.Title" xml:space="preserve"><value>App tokens expiring soon</value></data>
+  <data name="Email.TokenExpiry.Intro" xml:space="preserve"><value>The following app tokens are approaching their expiry date. Rotate them (or issue replacements) before then, or the software using them stops reading its secrets:</value></data>
+  <data name="Email.TokenExpiry.Line" xml:space="preserve"><value>“{0}” ({1} / {2}) — expires in {3} day(s), on {4}.</value></data>
+  <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotate a token on the app-tokens page; the new value is shown exactly once.</value></data>
+  <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Open app tokens</value></data>
+  <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>You receive this because you enabled app-token expiry notifications in your profile.</value></data>
 </root>

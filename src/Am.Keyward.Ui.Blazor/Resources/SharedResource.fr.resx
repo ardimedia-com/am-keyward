@@ -601,4 +601,23 @@
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>La clé « {0} » existe déjà. Sélectionnez-la dans la liste à gauche et définissez-y ses valeurs par environnement — rien n'a été écrasé.</value></data>
   <data name="Profile.Notify.Label" xml:space="preserve"><value>Recevoir un e-mail quand des jetons d'app arrivent à expiration (30/20/10 jours avant, puis chaque jour à partir de 9 jours).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Préférence de notification enregistrée.</value></data>
+  <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} réinitialisation du mot de passe</value></data>
+  <data name="Email.Reset.Title" xml:space="preserve"><value>Réinitialisez votre mot de passe</value></data>
+  <data name="Email.Reset.Body1" xml:space="preserve"><value>Nous avons reçu une demande de définition d'un nouveau mot de passe pour votre compte {0}.</value></data>
+  <data name="Email.Reset.Body2" xml:space="preserve"><value>Cliquez sur le bouton ci-dessous pour choisir un nouveau mot de passe. Ce lien est à usage unique et expire bientôt.</value></data>
+  <data name="Email.Reset.Button" xml:space="preserve"><value>Définir un nouveau mot de passe</value></data>
+  <data name="Email.Reset.Footer" xml:space="preserve"><value>Si vous n'êtes pas à l'origine de cette demande, vous pouvez ignorer cet e-mail — votre mot de passe reste inchangé.</value></data>
+  <data name="Email.Confirm.Subject" xml:space="preserve"><value>{0} confirmation d'e-mail</value></data>
+  <data name="Email.Confirm.Title" xml:space="preserve"><value>Confirmez votre adresse e-mail</value></data>
+  <data name="Email.Confirm.Body1" xml:space="preserve"><value>Bienvenue sur {0}. Veuillez confirmer votre adresse e-mail pour activer votre compte.</value></data>
+  <data name="Email.Confirm.Body2" xml:space="preserve"><value>Cliquez sur le bouton ci-dessous pour terminer votre inscription.</value></data>
+  <data name="Email.Confirm.Button" xml:space="preserve"><value>Confirmer l'adresse e-mail</value></data>
+  <data name="Email.Confirm.Footer" xml:space="preserve"><value>Si vous n'avez pas créé de compte {0}, vous pouvez ignorer cet e-mail.</value></data>
+  <data name="Email.TokenExpiry.Subject" xml:space="preserve"><value>{0} : des jetons d'app arrivent à expiration</value></data>
+  <data name="Email.TokenExpiry.Title" xml:space="preserve"><value>Des jetons d'app arrivent à expiration</value></data>
+  <data name="Email.TokenExpiry.Intro" xml:space="preserve"><value>Les jetons d'app suivants approchent de leur date d'expiration. Renouvelez-les (ou émettez des remplaçants) avant, sinon le logiciel qui les utilise ne pourra plus lire ses secrets :</value></data>
+  <data name="Email.TokenExpiry.Line" xml:space="preserve"><value>« {0} » ({1} / {2}) — expire dans {3} jour(s), le {4}.</value></data>
+  <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Renouvelez un jeton sur la page des jetons d'app ; la nouvelle valeur est affichée une seule fois.</value></data>
+  <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Ouvrir les jetons d'app</value></data>
+  <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Vous recevez cet e-mail parce que vous avez activé les notifications d'expiration des jetons d'app dans votre profil.</value></data>
 </root>

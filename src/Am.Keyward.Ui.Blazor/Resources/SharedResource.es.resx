@@ -601,4 +601,23 @@
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>La clave «{0}» ya existe. Selecciónala en la lista de la izquierda y define allí sus valores por entorno — no se sobrescribió nada.</value></data>
   <data name="Profile.Notify.Label" xml:space="preserve"><value>Recibir un correo cuando los tokens de app estén por expirar (30/20/10 días antes, luego a diario desde 9 días).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Preferencia de notificación guardada.</value></data>
+  <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} restablecimiento de contraseña</value></data>
+  <data name="Email.Reset.Title" xml:space="preserve"><value>Restablece tu contraseña</value></data>
+  <data name="Email.Reset.Body1" xml:space="preserve"><value>Recibimos una solicitud para establecer una nueva contraseña para tu cuenta de {0}.</value></data>
+  <data name="Email.Reset.Body2" xml:space="preserve"><value>Haz clic en el botón de abajo para elegir una nueva contraseña. Este enlace es de un solo uso y caduca en breve.</value></data>
+  <data name="Email.Reset.Button" xml:space="preserve"><value>Establecer una nueva contraseña</value></data>
+  <data name="Email.Reset.Footer" xml:space="preserve"><value>Si no solicitaste esto, puedes ignorar este correo — tu contraseña no cambia.</value></data>
+  <data name="Email.Confirm.Subject" xml:space="preserve"><value>{0} confirmación de correo</value></data>
+  <data name="Email.Confirm.Title" xml:space="preserve"><value>Confirma tu dirección de correo</value></data>
+  <data name="Email.Confirm.Body1" xml:space="preserve"><value>Te damos la bienvenida a {0}. Confirma tu dirección de correo para activar tu cuenta.</value></data>
+  <data name="Email.Confirm.Body2" xml:space="preserve"><value>Haz clic en el botón de abajo para completar tu registro.</value></data>
+  <data name="Email.Confirm.Button" xml:space="preserve"><value>Confirmar la dirección de correo</value></data>
+  <data name="Email.Confirm.Footer" xml:space="preserve"><value>Si no creaste una cuenta de {0}, puedes ignorar este correo.</value></data>
+  <data name="Email.TokenExpiry.Subject" xml:space="preserve"><value>{0}: tokens de app a punto de expirar</value></data>
+  <data name="Email.TokenExpiry.Title" xml:space="preserve"><value>Tokens de app a punto de expirar</value></data>
+  <data name="Email.TokenExpiry.Intro" xml:space="preserve"><value>Los siguientes tokens de app se acercan a su fecha de expiración. Rótalos (o emite reemplazos) antes de entonces, o el software que los usa dejará de leer sus secretos:</value></data>
+  <data name="Email.TokenExpiry.Line" xml:space="preserve"><value>«{0}» ({1} / {2}) — expira en {3} día(s), el {4}.</value></data>
+  <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rota un token en la página de tokens de app; el nuevo valor se muestra una sola vez.</value></data>
+  <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Abrir los tokens de app</value></data>
+  <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Recibes este correo porque activaste las notificaciones de expiración de tokens de app en tu perfil.</value></data>
 </root>

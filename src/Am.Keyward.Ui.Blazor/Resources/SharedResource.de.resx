@@ -601,4 +601,23 @@
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>Der Schlüssel «{0}» existiert bereits. Wähle ihn links in der Liste und setze seine Werte dort pro Umgebung — es wurde nichts überschrieben.</value></data>
   <data name="Profile.Notify.Label" xml:space="preserve"><value>E-Mail erhalten, wenn App-Tokens bald ablaufen (30/20/10 Tage vorher, ab 9 Tagen täglich).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Benachrichtigungs-Einstellung gespeichert.</value></data>
+  <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} Passwort zurücksetzen</value></data>
+  <data name="Email.Reset.Title" xml:space="preserve"><value>Passwort zurücksetzen</value></data>
+  <data name="Email.Reset.Body1" xml:space="preserve"><value>Wir haben eine Anfrage erhalten, ein neues Passwort für dein {0}-Konto zu setzen.</value></data>
+  <data name="Email.Reset.Body2" xml:space="preserve"><value>Klicke auf den Button unten, um ein neues Passwort zu wählen. Dieser Link ist einmalig gültig und läuft bald ab.</value></data>
+  <data name="Email.Reset.Button" xml:space="preserve"><value>Neues Passwort setzen</value></data>
+  <data name="Email.Reset.Footer" xml:space="preserve"><value>Falls du das nicht angefordert hast, kannst du diese E-Mail ignorieren — dein Passwort bleibt unverändert.</value></data>
+  <data name="Email.Confirm.Subject" xml:space="preserve"><value>{0} E-Mail-Bestätigung</value></data>
+  <data name="Email.Confirm.Title" xml:space="preserve"><value>Bestätige deine E-Mail-Adresse</value></data>
+  <data name="Email.Confirm.Body1" xml:space="preserve"><value>Willkommen bei {0}. Bitte bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.</value></data>
+  <data name="Email.Confirm.Body2" xml:space="preserve"><value>Klicke auf den Button unten, um deine Registrierung abzuschliessen.</value></data>
+  <data name="Email.Confirm.Button" xml:space="preserve"><value>E-Mail-Adresse bestätigen</value></data>
+  <data name="Email.Confirm.Footer" xml:space="preserve"><value>Falls du kein {0}-Konto erstellt hast, kannst du diese E-Mail ignorieren.</value></data>
+  <data name="Email.TokenExpiry.Subject" xml:space="preserve"><value>{0}: App-Tokens laufen bald ab</value></data>
+  <data name="Email.TokenExpiry.Title" xml:space="preserve"><value>App-Tokens laufen bald ab</value></data>
+  <data name="Email.TokenExpiry.Intro" xml:space="preserve"><value>Die folgenden App-Tokens nähern sich ihrem Ablaufdatum. Rotiere sie (oder stelle Ersatz aus), bevor es so weit ist — sonst kann die Software, die sie verwendet, keine Secrets mehr lesen:</value></data>
+  <data name="Email.TokenExpiry.Line" xml:space="preserve"><value>«{0}» ({1} / {2}) — läuft in {3} Tag(en) ab, am {4}.</value></data>
+  <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotiere einen Token auf der App-Tokens-Seite; der neue Wert wird genau einmal angezeigt.</value></data>
+  <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>App-Tokens öffnen</value></data>
+  <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil App-Token-Ablauf-Benachrichtigungen aktiviert hast.</value></data>
 </root>

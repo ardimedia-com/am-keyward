@@ -80,6 +80,7 @@ builder.Services.AddKeywardUi(o =>
 {
     o.ProductName = builder.Configuration["Keyward:ProductName"] ?? o.ProductName;
     o.PublicBaseUrl = builder.Configuration["Keyward:PublicBaseUrl"];
+    o.NotificationLanguage = builder.Configuration["Keyward:NotificationLanguage"];
 });
 
 // AM KEYWARD (standalone reference shell): SQL Server + a dev KEK loaded from a local key file outside

@@ -601,4 +601,23 @@
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>A chave «{0}» já existe. Seleciona-a na lista à esquerda e define aí os seus valores por ambiente — nada foi substituído.</value></data>
   <data name="Profile.Notify.Label" xml:space="preserve"><value>Receber um e-mail quando tokens de app estiverem a expirar (30/20/10 dias antes, depois diariamente a partir de 9 dias).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Preferência de notificação guardada.</value></data>
+  <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} redefinição de palavra-passe</value></data>
+  <data name="Email.Reset.Title" xml:space="preserve"><value>Redefine a tua palavra-passe</value></data>
+  <data name="Email.Reset.Body1" xml:space="preserve"><value>Recebemos um pedido para definir uma nova palavra-passe para a tua conta {0}.</value></data>
+  <data name="Email.Reset.Body2" xml:space="preserve"><value>Clica no botão abaixo para escolher uma nova palavra-passe. Este link é de utilização única e expira em breve.</value></data>
+  <data name="Email.Reset.Button" xml:space="preserve"><value>Definir uma nova palavra-passe</value></data>
+  <data name="Email.Reset.Footer" xml:space="preserve"><value>Se não solicitaste isto, podes ignorar este e-mail — a tua palavra-passe permanece inalterada.</value></data>
+  <data name="Email.Confirm.Subject" xml:space="preserve"><value>{0} confirmação de e-mail</value></data>
+  <data name="Email.Confirm.Title" xml:space="preserve"><value>Confirma o teu endereço de e-mail</value></data>
+  <data name="Email.Confirm.Body1" xml:space="preserve"><value>Bem-vindo ao {0}. Confirma o teu endereço de e-mail para ativar a tua conta.</value></data>
+  <data name="Email.Confirm.Body2" xml:space="preserve"><value>Clica no botão abaixo para concluir o teu registo.</value></data>
+  <data name="Email.Confirm.Button" xml:space="preserve"><value>Confirmar o endereço de e-mail</value></data>
+  <data name="Email.Confirm.Footer" xml:space="preserve"><value>Se não criaste uma conta {0}, podes ignorar este e-mail.</value></data>
+  <data name="Email.TokenExpiry.Subject" xml:space="preserve"><value>{0}: tokens de app a expirar em breve</value></data>
+  <data name="Email.TokenExpiry.Title" xml:space="preserve"><value>Tokens de app a expirar em breve</value></data>
+  <data name="Email.TokenExpiry.Intro" xml:space="preserve"><value>Os seguintes tokens de app aproximam-se da data de expiração. Roda-os (ou emite substitutos) antes disso, ou o software que os usa deixa de ler os seus segredos:</value></data>
+  <data name="Email.TokenExpiry.Line" xml:space="preserve"><value>«{0}» ({1} / {2}) — expira em {3} dia(s), a {4}.</value></data>
+  <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Roda um token na página de tokens de app; o novo valor é mostrado apenas uma vez.</value></data>
+  <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Abrir os tokens de app</value></data>
+  <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Recebes este e-mail porque ativaste as notificações de expiração de tokens de app no teu perfil.</value></data>
 </root>

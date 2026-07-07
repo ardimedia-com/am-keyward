@@ -1,41 +1,46 @@
+using Am.Keyward.Ui.Blazor;
+using Microsoft.Extensions.Localization;
+
 namespace Am.Keyward.Ui.Blazor.App.Identity;
 
 /// <summary>
 /// The subject + branded content of each account e-mail, defined once so every transport
 /// (<see cref="SmtpAccountEmailSender"/>, <see cref="MaildropAccountEmailSender"/>) renders exactly the same
-/// message. The product name comes from the host configuration (<c>KeywardUiOptions.ProductName</c>).
-/// Content is English (the product lingua franca) — the recipient's culture is not known at send time
-/// on the anonymous forgot-password / resend-confirmation paths.
+/// message. Strings are localized via <see cref="IStringLocalizer{SharedResource}"/> in the caller's current
+/// UI culture — for these user-triggered mails that is the request culture — and the product name comes from
+/// the host configuration (<c>KeywardUiOptions.ProductName</c>).
 /// </summary>
 internal static class AccountEmailMessages
 {
-    public static (string Subject, BrandedEmailContent Content) PasswordReset(string resetLink, string productName) =>
-        ($"{productName} password reset", new BrandedEmailContent
+    public static (string Subject, BrandedEmailContent Content) PasswordReset(
+        IStringLocalizer<SharedResource> loc, string productName, string resetLink) =>
+        (loc["Email.Reset.Subject", productName].Value, new BrandedEmailContent
         {
             Brand = productName,
-            Title = "Reset your password",
+            Title = loc["Email.Reset.Title"].Value,
             Paragraphs =
             [
-                $"We received a request to set a new password for your {productName} account.",
-                "Click the button below to choose a new password. This link is single-use and expires shortly.",
+                loc["Email.Reset.Body1", productName].Value,
+                loc["Email.Reset.Body2"].Value,
             ],
-            ButtonText = "Set a new password",
+            ButtonText = loc["Email.Reset.Button"].Value,
             ActionUrl = resetLink,
-            FooterNote = "If you did not request this, you can safely ignore this e-mail — your password stays unchanged.",
+            FooterNote = loc["Email.Reset.Footer"].Value,
         });
 
-    public static (string Subject, BrandedEmailContent Content) EmailConfirmation(string confirmLink, string productName) =>
-        ($"{productName} e-mail confirmation", new BrandedEmailContent
+    public static (string Subject, BrandedEmailContent Content) EmailConfirmation(
+        IStringLocalizer<SharedResource> loc, string productName, string confirmLink) =>
+        (loc["Email.Confirm.Subject", productName].Value, new BrandedEmailContent
         {
             Brand = productName,
-            Title = "Confirm your e-mail address",
+            Title = loc["Email.Confirm.Title"].Value,
             Paragraphs =
             [
-                $"Welcome to {productName}. Please confirm your e-mail address to activate your account.",
-                "Click the button below to complete your registration.",
+                loc["Email.Confirm.Body1", productName].Value,
+                loc["Email.Confirm.Body2"].Value,
             ],
-            ButtonText = "Confirm e-mail address",
+            ButtonText = loc["Email.Confirm.Button"].Value,
             ActionUrl = confirmLink,
-            FooterNote = $"If you did not create a {productName} account, you can safely ignore this e-mail.",
+            FooterNote = loc["Email.Confirm.Footer", productName].Value,
         });
 }

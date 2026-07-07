@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Localized e-mails (six languages).** Account e-mails (password reset, e-mail confirmation) render in the
+  **request culture** — the language the user is viewing the UI in — via `IStringLocalizer<SharedResource>`;
+  the background token-expiry notification, which has no request to follow, uses a configured language
+  (`KeywardUiOptions.NotificationLanguage` / `Keyward:NotificationLanguage`, English fallback). Subject,
+  card header, body, button and footer are all localized (en/de/fr/it/es/pt).
 - **Expiry mails link to the app-tokens page.** New optional `KeywardUiOptions.PublicBaseUrl` (shell config
   `Keyward:PublicBaseUrl`): when set, the token-expiry notification carries an "Open app tokens" button
   with an absolute link; without it the mail stays link-free (background jobs have no request to derive a

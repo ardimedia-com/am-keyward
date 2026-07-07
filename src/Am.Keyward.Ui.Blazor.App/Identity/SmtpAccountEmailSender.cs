@@ -1,5 +1,7 @@
+using Am.Keyward.Ui.Blazor;
 using MailKit.Net.Smtp;
 using MailKit.Security;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using MimeKit;
 
@@ -12,18 +14,19 @@ namespace Am.Keyward.Ui.Blazor.App.Identity;
 /// </summary>
 public sealed class SmtpAccountEmailSender(
     IOptions<AccountEmailOptions> options,
-    Am.Keyward.Ui.Blazor.KeywardUiOptions uiOptions,
+    KeywardUiOptions uiOptions,
+    IStringLocalizer<SharedResource> loc,
     ILogger<SmtpAccountEmailSender> logger) : IAccountEmailSender
 {
     public Task SendPasswordResetLinkAsync(string email, string resetLink, CancellationToken ct = default)
     {
-        var (subject, content) = AccountEmailMessages.PasswordReset(resetLink, uiOptions.ProductName);
+        var (subject, content) = AccountEmailMessages.PasswordReset(loc, uiOptions.ProductName, resetLink);
         return SendAsync(email, subject, content, ct);
     }
 
     public Task SendEmailConfirmationLinkAsync(string email, string confirmLink, CancellationToken ct = default)
     {
-        var (subject, content) = AccountEmailMessages.EmailConfirmation(confirmLink, uiOptions.ProductName);
+        var (subject, content) = AccountEmailMessages.EmailConfirmation(loc, uiOptions.ProductName, confirmLink);
         return SendAsync(email, subject, content, ct);
     }
 

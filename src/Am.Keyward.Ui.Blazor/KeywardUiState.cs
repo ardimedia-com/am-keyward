@@ -28,6 +28,13 @@ public sealed class KeywardUiOptions
     /// without it, notification mails simply carry no link button.
     /// </summary>
     public string? PublicBaseUrl { get; set; }
+
+    /// <summary>
+    /// Language (culture name, e.g. <c>"de"</c>) for e-mails sent from background jobs — the token-expiry
+    /// notification — which have no request culture to follow. User-triggered account e-mails (password
+    /// reset, confirmation) always use the request culture instead. Null/empty falls back to English.
+    /// </summary>
+    public string? NotificationLanguage { get; set; }
 }
 
 /// <summary>Registers the services the embedded Keyward UI pages need (see the README embedding guide).</summary>

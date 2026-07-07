@@ -108,11 +108,14 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // own services (circuit-scoped state + localization for the Keyward strings, six languages built in).
 // ProductName is what your users see (browser tab, brand, texts, e-mails); default "AM KEYWARD".
 // PublicBaseUrl (optional) enables absolute links in notification e-mails sent by background jobs.
+// NotificationLanguage (optional) sets the language for those background e-mails (account e-mails
+// follow the request culture); default English.
 builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
 builder.Services.AddKeywardUi(o =>
 {
     o.ProductName = "Contoso Secrets";
     o.PublicBaseUrl = "https://secrets.contoso.com";
+    o.NotificationLanguage = "en";
 });
 ```
 
