@@ -1,0 +1,294 @@
+@page "/amkeyward/groups"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@inject IGroupService GroupService
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+@* Same master-detail pattern as the vault pages: the groups as a tree on the left, the selected group's
+   work areas (settings, add member) and its member list on the right. *@
+<KeywardUi Fill="true">
+    <div class="page-header">
+        <h1>@Loc["Page.Groups.Title"]</h1>
+        <p>@Loc["Page.Groups.Desc"]</p>
+    </div>
+
+    @if (groups is null)
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
+    else
+    {
+        <div class="workspace">
+            @* ---------- Left: group tree + create ---------- *@
+            <aside class="ws-tree">
+                <div class="ws-tree-title">@Loc["Page.Groups.Title"]</div>
+
+                @foreach (var g in groups)
+                {
+                    <button class="tree-node @(g.Id == selectedGroupId ? "active" : "")" @onclick="() => SelectGroupAsync(g.Id)">
+                        <KeywardIcon Name="users-round" /><span class="tree-label">@g.Name</span>
+                        <span class="tree-count">@g.MemberCount</span>
+                    </button>
+                }
+
+                @if (groups.Count == 0)
+                {
+                    <p class="muted" style="font-size:.85rem; padding:.25rem .5rem;">@Loc["Groups.Empty"]</p>
+                }
+
+                @if (canManageGroups)
+                {
+                    <div class="tree-create">
+                        <input @bind="newGroupName" @bind:event="oninput" placeholder="@(Loc["Groups.New.Placeholder"])" aria-label="@(Loc["Groups.New.Placeholder"])" />
+                        <button class="btn-sm" @onclick="CreateGroupAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newGroupName))" title="@Loc["Groups.Create"]"><KeywardIcon Name="plus" /></button>
+                    </div>
+                }
+            </aside>
+
+            @* ---------- Right: explanation / areas + member list ---------- *@
+            <section class="ws-main">
+                @if (selectedGroupId is null || SelectedGroup is not { } selected)
+                {
+                    <div class="card">
+                        <h3>@Loc["Page.Groups.Title"]</h3>
+                        <p class="muted">@Loc["Page.Groups.Desc"]</p>
+                        @if (groups.Count == 0)
+                        {
+                            <div class="empty-state">
+                                <KeywardIcon Name="users-round" Size="28" />
+                                <p>@Loc["Groups.Empty"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="muted" style="font-size:.85rem;">@Loc["Groups.SelectHint"]</p>
+                        }
+                    </div>
+                }
+                else
+                {
+                    @if (canManageGroups)
+                    {
+                        <details class="card section">
+                            <summary><KeywardIcon Name="settings" /> @Loc["Groups.Settings.Title"]</summary>
+                            <div class="section-body">
+                                <p class="muted">@Loc["Groups.Settings.Desc"]</p>
+                                <div class="row">
+                                    <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
+                                    <button class="btn-ghost btn-sm" @onclick="RenameGroupAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
+                                </div>
+                                <div class="danger-zone">
+                                    @if (confirmDelete)
+                                    {
+                                        <span>@Loc["Groups.ConfirmDelete", selected.Name]</span>
+                                        <div class="row" style="margin-top:.5rem;">
+                                            <button class="btn-danger btn-sm" @onclick="DeleteGroupAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["Groups.Delete"]</button>
+                                    }
+                                </div>
+                            </div>
+                        </details>
+                    }
+
+                    @if (CanManageMembers)
+                    {
+                        <details class="card section">
+                            <summary><KeywardIcon Name="plus" /> @Loc["Groups.AddMember.Title"]</summary>
+                            <div class="section-body">
+                                <p class="muted">@Loc["Groups.Members.Desc"]</p>
+                                <div class="row">
+                                    <select @bind="addUserId" aria-label="@(Loc["Groups.Members.SelectUser"])" style="max-width:16rem;">
+                                        <option value="">@Loc["Groups.Members.SelectUser"]</option>
+                                        @foreach (var c in candidates.Where(c => members?.All(m => m.UserId != c.UserId) ?? true))
+                                        {
+                                            <option value="@c.UserId">@c.DisplayName</option>
+                                        }
+                                    </select>
+                                    <select @bind="addRole" aria-label="@(Loc["Groups.Role"])" style="max-width:10rem;">
+                                        @foreach (var r in Enum.GetValues<GroupRole>())
+                                        {
+                                            <option value="@r">@Loc[$"GroupRole.{r}"]</option>
+                                        }
+                                    </select>
+                                    <button class="btn-ghost btn-sm" @onclick="AddMemberAsync" disabled="@(busy || string.IsNullOrEmpty(addUserId))">@Loc["Groups.Members.Add"]</button>
+                                </div>
+                            </div>
+                        </details>
+                    }
+
+                    <div class="card list-card">
+                        <div class="list-head">
+                            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="users-round" Size="18" />@selected.Name · @Loc["Groups.Members.Title"]</h3>
+                        </div>
+                        @if (members is null)
+                        {
+                            <p class="muted">@Loc["Common.Loading"]</p>
+                        }
+                        else if (members.Count == 0)
+                        {
+                            <div class="empty-state">
+                                <KeywardIcon Name="users-round" Size="28" />
+                                <p>@Loc["Groups.Members.Empty"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="list-rows">
+                                @foreach (var m in members)
+                                {
+                                    <div class="list-row" style="cursor:default;">
+                                        <KeywardIcon Name="users" Size="17" />
+                                        <span class="list-row-name">@m.DisplayName</span>
+                                        <span class="list-row-meta">
+                                            <span class="badge @(m.Role == GroupRole.Admin ? "badge-success" : "")">@Loc[$"GroupRole.{m.Role}"]</span>
+                                            @if (CanManageMembers)
+                                            {
+                                                @if (m.Role == GroupRole.Member)
+                                                {
+                                                    <button class="btn-ghost btn-sm" @onclick="() => SetRoleAsync(m.UserId, GroupRole.Admin)" disabled="@busy">@Loc["Groups.MakeAdmin"]</button>
+                                                }
+                                                else
+                                                {
+                                                    <button class="btn-ghost btn-sm" @onclick="() => SetRoleAsync(m.UserId, GroupRole.Member)" disabled="@busy">@Loc["Admin.Users.MakeMember"]</button>
+                                                }
+                                                <button class="btn-danger btn-sm" @onclick="() => RemoveMemberAsync(m.UserId)" disabled="@busy">@Loc["Groups.Remove"]</button>
+                                            }
+                                        </span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+
+                @if (status is not null)
+                {
+                    <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+                }
+            </section>
+        </div>
+    }
+</KeywardUi>
+
+@code {
+    private Guid? actorUserId;
+    private Guid tenantId;
+
+    private IReadOnlyList<GroupSummary>? groups;
+    private Guid? selectedGroupId;
+    private IReadOnlyList<GroupMemberInfo>? members;
+    private IReadOnlyList<GroupMemberInfo> candidates = [];
+    private bool canManageGroups;
+
+    private string newGroupName = "";
+    private string renameValue = "";
+    private bool confirmDelete;
+    private string addUserId = "";
+    private GroupRole addRole = GroupRole.Member;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private GroupSummary? SelectedGroup => groups?.FirstOrDefault(g => g.Id == selectedGroupId);
+
+    // Tenant admins manage everything; a group's own admins manage its members.
+    private bool CanManageMembers => canManageGroups || SelectedGroup?.MyRole == GroupRole.Admin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        actorUserId = CurrentUser.UserId;
+        tenantId = Workspace.TenantId;
+        if (actorUserId is null) return;
+        canManageGroups = await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
+        await ReloadGroupsAsync();
+        // A single group is the common case early on — open it right away.
+        if (groups is { Count: 1 })
+        {
+            await SelectGroupAsync(groups[0].Id);
+        }
+    }
+
+    private async Task ReloadGroupsAsync() =>
+        groups = await GroupService.ListGroupsAsync(actorUserId!.Value, tenantId);
+
+    private async Task SelectGroupAsync(Guid groupId)
+    {
+        selectedGroupId = groupId;
+        confirmDelete = false;
+        renameValue = SelectedGroup?.Name ?? "";
+        addUserId = "";
+        addRole = GroupRole.Member;
+        members = await GroupService.ListMembersAsync(actorUserId!.Value, tenantId, groupId);
+        candidates = await GroupService.ListMemberCandidatesAsync(actorUserId!.Value, tenantId);
+    }
+
+    private Task CreateGroupAsync() => RunAsync(async () =>
+    {
+        var id = await GroupService.CreateGroupAsync(actorUserId!.Value, tenantId, newGroupName);
+        newGroupName = "";
+        await ReloadGroupsAsync();
+        await SelectGroupAsync(id);
+        status = (Loc["Groups.Msg.Created"], false);
+    }, !string.IsNullOrWhiteSpace(newGroupName));
+
+    private Task RenameGroupAsync() => RunAsync(async () =>
+    {
+        await GroupService.RenameGroupAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value, renameValue);
+        await ReloadGroupsAsync();
+        status = (Loc["Groups.Msg.Renamed"], false);
+    }, selectedGroupId is not null && !string.IsNullOrWhiteSpace(renameValue));
+
+    private Task DeleteGroupAsync() => RunAsync(async () =>
+    {
+        await GroupService.DeleteGroupAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value);
+        selectedGroupId = null;
+        confirmDelete = false;
+        await ReloadGroupsAsync();
+        status = (Loc["Groups.Msg.Deleted"], false);
+    }, selectedGroupId is not null);
+
+    private Task AddMemberAsync() => RunAsync(async () =>
+    {
+        if (!Guid.TryParse(addUserId, out var userId)) return;
+        await GroupService.AddMemberAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value, userId, addRole);
+        addUserId = "";
+        await RefreshSelectedAsync();
+    }, selectedGroupId is not null && !string.IsNullOrEmpty(addUserId));
+
+    private Task SetRoleAsync(Guid userId, GroupRole role) => RunAsync(async () =>
+    {
+        await GroupService.SetMemberRoleAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value, userId, role);
+        await RefreshSelectedAsync();
+    }, selectedGroupId is not null);
+
+    private Task RemoveMemberAsync(Guid userId) => RunAsync(async () =>
+    {
+        await GroupService.RemoveMemberAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value, userId);
+        await RefreshSelectedAsync();
+    }, selectedGroupId is not null);
+
+    private async Task RefreshSelectedAsync()
+    {
+        members = await GroupService.ListMembersAsync(actorUserId!.Value, tenantId, selectedGroupId!.Value);
+        await ReloadGroupsAsync();
+    }
+
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || actorUserId is null || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}

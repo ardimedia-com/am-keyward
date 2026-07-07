@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Am.Keyward.AspNetCore;
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Identity;
 using Am.Keyward.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
@@ -25,6 +26,7 @@ public sealed class KeywardUserClaimsPrincipalFactory(
         var identity = await base.GenerateClaimsAsync(user);
 
         var appUser = await EnsureAppUserAsync(user);
+        await EnsureTenantMembershipAsync(appUser);
         identity.AddClaim(new Claim(KeywardClaims.UserId, appUser.Id.ToString()));
         if (appUser.IsSystemAdmin)
         {
@@ -32,6 +34,34 @@ public sealed class KeywardUserClaimsPrincipalFactory(
         }
 
         return identity;
+    }
+
+    /// <summary>
+    /// Every UI user of the reference shell belongs to the demo tenant (a real host assigns memberships
+    /// from its own tenant model). Membership is what scopes tenant-facing lists (e.g. vault share
+    /// candidates), so it is ensured for existing users too — a backfill on their next sign-in.
+    /// TenantMemberships is installation-global (no tenant query filter / RLS), so no tenant scope is
+    /// needed here.
+    /// </summary>
+    private async Task EnsureTenantMembershipAsync(AppUser appUser)
+    {
+        if (await db.TenantMemberships.AnyAsync(m => m.TenantId == Demo.TenantId && m.UserId == appUser.Id))
+        {
+            return;
+        }
+
+        var role = appUser.IsSystemAdmin ? TenantRole.TenantAdmin : TenantRole.Member;
+        db.TenantMemberships.Add(new TenantMembership(Guid.NewGuid(), Demo.TenantId, appUser.Id, role, clock.UtcNow));
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent sign-in of the same user inserted the row first; the unique (TenantId, UserId)
+            // index makes this safe to ignore.
+            db.ChangeTracker.Clear();
+        }
     }
 
     private async Task<AppUser> EnsureAppUserAsync(IdentityUser user)

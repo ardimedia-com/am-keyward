@@ -37,12 +37,19 @@ public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTena
 
     private async Task<bool> HasVaultGrantAsync(Guid userId, Guid vaultId, Permission action, CancellationToken ct)
     {
-        // Permission is stored as a string, so compare the levels in memory (the set per user+vault is tiny).
+        // Direct user grants plus grants held by any group the user belongs to. Permission is stored as
+        // a string, so compare the levels in memory (the set per user+vault is tiny).
+        var groupIds = await db.GroupMemberships
+            .Where(m => m.UserId == userId)
+            .Select(m => m.GroupId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
         var permissions = await db.AccessGrants
-            .Where(g => g.PrincipalType == PrincipalType.User
-                     && g.PrincipalId == userId
-                     && g.Scope.Kind == GrantScopeKind.Vault
-                     && g.Scope.TargetId == vaultId)
+            .Where(g => g.Scope.Kind == GrantScopeKind.Vault
+                     && g.Scope.TargetId == vaultId
+                     && ((g.PrincipalType == PrincipalType.User && g.PrincipalId == userId)
+                         || (g.PrincipalType == PrincipalType.Group && groupIds.Contains(g.PrincipalId))))
             .Select(g => g.Permission)
             .ToListAsync(ct)
             .ConfigureAwait(false);
