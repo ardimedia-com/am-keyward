@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.2.0-preview] - 2026-07-07
+
 ### Added
 
 - **Localized e-mails (six languages).** Account e-mails (password reset, e-mail confirmation) render in the

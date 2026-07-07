@@ -10,7 +10,7 @@
     <Copyright>Copyright (c) 2026 Ardimedia Anstalt</Copyright>
     <!-- Release version. The tag-driven release workflow overrides this with -p:Version from the v* tag.
          Pre-1.0 and not yet externally security-reviewed -> a -preview prerelease. -->
-    <Version>0.1.1-preview</Version>
+    <Version>0.2.0-preview</Version>
   </PropertyGroup>
 
   <!-- Shared NuGet package metadata. Individual projects add their own <Description>; non-library
