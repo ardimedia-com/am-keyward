@@ -5,8 +5,11 @@ namespace Am.Keyward.Core.Domain.Software;
 /// scoped to exactly one (project, environment) so a leaked token cannot read another environment. Only a
 /// hash of the token is stored — the plaintext is shown once, at issuance; <see cref="TokenPrefix"/> is a
 /// non-secret lookup handle. Tokens expire, can be rotated (new secret on the same record) and revoked.
-/// The record carries <see cref="TenantId"/> so that, once authenticated, the request runs in the token's
-/// tenant scope; the table itself is installation-global (looked up before the tenant is known).
+/// A token can also exist as a <b>pending placeholder</b> (auto-created per environment, no prefix/hash yet
+/// — see <see cref="CreatePending"/>): it cannot authenticate until its first value is minted via
+/// <see cref="Rotate"/>. The record carries <see cref="TenantId"/> so that, once authenticated, the request
+/// runs in the token's tenant scope; the table itself is installation-global (looked up before the tenant
+/// is known).
 /// </summary>
 public sealed class SoftwareClientToken
 {
@@ -31,6 +34,14 @@ public sealed class SoftwareClientToken
     public DateTimeOffset? LastRotatedAt { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
 
+    /// <summary>
+    /// Days-left value of the last expiry notice e-mailed for this token (dedupe for the notification
+    /// schedule); null when none was sent for the current validity window. Rotation resets it.
+    /// </summary>
+    public int? LastExpiryNoticeDaysLeft { get; private set; }
+
+    public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
+
     public SoftwareClientToken(
         Guid id,
         Guid tenantId,
@@ -49,14 +60,10 @@ public sealed class SoftwareClientToken
             throw new ArgumentException("Token name required.", nameof(name));
         }
 
-        if (string.IsNullOrWhiteSpace(tokenPrefix))
+        // Both set (an issued token) or both empty (a pending placeholder) — never one without the other.
+        if (string.IsNullOrWhiteSpace(tokenPrefix) != string.IsNullOrWhiteSpace(tokenHash))
         {
-            throw new ArgumentException("Token prefix required.", nameof(tokenPrefix));
-        }
-
-        if (string.IsNullOrWhiteSpace(tokenHash))
-        {
-            throw new ArgumentException("Token hash required.", nameof(tokenHash));
+            throw new ArgumentException("Token prefix and hash must be set together (or both empty for a pending token).");
         }
 
         Id = id;
@@ -84,13 +91,34 @@ public sealed class SoftwareClientToken
         Note = note?.Trim() ?? string.Empty;
     }
 
-    /// <summary>A token can authenticate only while it is neither revoked nor past its expiry.</summary>
+    /// <summary>
+    /// Creates a pending placeholder: the token record exists (visible, nameable, deletable) but has no
+    /// secret yet — its first value is minted later via <see cref="Rotate"/>. Until then it cannot
+    /// authenticate, so a placeholder is not a credential.
+    /// </summary>
+    public static SoftwareClientToken CreatePending(
+        Guid id, Guid tenantId, Guid projectId, Guid environmentId, string name, Guid? createdBy, DateTimeOffset createdAt) =>
+        new(id, tenantId, projectId, environmentId, name, tokenPrefix: "", tokenHash: "", createdBy, createdAt, expiresAt: null);
+
+    /// <summary>False while the token is a pending placeholder (no value minted yet).</summary>
+    public bool HasSecret => TokenHash.Length > 0;
+
+    /// <summary>A token can authenticate only with a minted secret, while neither revoked nor past expiry.</summary>
     public bool IsActive(DateTimeOffset now) =>
-        RevokedAt is null && (ExpiresAt is null || ExpiresAt > now);
+        HasSecret && RevokedAt is null && (ExpiresAt is null || ExpiresAt > now);
 
     public void Revoke(DateTimeOffset at) => RevokedAt ??= at;
 
-    /// <summary>Replaces the secret on this record (the previous token stops working immediately).</summary>
+    /// <summary>
+    /// Undoes a revocation: the stored secret becomes valid again exactly as it was (the expiry is NOT
+    /// extended — a token that expired in the meantime stays expired until it is rotated).
+    /// </summary>
+    public void Reactivate() => RevokedAt = null;
+
+    /// <summary>
+    /// Replaces the secret on this record (the previous token stops working immediately) — or mints the
+    /// FIRST secret of a pending placeholder.
+    /// </summary>
     public void Rotate(string newPrefix, string newHash, DateTimeOffset at, DateTimeOffset? expiresAt)
     {
         if (RevokedAt is not null)
@@ -106,6 +134,10 @@ public sealed class SoftwareClientToken
         TokenPrefix = newPrefix;
         TokenHash = newHash;
         LastRotatedAt = at;
+        // Rotation issues a fresh credential, so its validity window restarts too — otherwise rotating an
+        // expired token would hand out a token that is dead on arrival.
+        CreatedAt = at;
         ExpiresAt = expiresAt;
+        LastExpiryNoticeDaysLeft = null; // a new validity window gets its own notification schedule
     }
 }

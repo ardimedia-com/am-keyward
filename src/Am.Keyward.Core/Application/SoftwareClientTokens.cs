@@ -1,6 +1,10 @@
 namespace Am.Keyward.Core.Application;
 
-/// <summary>Issues a new software-client token for one (project, environment).</summary>
+/// <summary>
+/// Issues a new software-client token for one (project, environment). An empty <see cref="Name"/> gets the
+/// default "&lt;application&gt;-&lt;environment&gt;" (numbered when already taken); a given name must be
+/// unique within the project.
+/// </summary>
 public sealed record IssueSoftwareClientTokenCommand(
     Guid TenantId,
     Guid ProjectId,
@@ -28,12 +32,20 @@ public sealed record SoftwareClientTokenInfo(
     DateTimeOffset? ExpiresAt,
     DateTimeOffset? LastRotatedAt,
     DateTimeOffset? RevokedAt,
-    bool IsActive);
+    bool IsActive,
+    bool HasSecret);
 
 /// <summary>Management of software-client tokens (issue / rotate / revoke / list).</summary>
 public interface ISoftwareClientTokenService
 {
     Task<IssuedSoftwareClientToken> IssueAsync(IssueSoftwareClientTokenCommand command, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a pending placeholder token for one environment (default-named, no secret yet — it cannot
+    /// authenticate until its first value is minted via <see cref="RotateAsync"/>). Used when an
+    /// application or environment is created, so every environment starts with a visible token slot.
+    /// </summary>
+    Task<Guid> CreatePendingAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default);
 
     Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt, Guid? actorUserId, CancellationToken ct = default);
 
@@ -41,6 +53,12 @@ public interface ISoftwareClientTokenService
     Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default);
 
     Task RevokeAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Undoes a revocation — the token's existing secret authenticates again (expiry unchanged).</summary>
+    Task ReactivateAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default);
+
+    /// <summary>Permanently deletes a token record; software still presenting it is rejected immediately.</summary>
+    Task DeleteAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default);
 
     Task<IReadOnlyList<SoftwareClientTokenInfo>> ListAsync(Guid tenantId, Guid projectId, CancellationToken ct = default);
 }
