@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **`KeywardSchemaMigrator.MigrateAsync(connectionString)`** — a reusable helper to apply the `amkeyward`
+  schema migrations through a caller-supplied **privileged** connection, so an embedding host no longer has to
+  hand-build a `KeywardDbContext` to migrate. This supports the two-login model where the least-privilege
+  runtime login cannot DDL: the host migrates via a DDL-capable connection (a dedicated migrator login, or —
+  when the schema is embedded in the host's own database — the host's existing privileged connection), while
+  runtime queries keep using the least-privilege login with row-level security enforced. Same EF migrations as
+  `KeywardDbContext.Database.Migrate()`; idempotent. The design-time factory and the migrator now share one
+  internal `NoScope` (no behaviour change to design-time tooling).
+
 ## [0.2.0-preview] - 2026-07-07
 
 ### Added

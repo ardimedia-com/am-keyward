@@ -46,6 +46,21 @@ Server=<host>;Database=amkeyward;User Id=amkeyward_migrator;Password=...;Encrypt
 Server=<host>;Database=amkeyward;User Id=amkeyward_app;Password=...;Encrypt=True
 ```
 
+### Migrating from the host
+
+A host can apply the schema migrations at startup through the migrator connection with the
+`KeywardSchemaMigrator` helper, instead of building a `KeywardDbContext` itself:
+
+```csharp
+await KeywardSchemaMigrator.MigrateAsync(migratorConnectionString);   // DDL-capable connection
+```
+
+The runtime still registers `AddKeyward(...)` with the **app** connection, so row-level security stays
+enforced. When the `amkeyward` schema is **embedded in the host's own database** (a shared database rather
+than a dedicated `amkeyward` one), the migrator connection is simply the host's existing privileged
+connection to that database — no separate migrator login is required. It is idempotent and safe to call on
+every start; wrap it so a failure degrades AM KEYWARD to "unavailable" rather than crashing the host.
+
 ## Local development
 
 Local development uses Integrated Security, which can both migrate and run, so you do not need these

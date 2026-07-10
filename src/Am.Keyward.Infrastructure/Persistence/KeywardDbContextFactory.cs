@@ -1,4 +1,3 @@
-using Am.Keyward.Core.Abstractions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
@@ -25,18 +24,6 @@ public sealed class KeywardDbContextFactory : IDesignTimeDbContextFactory<Keywar
             .Options;
 
         // Design-time only builds/queries the model for migrations; no tenant/user scope is needed.
-        return new KeywardDbContext(options, DesignTimeScope.Instance, DesignTimeScope.Instance);
-    }
-
-    /// <summary>A no-tenant/no-user context for design-time model building (migrations don't run scoped queries).</summary>
-    private sealed class DesignTimeScope : ICurrentTenant, ICurrentUser
-    {
-        public static readonly DesignTimeScope Instance = new();
-
-        public Guid? TenantId => null;
-
-        public Guid? UserId => null;
-
-        public bool IsAuthenticated => false;
+        return new KeywardDbContext(options, NoScope.Instance, NoScope.Instance);
     }
 }
