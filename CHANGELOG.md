@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.2.1-preview] - 2026-07-14
+
 ### Added
 
 - **`KeywardSchemaMigrator.MigrateAsync(connectionString)`** — a reusable helper to apply the `amkeyward`
