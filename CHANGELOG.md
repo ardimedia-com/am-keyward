@@ -5,6 +5,15 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Transient-notification port `IKeywardNotifier`** (`Success`/`Error`/`Info`). Keyward's UI notifications
+  ("Vault created", "Moved", errors) go through this port instead of an inline status bar. Standalone, the
+  built-in `KeywardToastHost` renders a BlazorBlueprint-styled, auto-dismissing toast (bottom-right, per-kind
+  accent); a host overrides `IKeywardNotifier` (registered with `TryAdd`) to route them onto its own toasts —
+  e.g. BlazorBlueprint's `BbToast`. Vault **success** feedback now shows as a toast; the inline `.notice` bar
+  is reserved for **errors**. See the new "UI design principle" section in the README.
+
 ### Changed
 
 - **Vault search field: dropped the leading magnifier icon; the clear (×) is now part of the field.** The

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Am.Keyward.Ui.Blazor;
 
@@ -46,6 +47,13 @@ public static class KeywardUiServiceCollectionExtensions
         configure?.Invoke(options);
         services.AddSingleton(options);
         services.AddScoped<KeywardUiState>();
+
+        // Transient-notification port. The built-in toast host (KeywardToastState + DefaultKeywardNotifier)
+        // is the STANDALONE default; a host with its own toasts (e.g. BlazorBlueprint's BbToast) overrides
+        // IKeywardNotifier — registered with TryAdd so that host registration simply wins. The state is always
+        // registered (the built-in host reads it; it just stays empty when a host override is used).
+        services.AddScoped<KeywardToastState>();
+        services.TryAddScoped<IKeywardNotifier, DefaultKeywardNotifier>();
         // Every Keyward page injects IStringLocalizer<SharedResource>; register localization so the host
         // does not have to (idempotent — a host's own AddLocalization call is unaffected). The resource
         // location is declared on THIS assembly (AssemblyInfo.cs), independent of the host's ResourcesPath.

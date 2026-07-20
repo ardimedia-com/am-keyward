@@ -117,6 +117,12 @@ builder.Services.AddKeywardUi(o =>
     o.PublicBaseUrl = "https://secrets.contoso.com";
     o.NotificationLanguage = "en";
 });
+
+// Optional — transient notifications ("Vault created", "Moved", errors). Keyward depends only on the
+// IKeywardNotifier port. Standalone it shows its own BlazorBlueprint-styled toast (KeywardToastHost). If
+// your app already has a toast system, override the port so Keyward's notifications use it and are
+// indistinguishable from the rest of your app (registered with TryAdd, so your registration wins):
+builder.Services.AddScoped<IKeywardNotifier, MyToastNotifier>();   // e.g. routes onto BlazorBlueprint's BbToast
 ```
 
 **2. Bind identity at the edge.** The libraries are identity-agnostic: they read `ICurrentUser` /
@@ -233,6 +239,29 @@ flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). T
   migrator login and give `AddKeyward` only the runtime connection string; startup-migrate is for
   development, where one Integrated-Security login plays both roles. Run `db/setup-logins.sql` once after
   the first migration. See [docs/database-logins.md](docs/database-logins.md).
+
+## UI design principle — match BlazorBlueprint
+
+The embedded Keyward UI **MUST follow BlazorBlueprint's behaviour and layout** — its controls, spacing,
+interaction patterns and notifications should be indistinguishable from a BlazorBlueprint host, so Keyward
+looks and feels native inside one. Keyward stays **self-contained** (no hard dependency on BlazorBlueprint,
+its own `--kw-*` tokens and components) so it also embeds anywhere; this principle governs that its own UI is
+kept **visually and behaviourally aligned** with BlazorBlueprint's conventions.
+
+Two layers realise this:
+
+- **Behaviour via ports.** Where a host has a better-integrated primitive, Keyward depends on a small port,
+  not on the concrete control, and the host wires the real thing. The transient-notification port
+  `IKeywardNotifier` is the reference: a BlazorBlueprint host overrides it to use **`BbToast`** (real BB,
+  identical to the rest of the app); standalone, Keyward's built-in `KeywardToastHost` renders a
+  **BlazorBlueprint-styled** toast (bottom-right, auto-dismiss, per-kind accent) that mimics it.
+- **Layout via the token contract.** Keyward's own components style against `--kw-*` tokens chosen to match
+  BlazorBlueprint's look; a host maps them to its theme.
+
+**Consequence for contributions:** new Keyward UI, and any review of existing UI, is measured against
+BlazorBlueprint — if a control or message deviates from how BlazorBlueprint would present it, adjust Keyward
+(or add a port the host fills), don't diverge. The current UI is being reviewed against this and adjusted
+where it deviates (the notification split — success → toast, errors → inline — was the first pass).
 
 ## Tech
 

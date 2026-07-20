@@ -6,6 +6,10 @@
    opts its scroll container in via CSS (see the .kw-fill rules in the reference shell's app.css). *@
 <div class="keyward-ui @(Fill ? "kw-fill" : "")">@ChildContent</div>
 
+@* Built-in toast host for the DEFAULT notifier (standalone). Empty when a host routes IKeywardNotifier
+   through its own toasts (e.g. BlazorBlueprint's BbToast). *@
+<KeywardToastHost />
+
 @code {
     [Parameter] public RenderFragment? ChildContent { get; set; }
 

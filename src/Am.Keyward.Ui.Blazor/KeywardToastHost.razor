@@ -1,0 +1,52 @@
+@namespace Am.Keyward.Ui.Blazor
+@implements IDisposable
+@inject KeywardToastState State
+
+@* Built-in toast host for the DEFAULT notifier (standalone). Mimics BlazorBlueprint's toast: bottom-right,
+   stacked, auto-dismissing card with a per-kind accent. A BlazorBlueprint host overrides IKeywardNotifier to
+   use BbToast instead, and then this host stays empty. See the UI design principle in the README. *@
+@if (State.Toasts.Count > 0)
+{
+    <div class="kw-toast-host">
+        @foreach (KeywardToast toast in State.Toasts)
+        {
+            <div class="kw-toast kw-toast-@(toast.Kind.ToString().ToLowerInvariant())"
+                 role="@(toast.Kind == KeywardNotifyKind.Error ? "alert" : "status")">
+                <span class="kw-toast-msg">@toast.Message</span>
+                <button type="button" class="kw-toast-close" @onclick="() => State.Remove(toast.Id)" aria-label="Close">
+                    <KeywardIcon Name="x" Size="14" />
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    // Auto-dismiss: success/info are brief, errors linger (but stay dismissible). Each toast is scheduled once.
+    private static readonly TimeSpan TransientDelay = TimeSpan.FromSeconds(3.5);
+    private static readonly TimeSpan ErrorDelay = TimeSpan.FromSeconds(8);
+    private readonly HashSet<Guid> scheduled = [];
+
+    protected override void OnInitialized() => State.Changed += this.OnChanged;
+
+    private void OnChanged() => _ = this.InvokeAsync(() =>
+    {
+        this.StateHasChanged();
+        foreach (KeywardToast toast in State.Toasts)
+        {
+            if (this.scheduled.Add(toast.Id))
+            {
+                _ = this.DismissLaterAsync(toast.Id, toast.Kind == KeywardNotifyKind.Error ? ErrorDelay : TransientDelay);
+            }
+        }
+    });
+
+    private async Task DismissLaterAsync(Guid id, TimeSpan delay)
+    {
+        await Task.Delay(delay);
+        State.Remove(id);          // raises Changed -> re-render
+        this.scheduled.Remove(id);
+    }
+
+    public void Dispose() => State.Changed -= this.OnChanged;
+}

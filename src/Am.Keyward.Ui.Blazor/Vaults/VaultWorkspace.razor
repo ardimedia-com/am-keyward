@@ -10,6 +10,7 @@
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
 @inject IJSRuntime JS
+@inject IKeywardNotifier Notifier
 
 @if (vaults is null)
 {
@@ -506,7 +507,17 @@ else
     private string? exportDataUrl;
     private string exportFileName = "";
 
+    // The inline status bar (.notice) is reserved for ERRORS (persistent, near the action). Success feedback
+    // goes to the toast notifier instead (transient, out of the layout) — see Ok(). IsError is therefore
+    // always true when status is set; the field keeps its shape so the few error sites stay unchanged.
     private (string Text, bool IsError)? status;
+
+    /// <summary>Success feedback: a transient toast (via the notifier). Clears any lingering inline error.</summary>
+    private void Ok(string text)
+    {
+        status = null;
+        Notifier.Success(text);
+    }
     private bool busy;
 
     private string SelectedVaultName => vaults?.FirstOrDefault(v => v.Id == selectedVaultId)?.Name ?? "";
@@ -732,7 +743,7 @@ else
         newVaultName = "";
         await ReloadVaultsAsync();
         await SelectVaultAsync(id);
-        status = (Loc["Vault.Msg.Created"], false);
+        Ok(Loc["Vault.Msg.Created"]);
     }, !string.IsNullOrWhiteSpace(newVaultName));
 
     // Localized name suggestions for new vaults (comma-separated in the resource, e.g. "Privat,Arbeit,…").
@@ -753,14 +764,14 @@ else
         var csv = EdgePasswordCsv.Write(logins);
         exportFileName = $"{SelectedVaultName}-logins.csv";
         exportDataUrl = "data:text/csv;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv));
-        status = (Loc["Vault.Export.Ready", logins.Count], false);
+        Ok(Loc["Vault.Export.Ready", logins.Count]);
     }, selectedVaultId is not null);
 
     private Task RenameVaultAsync() => RunAsync(async () =>
     {
         await VaultService.RenameVaultAsync(actorUserId!.Value, selectedVaultId!.Value, vaultRenameValue);
         await ReloadVaultsAsync();
-        status = (Loc["Vault.Msg.Renamed"], false);
+        Ok(Loc["Vault.Msg.Renamed"]);
     }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(vaultRenameValue));
 
     private Task DeleteVaultAsync() => RunAsync(async () =>
@@ -769,7 +780,7 @@ else
         confirmDeleteVault = false;
         selectedVaultId = null;
         await ReloadVaultsAsync();
-        status = (Loc["Vault.Msg.Deleted"], false);
+        Ok(Loc["Vault.Msg.Deleted"]);
     }, selectedVaultId is not null);
 
     private Task AddFolderAsync() => RunAsync(async () =>
@@ -785,7 +796,7 @@ else
     {
         await VaultService.RenameFolderAsync(actorUserId!.Value, selectedVaultId!.Value, folderId, folderRenameValue);
         await ReloadContentsAsync();
-        status = (Loc["Vault.Msg.Renamed"], false);
+        Ok(Loc["Vault.Msg.Renamed"]);
     }, !string.IsNullOrWhiteSpace(folderRenameValue));
 
     private Task DeleteFolderAsync(Guid folderId) => RunAsync(async () =>
@@ -839,12 +850,12 @@ else
         if (itemMode == "edit" && detail is not null)
         {
             await VaultService.UpdateItemAsync(new UpdateVaultItemCommand(actorUserId!.Value, detail.Id, fName, folderId, content));
-            status = (Loc["Vault.Msg.ItemSaved"], false);
+            Ok(Loc["Vault.Msg.ItemSaved"]);
         }
         else
         {
             await VaultService.AddItemAsync(new AddVaultItemCommand(actorUserId!.Value, selectedVaultId!.Value, folderId, fType, fName, content));
-            status = (Loc["Vault.Msg.ItemAdded"], false);
+            Ok(Loc["Vault.Msg.ItemAdded"]);
         }
         await ReloadContentsAsync();
         BackToList();
@@ -855,7 +866,7 @@ else
         await VaultService.DeleteItemAsync(actorUserId!.Value, detail!.Id);
         await ReloadContentsAsync();
         BackToList();
-        status = (Loc["Vault.Msg.ItemDeleted"], false);
+        Ok(Loc["Vault.Msg.ItemDeleted"]);
     }, detail is not null);
 
     private async Task OnImportFileAsync(InputFileChangeEventArgs e)
@@ -868,7 +879,7 @@ else
             if (logins.Count == 0) { status = (Loc["Vault.Msg.NoLogins"], true); return; }
             var count = await VaultService.ImportLoginsAsync(actorUserId!.Value, selectedVaultId!.Value, logins);
             await ReloadContentsAsync();
-            status = (Loc["Vault.Msg.Imported", count], false);
+            Ok(Loc["Vault.Msg.Imported", count]);
         }, selectedVaultId is not null);
     }
 
@@ -886,14 +897,14 @@ else
 
         sharePrincipalId = "";
         shares = await VaultService.ListVaultSharesAsync(actorUserId!.Value, selectedVaultId!.Value);
-        status = (Loc["Vault.Msg.Shared"], false);
+        Ok(Loc["Vault.Msg.Shared"]);
     }, selectedVaultId is not null && !string.IsNullOrEmpty(sharePrincipalId));
 
     private Task RevokeShareAsync(VaultShare share) => RunAsync(async () =>
     {
         await VaultService.RevokeShareAsync(actorUserId!.Value, tenantId, selectedVaultId!.Value, share.PrincipalType, share.PrincipalId);
         shares = await VaultService.ListVaultSharesAsync(actorUserId!.Value, selectedVaultId!.Value);
-        status = (Loc["Vault.Msg.Revoked"], false);
+        Ok(Loc["Vault.Msg.Revoked"]);
     }, selectedVaultId is not null);
 
     private void BackToList()
@@ -1006,7 +1017,7 @@ else
         await VaultService.MoveItemAsync(actorUserId!.Value, detail!.Id, targetVault, targetFolder);
         await ReloadContentsAsync();
         BackToList();
-        status = (Loc["Vault.Msg.Moved"], false);
+        Ok(Loc["Vault.Msg.Moved"]);
     }, detail is not null);
 
     // Dragging a SELECTED row takes the whole selection along; an unselected row moves alone.
@@ -1025,7 +1036,7 @@ else
                 treeSel = "vault";
             }
             await ReloadContentsAsync();
-            status = (Loc["Vault.Msg.FolderMoved"], false);
+            Ok(Loc["Vault.Msg.FolderMoved"]);
             return;
         }
 
@@ -1035,7 +1046,7 @@ else
         await VaultService.MoveItemsAsync(actorUserId!.Value, ids, vaultId, null);
         ClearSelection();
         await ReloadContentsAsync();
-        status = (Loc["Vault.Msg.Moved"], false);
+        Ok(Loc["Vault.Msg.Moved"]);
     }, dragItemId is not null || dragFolderId is not null);
 
     private Task DropOnFolderAsync(Guid folderId) => RunAsync(async () =>
@@ -1051,7 +1062,7 @@ else
 
             await VaultService.MoveFolderAsync(actorUserId!.Value, movedFolder, selectedVaultId!.Value, folderId);
             await ReloadContentsAsync();
-            status = (Loc["Vault.Msg.FolderMoved"], false);
+            Ok(Loc["Vault.Msg.FolderMoved"]);
             return;
         }
 
@@ -1061,7 +1072,7 @@ else
         await VaultService.MoveItemsAsync(actorUserId!.Value, ids, selectedVaultId!.Value, folderId);
         ClearSelection();
         await ReloadContentsAsync();
-        status = (Loc["Vault.Msg.Moved"], false);
+        Ok(Loc["Vault.Msg.Moved"]);
     }, (dragItemId is not null || dragFolderId is not null) && selectedVaultId is not null);
 
     /// <summary>Plain click opens the item; Ctrl(/Cmd)+click toggles selection; Shift+click selects the
@@ -1135,7 +1146,7 @@ else
         await VaultService.MoveItemsAsync(actorUserId!.Value, [.. selectedItemIds], targetVault, targetFolder);
         ClearSelection();
         await ReloadContentsAsync();
-        status = (Loc["Vault.Msg.Moved"], false);
+        Ok(Loc["Vault.Msg.Moved"]);
     }, selectedItemIds.Count > 0);
 
     private string FolderName(Guid? folderId) => folderId is null ? "—" : folders.FirstOrDefault(f => f.Id == folderId)?.Name ?? "—";
