@@ -1,5 +1,8 @@
 /* Tab bar — mirrors BlazorBlueprint's underlined tabs (muted rest, accented active tab with an underline),
-   styled against the --kw-* tokens so it matches the host theme. */
+   styled against the --kw-* tokens so it matches the host theme.
+   NOTE: the descendant selector `.kw-tabs .kw-tab` is deliberate — Keyward's general `::deep button` rule
+   (KeywardUi.razor.css) styles every button as a filled primary button and out-specifies a single
+   `.kw-tab`; the two-class selector wins, so the tabs render flat, not as filled buttons. */
 .kw-tabs {
     display: flex;
     gap: .25rem;
@@ -7,7 +10,7 @@
     margin-bottom: 1rem;
 }
 
-.kw-tab {
+.kw-tabs .kw-tab {
     display: inline-flex;
     align-items: center;
     gap: .45rem;
@@ -15,29 +18,32 @@
     margin-bottom: -1px;                 /* sit the active underline on the container border */
     border: none;
     border-bottom: 2px solid transparent;
+    border-radius: 0;
     background: transparent;
+    box-shadow: none;
     color: var(--kw-muted-text, #667085);
     font-size: .9rem;
     font-weight: 500;
+    line-height: 1.1;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.kw-tab:hover { color: var(--kw-text, #1a2233); }
+.kw-tabs .kw-tab:hover { background: transparent; color: var(--kw-text, #1a2233); border-bottom-color: var(--kw-border, #e4e7ec); }
 
-.kw-tab.active {
+.kw-tabs .kw-tab.active {
     color: var(--kw-primary, #2563eb);
+    background: transparent;
     border-bottom-color: var(--kw-primary, #2563eb);
     font-weight: 600;
 }
 
-.kw-tab:focus-visible {
+.kw-tabs .kw-tab:focus-visible {
     outline: 2px solid var(--kw-ring, color-mix(in srgb, var(--kw-primary, #2563eb) 40%, transparent));
     outline-offset: -2px;
-    border-radius: 4px;
 }
 
-.kw-tab-badge {
+.kw-tabs .kw-tab .kw-tab-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
