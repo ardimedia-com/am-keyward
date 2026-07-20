@@ -224,22 +224,21 @@
 .keyward-ui ::deep .kw-icon { flex-shrink: 0; vertical-align: -2px; }
 
 /* Global search across all vaults (above the workspace) */
+/* The wrapper carries NO border/background of its own — it is only a positioning context. The <input> is
+   the field (identical to every other input on the page via the general rule above), so there is exactly
+   ONE frame, and the clear (×) is positioned INSIDE the input at its right end. */
 .keyward-ui ::deep .ws-search {
-    display: flex;
-    align-items: center;
+    position: relative;
     max-width: 32rem;
     margin-bottom: .9rem;
-    padding: .15rem .3rem .15rem .7rem;   /* left: text inset (no leading icon); right: room for the clear button */
-    background: var(--kw-surface);
-    border: 1px solid var(--kw-border);
-    border-radius: var(--kw-radius);
 }
-/* Input fills the field so the clear button sits flush at the END of the field, inside the single border. */
-.keyward-ui ::deep .ws-search input { flex: 1; min-width: 0; border: none; background: transparent; padding: .45rem 0; }
-.keyward-ui ::deep .ws-search input:focus { outline: none; }
-.keyward-ui ::deep .ws-search:focus-within { border-color: var(--kw-primary); outline: 2px solid color-mix(in srgb, var(--kw-primary) 35%, transparent); outline-offset: 1px; }
-/* The clear (x) is part of the field: compact, flush at the right end, no gap/detached look. */
-.keyward-ui ::deep .ws-search .ws-search-clear { flex-shrink: 0; }
+.keyward-ui ::deep .ws-search input { width: 100%; padding-right: 2rem; }   /* right pad = room for the × inside */
+.keyward-ui ::deep .ws-search .ws-search-clear {
+    position: absolute;
+    top: 50%;
+    right: .3rem;
+    transform: translateY(-50%);
+}
 
 /* Master-detail workspace: tree pane left, content right; stacks on narrow screens */
 .keyward-ui ::deep .workspace {
