@@ -1,58 +1,64 @@
-/* Tab bar — mirrors BlazorBlueprint's underlined tabs (muted rest, accented active tab with an underline),
-   styled against the --kw-* tokens so it matches the host theme.
-   NOTE: the descendant selector `.kw-tabs .kw-tab` is deliberate — Keyward's general `::deep button` rule
-   (KeywardUi.razor.css) styles every button as a filled primary button and out-specifies a single
-   `.kw-tab`; the two-class selector wins, so the tabs render flat, not as filled buttons. */
+/* Tab bar — matches BlazorBlueprint's BbTabs (shadcn segmented style): a rounded bar with a MUTED background
+   holding the triggers; the active trigger is a raised segment (surface/white background + subtle shadow),
+   inactive triggers are muted text. NOT an underline. Styled against the --kw-* tokens so it follows the host
+   theme.
+   NOTE: the two-class selector `.kw-tabs .kw-tab` is deliberate — Keyward's general `::deep button` rule
+   (KeywardUi.razor.css) styles every button as a filled primary button and out-specifies a single `.kw-tab`;
+   `.kw-tabs .kw-tab` (0,3,0) beats it (0,2,1), so the triggers render as flat segments, not filled buttons. */
 .kw-tabs {
-    display: flex;
-    gap: .25rem;
-    border-bottom: 1px solid var(--kw-border, #e4e7ec);
+    display: inline-flex;
+    align-items: center;
+    gap: .2rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: .25rem;
+    background: var(--kw-muted, #f1f3f5);
+    border-radius: var(--kw-radius, .5rem);
     margin-bottom: 1rem;
 }
 
 .kw-tabs .kw-tab {
     display: inline-flex;
     align-items: center;
-    gap: .45rem;
-    padding: .55rem .85rem;
-    margin-bottom: -1px;                 /* sit the active underline on the container border */
+    gap: .4rem;
+    padding: .4rem .85rem;
     border: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
+    border-radius: calc(var(--kw-radius, .5rem) - .15rem);
     background: transparent;
     box-shadow: none;
     color: var(--kw-muted-text, #667085);
-    font-size: .9rem;
+    font-size: .875rem;
     font-weight: 500;
     line-height: 1.1;
     cursor: pointer;
     white-space: nowrap;
+    transition: color .12s ease, background-color .12s ease;
 }
 
-.kw-tabs .kw-tab:hover { background: transparent; color: var(--kw-text, #1a2233); border-bottom-color: var(--kw-border, #e4e7ec); }
+.kw-tabs .kw-tab:hover { color: var(--kw-text, #1a2233); background: transparent; }
 
 .kw-tabs .kw-tab.active {
-    color: var(--kw-primary, #2563eb);
-    background: transparent;
-    border-bottom-color: var(--kw-primary, #2563eb);
+    background: var(--kw-surface, #fff);
+    color: var(--kw-text, #1a2233);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
     font-weight: 600;
 }
 
 .kw-tabs .kw-tab:focus-visible {
     outline: 2px solid var(--kw-ring, color-mix(in srgb, var(--kw-primary, #2563eb) 40%, transparent));
-    outline-offset: -2px;
+    outline-offset: 1px;
 }
 
 .kw-tabs .kw-tab .kw-tab-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 1.15rem;
-    height: 1.15rem;
-    padding: 0 .35rem;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding: 0 .3rem;
     border-radius: 999px;
     background: color-mix(in srgb, var(--kw-primary, #2563eb) 14%, transparent);
     color: var(--kw-primary, #2563eb);
-    font-size: .72rem;
+    font-size: .7rem;
     font-weight: 600;
 }
