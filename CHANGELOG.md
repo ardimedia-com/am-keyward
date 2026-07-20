@@ -5,6 +5,16 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **Clearer, throttled "database unreachable" logging in the ops monitor.** When Keyward is enabled but its
+  database cannot be reached (e.g. the `Keyward` connection string is not provisioned for the environment, or
+  the `amkeyward_app` login / `amkeyward` schema does not exist yet), `OpsMonitorBackgroundService` now logs a
+  single actionable warning naming exactly what to check — instead of a raw `SqlException` stack every hour. It
+  stays quiet on the recurring interval until the connection recovers (then logs a one-line "reachable again").
+  Genuine, non-database failures still log as an error. `DbException` is treated as an operator/config gap, not
+  an internal fault.
+
 ## [0.2.1-preview] - 2026-07-14
 
 ### Added

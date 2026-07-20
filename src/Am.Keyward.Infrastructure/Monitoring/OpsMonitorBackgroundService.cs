@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,10 @@ public sealed class OpsMonitorBackgroundService(
     private static readonly TimeSpan Interval = TimeSpan.FromHours(1);
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(2);
     private const int ExpiryWindowDays = 7;
+
+    // Throttle the "database unreachable" message: log it once, then stay quiet on the hourly interval until
+    // the connection recovers, so a not-yet-provisioned environment does not spam the operator's alerts.
+    private bool databaseUnavailableLogged;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -78,6 +83,35 @@ public sealed class OpsMonitorBackgroundService(
             }
 
             snapshot.Publish(new OpsHealthSnapshot.Reading(clock.UtcNow, kek, auditIntact, firstBroken, expiring));
+
+            if (databaseUnavailableLogged)
+            {
+                logger.LogInformation("Keyward database is reachable again — monitoring resumed.");
+                databaseUnavailableLogged = false;
+            }
+        }
+        catch (DbException ex)
+        {
+            // The database is unreachable or not provisioned in THIS environment — e.g. Keyward is enabled but
+            // its connection string is not set for this stage (so it falls back to a default/localhost server),
+            // or the amkeyward_app login / amkeyward schema does not exist yet. That is an operator/config gap,
+            // not an internal fault, so log ONE clear, actionable message and stay quiet on the hourly interval
+            // until the connection recovers — instead of a raw SqlException stack every hour.
+            if (!databaseUnavailableLogged)
+            {
+                logger.LogWarning(ex,
+                    "Keyward could not reach its database, so this monitoring run was skipped. Keyward is enabled "
+                    + "but its database is unreachable or not provisioned in this environment. Verify the Keyward "
+                    + "connection string points at this environment's SQL Server, and that the amkeyward_app login "
+                    + "and the amkeyward schema exist — or disable Keyward (Keyward:Enabled=false) until it is "
+                    + "provisioned. Keyward is unavailable meanwhile. This is logged once; it will log again only "
+                    + "after the database recovers.");
+                databaseUnavailableLogged = true;
+            }
+            else
+            {
+                logger.LogDebug(ex, "Keyward monitoring skipped again — database still unreachable.");
+            }
         }
         catch (Exception ex)
         {
