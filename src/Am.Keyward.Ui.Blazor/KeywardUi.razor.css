@@ -227,18 +227,19 @@
 .keyward-ui ::deep .ws-search {
     display: flex;
     align-items: center;
-    gap: .5rem;
     max-width: 32rem;
     margin-bottom: .9rem;
-    padding: .15rem .6rem;
+    padding: .15rem .3rem .15rem .7rem;   /* left: text inset (no leading icon); right: room for the clear button */
     background: var(--kw-surface);
     border: 1px solid var(--kw-border);
     border-radius: var(--kw-radius);
 }
-.keyward-ui ::deep .ws-search > .kw-icon { color: var(--kw-muted-text); flex-shrink: 0; }
-.keyward-ui ::deep .ws-search input { border: none; background: transparent; padding: .45rem 0; }
+/* Input fills the field so the clear button sits flush at the END of the field, inside the single border. */
+.keyward-ui ::deep .ws-search input { flex: 1; min-width: 0; border: none; background: transparent; padding: .45rem 0; }
 .keyward-ui ::deep .ws-search input:focus { outline: none; }
 .keyward-ui ::deep .ws-search:focus-within { border-color: var(--kw-primary); outline: 2px solid color-mix(in srgb, var(--kw-primary) 35%, transparent); outline-offset: 1px; }
+/* The clear (x) is part of the field: compact, flush at the right end, no gap/detached look. */
+.keyward-ui ::deep .ws-search .ws-search-clear { flex-shrink: 0; }
 
 /* Master-detail workspace: tree pane left, content right; stacks on narrow screens */
 .keyward-ui ::deep .workspace {

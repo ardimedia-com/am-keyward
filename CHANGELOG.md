@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **Vault search field: dropped the leading magnifier icon; the clear (×) is now part of the field.** The
+  global vault search on the personal and team vault pages (`VaultWorkspace`) no longer shows a leading
+  magnifying-glass icon, and its clear button sits flush at the **end of the input inside the single field
+  border** (the input fills the width) instead of as a separate element. Cosmetic only.
+
 - **Clearer, throttled "database unreachable" logging in the ops monitor.** When Keyward is enabled but its
   database cannot be reached (e.g. the `Keyward` connection string is not provisioned for the environment, or
   the `amkeyward_app` login / `amkeyward` schema does not exist yet), `OpsMonitorBackgroundService` now logs a

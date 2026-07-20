@@ -20,11 +20,10 @@ else
     @* Global search across ALL vaults of this page (personal / team): matches the item name and the
        decrypted content fields (URL, username, note, value) — not login passwords. *@
     <div class="ws-search">
-        <KeywardIcon Name="search" />
         <input value="@globalSearch" @oninput="OnSearchInputAsync" placeholder="@(Loc["Vault.Search.Placeholder"])" aria-label="@(Loc["Vault.Search.Placeholder"])" />
         @if (globalSearch.Length > 0)
         {
-            <button class="icon-btn" title="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
+            <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
         }
     </div>
 
