@@ -7,6 +7,13 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Tabbed detail pane (`KeywardTabBar`).** The vault pages (personal/team) and the applications page now
+  group the right-hand detail into tabs instead of a stack of accordion areas — the left-hand list is
+  unchanged. Vaults: **«Einträge»** (add entry + item list) and **«Tresor-Einstellungen»** (manage / share /
+  folders / import / export). Applications: **«Umgebungen»** (add + quick-hops + list) and, for managers,
+  **«Applikations-Einstellungen»**. `KeywardTabBar` is a reusable BlazorBlueprint-styled tab bar. The Secrets
+  and Client-Tokens pages keep their single add-and-list layout (no second group to tab).
+
 - **Transient-notification port `IKeywardNotifier`** (`Success`/`Error`/`Info`). Keyward's UI notifications
   ("Vault created", "Moved", errors) go through this port instead of an inline status bar. Standalone, the
   built-in `KeywardToastHost` renders a BlazorBlueprint-styled, auto-dismissing toast (bottom-right, per-kind

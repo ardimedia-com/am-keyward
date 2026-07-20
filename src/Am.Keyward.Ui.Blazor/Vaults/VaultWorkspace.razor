@@ -251,7 +251,17 @@ else
             }
             else
             {
-                @* ---------- Vault/folder selected: work areas (all collapsed), then a folder's items ---------- *@
+                @* ---------- Vault/folder selected: TABBED — «Einträge» (add + item list) / «Tresor-Einstellungen»
+                   (the work areas: manage, share, folders, import, export). ---------- *@
+                <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)" />
+
+                @if (vaultTab == "entries")
+                {
+                    @AddItemArea
+                    @ItemListCard
+                }
+                else
+                {
                 @if (treeSel == "vault")
                 {
                     <details class="card section">
@@ -424,10 +434,7 @@ else
                     </details>
                 }
 
-                @AddItemArea
-
-                @* The selection's items come AFTER its work areas (vault = its root items, like a folder). *@
-                @ItemListCard
+                }
             }
 
             @if (status is not null)
@@ -440,6 +447,15 @@ else
 
 @code {
     [Parameter] public bool Team { get; set; }
+
+    // Detail-pane tabs: «Einträge» (add + item list) vs «Tresor-Einstellungen» (the work areas). The item
+    // list stays on the left; this only tabs the right detail pane.
+    private string vaultTab = "entries";
+    private IReadOnlyList<KeywardTab> VaultTabs =>
+    [
+        new("entries", Loc["Vault.Items.Title"], "key"),
+        new("settings", Loc["Vault.Manage.Title"], "settings"),
+    ];
 
     private Guid? actorUserId;
     private Guid tenantId;

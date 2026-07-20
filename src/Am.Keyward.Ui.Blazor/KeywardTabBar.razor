@@ -1,0 +1,40 @@
+@namespace Am.Keyward.Ui.Blazor
+
+@* A horizontal tab bar (BlazorBlueprint-styled, --kw-* tokens). The consumer holds the active key and
+   switches its content on @Active; this component only renders the bar and raises ActiveChanged. *@
+<div class="kw-tabs" role="tablist">
+    @foreach (KeywardTab tab in Tabs)
+    {
+        <button type="button" role="tab"
+                class="kw-tab @(tab.Key == Active ? "active" : "")"
+                aria-selected="@(tab.Key == Active ? "true" : "false")"
+                @onclick="() => SelectAsync(tab.Key)">
+            @if (!string.IsNullOrEmpty(tab.Icon))
+            {
+                <KeywardIcon Name="@tab.Icon" Size="16" />
+            }
+            <span>@tab.Label</span>
+            @if (tab.Badge is { } badge)
+            {
+                <span class="kw-tab-badge">@badge</span>
+            }
+        </button>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<KeywardTab> Tabs { get; set; } = [];
+
+    /// <summary>The active tab key (the consumer owns it).</summary>
+    [Parameter] public string? Active { get; set; }
+
+    [Parameter] public EventCallback<string> ActiveChanged { get; set; }
+
+    private async Task SelectAsync(string key)
+    {
+        if (key != Active)
+        {
+            await this.ActiveChanged.InvokeAsync(key);
+        }
+    }
+}

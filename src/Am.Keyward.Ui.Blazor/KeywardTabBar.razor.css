@@ -1,0 +1,52 @@
+/* Tab bar — mirrors BlazorBlueprint's underlined tabs (muted rest, accented active tab with an underline),
+   styled against the --kw-* tokens so it matches the host theme. */
+.kw-tabs {
+    display: flex;
+    gap: .25rem;
+    border-bottom: 1px solid var(--kw-border, #e4e7ec);
+    margin-bottom: 1rem;
+}
+
+.kw-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .55rem .85rem;
+    margin-bottom: -1px;                 /* sit the active underline on the container border */
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--kw-muted-text, #667085);
+    font-size: .9rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.kw-tab:hover { color: var(--kw-text, #1a2233); }
+
+.kw-tab.active {
+    color: var(--kw-primary, #2563eb);
+    border-bottom-color: var(--kw-primary, #2563eb);
+    font-weight: 600;
+}
+
+.kw-tab:focus-visible {
+    outline: 2px solid var(--kw-ring, color-mix(in srgb, var(--kw-primary, #2563eb) 40%, transparent));
+    outline-offset: -2px;
+    border-radius: 4px;
+}
+
+.kw-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    padding: 0 .35rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--kw-primary, #2563eb) 14%, transparent);
+    color: var(--kw-primary, #2563eb);
+    font-size: .72rem;
+    font-weight: 600;
+}

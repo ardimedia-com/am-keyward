@@ -82,7 +82,14 @@
                 }
                 else
                 {
+                    @* TABBED detail (like the vault pages): «Umgebungen» (add + quick-hops + list) and, for
+                       managers, «Applikations-Einstellungen». The application list on the left stays. *@
                     @if (canManage)
+                    {
+                        <KeywardTabBar Tabs="@AppTabs" Active="@appTab" ActiveChanged="@(t => appTab = t)" />
+                    }
+
+                    @if (canManage && appTab == "settings")
                     {
                         <details class="card section">
                             <summary><KeywardIcon Name="settings" /> @Loc["App.Settings.Title"]</summary>
@@ -110,7 +117,7 @@
                         </details>
                     }
 
-                    @if (canManage)
+                    @if (canManage && appTab == "envs")
                     {
                         <details class="card section">
                             <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
@@ -123,6 +130,8 @@
                         </details>
                     }
 
+                    @if (!canManage || appTab == "envs")
+                    {
                     @* Quick hops into the application's content — the selection carries over. *@
                     <div class="card">
                         <h3 style="margin:0 0 .35rem; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="external-link" Size="18" />@Loc["App.Content.Title"]</h3>
@@ -181,6 +190,7 @@
                             </div>
                         }
                     </div>
+                    }
 
                 }
 
@@ -197,6 +207,15 @@
     private Guid? actorUserId;
     private Guid tenantId;
     private bool canManage;
+
+    // Detail-pane tabs (managers only — a non-manager sees just the «Umgebungen» content, no tab bar):
+    // «Umgebungen» (add + quick-hops + list) vs «Applikations-Einstellungen».
+    private string appTab = "envs";
+    private IReadOnlyList<KeywardTab> AppTabs =>
+    [
+        new("envs", Loc["Secret.Envs.Title"], "layers"),
+        new("settings", Loc["App.Settings.Title"], "settings"),
+    ];
 
     private IReadOnlyList<ProjectInfo>? apps;
     private Guid? selectedAppId;
