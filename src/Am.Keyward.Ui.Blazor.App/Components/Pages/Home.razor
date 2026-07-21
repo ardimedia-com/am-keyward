@@ -44,20 +44,7 @@
                         <span class="tile-desc">@Loc["Home.Tile.Apps"]</span>
                     </span>
                 </a>
-                <a class="tile tile-rich" href="@KeywardRoutes.SoftwareCredentials">
-                    <KeywardIcon Name="key" Size="22" />
-                    <span>
-                        <span class="tile-title">@Loc["Nav.SoftwareCredentials"]</span>
-                        <span class="tile-desc">@Loc["Home.Tile.Secrets"]</span>
-                    </span>
-                </a>
-                <a class="tile tile-rich" href="@KeywardRoutes.ClientTokens">
-                    <KeywardIcon Name="ticket" Size="22" />
-                    <span>
-                        <span class="tile-title">@Loc["Nav.ClientTokens"]</span>
-                        <span class="tile-desc">@Loc["Home.Tile.Tokens", KeywardOptions.ProductName]</span>
-                    </span>
-                </a>
+                @* Application data (secrets) and client tokens are tabs inside the Applications page now. *@
             </div>
         </section>
     </Authorized>

@@ -145,11 +145,12 @@ public sealed class TokenExpiryEmailService(
             .ToDictionaryAsync(e => e.Id, e => e.Name.Value, ct)
             .ConfigureAwait(false);
 
-        // With a configured public base URL the mail carries a button straight to the app-tokens page;
+        // With a configured public base URL the mail carries a button to the Applications page (its
+        // «Client-Tokens» tab holds the tokens; the standalone /tokens page was consolidated 2026-07-21);
         // without one it stays a plain notification.
         var tokensUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
             ? null
-            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.ClientTokens;
+            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.Applications;
 
         // This runs outside any request, so there is no request culture to follow — build the whole
         // message under the configured notification language (English fallback). All localizer lookups are

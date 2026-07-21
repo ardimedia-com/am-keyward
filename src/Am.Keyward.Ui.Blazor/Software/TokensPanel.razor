@@ -1,0 +1,301 @@
+@namespace Am.Keyward.Ui.Blazor.Software
+@inject ISoftwareClientTokenService TokenService
+@inject ISoftwareSecretService SecretService
+@inject IStringLocalizer<SharedResource> Loc
+@inject IJSRuntime JS
+
+@* Client tokens for ONE application, rendered inside the Applications page's «Client-Tokens» tab. ONE ROW
+   PER ENVIRONMENT: the model auto-creates a pending token slot per environment, so the natural unit is the
+   environment. Each row shows the environment's token status and its primary action (Ausstellen / Rotieren /
+   Widerrufen / Reaktivieren); selecting a row reveals its details (name/note, prefix, dates, delete) and the
+   freshly minted secret — shown exactly once, under its own row. Reloads when ProjectId changes. *@
+@if (environments is null || tokens is null)
+{
+    <p class="muted">@Loc["Common.Loading"]</p>
+}
+else if (environments.Count == 0)
+{
+    <div class="card">
+        <div class="empty-state">
+            <KeywardIcon Name="ticket" Size="28" />
+            <p>@Loc["Token.NoEnvironments"]</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card list-card">
+        <div class="list-head">
+            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="ticket" Size="18" />@Loc["App.Tab.Tokens"]</h3>
+            <p class="muted" style="margin:.25rem 0 0;">@Loc["Token.PerEnvHint"]</p>
+        </div>
+        <div class="list-rows">
+            @foreach (var env in environments)
+            {
+                var token = TokenFor(env.Id);
+                var selected = token is not null && token.Id == selectedTokenId;
+                <div class="list-row" style="cursor:@(token is null ? "default" : "pointer");" @onclick="() => { if (token is not null) SelectToken(token.Id); }">
+                    <KeywardIcon Name="layers" Size="17" />
+                    <span class="list-row-name">@env.Name</span>
+                    <span class="list-row-meta" @onclick:stopPropagation="true">
+                        @if (token is null)
+                        {
+                            <span class="badge">@Loc["Token.Status.None"]</span>
+                            <button class="btn-sm" @onclick="() => IssueForAsync(env.Name)" disabled="@busy"><KeywardIcon Name="plus" Size="14" />@Loc["Token.Issue.Action"]</button>
+                        }
+                        else
+                        {
+                            <span class="badge @StatusBadge(token)">@StatusOf(token)</span>
+                            @if (token.HasSecret && token.RevokedAt is null)
+                            {
+                                <code style="font-size:.8rem;">@token.TokenPrefix</code>
+                            }
+                            @if (token.RevokedAt is not null)
+                            {
+                                <button class="btn-ghost btn-sm" @onclick="() => ReactivateAsync(token.Id)" disabled="@busy">@Loc["Token.Reactivate"]</button>
+                            }
+                            else if (!token.HasSecret)
+                            {
+                                <button class="btn-sm" @onclick="() => MintAsync(token.Id)" disabled="@busy">@Loc["Token.GenerateValue"]</button>
+                            }
+                            else
+                            {
+                                <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["Token.Rotate"]</button>
+                                <button class="btn-danger btn-sm" @onclick="() => { SelectToken(token.Id); confirmRevoke = true; }" disabled="@busy">@Loc["Token.Revoke"]</button>
+                            }
+                            <KeywardIcon Name="chevron-right" Size="15" />
+                        }
+                    </span>
+                </div>
+
+                @if (selected && token is not null)
+                {
+                    <div class="card" style="margin:.25rem 0 .75rem;">
+                        <div class="row" style="justify-content:space-between; flex-wrap:wrap;">
+                            <div class="row" style="flex:1; min-width:20rem; flex-wrap:nowrap;">
+                                <KeywardIcon Name="ticket" Size="18" />
+                                <input @bind="editName" aria-label="@(Loc["Common.Name"])" style="max-width:14rem; font-weight:600;" />
+                                <input @bind="editNote" aria-label="@(Loc["Common.Note"])" placeholder="@(Loc["Token.NoteOptional"])" style="max-width:18rem;" />
+                                <button class="btn-ghost btn-sm" @onclick="SaveEditAsync" disabled="@(busy || string.IsNullOrWhiteSpace(editName))">@Loc["Common.Save"]</button>
+                            </div>
+                            <div class="row">
+                                <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
+                            </div>
+                        </div>
+                        @if (confirmRevoke)
+                        {
+                            <div class="notice notice-error" style="margin-top:.5rem;">
+                                @Loc["Token.ConfirmRevoke", token.Name]
+                                <button class="btn-danger btn-sm" style="margin-left:.5rem;" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => confirmRevoke = false">@Loc["Common.Cancel"]</button>
+                            </div>
+                        }
+                        @if (confirmDelete)
+                        {
+                            <div class="notice notice-error" style="margin-top:.5rem;">
+                                @Loc["Token.ConfirmDelete", token.Name]
+                                <button class="btn-danger btn-sm" style="margin-left:.5rem;" @onclick="() => DeleteAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                            </div>
+                        }
+                        <div class="detail-grid" style="margin-top:.5rem;">
+                            <div class="detail-field">
+                                <label>@Loc["Token.Prefix"]</label>
+                                <div class="detail-value"><span class="grow">@if (token.HasSecret) { <code>@token.TokenPrefix</code> } else { <text>—</text> }</span></div>
+                            </div>
+                            <div class="detail-field">
+                                <label>@Loc["Token.Created"]</label>
+                                <div class="detail-value"><span class="grow">@token.CreatedAt.UtcDateTime.ToString("u")</span></div>
+                            </div>
+                            <div class="detail-field">
+                                <label>@Loc["Token.Expires"]</label>
+                                <div class="detail-value"><span class="grow">@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</span></div>
+                            </div>
+                        </div>
+
+                        @if (issuedToken is not null && issuedForTokenId == token.Id)
+                        {
+                            <div class="notice notice-reveal" role="status" style="margin-top:1rem;">
+                                @Loc["Token.New"]
+                                <div class="row" style="flex-wrap:nowrap; margin-top:.3rem;">
+                                    <code style="flex:1; min-width:0; overflow-wrap:anywhere;">@issuedToken</code>
+                                    <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    @if (status is not null)
+    {
+        <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter, EditorRequired] public Guid ProjectId { get; set; }
+    [Parameter] public Guid? ActorUserId { get; set; }
+
+    private Guid loadedProjectId;
+
+    private IReadOnlyList<EnvironmentInfo>? environments;
+    private IReadOnlyList<SoftwareClientTokenInfo>? tokens;
+
+    private Guid? selectedTokenId;
+    private Guid? issuedForTokenId;
+    private string? issuedToken;
+    private bool issuedCopied;
+    private bool confirmRevoke;
+    private bool confirmDelete;
+    private string editName = "";
+    private string editNote = "";
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private SoftwareClientTokenInfo? TokenFor(Guid environmentId) =>
+        tokens?.Where(t => t.EnvironmentId == environmentId).OrderByDescending(t => t.HasSecret).FirstOrDefault();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProjectId != loadedProjectId)
+        {
+            loadedProjectId = ProjectId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        selectedTokenId = null;
+        issuedToken = null;
+        issuedForTokenId = null;
+        confirmRevoke = false;
+        confirmDelete = false;
+        environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync() =>
+        tokens = await TokenService.ListAsync(TenantId, ProjectId);
+
+    private void SelectToken(Guid tokenId)
+    {
+        if (issuedForTokenId is { } issuedId && issuedId != tokenId)
+        {
+            issuedToken = null;
+            issuedForTokenId = null;
+        }
+        selectedTokenId = selectedTokenId == tokenId ? null : tokenId; // toggle
+        confirmRevoke = false;
+        confirmDelete = false;
+        var t = tokens?.FirstOrDefault(x => x.Id == tokenId);
+        editName = t?.Name ?? "";
+        editNote = t?.Note ?? "";
+    }
+
+    // No token for this environment yet (e.g. it was deleted): create + mint in one step.
+    private Task IssueForAsync(string environmentName) => RunAsync(async () =>
+    {
+        var issued = await TokenService.IssueAsync(
+            new IssueSoftwareClientTokenCommand(TenantId, ProjectId, environmentName, "", DateTimeOffset.UtcNow.AddDays(90), ActorUserId, ""));
+        issuedToken = issued.Token;
+        issuedForTokenId = issued.TokenId;
+        issuedCopied = false;
+        await RefreshAsync();
+        selectedTokenId = issued.TokenId;
+        status = (Loc["Token.Msg.Issued", environmentName, environmentName], false);
+    }, true);
+
+    // Mints the FIRST value of a pending placeholder (technically a rotation with an explicit expiry).
+    private Task MintAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        var minted = await TokenService.RotateAsync(TenantId, tokenId, DateTimeOffset.UtcNow.AddDays(90), ActorUserId);
+        issuedToken = minted.Token;
+        issuedForTokenId = tokenId;
+        issuedCopied = false;
+        selectedTokenId = tokenId;
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Generated"], false);
+    }, true);
+
+    private Task RotateAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        var rotated = await TokenService.RotateAsync(TenantId, tokenId, null, ActorUserId);
+        issuedToken = rotated.Token;
+        issuedForTokenId = tokenId;
+        issuedCopied = false;
+        selectedTokenId = tokenId;
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Rotated"], false);
+    }, true);
+
+    private Task RevokeAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await TokenService.RevokeAsync(TenantId, tokenId, ActorUserId);
+        confirmRevoke = false;
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Revoked"], false);
+    }, true);
+
+    private Task ReactivateAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await TokenService.ReactivateAsync(TenantId, tokenId, ActorUserId);
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Reactivated"], false);
+    }, true);
+
+    private Task SaveEditAsync() => RunAsync(async () =>
+    {
+        await TokenService.UpdateAsync(TenantId, selectedTokenId!.Value, editName, editNote, ActorUserId);
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Updated"], false);
+    }, selectedTokenId is not null && !string.IsNullOrWhiteSpace(editName));
+
+    private Task DeleteAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await TokenService.DeleteAsync(TenantId, tokenId, ActorUserId);
+        confirmDelete = false;
+        selectedTokenId = null;
+        issuedForTokenId = null;
+        issuedToken = null;
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Deleted"], false);
+    }, true);
+
+    private async Task CopyIssuedAsync()
+    {
+        if (issuedToken is null) return;
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", issuedToken);
+        issuedCopied = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        issuedCopied = false;
+    }
+
+    private string StatusOf(SoftwareClientTokenInfo token) =>
+        token.RevokedAt is not null ? Loc["Token.Status.Revoked"]
+        : !token.HasSecret ? Loc["Token.Status.Pending"]
+        : token.IsActive ? Loc["Token.Status.Active"]
+        : Loc["Token.Status.Expired"];
+
+    private static string StatusBadge(SoftwareClientTokenInfo token) =>
+        token.RevokedAt is not null ? "badge-danger"
+        : !token.HasSecret ? ""
+        : token.IsActive ? "badge-success"
+        : "badge-warning";
+
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}

@@ -251,6 +251,21 @@
     .keyward-ui ::deep .workspace { grid-template-columns: 1fr; }
 }
 
+/* Two-pane master-detail INSIDE a tab (Daten: key list + values; used by SecretsPanel). List left, detail
+   right; stacks on narrow viewports. Mirrors the vault «Einträge» split, shared here so the panels reuse it. */
+.keyward-ui ::deep .kw-detail-split {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+.keyward-ui ::deep .kw-detail-split > .kw-split-list { flex: 0 0 34%; min-width: 14rem; }
+.keyward-ui ::deep .kw-detail-split > .kw-split-detail { flex: 1 1 0; min-width: 0; }
+.keyward-ui ::deep .kw-split-detail-head { display: flex; justify-content: flex-end; margin-bottom: .5rem; }
+@media (max-width: 60rem) {
+    .keyward-ui ::deep .kw-detail-split { flex-direction: column; }
+    .keyward-ui ::deep .kw-detail-split > .kw-split-list { flex: none; width: 100%; min-width: 0; }
+}
+
 /* Fill mode (KeywardUi Fill="true"): the page header, notices and the search box stay put while the tree
    and the content pane scroll independently. The host opts its content area out of scrolling (see the
    reference shell's MainLayout css: .content:has(> .keyward-ui.kw-fill)). */

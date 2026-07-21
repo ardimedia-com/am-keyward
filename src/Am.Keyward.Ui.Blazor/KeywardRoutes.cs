@@ -24,9 +24,9 @@ public static class KeywardRoutes
 
     /// <summary>Query-parameter name the vault pages read to open an item by its Base62 public id.</summary>
     public const string ItemQueryParam = "item";
+    // Software side, consolidated 2026-07-21: applications, their per-environment data (secrets) and client
+    // tokens all live under Applications now — the former /secrets and /tokens routes were removed.
     public const string Applications = Prefix + "/applications";
-    public const string SoftwareCredentials = Prefix + "/secrets";
-    public const string ClientTokens = Prefix + "/tokens";
     public const string Groups = Prefix + "/groups";
     public const string DefaultEnvironments = Prefix + "/default-environments";
     public const string BreakGlass = Prefix + "/breakglass";

@@ -13,8 +13,7 @@
         <NavLink class="nav-link" href="@KeywardRoutes.TeamVaults"><KeywardIcon Name="users" /><span>@Loc["Nav.TeamVaults"]</span></NavLink>
 
         <div class="nav-group-label">@Loc["Nav.Group.Software"]</div>
+        @* Applications now hold their own data (secrets) and client tokens as tabs — one nav entry. *@
         <NavLink class="nav-link" href="@KeywardRoutes.Applications"><KeywardIcon Name="package" /><span>@Loc["Nav.Applications"]</span></NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.SoftwareCredentials"><KeywardIcon Name="key" /><span>@Loc["Nav.SoftwareCredentials"]</span></NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.ClientTokens"><KeywardIcon Name="ticket" /><span>@Loc["Nav.ClientTokens"]</span></NavLink>
     </Authorized>
 </AuthorizeView>

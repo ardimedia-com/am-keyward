@@ -7,6 +7,18 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **BREAKING: the software side is now ONE page.** The Applications page holds an application's environments,
+  its data (per-environment secret values) and its client tokens as four tabs — «Applikation», «Umgebungen»,
+  «Daten», «Client-Tokens» — instead of three separate nav entries that each duplicated the application list.
+  The standalone routes **`/amkeyward/secrets` and `/amkeyward/tokens` are removed** (no redirects), as are
+  `KeywardRoutes.SoftwareCredentials` / `.ClientTokens`; consumers linking to them must point at
+  `KeywardRoutes.Applications`. The «Daten» tab is a two-pane master-detail (keys left, per-environment
+  values right) with «Schlüssel hinzufügen»; the «Client-Tokens» tab shows **one row per environment**
+  (the model already auto-creates a pending token slot per environment). New reusable components
+  `Software/SecretsPanel` and `Software/TokensPanel`. Terminology: the feature reads «Applikations-Daten»
+  (tab «Daten»); code identifiers and the `/keyward/api/v1/secrets` client contract are unchanged. The
+  token-expiry e-mail now links to the Applications page.
+
 - **Vault «Einträge» tab is a two-pane master-detail.** The entry list stays on the left; the right pane
   shows the selected entry's detail — with edit/delete in its header and deliberately **no close button**
   (clicking another entry simply replaces the pane). «Eintrag hinzufügen» moved from a collapsed accordion

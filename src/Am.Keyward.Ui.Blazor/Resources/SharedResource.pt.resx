@@ -172,7 +172,7 @@
   <data name="Vault.Msg.Imported" xml:space="preserve"><value>Importados {0} início(s) de sessão.</value></data>
   <data name="Vault.Msg.Shared" xml:space="preserve"><value>Cofre partilhado.</value></data>
   <data name="Secret.Title" xml:space="preserve"><value>Segredos</value></data>
-  <data name="Secret.Add" xml:space="preserve"><value>Adicionar segredo</value></data>
+  <data name="Secret.Add" xml:space="preserve"><value>Adicionar chave</value></data>
   <data name="Secret.Desc" xml:space="preserve"><value>Um segredo é uma chave com nome (por exemplo ConnectionStrings:Main) que pode conter um valor encriptado diferente em cada ambiente. Escolha Ver para consultar ou definir os respetivos valores por ambiente, ou Eliminar… para o abrir e remover. Cada alteração é guardada como uma nova versão encriptada, pelo que os valores anteriores nunca são substituídos silenciosamente.</value></data>
   <data name="Secret.HideValues" xml:space="preserve"><value>Ocultar valores</value></data>
   <data name="Secret.RevealValues" xml:space="preserve"><value>Mostrar valores</value></data>
@@ -187,7 +187,7 @@
   <data name="Secret.EnvWithValue" xml:space="preserve"><value>Ambientes com um valor</value></data>
   <data name="Secret.None" xml:space="preserve"><value>nenhum</value></data>
   <data name="Secret.Msg.Saved" xml:space="preserve"><value>Guardado {0} em {1}.</value></data>
-  <data name="Secret.Msg.Created" xml:space="preserve"><value>Segredo {0} criado.</value></data>
+  <data name="Secret.Msg.Created" xml:space="preserve"><value>Chave «{0}» criada.</value></data>
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Segredo eliminado.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Novo token (copie-o agora — não voltará a ser mostrado):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emitir um token</value></data>
@@ -655,4 +655,14 @@
   <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Expirado</value></data>
   <data name="Nav.BreakGlass" xml:space="preserve"><value>Acesso de emergência</value></data>
   <data name="Vault.Items.SelectHint" xml:space="preserve"><value>Escolha uma entrada à esquerda - ou crie uma nova.</value></data>
+  <data name="App.Tab.Application" xml:space="preserve"><value>Aplicação</value></data>
+  <data name="App.Tab.Environments" xml:space="preserve"><value>Ambientes</value></data>
+  <data name="App.Tab.Data" xml:space="preserve"><value>Dados</value></data>
+  <data name="App.Tab.Tokens" xml:space="preserve"><value>Tokens de cliente</value></data>
+  <data name="App.Info.Counts" xml:space="preserve"><value>{0} chaves de dados · {1} tokens de cliente</value></data>
+  <data name="App.Data.KeysTitle" xml:space="preserve"><value>Chaves</value></data>
+  <data name="Secret.EnvCount" xml:space="preserve"><value>{0} amb.</value></data>
+  <data name="Token.PerEnvHint" xml:space="preserve"><value>Um token de cliente por ambiente.</value></data>
+  <data name="Token.NoEnvironments" xml:space="preserve"><value>Esta aplicação ainda não tem ambientes.</value></data>
+  <data name="Token.Status.None" xml:space="preserve"><value>Sem token</value></data>
 </root>

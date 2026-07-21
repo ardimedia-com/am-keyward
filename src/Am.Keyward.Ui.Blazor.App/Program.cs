@@ -227,7 +227,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
     // Discover the routable feature pages that live in the Am.Keyward.Ui.Blazor RCL (endpoint routing in
     // the Blazor Web App model scans the App assembly by default; RCL pages must be added explicitly).
-    .AddAdditionalAssemblies(typeof(Am.Keyward.Ui.Blazor.Pages.Secrets).Assembly);
+    .AddAdditionalAssemblies(typeof(Am.Keyward.Ui.Blazor.Pages.Applications).Assembly);
 
 app.MapKeywardApi(authorizationPolicy: managementPolicy);  // management API: signed-in admin (cookie)
 app.MapKeywardClientApi();                                  // software-client read API: token + rate limited

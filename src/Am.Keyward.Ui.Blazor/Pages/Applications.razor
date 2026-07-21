@@ -7,14 +7,16 @@
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
 @inject KeywardUiState UiState
-@inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
+@using Am.Keyward.Ui.Blazor.Software
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
-@* Master-detail like the groups page: the tenant's applications ("projects" in code) on the left, the
-   selected application's settings and ITS environments on the right. Environments live here (per
-   application) because secrets and tokens are always scoped to one application's environment. *@
+@* The single home of the software side: the tenant's applications ("projects" in code) on the left; the
+   selected application's four tabs on the right — Applikation (settings), Umgebungen, Daten (application
+   data = per-environment secret values), Client-Tokens (one per environment). Consolidated 2026-07-21;
+   the former separate /amkeyward/secrets and /amkeyward/tokens pages are gone. Read-only users see only the
+   Umgebungen list (no tab bar); the manage tabs are for managers, and the services enforce this again. *@
 <KeywardUi Fill="true">
     <div class="page-header">
         <h1>@Loc["Page.Apps.Title"]</h1>
@@ -60,7 +62,7 @@
                 }
             </aside>
 
-            @* ---------- Right: settings + environments of the selected application ---------- *@
+            @* ---------- Right: the selected application's tabs ---------- *@
             <section class="ws-main">
                 @if (selectedAppId is null || SelectedApp is not { } selected)
                 {
@@ -82,93 +84,80 @@
                 }
                 else
                 {
-                    @* TABBED detail (like the vault pages): «Umgebungen» (add + quick-hops + list) and, for
-                       managers, «Applikations-Einstellungen». The application list on the left stays. The
-                       «Umgebungen» content renders in BOTH worlds — inside the bordered tab area for
-                       managers, bare for a read-only user (who gets no tab bar) — so it lives in ONE local
-                       fragment instead of being duplicated. *@
+                    @* The Umgebungen content renders in both worlds — inside the tab area for managers, bare
+                       for a read-only user (no tab bar) — so it lives in ONE local fragment. *@
                     RenderFragment environmentsArea = @<text>
-                    @if (canManage)
-                    {
-                        <details class="card section">
-                            <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
-                            <div class="section-body">
-                                <div class="row">
-                                    <input @bind="newEnvName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
-                                    <button @onclick="AddEnvAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newEnvName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
-                                </div>
-                            </div>
-                        </details>
-                    }
-
-                    @* Quick hops into the application's content — the selection carries over. *@
-                    <div class="card">
-                        <h3 style="margin:0 0 .35rem; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="external-link" Size="18" />@Loc["App.Content.Title"]</h3>
-                        <p class="muted" style="margin:0 0 .6rem;">@Loc["App.Content.Desc"]</p>
-                        <div class="row">
-                            <button class="btn-ghost btn-sm" @onclick='() => Nav.NavigateTo(KeywardRoutes.SoftwareCredentials)'><KeywardIcon Name="key" Size="14" /> @Loc["App.OpenSecrets"] (@selected.SecretCount)</button>
-                            <button class="btn-ghost btn-sm" @onclick='() => Nav.NavigateTo(KeywardRoutes.ClientTokens)'><KeywardIcon Name="ticket" Size="14" /> @Loc["App.OpenTokens"] (@selected.TokenCount)</button>
-                        </div>
-                    </div>
-
-                    <div class="card list-card">
-                        <div class="list-head">
-                            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="layers" Size="18" />@selected.Name · @Loc["Secret.Envs.Title"]</h3>
-                        </div>
-                        <p class="muted" style="margin:.25rem 0 .5rem;">@Loc["Secret.Envs.Desc"]</p>
-                        @if (environments is null)
-                        {
-                            <p class="muted">@Loc["Common.Loading"]</p>
-                        }
-                        else
-                        {
-                            <div class="list-rows" style="margin:.5rem 0;">
-                                @foreach (var env in environments)
-                                {
-                                    <div class="list-row" style="cursor:default;">
-                                        <KeywardIcon Name="layers" Size="17" />
-                                        @if (renamingEnvId == env.Id)
-                                        {
-                                            <input @bind="renameEnvValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
-                                            <button class="btn-sm" @onclick="() => RenameEnvAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameEnvValue))">@Loc["Common.Save"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => renamingEnvId = null">@Loc["Common.Cancel"]</button>
-                                        }
-                                        else
-                                        {
-                                            <span class="list-row-name">@env.Name</span>
-                                            @if (canManage)
-                                            {
-                                                <span class="list-row-meta">
-                                                    <button class="btn-ghost btn-sm" @onclick="() => StartRenameEnv(env)" disabled="@busy">@Loc["Common.Rename"]</button>
-                                                    <button class="btn-danger btn-sm" @onclick="() => confirmDeleteEnvId = env.Id" disabled="@(busy || environments.Count <= 1)">@Loc["Common.DeleteEllipsis"]</button>
-                                                </span>
-                                            }
-                                        }
-                                    </div>
-                                    @if (confirmDeleteEnvId == env.Id)
-                                    {
-                                        <div class="notice notice-error" style="margin:.25rem 0;">
-                                            @Loc["Secret.Envs.ConfirmDelete", env.Name]
-                                            <div class="row" style="margin-top:.5rem;">
-                                                <button class="btn-danger btn-sm" @onclick="() => DeleteEnvAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
-                                                <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteEnvId = null">@Loc["Common.Cancel"]</button>
-                                            </div>
+                        <div class="card list-card">
+                            @if (canManage)
+                            {
+                                <details class="card section" style="margin-bottom:.75rem;">
+                                    <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
+                                    <div class="section-body">
+                                        <div class="row">
+                                            <input @bind="newEnvName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
+                                            <button @onclick="AddEnvAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newEnvName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
                                         </div>
-                                    }
-                                }
+                                    </div>
+                                </details>
+                            }
+                            <div class="list-head">
+                                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="layers" Size="18" />@Loc["Secret.Envs.Title"]</h3>
                             </div>
-                        }
-                    </div>
-                        </text>;
+                            <p class="muted" style="margin:.25rem 0 .5rem;">@Loc["Secret.Envs.Desc"]</p>
+                            @if (environments is null)
+                            {
+                                <p class="muted">@Loc["Common.Loading"]</p>
+                            }
+                            else
+                            {
+                                <div class="list-rows" style="margin:.5rem 0;">
+                                    @foreach (var env in environments)
+                                    {
+                                        <div class="list-row" style="cursor:default;">
+                                            <KeywardIcon Name="layers" Size="17" />
+                                            @if (renamingEnvId == env.Id)
+                                            {
+                                                <input @bind="renameEnvValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
+                                                <button class="btn-sm" @onclick="() => RenameEnvAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameEnvValue))">@Loc["Common.Save"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => renamingEnvId = null">@Loc["Common.Cancel"]</button>
+                                            }
+                                            else
+                                            {
+                                                <span class="list-row-name">@env.Name</span>
+                                                @if (canManage)
+                                                {
+                                                    <span class="list-row-meta">
+                                                        <button class="btn-ghost btn-sm" @onclick="() => StartRenameEnv(env)" disabled="@busy">@Loc["Common.Rename"]</button>
+                                                        <button class="btn-danger btn-sm" @onclick="() => confirmDeleteEnvId = env.Id" disabled="@(busy || environments.Count <= 1)">@Loc["Common.DeleteEllipsis"]</button>
+                                                    </span>
+                                                }
+                                            }
+                                        </div>
+                                        @if (confirmDeleteEnvId == env.Id)
+                                        {
+                                            <div class="notice notice-error" style="margin:.25rem 0;">
+                                                @Loc["Secret.Envs.ConfirmDelete", env.Name]
+                                                <div class="row" style="margin-top:.5rem;">
+                                                    <button class="btn-danger btn-sm" @onclick="() => DeleteEnvAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteEnvId = null">@Loc["Common.Cancel"]</button>
+                                                </div>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </text>;
 
-                    @if (canManage)
+                    if (canManage)
                     {
                         <KeywardTabBar Tabs="@AppTabs" Active="@appTab" ActiveChanged="@(t => appTab = t)">
-                            @if (appTab == "settings")
+                            @if (appTab == "application")
                             {
-                                <details class="card section">
-                                    <summary><KeywardIcon Name="settings" /> @Loc["App.Settings.Title"]</summary>
-                                    <div class="section-body">
+                                <div class="card">
+                                    <h3 style="margin-top:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="package" Size="18" />@selected.Name</h3>
+                                    <p class="muted">@Loc["App.Info.Counts", selected.SecretCount, selected.TokenCount]</p>
+                                    <div class="section-body" style="padding:0;">
                                         <p class="muted">@Loc["App.Settings.Desc"]</p>
                                         <div class="row">
                                             <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
@@ -189,11 +178,19 @@
                                             }
                                         </div>
                                     </div>
-                                </details>
+                                </div>
                             }
-                            else
+                            else if (appTab == "envs")
                             {
                                 @environmentsArea
+                            }
+                            else if (appTab == "data")
+                            {
+                                <SecretsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId" />
+                            }
+                            else if (appTab == "tokens")
+                            {
+                                <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId" />
                             }
                         </KeywardTabBar>
                     }
@@ -201,7 +198,6 @@
                     {
                         @environmentsArea
                     }
-
                 }
 
                 @if (status is not null)
@@ -218,13 +214,14 @@
     private Guid tenantId;
     private bool canManage;
 
-    // Detail-pane tabs (managers only — a non-manager sees just the «Umgebungen» content, no tab bar):
-    // «Umgebungen» (add + quick-hops + list) vs «Applikations-Einstellungen».
-    private string appTab = "envs";
+    // Detail-pane tabs (managers only — a read-only user sees just the «Umgebungen» content, no tab bar).
+    private string appTab = "application";
     private IReadOnlyList<KeywardTab> AppTabs =>
     [
-        new("envs", Loc["Secret.Envs.Title"], "layers"),
-        new("settings", Loc["App.Settings.Title"], "settings"),
+        new("application", Loc["App.Tab.Application"], "package"),
+        new("envs", Loc["App.Tab.Environments"], "layers"),
+        new("data", Loc["App.Tab.Data"], "key"),
+        new("tokens", Loc["App.Tab.Tokens"], "ticket"),
     ];
 
     private IReadOnlyList<ProjectInfo>? apps;

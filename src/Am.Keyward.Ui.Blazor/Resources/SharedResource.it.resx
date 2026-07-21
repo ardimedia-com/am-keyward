@@ -172,7 +172,7 @@
   <data name="Vault.Msg.Imported" xml:space="preserve"><value>Importati {0} accesso/i.</value></data>
   <data name="Vault.Msg.Shared" xml:space="preserve"><value>Cassaforte condivisa.</value></data>
   <data name="Secret.Title" xml:space="preserve"><value>Segreti</value></data>
-  <data name="Secret.Add" xml:space="preserve"><value>Aggiungi segreto</value></data>
+  <data name="Secret.Add" xml:space="preserve"><value>Aggiungi chiave</value></data>
   <data name="Secret.Desc" xml:space="preserve"><value>Un segreto è una chiave denominata (ad esempio ConnectionStrings:Main) che può contenere un valore cifrato diverso in ogni ambiente. Scegli Visualizza per vedere o impostare i suoi valori per ambiente, o Elimina… per aprirlo e rimuoverlo. Ogni modifica viene salvata come una nuova versione cifrata, così i valori precedenti non vengono mai sovrascritti silenziosamente.</value></data>
   <data name="Secret.HideValues" xml:space="preserve"><value>Nascondi valori</value></data>
   <data name="Secret.RevealValues" xml:space="preserve"><value>Mostra valori</value></data>
@@ -187,7 +187,7 @@
   <data name="Secret.EnvWithValue" xml:space="preserve"><value>Ambienti con un valore</value></data>
   <data name="Secret.None" xml:space="preserve"><value>nessuno</value></data>
   <data name="Secret.Msg.Saved" xml:space="preserve"><value>Salvato {0} in {1}.</value></data>
-  <data name="Secret.Msg.Created" xml:space="preserve"><value>Segreto {0} creato.</value></data>
+  <data name="Secret.Msg.Created" xml:space="preserve"><value>Chiave «{0}» creata.</value></data>
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Segreto eliminato.</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nuovo token (copialo ora — non verrà più mostrato):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emetti un token</value></data>
@@ -655,4 +655,14 @@
   <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Scaduta</value></data>
   <data name="Nav.BreakGlass" xml:space="preserve"><value>Accesso di emergenza</value></data>
   <data name="Vault.Items.SelectHint" xml:space="preserve"><value>Scegli una voce a sinistra - o creane una nuova.</value></data>
+  <data name="App.Tab.Application" xml:space="preserve"><value>Applicazione</value></data>
+  <data name="App.Tab.Environments" xml:space="preserve"><value>Ambienti</value></data>
+  <data name="App.Tab.Data" xml:space="preserve"><value>Dati</value></data>
+  <data name="App.Tab.Tokens" xml:space="preserve"><value>Token client</value></data>
+  <data name="App.Info.Counts" xml:space="preserve"><value>{0} chiavi dati · {1} token client</value></data>
+  <data name="App.Data.KeysTitle" xml:space="preserve"><value>Chiavi</value></data>
+  <data name="Secret.EnvCount" xml:space="preserve"><value>{0} amb.</value></data>
+  <data name="Token.PerEnvHint" xml:space="preserve"><value>Un token client per ambiente.</value></data>
+  <data name="Token.NoEnvironments" xml:space="preserve"><value>Questa applicazione non ha ancora ambienti.</value></data>
+  <data name="Token.Status.None" xml:space="preserve"><value>Nessun token</value></data>
 </root>

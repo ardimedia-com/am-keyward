@@ -1,7 +1,7 @@
 @using Am.Keyward.Ui.Blazor.App.Components.Account
 @* AdditionalAssemblies discovers the routable feature pages that live in the Am.Keyward.Ui.Blazor RCL. *@
 <Router AppAssembly="typeof(Program).Assembly"
-        AdditionalAssemblies="new[] { typeof(Am.Keyward.Ui.Blazor.Pages.Secrets).Assembly }"
+        AdditionalAssemblies="new[] { typeof(Am.Keyward.Ui.Blazor.Pages.Applications).Assembly }"
         NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
