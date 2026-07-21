@@ -5,6 +5,15 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **Tab bar renders as a bordered tab area.** `KeywardTabBar` gains a `ChildContent` mode: bar + the active
+  tab's content framed by ONE border and radius (mirrors am.ui's `AmTabArea`, which this package cannot
+  reference) — the segmented bar keeps its muted-pill styling. The vault pages («Einträge» /
+  «Tresor-Einstellungen») and the applications page («Umgebungen» / «Applikations-Einstellungen») use it;
+  a read-only applications view (no tab bar) keeps its unframed layout. Without `ChildContent` the bare
+  bar renders as before.
+
 ### Added
 
 - **Break-glass UI (`/amkeyward/breakglass`) — the dual-control emergency access is now operable.** A new

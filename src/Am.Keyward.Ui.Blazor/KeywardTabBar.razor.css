@@ -17,6 +17,32 @@
     margin-bottom: 1rem;
 }
 
+/* Framed tab-area mode (ChildContent set): ONE border around bar + active content — mirrors am.ui's
+   AmTabArea look, hand-rolled here because this package cannot reference am.ui. overflow:clip (not
+   hidden) so a host page could still make the bar sticky without silently breaking it. */
+.kw-tab-area {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid var(--kw-border, #e4e7ec);
+    border-radius: var(--kw-radius, .5rem);
+    background: var(--kw-surface, #fff);
+    overflow: clip;
+}
+
+.kw-tab-area-bar {
+    padding: .5rem;
+    border-bottom: 1px solid var(--kw-border, #e4e7ec);
+    background: var(--kw-surface, #fff);
+}
+
+.kw-tab-area-bar .kw-tabs {
+    margin-bottom: 0;
+}
+
+.kw-tab-area-content {
+    padding: 1rem;
+}
+
 .kw-tabs .kw-tab {
     display: inline-flex;
     align-items: center;

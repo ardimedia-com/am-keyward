@@ -11,6 +11,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject IJSRuntime JS
 @inject IKeywardNotifier Notifier
+@inject NavigationManager Nav
 
 @if (vaults is null)
 {
@@ -146,6 +147,7 @@ else
                     <div class="row" style="justify-content:space-between;">
                         <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="@TypeIcon(detail.Type)" Size="18" />@detail.Name</h3>
                         <div class="row">
+                            <button class="icon-btn" title="@Loc["Vault.CopyLink"]" @onclick="CopyItemLinkAsync"><KeywardIcon Name="@(copiedKey == "link" ? "check" : "link")" Size="15" /></button>
                             <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">@Loc["Common.Edit"]</button>
                             <button class="btn-danger btn-sm" @onclick="() => confirmDeleteItem = true" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
                             <button class="btn-ghost btn-sm" @onclick="BackToList">@Loc["Common.Close"]</button>
@@ -252,8 +254,9 @@ else
             else
             {
                 @* ---------- Vault/folder selected: TABBED — «Einträge» (add + item list) / «Tresor-Einstellungen»
-                   (the work areas: manage, share, folders, import, export). ---------- *@
-                <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)" />
+                   (the work areas: manage, share, folders, import, export). Bar + content render as ONE
+                   bordered tab area (KeywardTabBar's ChildContent mode). ---------- *@
+                <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)">
 
                 @if (vaultTab == "entries")
                 {
@@ -435,6 +438,7 @@ else
                 }
 
                 }
+                </KeywardTabBar>
             }
 
             @if (status is not null)
@@ -692,11 +696,37 @@ else
         // Personal vaults are always exportable by their owner; team vaults only by tenant admins (the
         // same operator predicate that gates group management). The service enforces this again.
         canExport = !Team || await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
+        // A deep link (?item=<base62 public id>) opens that item straight away and picks its vault.
+        if (await TryOpenLinkedItemAsync())
+        {
+            return;
+        }
         // A single vault is the common case — open it right away instead of showing a one-node tree.
         if (vaults is { Count: 1 })
         {
             await SelectVaultAsync(vaults[0].Id);
         }
+    }
+
+    /// <summary>Opens the item named by the <c>?item=</c> query parameter (a Base62 public id), selecting its
+    /// vault first. Returns false when there is no such parameter or it doesn't resolve to a readable item.</summary>
+    private async Task<bool> TryOpenLinkedItemAsync()
+    {
+        var code = QueryValue(Nav.Uri, KeywardRoutes.ItemQueryParam);
+        if (string.IsNullOrEmpty(code) || !Base62Guid.TryDecode(code, out var publicId))
+        {
+            return false;
+        }
+
+        var d = await VaultService.GetItemByPublicIdAsync(actorUserId!.Value, publicId);
+        if (d is null)
+        {
+            return false;
+        }
+
+        await SelectVaultAsync(d.VaultId); // loads folders/items and resets to list mode
+        ShowItemDetail(d);                 // then open the item's detail (URL already points at it)
+        return true;
     }
 
     private async Task ReloadVaultsAsync()
@@ -834,15 +864,75 @@ else
 
     private Task ViewItemAsync(Guid itemId) => RunAsync(async () =>
     {
-        detail = await VaultService.GetItemAsync(actorUserId!.Value, itemId);
+        var d = await VaultService.GetItemAsync(actorUserId!.Value, itemId);
+        if (d is null) return;
+        ShowItemDetail(d);
+        SyncItemUrl(d.PublicId); // reflect the open item in the address bar (shareable deep link)
+    }, true);
+
+    /// <summary>Populates the detail pane for an already-loaded item and switches to view mode.</summary>
+    private void ShowItemDetail(VaultItemDetail d)
+    {
+        detail = d;
         reveal = false;
         confirmDeleteItem = false;
         copiedKey = null;
-        moveVaultId = detail?.VaultId.ToString() ?? "";
-        moveFolderId = detail?.FolderId?.ToString() ?? "";
+        moveVaultId = d.VaultId.ToString();
+        moveFolderId = d.FolderId?.ToString() ?? "";
         moveFolders = folders;
         itemMode = "view";
-    }, true);
+    }
+
+    /// <summary>Reads a single query-string value from an absolute URI (the RCL SDK has no QueryHelpers).</summary>
+    private static string? QueryValue(string uri, string key)
+    {
+        var query = new Uri(uri).Query;
+        if (query.Length <= 1)
+        {
+            return null;
+        }
+
+        foreach (var pair in query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var eq = pair.IndexOf('=');
+            var k = eq >= 0 ? pair[..eq] : pair;
+            if (string.Equals(Uri.UnescapeDataString(k), key, StringComparison.Ordinal))
+            {
+                return eq >= 0 ? Uri.UnescapeDataString(pair[(eq + 1)..]) : "";
+            }
+        }
+
+        return null;
+    }
+
+    private string CurrentPagePath => Team ? KeywardRoutes.TeamVaults : KeywardRoutes.PersonalVaults;
+
+    /// <summary>Points the address bar at the open item (<c>?item=&lt;code&gt;</c>) — or back at the bare list
+    /// when none is open. Replaces the history entry so the back button doesn't step through every item.</summary>
+    private void SyncItemUrl(Guid? publicId)
+    {
+        var target = publicId is { } pid
+            ? $"{CurrentPagePath}?{KeywardRoutes.ItemQueryParam}={Base62Guid.Encode(pid)}"
+            : CurrentPagePath;
+        Nav.NavigateTo(target, forceLoad: false, replace: true);
+    }
+
+    /// <summary>Copies the item's absolute, shareable deep link (short <c>/amkeyward/e/&lt;code&gt;</c> form) to
+    /// the clipboard — the URL to paste into documentation.</summary>
+    private async Task CopyItemLinkAsync()
+    {
+        if (detail is null) return;
+        var url = Nav.ToAbsoluteUri(KeywardRoutes.EntryLinkFor(Base62Guid.Encode(detail.PublicId))).ToString();
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        copiedKey = "link";
+        Notifier.Success(Loc["Vault.Msg.LinkCopied"]);
+        StateHasChanged();
+        await Task.Delay(1500);
+        if (copiedKey == "link")
+        {
+            copiedKey = null;
+        }
+    }
 
     private Task EditItemAsync(Guid itemId) => RunAsync(async () =>
     {
@@ -925,11 +1015,16 @@ else
 
     private void BackToList()
     {
+        var hadItem = detail is not null;
         itemMode = "list";
         detail = null;
         reveal = false;
         confirmDeleteItem = false;
         ResetItemForm();
+        if (hadItem)
+        {
+            SyncItemUrl(null); // drop ?item= from the address bar
+        }
     }
 
     /// <summary>Debounced global search: waits shortly after the last keystroke, then searches all

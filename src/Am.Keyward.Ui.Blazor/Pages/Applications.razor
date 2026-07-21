@@ -83,41 +83,12 @@
                 else
                 {
                     @* TABBED detail (like the vault pages): «Umgebungen» (add + quick-hops + list) and, for
-                       managers, «Applikations-Einstellungen». The application list on the left stays. *@
+                       managers, «Applikations-Einstellungen». The application list on the left stays. The
+                       «Umgebungen» content renders in BOTH worlds — inside the bordered tab area for
+                       managers, bare for a read-only user (who gets no tab bar) — so it lives in ONE local
+                       fragment instead of being duplicated. *@
+                    RenderFragment environmentsArea = @<text>
                     @if (canManage)
-                    {
-                        <KeywardTabBar Tabs="@AppTabs" Active="@appTab" ActiveChanged="@(t => appTab = t)" />
-                    }
-
-                    @if (canManage && appTab == "settings")
-                    {
-                        <details class="card section">
-                            <summary><KeywardIcon Name="settings" /> @Loc["App.Settings.Title"]</summary>
-                            <div class="section-body">
-                                <p class="muted">@Loc["App.Settings.Desc"]</p>
-                                <div class="row">
-                                    <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
-                                    <button class="btn-ghost btn-sm" @onclick="RenameAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
-                                </div>
-                                <div class="danger-zone">
-                                    @if (confirmDelete)
-                                    {
-                                        <span>@Loc["App.ConfirmDelete", selected.Name]</span>
-                                        <div class="row" style="margin-top:.5rem;">
-                                            <button class="btn-danger btn-sm" @onclick="DeleteAppAsync" disabled="@busy">@Loc["Common.Yes"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["App.Delete"]</button>
-                                    }
-                                </div>
-                            </div>
-                        </details>
-                    }
-
-                    @if (canManage && appTab == "envs")
                     {
                         <details class="card section">
                             <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
@@ -130,8 +101,6 @@
                         </details>
                     }
 
-                    @if (!canManage || appTab == "envs")
-                    {
                     @* Quick hops into the application's content — the selection carries over. *@
                     <div class="card">
                         <h3 style="margin:0 0 .35rem; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="external-link" Size="18" />@Loc["App.Content.Title"]</h3>
@@ -190,6 +159,47 @@
                             </div>
                         }
                     </div>
+                        </text>;
+
+                    @if (canManage)
+                    {
+                        <KeywardTabBar Tabs="@AppTabs" Active="@appTab" ActiveChanged="@(t => appTab = t)">
+                            @if (appTab == "settings")
+                            {
+                                <details class="card section">
+                                    <summary><KeywardIcon Name="settings" /> @Loc["App.Settings.Title"]</summary>
+                                    <div class="section-body">
+                                        <p class="muted">@Loc["App.Settings.Desc"]</p>
+                                        <div class="row">
+                                            <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
+                                            <button class="btn-ghost btn-sm" @onclick="RenameAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
+                                        </div>
+                                        <div class="danger-zone">
+                                            @if (confirmDelete)
+                                            {
+                                                <span>@Loc["App.ConfirmDelete", selected.Name]</span>
+                                                <div class="row" style="margin-top:.5rem;">
+                                                    <button class="btn-danger btn-sm" @onclick="DeleteAppAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["App.Delete"]</button>
+                                            }
+                                        </div>
+                                    </div>
+                                </details>
+                            }
+                            else
+                            {
+                                @environmentsArea
+                            }
+                        </KeywardTabBar>
+                    }
+                    else
+                    {
+                        @environmentsArea
                     }
 
                 }

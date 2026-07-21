@@ -1,26 +1,46 @@
 @namespace Am.Keyward.Ui.Blazor
 
 @* A horizontal tab bar (BlazorBlueprint-styled, --kw-* tokens). The consumer holds the active key and
-   switches its content on @Active; this component only renders the bar and raises ActiveChanged. *@
-<div class="kw-tabs" role="tablist">
-    @foreach (KeywardTab tab in Tabs)
-    {
-        <button type="button" role="tab"
-                class="kw-tab @(tab.Key == Active ? "active" : "")"
-                aria-selected="@(tab.Key == Active ? "true" : "false")"
-                @onclick="() => SelectAsync(tab.Key)">
-            @if (!string.IsNullOrEmpty(tab.Icon))
+   switches its content on @Active; this component renders the bar and raises ActiveChanged.
+
+   With ChildContent it renders as a bordered TAB AREA instead (mirrors am.ui's AmTabArea, which this
+   package cannot reference): the bar on top and the active content below, framed by ONE border+radius —
+   the segmented bar itself keeps its muted-pill styling either way. Without ChildContent the bare bar
+   renders as before. *@
+@{
+    RenderFragment bar =
+        @<div class="kw-tabs" role="tablist">
+            @foreach (KeywardTab tab in Tabs)
             {
-                <KeywardIcon Name="@tab.Icon" Size="16" />
+                <button type="button" role="tab"
+                        class="kw-tab @(tab.Key == Active ? "active" : "")"
+                        aria-selected="@(tab.Key == Active ? "true" : "false")"
+                        @onclick="() => SelectAsync(tab.Key)">
+                    @if (!string.IsNullOrEmpty(tab.Icon))
+                    {
+                        <KeywardIcon Name="@tab.Icon" Size="16" />
+                    }
+                    <span>@tab.Label</span>
+                    @if (tab.Badge is { } badge)
+                    {
+                        <span class="kw-tab-badge">@badge</span>
+                    }
+                </button>
             }
-            <span>@tab.Label</span>
-            @if (tab.Badge is { } badge)
-            {
-                <span class="kw-tab-badge">@badge</span>
-            }
-        </button>
-    }
-</div>
+        </div>;
+}
+
+@if (ChildContent is null)
+{
+    @bar
+}
+else
+{
+    <div class="kw-tab-area">
+        <div class="kw-tab-area-bar">@bar</div>
+        <div class="kw-tab-area-content">@ChildContent</div>
+    </div>
+}
 
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<KeywardTab> Tabs { get; set; } = [];
@@ -29,6 +49,12 @@
     [Parameter] public string? Active { get; set; }
 
     [Parameter] public EventCallback<string> ActiveChanged { get; set; }
+
+    /// <summary>
+    /// The switched content. When set, bar + content render as ONE bordered tab area; when null, only the
+    /// bare bar renders (legacy layout).
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private async Task SelectAsync(string key)
     {
