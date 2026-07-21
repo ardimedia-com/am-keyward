@@ -100,10 +100,17 @@ public sealed class SoftwareSecretService(
     // authenticated client READ paths (ReadAsync/ReadAllAsync) stay tenant-scoped (the token is the auth).
     private async Task EnsureSoftwareOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
-        var isOperator = actorUserId is { } actor
-            && (await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
-                || await db.TenantMemberships.AnyAsync(
-                    m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
+        // A null actor is a trusted/system caller: the management API authorizes at the HTTP layer (its
+        // managementPolicy) before calling in, and seed/system operations attribute no user. Every UI call
+        // carries the acting user, and THAT must be an operator (system-admin / software-manager / tenant-admin).
+        if (actorUserId is not { } actor)
+        {
+            return;
+        }
+
+        var isOperator = await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
+            || await db.TenantMemberships.AnyAsync(
+                m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
         if (!isOperator)
         {
             throw new UnauthorizedAccessException("Managing application data requires the tenant-admin or software-manager role.");

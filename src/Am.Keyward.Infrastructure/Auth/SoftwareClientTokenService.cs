@@ -73,7 +73,7 @@ public sealed class SoftwareClientTokenService(
         return token.Id;
     }
 
-    public async Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt, Guid? actorUserId, CancellationToken ct = default)
+    public async Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, TokenExpiryChange expiry, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
         await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
@@ -81,11 +81,15 @@ public sealed class SoftwareClientTokenService(
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
 
-        // Rotation renews the secret AND restarts the validity window: without an explicit new expiry the
-        // ORIGINAL LIFETIME is re-applied from now (a 30-day token becomes a fresh 30-day token — it can
-        // neither stay expired nor silently turn into one that never expires).
-        var effectiveExpiry = expiresAt
-            ?? (token.ExpiresAt is { } oldExpiry ? clock.UtcNow + (oldExpiry - token.CreatedAt) : null);
+        // Rotation renews the secret AND sets the validity window per the explicit choice: Keep re-applies the
+        // ORIGINAL LIFETIME from now (a 30-day token becomes a fresh 30-day token — it neither stays expired
+        // nor silently turns into one that never expires), Never clears it, On sets a fresh date.
+        var effectiveExpiry = expiry.Kind switch
+        {
+            TokenExpiryKind.Never => (DateTimeOffset?)null,
+            TokenExpiryKind.On => expiry.At,
+            _ => token.ExpiresAt is { } oldExpiry ? clock.UtcNow + (oldExpiry - token.CreatedAt) : null,
+        };
         var generated = SoftwareClientTokenGenerator.Generate();
         token.Rotate(generated.Prefix, generated.Hash, clock.UtcNow, effectiveExpiry);
         await AuditAsync(tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
@@ -183,10 +187,17 @@ public sealed class SoftwareClientTokenService(
     // is an internal building block invoked by ProjectService/SoftwareSecretService, which already gate.
     private async Task EnsureSoftwareOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
-        var isOperator = actorUserId is { } actor
-            && (await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
-                || await db.TenantMemberships.AnyAsync(
-                    m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
+        // A null actor is a trusted/system caller: the management API authorizes at the HTTP layer (its
+        // managementPolicy) before calling in, and seed/system operations attribute no user. Every UI call
+        // carries the acting user, and THAT must be an operator (system-admin / software-manager / tenant-admin).
+        if (actorUserId is not { } actor)
+        {
+            return;
+        }
+
+        var isOperator = await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
+            || await db.TenantMemberships.AnyAsync(
+                m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
         if (!isOperator)
         {
             throw new UnauthorizedAccessException("Managing client tokens requires the tenant-admin or software-manager role.");

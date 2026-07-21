@@ -9,8 +9,11 @@ All notable changes to this project are documented here, following
 
 - **Client-token validity is choosable again.** The «Client-Tokens» tab shows a validity select on each
   environment row: minting/issuing offers 1/10/30/60/90/180/360 days or «nie» (default 90); rotating an
-  active token defaults to «Beibehalten» (keep the current lifetime) or a fresh window. (It had been fixed at
-  90 days when the software pages were consolidated.)
+  active token defaults to «Beibehalten» (keep the current lifetime), or a fresh window, or «nie». (It had
+  been fixed at 90 days when the software pages were consolidated.) **BREAKING (API):**
+  `ISoftwareClientTokenService.RotateAsync` now takes an explicit `TokenExpiryChange` (`Keep` / `Never` /
+  `On(date)`) instead of a nullable date — the old `null` was overloaded as "keep" and could not express
+  "never". Callers with only a nullable date use `TokenExpiryChange.FromNullableKeep(...)`.
 
 - **`AppUser.IsSoftwareManager` — a narrow "manage the software side" capability.** Distinct from
   system-admin / tenant-admin (which grant everything), it lets a host bind a user who may manage
@@ -21,16 +24,17 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
-- **BREAKING (hardening): software mutations now require an operator, not just tenant scope.** `ProjectService`
-  and `SoftwareSecretService` accept `IsSoftwareManager` in their operator check; **client-token minting/rotation/
-  revocation and secret store/delete are now gated at all** (previously only tenant-scoped — any signed-in
-  tenant user could mint a credential or write a secret via the API). The gate is
-  system-admin OR tenant-admin OR software-manager. Read paths (the token-authenticated client API) stay
-  tenant-scoped.
-- **BREAKING (hardening): using vaults now requires tenant membership.** `VaultService`'s personal/team vault
-  create + list require the user to be a member of the current tenant (or a system admin). A bound user who is
-  not a member — e.g. a software-manager-only host role — therefore has no vault access at all, and (since
-  share candidates are members) can never be granted a team vault either.
+- **BREAKING (hardening): software mutations by an attributed user now require an operator.** `ProjectService`,
+  `SoftwareSecretService` and the client-token service gate their mutations (create/rename/delete application,
+  add/rename/delete environment, store/delete secret, mint/rotate/revoke token) on the acting user being an
+  operator: system-admin OR tenant-admin OR software-manager. A **null** actor is a trusted/system caller (the
+  management API authorizes at the HTTP layer; seed/system operations attribute no user) and is not gated —
+  only a concrete UI user is. Read paths (the token-authenticated client API) stay tenant-scoped.
+- **BREAKING (hardening): creating a TEAM vault requires tenant membership.** `VaultService.CreateTenantVaultAsync`
+  requires the creator to be a member of the current tenant (or a system admin), so a bound non-member — e.g. a
+  software-manager-only host role — cannot create one and (share candidates being members) can never be granted
+  one either. Personal vaults are tenant-less and owner-owned (gated by owner scope alone); vault LIST/READ stay
+  grant-filtered, so a non-member simply sees nothing without a hard error.
 
 - **BREAKING: the software side is now ONE page.** The Applications page holds an application's environments,
   its data (per-environment secret values) and its client tokens as four tabs — «Applikation», «Umgebungen»,

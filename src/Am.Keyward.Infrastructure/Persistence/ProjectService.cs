@@ -164,6 +164,15 @@ public sealed class ProjectService(
 
     private async Task EnsureOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
+        // A null actor is a trusted/system caller (management API authorized at the HTTP layer; seed/system
+        // operations). Every UI call carries the acting user, and THAT must be a manager. (CanManageAsync
+        // deliberately returns false for a null actor — it drives the read-only UI — so the null case is
+        // handled here, not there.)
+        if (actorUserId is null)
+        {
+            return;
+        }
+
         if (!await CanManageAsync(tenantId, actorUserId, ct).ConfigureAwait(false))
         {
             throw new UnauthorizedAccessException("Managing applications requires the tenant-admin or software-manager role.");

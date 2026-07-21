@@ -32,7 +32,6 @@ public sealed class VaultService(
     public async Task<Guid> CreatePersonalVaultAsync(CreatePersonalVaultCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
-        await EnsureTenantParticipantAsync(cmd.UserId, ct).ConfigureAwait(false);
 
         var vault = new Vault(
             Guid.NewGuid(), tenantId: null, OwnerType.User, ownerId: cmd.UserId,
@@ -47,7 +46,6 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<VaultSummary>> ListVaultsAsync(Guid userId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        await EnsureTenantParticipantAsync(userId, ct).ConfigureAwait(false);
 
         return await db.Vaults
             .Where(v => v.OwnerUserId == userId) // personal vaults
@@ -84,7 +82,9 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
         EnsureTenantScope(tenantId);
-        await EnsureTenantParticipantAsync(userId, ct).ConfigureAwait(false);
+        // No membership gate here: the grant filter below already returns only the vaults this user was
+        // granted, so a non-member (or a software-manager-only role) naturally gets an empty list — the same
+        // result an outsider in another tenant sees. The membership gate lives on CREATE, where it matters.
 
         // Direct user grants plus grants held by any group the user belongs to.
         var groupIds = await db.GroupMemberships
@@ -833,10 +833,12 @@ public sealed class VaultService(
         }
     }
 
-    // Using vaults (creating/listing personal or team vaults) requires the user to actually belong to the
-    // current tenant — a system admin, or a member of this tenant. A bound user that is NOT a tenant member
-    // (e.g. a host role granted only the software-manager capability) therefore has no vault access at all,
-    // and — since share candidates are tenant members — can never be granted a team vault either.
+    // CREATING a team (tenant-owned) vault requires the user to belong to the current tenant — a system admin,
+    // or a member. A bound user that is NOT a tenant member (e.g. a host role granted only the
+    // software-manager capability) therefore cannot create one, and — since share candidates are tenant
+    // members — can never be granted one either, so team vaults stay entirely outside its reach. LIST/READ are
+    // already grant-filtered (a non-member simply sees nothing), and personal vaults are tenant-LESS and
+    // owner-owned (gated by the owner scope alone), so the check lives here on create only.
     private async Task EnsureTenantParticipantAsync(Guid userId, CancellationToken ct)
     {
         var isParticipant =

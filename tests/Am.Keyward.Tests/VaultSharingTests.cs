@@ -33,6 +33,17 @@ public class VaultSharingTests
         var grantee = Guid.NewGuid();
         var outsider = Guid.NewGuid();
 
+        // creator and grantee are members of the tenant; the outsider is not. Team-vault access requires
+        // tenant membership, so the participants must actually be members.
+        using (var seed = ScopeFor(provider, tenantId, creator))
+        {
+            var db = seed.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            db.Tenants.Add(new Am.Keyward.Core.Domain.Identity.Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
+            db.TenantMemberships.Add(new Am.Keyward.Core.Domain.Identity.TenantMembership(Guid.NewGuid(), tenantId, creator, TenantRole.Member, DateTimeOffset.UtcNow));
+            db.TenantMemberships.Add(new Am.Keyward.Core.Domain.Identity.TenantMembership(Guid.NewGuid(), tenantId, grantee, TenantRole.Member, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
         Guid vaultId, itemId;
         using (var scope = ScopeFor(provider, tenantId, creator))
         {

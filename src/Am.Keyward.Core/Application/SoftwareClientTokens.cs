@@ -20,6 +20,38 @@ public sealed record IssueSoftwareClientTokenCommand(
 /// </summary>
 public sealed record IssuedSoftwareClientToken(Guid TokenId, string Token, string TokenPrefix, DateTimeOffset? ExpiresAt);
 
+/// <summary>What a rotation should do with the validity window. A plain nullable date could not express all
+/// three intents (null was overloaded as "keep", leaving no way to say "never"), so rotation takes this
+/// explicit choice instead.</summary>
+public enum TokenExpiryKind
+{
+    /// <summary>Re-apply the token's current lifetime from now (a 30-day token becomes a fresh 30-day token).</summary>
+    Keep,
+
+    /// <summary>The rotated token never expires.</summary>
+    Never,
+
+    /// <summary>The rotated token expires at <see cref="TokenExpiryChange.At"/>.</summary>
+    On,
+}
+
+/// <summary>An explicit expiry intent for <see cref="ISoftwareClientTokenService.RotateAsync"/>.</summary>
+public readonly record struct TokenExpiryChange(TokenExpiryKind Kind, DateTimeOffset? At)
+{
+    /// <summary>Re-apply the current lifetime from now.</summary>
+    public static readonly TokenExpiryChange Keep = new(TokenExpiryKind.Keep, null);
+
+    /// <summary>Rotate to a token that never expires.</summary>
+    public static readonly TokenExpiryChange Never = new(TokenExpiryKind.Never, null);
+
+    /// <summary>Rotate to a token that expires at <paramref name="at"/>.</summary>
+    public static TokenExpiryChange On(DateTimeOffset at) => new(TokenExpiryKind.On, at);
+
+    /// <summary>Bridge for callers that only have a nullable date and want the historic "null = keep" behavior
+    /// (e.g. the management API): a value maps to <see cref="On"/>, null to <see cref="Keep"/>.</summary>
+    public static TokenExpiryChange FromNullableKeep(DateTimeOffset? at) => at is { } d ? On(d) : Keep;
+}
+
 /// <summary>A non-secret summary of a token for management/listing (never includes the secret or its hash).</summary>
 public sealed record SoftwareClientTokenInfo(
     Guid Id,
@@ -47,7 +79,7 @@ public interface ISoftwareClientTokenService
     /// </summary>
     Task<Guid> CreatePendingAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default);
 
-    Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt, Guid? actorUserId, CancellationToken ct = default);
+    Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, TokenExpiryChange expiry, Guid? actorUserId, CancellationToken ct = default);
 
     /// <summary>Updates a token's name and note (does not change its secret, scope or expiry).</summary>
     Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default);

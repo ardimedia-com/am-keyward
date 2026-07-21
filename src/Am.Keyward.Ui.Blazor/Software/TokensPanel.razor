@@ -181,11 +181,7 @@ else
             {
                 <option value="@d">@Loc["Token.Expires.Days", d]</option>
             }
-            @if (!withKeep)
-            {
-                @* "never" only for minting — rotate cannot express it (a null expiry there re-applies the lifetime). *@
-                <option value="">@Loc["Token.Expires.Never"]</option>
-            }
+            <option value="">@Loc["Token.Expires.Never"]</option>
         </select>
     };
 
@@ -194,13 +190,19 @@ else
         if (withKeep) { rotateExpiryChoice = value ?? "keep"; } else { mintExpiryChoice = value ?? "90"; }
     }
 
-    // Mint/issue: a number → that many days from now; "" → no expiry (never).
-    private DateTimeOffset? MintExpiry() =>
+    // Mint (a rotation of a pending token): a number → that many days from now; "" → never.
+    private TokenExpiryChange MintExpiry() =>
+        int.TryParse(mintExpiryChoice, out var d) ? TokenExpiryChange.On(DateTimeOffset.UtcNow.AddDays(d)) : TokenExpiryChange.Never;
+
+    // Issue (creating a fresh token): the same choice, but IssueAsync takes a nullable date (null = never).
+    private DateTimeOffset? IssueExpiry() =>
         int.TryParse(mintExpiryChoice, out var d) ? DateTimeOffset.UtcNow.AddDays(d) : null;
 
-    // Rotate: "keep" → null (the service re-applies the current lifetime); a number → a fresh window.
-    private DateTimeOffset? RotateExpiry() =>
-        int.TryParse(rotateExpiryChoice, out var d) ? DateTimeOffset.UtcNow.AddDays(d) : null;
+    // Rotate: "keep" → keep the current window, a number → a fresh window, "" → never.
+    private TokenExpiryChange RotateExpiry() =>
+        rotateExpiryChoice == "keep" ? TokenExpiryChange.Keep
+        : int.TryParse(rotateExpiryChoice, out var d) ? TokenExpiryChange.On(DateTimeOffset.UtcNow.AddDays(d))
+        : TokenExpiryChange.Never;
 
     private SoftwareClientTokenInfo? TokenFor(Guid environmentId) =>
         tokens?.Where(t => t.EnvironmentId == environmentId).OrderByDescending(t => t.HasSecret).FirstOrDefault();
@@ -247,7 +249,7 @@ else
     private Task IssueForAsync(string environmentName) => RunAsync(async () =>
     {
         var issued = await TokenService.IssueAsync(
-            new IssueSoftwareClientTokenCommand(TenantId, ProjectId, environmentName, "", MintExpiry(), ActorUserId, ""));
+            new IssueSoftwareClientTokenCommand(TenantId, ProjectId, environmentName, "", IssueExpiry(), ActorUserId, ""));
         issuedToken = issued.Token;
         issuedForTokenId = issued.TokenId;
         issuedCopied = false;

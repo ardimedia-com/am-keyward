@@ -86,7 +86,7 @@ public static class KeywardApi
         group.MapPost(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/tokens/{tokenId:guid}/rotate",
             async (Guid tenantId, Guid projectId, Guid tokenId, RotateTokenRequest? body, ISoftwareClientTokenService tokens, CancellationToken ct) =>
-                Results.Ok(await tokens.RotateAsync(tenantId, tokenId, body?.ExpiresAt, null, ct)));
+                Results.Ok(await tokens.RotateAsync(tenantId, tokenId, TokenExpiryChange.FromNullableKeep(body?.ExpiresAt), null, ct)));
 
         group.MapDelete(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/tokens/{tokenId:guid}",

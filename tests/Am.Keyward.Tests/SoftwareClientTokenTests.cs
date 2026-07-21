@@ -193,10 +193,10 @@ public class SoftwareClientTokenTests
         IssuedSoftwareClientToken rotated;
         using (var scope = ScopeFor(provider, tenantId))
         {
-            // Rotate without a new expiry (the UI always does this): the existing expiry must be preserved,
+            // Rotate keeping the current window (the UI's default): the existing expiry must be preserved,
             // not silently cleared to "never expires".
             rotated = await scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>()
-                .RotateAsync(tenantId, original.TokenId, null, null);
+                .RotateAsync(tenantId, original.TokenId, TokenExpiryChange.Keep, null);
         }
 
         Assert.IsNull(await AuthenticateAsync(provider, original.Token), "Old secret must stop working after rotation.");
@@ -220,6 +220,9 @@ public class SoftwareClientTokenTests
         var projectId = Guid.NewGuid();
         var actor = Guid.NewGuid();
         await SeedProjectWithTwoEnvironmentsAsync(provider, tenantId, projectId, prodValue: "p", devValue: "d");
+        // The token is attributed to a concrete actor, so that actor must be an operator (a non-null actor is
+        // always checked; only a null/system actor is trusted).
+        await SeedOperatorAsync(provider, tenantId, actor);
 
         Guid tokenId;
         using (var scope = ScopeFor(provider, tenantId))
@@ -246,6 +249,16 @@ public class SoftwareClientTokenTests
         var services = new ServiceCollection();
         services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
         return services.BuildServiceProvider();
+    }
+
+    // Seeds a system-admin user so a token/secret call attributed to it passes the operator gate. Calls that
+    // pass a null actor are trusted (system/API context) and need no operator seeded.
+    private static async Task SeedOperatorAsync(ServiceProvider provider, Guid tenantId, Guid userId)
+    {
+        using var scope = ScopeFor(provider, tenantId);
+        var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+        db.Users.Add(new Core.Domain.Identity.AppUser(userId, issuer: null, externalId: userId.ToString(), displayName: "op", isSystemAdmin: true, DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync();
     }
 
     private static async Task<bool> CanConnectAsync(ServiceProvider provider)
@@ -303,9 +316,13 @@ public class SoftwareClientTokenTests
         var secrets = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
         var tokens = scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>();
 
-        // A non-operator may not mutate environments.
+        // A non-operator (a real user without the role) may not mutate environments. (A null actor is a
+        // trusted system caller and is deliberately NOT the way to test the deny path.)
+        var outsider = Guid.NewGuid();
+        db.Users.Add(new Core.Domain.Identity.AppUser(outsider, issuer: null, externalId: outsider.ToString(), displayName: "outsider", isSystemAdmin: false, DateTimeOffset.UtcNow));
+        await db.SaveChangesAsync();
         await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
-            secrets.AddEnvironmentAsync(tenantId, projectId, "Staging", actorUserId: null));
+            secrets.AddEnvironmentAsync(tenantId, projectId, "Staging", actorUserId: outsider));
 
         // Rename: values and tokens follow (they bind by id).
         var dev = (await secrets.ListEnvironmentsAsync(tenantId, projectId)).Single(e => e.Name == "Development");
@@ -347,7 +364,7 @@ public class SoftwareClientTokenTests
         var tokens = scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>();
 
         var before = (await tokens.ListAsync(tenantId, projectId)).Single(x => x.Id == issued.TokenId);
-        var rotated = await tokens.RotateAsync(tenantId, issued.TokenId, null, null);
+        var rotated = await tokens.RotateAsync(tenantId, issued.TokenId, TokenExpiryChange.Keep, null);
         var after = (await tokens.ListAsync(tenantId, projectId)).Single(x => x.Id == issued.TokenId);
 
         // The secret changed, the window restarted, and the ORIGINAL ~10-day lifetime was re-applied.

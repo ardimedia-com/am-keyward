@@ -89,7 +89,7 @@ public class ProjectServiceTests
 
         // Minting the first value turns the placeholder into a working credential.
         var prodPending = pending.Single(t => t.Name == "bird-production");
-        var minted = await tokens.RotateAsync(tenantId, prodPending.Id, DateTimeOffset.UtcNow.AddDays(30), admin);
+        var minted = await tokens.RotateAsync(tenantId, prodPending.Id, TokenExpiryChange.On(DateTimeOffset.UtcNow.AddDays(30)), admin);
         using (var authScope = provider.CreateScope())
         {
             Assert.IsNotNull(await authScope.ServiceProvider.GetRequiredService<ISoftwareClientAuthenticator>()
