@@ -108,6 +108,20 @@ public class BreakGlassServiceTests
                     .BreakGlassGrants.FirstAsync(g => g.Id == grantId);
                 Assert.AreEqual(BreakGlassStatus.Consumed, grant.Status);
             }
+
+            // Consumption materialized the emergency access as a REGULAR Manage grant for the REQUESTER
+            // (not the consuming approver) — visible in the normal ACL and revocable after the recovery.
+            using (var scope = ScopeFor(provider, tenantId))
+            {
+                var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+                var materialized = await db.AccessGrants.SingleAsync(g =>
+                    g.PrincipalType == PrincipalType.User
+                    && g.PrincipalId == requester
+                    && g.Scope.Kind == scopeTarget.Kind
+                    && g.Scope.TargetId == scopeTarget.TargetId);
+                Assert.AreEqual(Permission.Manage, materialized.Permission);
+                Assert.AreEqual(tenantId, materialized.TenantId);
+            }
         }
         finally
         {

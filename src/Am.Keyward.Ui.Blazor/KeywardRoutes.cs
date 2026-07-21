@@ -14,9 +14,20 @@ public static class KeywardRoutes
     public const string PersonalVaults = Prefix + "/vaults/personal";
     public const string TeamVaults = Prefix + "/vaults/team";
     public const string Vaults = Prefix + "/vaults";
+
+    /// <summary>Short, shareable deep link to a single vault item: <c>/amkeyward/e/{base62-public-id}</c>. The
+    /// <see cref="EntryLink"/> page resolves it and forwards to the right vault page with the item opened.</summary>
+    public const string EntryLink = Prefix + "/e";
+
+    /// <summary>Builds the deep-link path for an item's Base62 public id (see <see cref="EntryLink"/>).</summary>
+    public static string EntryLinkFor(string publicIdCode) => $"{EntryLink}/{publicIdCode}";
+
+    /// <summary>Query-parameter name the vault pages read to open an item by its Base62 public id.</summary>
+    public const string ItemQueryParam = "item";
     public const string Applications = Prefix + "/applications";
     public const string SoftwareCredentials = Prefix + "/secrets";
     public const string ClientTokens = Prefix + "/tokens";
     public const string Groups = Prefix + "/groups";
     public const string DefaultEnvironments = Prefix + "/default-environments";
+    public const string BreakGlass = Prefix + "/breakglass";
 }

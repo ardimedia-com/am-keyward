@@ -202,6 +202,25 @@ public interface IBreakGlassSink
 /// <summary>A request for emergency (break-glass) access to a server-side resource.</summary>
 public sealed record RequestBreakGlassCommand(Guid? TenantId, GrantScope Scope, Guid RequesterUserId, string Reason);
 
+/// <summary>A team vault selectable as a break-glass target — metadata only (id + name), no content.</summary>
+public sealed record BreakGlassTargetVault(Guid VaultId, string Name);
+
+/// <summary>A break-glass grant enriched for display: user display names and the target's name resolved.</summary>
+public sealed record BreakGlassGrantInfo(
+    Guid Id,
+    BreakGlassStatus Status,
+    GrantScope Scope,
+    string? TargetName,
+    Guid RequesterUserId,
+    string RequesterName,
+    Guid? ApproverUserId,
+    string? ApproverName,
+    string Reason,
+    DateTimeOffset RequestedAt,
+    DateTimeOffset? DecidedAt,
+    DateTimeOffset ExpiresAt,
+    DateTimeOffset? ConsumedAt);
+
 /// <summary>
 /// Dual-control emergency access. A System Admin requests access with a reason; a different System Admin
 /// must approve it (and the approval is written to the out-of-band <see cref="IBreakGlassSink"/> plus the
@@ -209,6 +228,9 @@ public sealed record RequestBreakGlassCommand(Guid? TenantId, GrantScope Scope, 
 /// </summary>
 public interface IBreakGlassService
 {
+    /// <summary>Whether this user may operate break-glass at all (System Admin) — for UI gating; every mutation re-checks.</summary>
+    Task<bool> IsSystemAdminAsync(Guid userId, CancellationToken ct = default);
+
     Task<Guid> RequestAsync(RequestBreakGlassCommand cmd, CancellationToken ct = default);
 
     Task ApproveAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default);
@@ -217,6 +239,20 @@ public interface IBreakGlassService
 
     Task<IReadOnlyList<BreakGlassGrant>> ListPendingAsync(CancellationToken ct = default);
 
-    /// <summary>Consume an approved, unexpired grant for a single recovery; throws if it is not usable.</summary>
+    /// <summary>
+    /// The current tenant's team vaults as break-glass targets (id + name only). System-Admin-gated: this is
+    /// the one place an admin sees vaults they hold no grant on — metadata for the recovery picker, never content.
+    /// </summary>
+    Task<IReadOnlyList<BreakGlassTargetVault>> ListTargetVaultsAsync(Guid actorUserId, Guid tenantId, CancellationToken ct = default);
+
+    /// <summary>Recent grants (all states, newest first) with display names resolved. System-Admin-gated.</summary>
+    Task<IReadOnlyList<BreakGlassGrantInfo>> ListGrantsAsync(Guid actorUserId, int take = 50, CancellationToken ct = default);
+
+    /// <summary>
+    /// Consume an approved, unexpired grant for a single recovery; throws if it is not usable. Consumption
+    /// materializes the emergency access as a REGULAR <c>Manage</c> access grant for the requester on the
+    /// target resource — visible in the normal ACL, enforced by the existing checks, and revocable after the
+    /// recovery — instead of a second, invisible authorization path.
+    /// </summary>
     Task ConsumeAsync(Guid grantId, Guid actorUserId, CancellationToken ct = default);
 }

@@ -1,0 +1,247 @@
+@page "/amkeyward/breakglass"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@inject IBreakGlassService BreakGlassService
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
+@inject IStringLocalizer<SharedResource> Loc
+
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+@* Dual-control emergency access (break-glass). System-Admin-only surface over IBreakGlassService: request
+   with a reason, a DIFFERENT admin approves (dual control, enforced by the domain), then the requester (or
+   approver) consumes the approved grant within its validity window — which materializes a regular Manage
+   access grant for the requester on the target team vault (visible in the vault's ACL, revocable after the
+   recovery). Every transition is written to the tamper-evident audit chain AND the out-of-band hash-chained
+   sink file. Management page: like Groups it is NOT in KeywardNav — the host places it in its admin nav. *@
+<KeywardUi Fill="true">
+    <div class="page-header">
+        <h1>@Loc["Page.BreakGlass.Title"]</h1>
+        <p>@Loc["Page.BreakGlass.Desc"]</p>
+    </div>
+
+    @if (!loaded)
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
+    else if (!isSystemAdmin)
+    {
+        <div class="card">
+            <div class="empty-state">
+                <KeywardIcon Name="shield" Size="28" />
+                <p>@Loc["BreakGlass.AdminOnly"]</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        @* ---------- New request ---------- *@
+        <details class="card section">
+            <summary><KeywardIcon Name="shield" /> @Loc["BreakGlass.Request.Title"]</summary>
+            <div class="section-body">
+                <p class="muted">@Loc["BreakGlass.Request.Desc"]</p>
+                <div class="row">
+                    <select @bind="requestVaultId" aria-label="@(Loc["BreakGlass.SelectVault"])" style="max-width:20rem;">
+                        <option value="">@Loc["BreakGlass.SelectVault"]</option>
+                        @foreach (var v in targetVaults)
+                        {
+                            <option value="@v.VaultId">@v.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="row">
+                    <input @bind="requestReason" @bind:event="oninput" placeholder="@(Loc["BreakGlass.Reason.Placeholder"])"
+                           aria-label="@(Loc["BreakGlass.Reason.Placeholder"])" style="max-width:32rem; flex:1;" />
+                    <button class="btn-sm" @onclick="RequestAsync"
+                            disabled="@(busy || string.IsNullOrEmpty(requestVaultId) || string.IsNullOrWhiteSpace(requestReason))">
+                        @Loc["BreakGlass.Request.Submit"]
+                    </button>
+                </div>
+            </div>
+        </details>
+
+        @* ---------- Pending requests (dual control) ---------- *@
+        <div class="card list-card">
+            <div class="list-head">
+                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="shield" Size="18" />@Loc["BreakGlass.Pending.Title"]</h3>
+            </div>
+            @if (Pending.Count == 0)
+            {
+                <div class="empty-state">
+                    <KeywardIcon Name="shield" Size="28" />
+                    <p>@Loc["BreakGlass.Pending.Empty"]</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-rows">
+                    @foreach (var g in Pending)
+                    {
+                        <div class="list-row" style="cursor:default;">
+                            <KeywardIcon Name="lock" Size="17" />
+                            <span class="list-row-name">@TargetLabel(g)</span>
+                            <span class="list-row-meta">
+                                <span class="muted">@g.RequesterName · @g.Reason · @g.RequestedAt.UtcDateTime.ToString("u")</span>
+                                @if (g.RequesterUserId == actorUserId)
+                                {
+                                    @* Dual control: the domain rejects self-approval — show why instead of a dead button. *@
+                                    <span class="badge">@Loc["BreakGlass.OwnRequest"]</span>
+                                }
+                                else
+                                {
+                                    <button class="btn-ghost btn-sm" @onclick="() => ApproveAsync(g.Id)" disabled="@busy">@Loc["BreakGlass.Approve"]</button>
+                                }
+                                <button class="btn-danger btn-sm" @onclick="() => RejectAsync(g.Id)" disabled="@busy">@Loc["BreakGlass.Reject"]</button>
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @* ---------- History (all states; consume action on usable grants) ---------- *@
+        <div class="card list-card">
+            <div class="list-head">
+                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="shield" Size="18" />@Loc["BreakGlass.History.Title"]</h3>
+            </div>
+            @if (NonPending.Count == 0)
+            {
+                <div class="empty-state">
+                    <KeywardIcon Name="shield" Size="28" />
+                    <p>@Loc["BreakGlass.History.Empty"]</p>
+                </div>
+            }
+            else
+            {
+                <div class="list-rows">
+                    @foreach (var g in NonPending)
+                    {
+                        <div class="list-row" style="cursor:default;">
+                            <KeywardIcon Name="lock" Size="17" />
+                            <span class="list-row-name">@TargetLabel(g)</span>
+                            <span class="list-row-meta">
+                                <span class="muted">@g.RequesterName@(g.ApproverName is null ? "" : $" → {g.ApproverName}") · @g.Reason</span>
+                                <span class="badge @StatusBadgeClass(g.Status)">@Loc[$"BreakGlassStatus.{g.Status}"]</span>
+                                @if (IsConsumable(g))
+                                {
+                                    <span class="muted">@Loc["BreakGlass.ValidUntil", g.ExpiresAt.UtcDateTime.ToString("u")]</span>
+                                    <button class="btn-sm" @onclick="() => ConsumeAsync(g.Id)" disabled="@busy" title="@Loc["BreakGlass.Consume.Hint"]">@Loc["BreakGlass.Consume"]</button>
+                                }
+                            </span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        @if (status is not null)
+        {
+            <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+        }
+    }
+</KeywardUi>
+
+@code {
+    private Guid? actorUserId;
+    private Guid tenantId;
+    private bool loaded;
+    private bool isSystemAdmin;
+
+    private IReadOnlyList<BreakGlassTargetVault> targetVaults = [];
+    private IReadOnlyList<BreakGlassGrantInfo> grants = [];
+
+    private string requestVaultId = "";
+    private string requestReason = "";
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private IReadOnlyList<BreakGlassGrantInfo> Pending =>
+        grants.Where(g => g.Status == BreakGlassStatus.Pending).ToList();
+
+    private IReadOnlyList<BreakGlassGrantInfo> NonPending =>
+        grants.Where(g => g.Status != BreakGlassStatus.Pending).ToList();
+
+    protected override async Task OnInitializedAsync()
+    {
+        actorUserId = CurrentUser.UserId;
+        tenantId = Workspace.TenantId;
+        if (actorUserId is null)
+        {
+            loaded = true;
+            return;
+        }
+
+        isSystemAdmin = await BreakGlassService.IsSystemAdminAsync(actorUserId.Value);
+        if (isSystemAdmin)
+        {
+            await ReloadAsync();
+        }
+
+        loaded = true;
+    }
+
+    private async Task ReloadAsync()
+    {
+        targetVaults = await BreakGlassService.ListTargetVaultsAsync(actorUserId!.Value, tenantId);
+        grants = await BreakGlassService.ListGrantsAsync(actorUserId!.Value);
+    }
+
+    // An approved, unexpired grant is consumable by its requester or approver (the service enforces the same).
+    private bool IsConsumable(BreakGlassGrantInfo g) =>
+        g.Status == BreakGlassStatus.Approved
+        && DateTimeOffset.UtcNow < g.ExpiresAt
+        && (g.RequesterUserId == actorUserId || g.ApproverUserId == actorUserId);
+
+    private string TargetLabel(BreakGlassGrantInfo g) =>
+        g.TargetName ?? $"{g.Scope.Kind} {g.Scope.TargetId:D}";
+
+    private static string StatusBadgeClass(BreakGlassStatus s) => s switch
+    {
+        BreakGlassStatus.Approved => "badge-success",
+        BreakGlassStatus.Consumed => "badge-success",
+        _ => "",
+    };
+
+    private Task RequestAsync() => RunAsync(async () =>
+    {
+        if (!Guid.TryParse(requestVaultId, out var vaultId)) return;
+        await BreakGlassService.RequestAsync(new RequestBreakGlassCommand(
+            tenantId, new GrantScope(GrantScopeKind.Vault, vaultId), actorUserId!.Value, requestReason));
+        requestVaultId = "";
+        requestReason = "";
+        await ReloadAsync();
+        status = (Loc["BreakGlass.Msg.Requested"], false);
+    }, !string.IsNullOrEmpty(requestVaultId) && !string.IsNullOrWhiteSpace(requestReason));
+
+    private Task ApproveAsync(Guid grantId) => RunAsync(async () =>
+    {
+        await BreakGlassService.ApproveAsync(grantId, actorUserId!.Value);
+        await ReloadAsync();
+        status = (Loc["BreakGlass.Msg.Approved"], false);
+    }, true);
+
+    private Task RejectAsync(Guid grantId) => RunAsync(async () =>
+    {
+        await BreakGlassService.RejectAsync(grantId, actorUserId!.Value);
+        await ReloadAsync();
+        status = (Loc["BreakGlass.Msg.Rejected"], false);
+    }, true);
+
+    private Task ConsumeAsync(Guid grantId) => RunAsync(async () =>
+    {
+        await BreakGlassService.ConsumeAsync(grantId, actorUserId!.Value);
+        await ReloadAsync();
+        status = (Loc["BreakGlass.Msg.Consumed"], false);
+    }, true);
+
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || actorUserId is null || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}

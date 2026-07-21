@@ -7,6 +7,36 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Break-glass UI (`/amkeyward/breakglass`) — the dual-control emergency access is now operable.** A new
+  System-Admin-only page drives the full flow: request access to a team vault with a mandatory reason, a
+  **different** admin approves or rejects (self-approval is blocked and labeled), and the requester (or
+  approver) consumes the approved request within its validity window. New service surface:
+  `IBreakGlassService.IsSystemAdminAsync` (UI gating), `ListTargetVaultsAsync` (team-vault picker — metadata
+  only, the one place an admin sees vaults they hold no grant on), and `ListGrantsAsync` (history with display
+  names resolved). Localized in all six languages; the reference shell links the page in its admin section
+  (embedded hosts place it in their own admin nav, like Groups).
+
+### Changed
+
+- **BREAKING: consuming a break-glass grant now materializes real access.** `ConsumeAsync` creates a regular
+  **Manage** access grant for the *requester* on the target resource (upserting a lower existing grant) —
+  visible in the vault's sharing list, enforced by the existing ACL checks, and revocable after the recovery.
+  Previously consumption only recorded the event without granting anything. Consumption now requires a
+  tenant-scoped target (personal vaults stay out of break-glass scope by design) and throws
+  `InvalidOperationException` for a tenant-less one. Consumers of `IBreakGlassService` must implement the
+  three new interface members.
+
+- **Shareable deep link per vault item.** Every vault entry now has a short, stable URL
+  (`/amkeyward/e/{code}`) you can paste into documentation. Opening an entry reflects it in the address bar,
+  and a **"Link kopieren"** button in the detail pane copies the absolute link (a toast confirms). The `code`
+  is the item's public id as **Base62** (22 chars, no hyphens/underscores), so a double-click selects the
+  whole id when copying. The `EntryLink` resolver page forwards a link to the right vault page with the entry
+  opened; an unknown, malformed, or inaccessible link falls back to the vault list rather than erroring (no
+  existence leak). The public id is **separate from the item's crypto-bound primary key and survives a
+  cross-vault move** (which mints a new key by re-encrypting) — so a documentation link keeps working after the
+  entry is moved between vaults. Requires the `VaultItemPublicId` migration (adds a unique `PublicId` column;
+  existing rows are back-filled with distinct values).
+
 - **Tabbed detail pane (`KeywardTabBar`).** The vault pages (personal/team) and the applications page now
   group the right-hand detail into tabs instead of a stack of accordion areas — the left-hand list is
   unchanged. Vaults: **«Einträge»** (add entry + item list) and **«Tresor-Einstellungen»** (manage / share /

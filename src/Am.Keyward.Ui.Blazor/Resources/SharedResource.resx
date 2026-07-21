@@ -398,6 +398,12 @@
   <data name="Vault.Msg.Moved" xml:space="preserve">
     <value>Item moved.</value>
   </data>
+  <data name="Vault.CopyLink" xml:space="preserve">
+    <value>Copy link</value>
+  </data>
+  <data name="Vault.Msg.LinkCopied" xml:space="preserve">
+    <value>Link copied.</value>
+  </data>
   <data name="Vault.Select.Count" xml:space="preserve">
     <value>{0} selected</value>
   </data>
@@ -620,4 +626,32 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotate a token on the app-tokens page; the new value is shown exactly once.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Open app tokens</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>You receive this because you enabled app-token expiry notifications in your profile.</value></data>
+  <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Emergency access (break-glass)</value></data>
+  <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Dual-control emergency access to team vaults: one system admin requests with a reason, a second approves, and consuming the approved request grants the requester Manage access to the vault - fully audited and revocable.</value></data>
+  <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>Emergency access is restricted to system administrators.</value></data>
+  <data name="BreakGlass.Request.Title" xml:space="preserve"><value>New request</value></data>
+  <data name="BreakGlass.Request.Desc" xml:space="preserve"><value>Request emergency access to a team vault you have no grant on. A different system admin must approve the request before it can be used.</value></data>
+  <data name="BreakGlass.SelectVault" xml:space="preserve"><value>Select team vault ...</value></data>
+  <data name="BreakGlass.Reason.Placeholder" xml:space="preserve"><value>Reason (required, recorded in the audit trail)</value></data>
+  <data name="BreakGlass.Request.Submit" xml:space="preserve"><value>Request access</value></data>
+  <data name="BreakGlass.Pending.Title" xml:space="preserve"><value>Pending requests</value></data>
+  <data name="BreakGlass.Pending.Empty" xml:space="preserve"><value>No pending requests.</value></data>
+  <data name="BreakGlass.OwnRequest" xml:space="preserve"><value>Own request - a second admin must approve</value></data>
+  <data name="BreakGlass.Approve" xml:space="preserve"><value>Approve</value></data>
+  <data name="BreakGlass.Reject" xml:space="preserve"><value>Reject</value></data>
+  <data name="BreakGlass.History.Title" xml:space="preserve"><value>History</value></data>
+  <data name="BreakGlass.History.Empty" xml:space="preserve"><value>No break-glass requests yet.</value></data>
+  <data name="BreakGlass.ValidUntil" xml:space="preserve"><value>valid until {0}</value></data>
+  <data name="BreakGlass.Consume" xml:space="preserve"><value>Consume</value></data>
+  <data name="BreakGlass.Consume.Hint" xml:space="preserve"><value>Grants the requester Manage access to the target vault (visible and revocable in the vault&apos;s sharing list).</value></data>
+  <data name="BreakGlass.Msg.Requested" xml:space="preserve"><value>Request created - a second admin must approve it.</value></data>
+  <data name="BreakGlass.Msg.Approved" xml:space="preserve"><value>Request approved - the requester can now consume it.</value></data>
+  <data name="BreakGlass.Msg.Rejected" xml:space="preserve"><value>Request rejected.</value></data>
+  <data name="BreakGlass.Msg.Consumed" xml:space="preserve"><value>Access granted - the requester now has Manage access to the vault.</value></data>
+  <data name="BreakGlassStatus.Pending" xml:space="preserve"><value>Pending</value></data>
+  <data name="BreakGlassStatus.Approved" xml:space="preserve"><value>Approved</value></data>
+  <data name="BreakGlassStatus.Rejected" xml:space="preserve"><value>Rejected</value></data>
+  <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Consumed</value></data>
+  <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="Nav.BreakGlass" xml:space="preserve"><value>Emergency access</value></data>
 </root>

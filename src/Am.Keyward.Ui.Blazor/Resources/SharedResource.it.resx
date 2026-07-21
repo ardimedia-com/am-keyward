@@ -395,6 +395,12 @@
   <data name="Vault.Move.Action" xml:space="preserve">
     <value>Sposta</value>
   </data>
+  <data name="Vault.CopyLink" xml:space="preserve">
+    <value>Copia link</value>
+  </data>
+  <data name="Vault.Msg.LinkCopied" xml:space="preserve">
+    <value>Link copiato.</value>
+  </data>
   <data name="Vault.Msg.Moved" xml:space="preserve">
     <value>Voce spostata.</value>
   </data>
@@ -620,4 +626,32 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Ruota un token nella pagina dei token dell'app; il nuovo valore è mostrato una sola volta.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Apri i token dell'app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Ricevi questa e-mail perché hai attivato le notifiche di scadenza dei token dell'app nel tuo profilo.</value></data>
+  <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Accesso di emergenza (break-glass)</value></data>
+  <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Accesso di emergenza alle casseforti del team a doppio controllo: un amministratore di sistema lo richiede con una motivazione, un secondo lo approva; l&apos;utilizzo concede al richiedente l&apos;accesso Manage alla cassaforte - completamente registrato e revocabile.</value></data>
+  <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>L&apos;accesso di emergenza è riservato agli amministratori di sistema.</value></data>
+  <data name="BreakGlass.Request.Title" xml:space="preserve"><value>Nuova richiesta</value></data>
+  <data name="BreakGlass.Request.Desc" xml:space="preserve"><value>Richiedi l&apos;accesso di emergenza a una cassaforte del team per la quale non hai autorizzazioni. Un altro amministratore di sistema deve approvare la richiesta prima che sia utilizzabile.</value></data>
+  <data name="BreakGlass.SelectVault" xml:space="preserve"><value>Scegli la cassaforte del team ...</value></data>
+  <data name="BreakGlass.Reason.Placeholder" xml:space="preserve"><value>Motivazione (obbligatoria, registrata)</value></data>
+  <data name="BreakGlass.Request.Submit" xml:space="preserve"><value>Richiedi accesso</value></data>
+  <data name="BreakGlass.Pending.Title" xml:space="preserve"><value>Richieste in sospeso</value></data>
+  <data name="BreakGlass.Pending.Empty" xml:space="preserve"><value>Nessuna richiesta in sospeso.</value></data>
+  <data name="BreakGlass.OwnRequest" xml:space="preserve"><value>Richiesta propria - un secondo admin deve approvare</value></data>
+  <data name="BreakGlass.Approve" xml:space="preserve"><value>Approva</value></data>
+  <data name="BreakGlass.Reject" xml:space="preserve"><value>Rifiuta</value></data>
+  <data name="BreakGlass.History.Title" xml:space="preserve"><value>Cronologia</value></data>
+  <data name="BreakGlass.History.Empty" xml:space="preserve"><value>Ancora nessuna richiesta break-glass.</value></data>
+  <data name="BreakGlass.ValidUntil" xml:space="preserve"><value>valida fino al {0}</value></data>
+  <data name="BreakGlass.Consume" xml:space="preserve"><value>Utilizza</value></data>
+  <data name="BreakGlass.Consume.Hint" xml:space="preserve"><value>Concede al richiedente l&apos;accesso Manage alla cassaforte di destinazione (visibile e revocabile nell&apos;elenco di condivisione della cassaforte).</value></data>
+  <data name="BreakGlass.Msg.Requested" xml:space="preserve"><value>Richiesta creata - un secondo admin deve approvarla.</value></data>
+  <data name="BreakGlass.Msg.Approved" xml:space="preserve"><value>Richiesta approvata - il richiedente può ora utilizzarla.</value></data>
+  <data name="BreakGlass.Msg.Rejected" xml:space="preserve"><value>Richiesta rifiutata.</value></data>
+  <data name="BreakGlass.Msg.Consumed" xml:space="preserve"><value>Accesso concesso - il richiedente ha ora l&apos;accesso Manage alla cassaforte.</value></data>
+  <data name="BreakGlassStatus.Pending" xml:space="preserve"><value>In sospeso</value></data>
+  <data name="BreakGlassStatus.Approved" xml:space="preserve"><value>Approvata</value></data>
+  <data name="BreakGlassStatus.Rejected" xml:space="preserve"><value>Rifiutata</value></data>
+  <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Utilizzata</value></data>
+  <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Scaduta</value></data>
+  <data name="Nav.BreakGlass" xml:space="preserve"><value>Accesso di emergenza</value></data>
 </root>

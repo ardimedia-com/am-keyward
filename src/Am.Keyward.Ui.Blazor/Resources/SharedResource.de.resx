@@ -395,6 +395,12 @@
   <data name="Vault.Move.Action" xml:space="preserve">
     <value>Verschieben</value>
   </data>
+  <data name="Vault.CopyLink" xml:space="preserve">
+    <value>Link kopieren</value>
+  </data>
+  <data name="Vault.Msg.LinkCopied" xml:space="preserve">
+    <value>Link kopiert.</value>
+  </data>
   <data name="Vault.Msg.Moved" xml:space="preserve">
     <value>Eintrag verschoben.</value>
   </data>
@@ -620,4 +626,32 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotiere einen Token auf der App-Tokens-Seite; der neue Wert wird genau einmal angezeigt.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>App-Tokens öffnen</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil App-Token-Ablauf-Benachrichtigungen aktiviert hast.</value></data>
+  <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Notzugriff (Break-Glass)</value></data>
+  <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Notzugriff auf Team-Tresore im Vier-Augen-Prinzip: ein System-Admin beantragt mit Begründung, ein zweiter genehmigt; das Einlösen gibt dem Antragsteller Manage-Zugriff auf den Tresor - vollständig protokolliert und widerrufbar.</value></data>
+  <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>Der Notzugriff ist System-Administratoren vorbehalten.</value></data>
+  <data name="BreakGlass.Request.Title" xml:space="preserve"><value>Neuer Antrag</value></data>
+  <data name="BreakGlass.Request.Desc" xml:space="preserve"><value>Beantrage Notzugriff auf einen Team-Tresor, für den du keine Freigabe hast. Ein anderer System-Admin muss den Antrag genehmigen, bevor er nutzbar ist.</value></data>
+  <data name="BreakGlass.SelectVault" xml:space="preserve"><value>Team-Tresor wählen ...</value></data>
+  <data name="BreakGlass.Reason.Placeholder" xml:space="preserve"><value>Begründung (Pflicht, wird protokolliert)</value></data>
+  <data name="BreakGlass.Request.Submit" xml:space="preserve"><value>Zugriff beantragen</value></data>
+  <data name="BreakGlass.Pending.Title" xml:space="preserve"><value>Offene Anträge</value></data>
+  <data name="BreakGlass.Pending.Empty" xml:space="preserve"><value>Keine offenen Anträge.</value></data>
+  <data name="BreakGlass.OwnRequest" xml:space="preserve"><value>Eigener Antrag - ein zweiter Admin muss genehmigen</value></data>
+  <data name="BreakGlass.Approve" xml:space="preserve"><value>Genehmigen</value></data>
+  <data name="BreakGlass.Reject" xml:space="preserve"><value>Ablehnen</value></data>
+  <data name="BreakGlass.History.Title" xml:space="preserve"><value>Verlauf</value></data>
+  <data name="BreakGlass.History.Empty" xml:space="preserve"><value>Noch keine Break-Glass-Anträge.</value></data>
+  <data name="BreakGlass.ValidUntil" xml:space="preserve"><value>gültig bis {0}</value></data>
+  <data name="BreakGlass.Consume" xml:space="preserve"><value>Einlösen</value></data>
+  <data name="BreakGlass.Consume.Hint" xml:space="preserve"><value>Gibt dem Antragsteller Manage-Zugriff auf den Ziel-Tresor (sichtbar und widerrufbar in der Freigabeliste des Tresors).</value></data>
+  <data name="BreakGlass.Msg.Requested" xml:space="preserve"><value>Antrag erstellt - ein zweiter Admin muss ihn genehmigen.</value></data>
+  <data name="BreakGlass.Msg.Approved" xml:space="preserve"><value>Antrag genehmigt - der Antragsteller kann ihn jetzt einlösen.</value></data>
+  <data name="BreakGlass.Msg.Rejected" xml:space="preserve"><value>Antrag abgelehnt.</value></data>
+  <data name="BreakGlass.Msg.Consumed" xml:space="preserve"><value>Zugriff gewährt - der Antragsteller hat jetzt Manage-Zugriff auf den Tresor.</value></data>
+  <data name="BreakGlassStatus.Pending" xml:space="preserve"><value>Offen</value></data>
+  <data name="BreakGlassStatus.Approved" xml:space="preserve"><value>Genehmigt</value></data>
+  <data name="BreakGlassStatus.Rejected" xml:space="preserve"><value>Abgelehnt</value></data>
+  <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Eingelöst</value></data>
+  <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Abgelaufen</value></data>
+  <data name="Nav.BreakGlass" xml:space="preserve"><value>Notzugriff</value></data>
 </root>

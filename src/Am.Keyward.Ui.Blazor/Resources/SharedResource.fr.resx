@@ -395,6 +395,12 @@
   <data name="Vault.Move.Action" xml:space="preserve">
     <value>Déplacer</value>
   </data>
+  <data name="Vault.CopyLink" xml:space="preserve">
+    <value>Copier le lien</value>
+  </data>
+  <data name="Vault.Msg.LinkCopied" xml:space="preserve">
+    <value>Lien copié.</value>
+  </data>
   <data name="Vault.Msg.Moved" xml:space="preserve">
     <value>Entrée déplacée.</value>
   </data>
@@ -620,4 +626,32 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Renouvelez un jeton sur la page des jetons d'app ; la nouvelle valeur est affichée une seule fois.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Ouvrir les jetons d'app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Vous recevez cet e-mail parce que vous avez activé les notifications d'expiration des jetons d'app dans votre profil.</value></data>
+  <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Accès d&apos;urgence (break-glass)</value></data>
+  <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Accès d&apos;urgence aux coffres d&apos;équipe en double contrôle : un administrateur système fait la demande avec un motif, un second l&apos;approuve ; l&apos;utilisation accorde au demandeur l&apos;accès Manage au coffre - entièrement journalisé et révocable.</value></data>
+  <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>L&apos;accès d&apos;urgence est réservé aux administrateurs système.</value></data>
+  <data name="BreakGlass.Request.Title" xml:space="preserve"><value>Nouvelle demande</value></data>
+  <data name="BreakGlass.Request.Desc" xml:space="preserve"><value>Demandez un accès d&apos;urgence à un coffre d&apos;équipe pour lequel vous n&apos;avez pas d&apos;autorisation. Un autre administrateur système doit approuver la demande avant qu&apos;elle soit utilisable.</value></data>
+  <data name="BreakGlass.SelectVault" xml:space="preserve"><value>Choisir un coffre d&apos;équipe ...</value></data>
+  <data name="BreakGlass.Reason.Placeholder" xml:space="preserve"><value>Motif (obligatoire, journalisé)</value></data>
+  <data name="BreakGlass.Request.Submit" xml:space="preserve"><value>Demander l&apos;accès</value></data>
+  <data name="BreakGlass.Pending.Title" xml:space="preserve"><value>Demandes en attente</value></data>
+  <data name="BreakGlass.Pending.Empty" xml:space="preserve"><value>Aucune demande en attente.</value></data>
+  <data name="BreakGlass.OwnRequest" xml:space="preserve"><value>Votre demande - un second admin doit approuver</value></data>
+  <data name="BreakGlass.Approve" xml:space="preserve"><value>Approuver</value></data>
+  <data name="BreakGlass.Reject" xml:space="preserve"><value>Rejeter</value></data>
+  <data name="BreakGlass.History.Title" xml:space="preserve"><value>Historique</value></data>
+  <data name="BreakGlass.History.Empty" xml:space="preserve"><value>Aucune demande break-glass pour l&apos;instant.</value></data>
+  <data name="BreakGlass.ValidUntil" xml:space="preserve"><value>valable jusqu&apos;au {0}</value></data>
+  <data name="BreakGlass.Consume" xml:space="preserve"><value>Utiliser</value></data>
+  <data name="BreakGlass.Consume.Hint" xml:space="preserve"><value>Accorde au demandeur l&apos;accès Manage au coffre cible (visible et révocable dans la liste de partage du coffre).</value></data>
+  <data name="BreakGlass.Msg.Requested" xml:space="preserve"><value>Demande créée - un second admin doit l&apos;approuver.</value></data>
+  <data name="BreakGlass.Msg.Approved" xml:space="preserve"><value>Demande approuvée - le demandeur peut maintenant l&apos;utiliser.</value></data>
+  <data name="BreakGlass.Msg.Rejected" xml:space="preserve"><value>Demande rejetée.</value></data>
+  <data name="BreakGlass.Msg.Consumed" xml:space="preserve"><value>Accès accordé - le demandeur dispose maintenant de l&apos;accès Manage au coffre.</value></data>
+  <data name="BreakGlassStatus.Pending" xml:space="preserve"><value>En attente</value></data>
+  <data name="BreakGlassStatus.Approved" xml:space="preserve"><value>Approuvée</value></data>
+  <data name="BreakGlassStatus.Rejected" xml:space="preserve"><value>Rejetée</value></data>
+  <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Utilisée</value></data>
+  <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Expirée</value></data>
+  <data name="Nav.BreakGlass" xml:space="preserve"><value>Accès d&apos;urgence</value></data>
 </root>

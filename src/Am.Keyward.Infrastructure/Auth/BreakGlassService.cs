@@ -70,6 +70,62 @@ public sealed class BreakGlassService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+    public Task<bool> IsSystemAdminAsync(Guid userId, CancellationToken ct = default) =>
+        db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct);
+
+    public async Task<IReadOnlyList<BreakGlassTargetVault>> ListTargetVaultsAsync(Guid actorUserId, Guid tenantId, CancellationToken ct = default)
+    {
+        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+
+        // Metadata only (id + name) — the recovery target picker. The tenant query filter already scopes
+        // this to the current tenant; the explicit TenantId predicate additionally excludes the caller's
+        // own personal vaults (TenantId == null), which are out of break-glass scope by design.
+        return await db.Vaults
+            .Where(v => v.TenantId == tenantId)
+            .OrderBy(v => v.Name)
+            .Select(v => new BreakGlassTargetVault(v.Id, v.Name))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<BreakGlassGrantInfo>> ListGrantsAsync(Guid actorUserId, int take = 50, CancellationToken ct = default)
+    {
+        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+
+        var grants = await db.BreakGlassGrants.AsNoTracking()
+            .OrderByDescending(g => g.RequestedAt)
+            .Take(Math.Clamp(take, 1, 200))
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (grants.Count == 0)
+        {
+            return [];
+        }
+
+        // Resolve display names in memory (the sets are tiny). Users are installation-global; vault names
+        // resolve only within the current tenant scope (a foreign tenant's grant shows without a name).
+        var userIds = grants.Select(g => g.RequesterUserId)
+            .Concat(grants.Where(g => g.ApproverUserId is not null).Select(g => g.ApproverUserId!.Value))
+            .Distinct().ToList();
+        var users = await db.Users.AsNoTracking()
+            .Where(u => userIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct)
+            .ConfigureAwait(false);
+
+        var vaultIds = grants.Where(g => g.Scope.Kind == GrantScopeKind.Vault).Select(g => g.Scope.TargetId).Distinct().ToList();
+        var vaultNames = await db.Vaults.AsNoTracking()
+            .Where(v => vaultIds.Contains(v.Id))
+            .ToDictionaryAsync(v => v.Id, v => v.Name, ct)
+            .ConfigureAwait(false);
+
+        return grants.Select(g => new BreakGlassGrantInfo(
+            g.Id, g.Status, g.Scope,
+            g.Scope.Kind == GrantScopeKind.Vault && vaultNames.TryGetValue(g.Scope.TargetId, out var name) ? name : null,
+            g.RequesterUserId, users.GetValueOrDefault(g.RequesterUserId, g.RequesterUserId.ToString("D")),
+            g.ApproverUserId, g.ApproverUserId is { } a ? users.GetValueOrDefault(a, a.ToString("D")) : null,
+            g.Reason, g.RequestedAt, g.DecidedAt, g.ExpiresAt, g.ConsumedAt)).ToList();
+    }
+
     public async Task ConsumeAsync(Guid grantId, Guid actorUserId, CancellationToken ct = default)
     {
         // Re-check system-admin at consume time (mirrors request/approve/reject): a user de-privileged after
@@ -82,7 +138,34 @@ public sealed class BreakGlassService(
             throw new UnauthorizedAccessException("Only the break-glass requester or approver may consume the grant.");
         }
 
+        // The materialized access grant below is tenant-scoped (the ACL query filter and RLS admit only
+        // tenant rows), so a tenant-less target cannot be recovered this way — personal vaults are out of
+        // break-glass scope by design (their access model is "owner only", not the ACL).
+        if (grant.TenantId is null)
+        {
+            throw new InvalidOperationException("Break-glass consumption requires a tenant-scoped target resource.");
+        }
+
         grant.Consume(clock.UtcNow); // domain enforces approved-and-unexpired
+
+        // Materialize the emergency access as a REGULAR Manage grant for the REQUESTER (not the actor — the
+        // approver may click consume, but the access belongs to whoever needs the recovery). It shows up in
+        // the normal ACL: visible on the vault's share list, enforced by the existing authorization checks,
+        // and revocable after the recovery — no second, invisible authorization path.
+        var existing = await db.AccessGrants.FirstOrDefaultAsync(
+            g => g.PrincipalType == PrincipalType.User && g.PrincipalId == grant.RequesterUserId
+                && g.Scope.Kind == grant.Scope.Kind && g.Scope.TargetId == grant.Scope.TargetId,
+            ct).ConfigureAwait(false);
+        if (existing is null)
+        {
+            db.AccessGrants.Add(new AccessGrant(
+                Guid.NewGuid(), grant.TenantId, PrincipalType.User, grant.RequesterUserId,
+                grant.Scope, Permission.Manage, actorUserId, clock.UtcNow));
+        }
+        else if (existing.Permission < Permission.Manage)
+        {
+            existing.ChangePermission(Permission.Manage);
+        }
 
         await WriteSinkAsync("Consumed", grant, actorUserId, ct).ConfigureAwait(false);
         await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, actorUserId), ct).ConfigureAwait(false);

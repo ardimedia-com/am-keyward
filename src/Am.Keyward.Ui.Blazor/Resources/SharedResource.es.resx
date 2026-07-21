@@ -395,6 +395,12 @@
   <data name="Vault.Move.Action" xml:space="preserve">
     <value>Mover</value>
   </data>
+  <data name="Vault.CopyLink" xml:space="preserve">
+    <value>Copiar enlace</value>
+  </data>
+  <data name="Vault.Msg.LinkCopied" xml:space="preserve">
+    <value>Enlace copiado.</value>
+  </data>
   <data name="Vault.Msg.Moved" xml:space="preserve">
     <value>Entrada movida.</value>
   </data>
@@ -620,4 +626,32 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rota un token en la página de tokens de app; el nuevo valor se muestra una sola vez.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Abrir los tokens de app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Recibes este correo porque activaste las notificaciones de expiración de tokens de app en tu perfil.</value></data>
+  <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Acceso de emergencia (break-glass)</value></data>
+  <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Acceso de emergencia a las bóvedas de equipo con doble control: un administrador del sistema lo solicita con un motivo, un segundo lo aprueba; el uso concede al solicitante acceso Manage a la bóveda - totalmente auditado y revocable.</value></data>
+  <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>El acceso de emergencia está reservado a los administradores del sistema.</value></data>
+  <data name="BreakGlass.Request.Title" xml:space="preserve"><value>Nueva solicitud</value></data>
+  <data name="BreakGlass.Request.Desc" xml:space="preserve"><value>Solicita acceso de emergencia a una bóveda de equipo para la que no tienes autorización. Otro administrador del sistema debe aprobar la solicitud antes de poder usarla.</value></data>
+  <data name="BreakGlass.SelectVault" xml:space="preserve"><value>Elegir bóveda de equipo ...</value></data>
+  <data name="BreakGlass.Reason.Placeholder" xml:space="preserve"><value>Motivo (obligatorio, se registra)</value></data>
+  <data name="BreakGlass.Request.Submit" xml:space="preserve"><value>Solicitar acceso</value></data>
+  <data name="BreakGlass.Pending.Title" xml:space="preserve"><value>Solicitudes pendientes</value></data>
+  <data name="BreakGlass.Pending.Empty" xml:space="preserve"><value>No hay solicitudes pendientes.</value></data>
+  <data name="BreakGlass.OwnRequest" xml:space="preserve"><value>Solicitud propia - un segundo admin debe aprobar</value></data>
+  <data name="BreakGlass.Approve" xml:space="preserve"><value>Aprobar</value></data>
+  <data name="BreakGlass.Reject" xml:space="preserve"><value>Rechazar</value></data>
+  <data name="BreakGlass.History.Title" xml:space="preserve"><value>Historial</value></data>
+  <data name="BreakGlass.History.Empty" xml:space="preserve"><value>Aún no hay solicitudes break-glass.</value></data>
+  <data name="BreakGlass.ValidUntil" xml:space="preserve"><value>válida hasta {0}</value></data>
+  <data name="BreakGlass.Consume" xml:space="preserve"><value>Usar</value></data>
+  <data name="BreakGlass.Consume.Hint" xml:space="preserve"><value>Concede al solicitante acceso Manage a la bóveda de destino (visible y revocable en la lista de uso compartido de la bóveda).</value></data>
+  <data name="BreakGlass.Msg.Requested" xml:space="preserve"><value>Solicitud creada - un segundo admin debe aprobarla.</value></data>
+  <data name="BreakGlass.Msg.Approved" xml:space="preserve"><value>Solicitud aprobada - el solicitante ya puede usarla.</value></data>
+  <data name="BreakGlass.Msg.Rejected" xml:space="preserve"><value>Solicitud rechazada.</value></data>
+  <data name="BreakGlass.Msg.Consumed" xml:space="preserve"><value>Acceso concedido - el solicitante ahora tiene acceso Manage a la bóveda.</value></data>
+  <data name="BreakGlassStatus.Pending" xml:space="preserve"><value>Pendiente</value></data>
+  <data name="BreakGlassStatus.Approved" xml:space="preserve"><value>Aprobada</value></data>
+  <data name="BreakGlassStatus.Rejected" xml:space="preserve"><value>Rechazada</value></data>
+  <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Usada</value></data>
+  <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Caducada</value></data>
+  <data name="Nav.BreakGlass" xml:space="preserve"><value>Acceso de emergencia</value></data>
 </root>
