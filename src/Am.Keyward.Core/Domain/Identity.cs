@@ -47,6 +47,15 @@ public sealed class AppUser
 
     public string DisplayName { get; private set; }
     public bool IsSystemAdmin { get; private set; }
+
+    /// <summary>
+    /// A NARROW capability: may manage the software side (applications, their environments, per-environment
+    /// data/secrets and client tokens) — but NOT human vaults, groups, tenant default environments or
+    /// break-glass. Distinct from <see cref="IsSystemAdmin"/> / tenant-admin, which grant everything. Lets a
+    /// host bind a "software/application manager" who can never read team-vault passwords. Installation-global.
+    /// </summary>
+    public bool IsSoftwareManager { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>
@@ -55,7 +64,7 @@ public sealed class AppUser
     /// </summary>
     public bool NotifyTokenExpiry { get; private set; }
 
-    public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt)
+    public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt, bool isSoftwareManager = false)
     {
         if (string.IsNullOrWhiteSpace(externalId))
         {
@@ -67,12 +76,17 @@ public sealed class AppUser
         ExternalId = externalId.Trim();
         DisplayName = string.IsNullOrWhiteSpace(displayName) ? ExternalId : displayName.Trim();
         IsSystemAdmin = isSystemAdmin;
+        IsSoftwareManager = isSoftwareManager;
         CreatedAt = createdAt;
     }
 
     public void GrantSystemAdmin() => IsSystemAdmin = true;
 
     public void RevokeSystemAdmin() => IsSystemAdmin = false;
+
+    public void GrantSoftwareManager() => IsSoftwareManager = true;
+
+    public void RevokeSoftwareManager() => IsSoftwareManager = false;
 
     public void SetTokenExpiryNotification(bool enabled) => NotifyTokenExpiry = enabled;
 }

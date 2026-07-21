@@ -3,7 +3,6 @@
 @attribute [Authorize]
 @inject IProjectService ProjectService
 @inject ISoftwareSecretService SecretService
-@inject IGroupService GroupService
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
 @inject KeywardUiState UiState
@@ -247,7 +246,8 @@
         actorUserId = CurrentUser.UserId;
         if (actorUserId is null) return;
         tenantId = Workspace.TenantId;
-        canManage = await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
+        // Software-management gate: system admin, tenant admin, OR software manager (the «Application» role).
+        canManage = await ProjectService.CanManageAsync(tenantId, actorUserId.Value);
         await ReloadAppsAsync();
         var remembered = UiState.SelectedProjectId;
         if (apps!.Any(a => a.Id == remembered))

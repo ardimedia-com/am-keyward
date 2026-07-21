@@ -44,6 +44,12 @@ public interface IProjectService
 {
     Task<IReadOnlyList<ProjectInfo>> ListAsync(Guid tenantId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Whether the user may manage the software side (applications, environments, data, tokens): a system
+    /// admin, a tenant admin, or a software manager. For UI gating; every mutation re-checks server-side.
+    /// </summary>
+    Task<bool> CanManageAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct = default);
+
     /// <summary>Creates a project with the default environment set, so secrets/tokens have a target right away.</summary>
     Task<Guid> CreateAsync(Guid tenantId, string name, Guid? actorUserId, CancellationToken ct = default);
 

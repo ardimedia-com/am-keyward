@@ -41,7 +41,7 @@ public sealed class SoftwareSecretService(
     public async Task RenameEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, string newName, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
@@ -62,7 +62,7 @@ public sealed class SoftwareSecretService(
     public async Task DeleteEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
@@ -95,15 +95,18 @@ public sealed class SoftwareSecretService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task EnsureEnvironmentOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    // Managing the software side (environments AND per-environment data/secrets) requires a system admin,
+    // a tenant admin, OR a software manager. NOTE: this gates the UI mutation paths only — the token-
+    // authenticated client READ paths (ReadAsync/ReadAllAsync) stay tenant-scoped (the token is the auth).
+    private async Task EnsureSoftwareOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
         var isOperator = actorUserId is { } actor
-            && (await db.Users.AnyAsync(u => u.Id == actor && u.IsSystemAdmin, ct).ConfigureAwait(false)
+            && (await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
                 || await db.TenantMemberships.AnyAsync(
                     m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
         if (!isOperator)
         {
-            throw new UnauthorizedAccessException("Managing environments requires the tenant-admin role.");
+            throw new UnauthorizedAccessException("Managing application data requires the tenant-admin or software-manager role.");
         }
     }
 
@@ -111,7 +114,7 @@ public sealed class SoftwareSecretService(
     {
         EnsureTenantScope(tenantId);
 
-        await EnsureEnvironmentOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var project = await db.Projects.Include(p => p.Environments)
             .FirstOrDefaultAsync(p => p.Id == projectId, ct).ConfigureAwait(false)
@@ -129,6 +132,7 @@ public sealed class SoftwareSecretService(
     public async Task StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
+        await EnsureSoftwareOperatorAsync(cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(cmd.ProjectId, Permission.Write, ct).ConfigureAwait(false);
 
         var environment = await ResolveEnvironmentAsync(cmd.ProjectId, cmd.Environment, ct)
@@ -352,6 +356,7 @@ public sealed class SoftwareSecretService(
     public async Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
 
         var secretKey = SecretKey.Create(key);

@@ -25,6 +25,7 @@ public sealed class SoftwareClientTokenService(
     public async Task<IssuedSoftwareClientToken> IssueAsync(IssueSoftwareClientTokenCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
+        await EnsureSoftwareOperatorAsync(cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
 
         var environmentName = EnvironmentName.Create(cmd.Environment);
         var environment = await db.RuntimeEnvironments
@@ -75,6 +76,7 @@ public sealed class SoftwareClientTokenService(
     public async Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
@@ -95,6 +97,7 @@ public sealed class SoftwareClientTokenService(
     public async Task RevokeAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false);
         if (token is null)
@@ -110,6 +113,7 @@ public sealed class SoftwareClientTokenService(
     public async Task ReactivateAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
@@ -127,6 +131,7 @@ public sealed class SoftwareClientTokenService(
     public async Task DeleteAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false);
         if (token is null)
@@ -160,6 +165,7 @@ public sealed class SoftwareClientTokenService(
     public async Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(tenantId, tokenId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Token {tokenId} not found.");
@@ -169,6 +175,22 @@ public sealed class SoftwareClientTokenService(
         token.UpdateDetails(name, note);
         await AuditAsync(tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    // Minting / rotating / revoking a client token is a software-management action: system admin, tenant
+    // admin, OR software manager. (Previously these were gated only by tenant scope — any signed-in tenant
+    // user could mint a credential; this closes that gap.) CreatePending is intentionally NOT gated here — it
+    // is an internal building block invoked by ProjectService/SoftwareSecretService, which already gate.
+    private async Task EnsureSoftwareOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    {
+        var isOperator = actorUserId is { } actor
+            && (await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
+                || await db.TenantMemberships.AnyAsync(
+                    m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
+        if (!isOperator)
+        {
+            throw new UnauthorizedAccessException("Managing client tokens requires the tenant-admin or software-manager role.");
+        }
     }
 
     private Task<SoftwareClientToken?> FindAsync(Guid tenantId, Guid tokenId, CancellationToken ct) =>

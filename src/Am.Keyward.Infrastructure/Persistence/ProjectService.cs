@@ -144,15 +144,29 @@ public sealed class ProjectService(
         }
     }
 
+    /// <summary>
+    /// Whether the user may manage the software side (applications, their environments, data and tokens):
+    /// a system admin, a tenant admin, OR a dedicated software manager (<see cref="AppUser.IsSoftwareManager"/>).
+    /// The software-manager capability deliberately does NOT extend to groups, tenant default environments,
+    /// team-vault export or break-glass — those stay tenant-admin/system-admin only.
+    /// </summary>
+    public async Task<bool> CanManageAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct = default)
+    {
+        if (actorUserId is not { } actor)
+        {
+            return false;
+        }
+
+        return await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
+            || await db.TenantMemberships.AnyAsync(
+                m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
+    }
+
     private async Task EnsureOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
-        var isOperator = actorUserId is { } actor
-            && (await db.Users.AnyAsync(u => u.Id == actor && u.IsSystemAdmin, ct).ConfigureAwait(false)
-                || await db.TenantMemberships.AnyAsync(
-                    m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false));
-        if (!isOperator)
+        if (!await CanManageAsync(tenantId, actorUserId, ct).ConfigureAwait(false))
         {
-            throw new UnauthorizedAccessException("Managing applications requires the tenant-admin role.");
+            throw new UnauthorizedAccessException("Managing applications requires the tenant-admin or software-manager role.");
         }
     }
 

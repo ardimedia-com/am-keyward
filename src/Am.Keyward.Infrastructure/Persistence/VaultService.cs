@@ -32,6 +32,7 @@ public sealed class VaultService(
     public async Task<Guid> CreatePersonalVaultAsync(CreatePersonalVaultCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
+        await EnsureTenantParticipantAsync(cmd.UserId, ct).ConfigureAwait(false);
 
         var vault = new Vault(
             Guid.NewGuid(), tenantId: null, OwnerType.User, ownerId: cmd.UserId,
@@ -46,6 +47,7 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<VaultSummary>> ListVaultsAsync(Guid userId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
+        await EnsureTenantParticipantAsync(userId, ct).ConfigureAwait(false);
 
         return await db.Vaults
             .Where(v => v.OwnerUserId == userId) // personal vaults
@@ -61,6 +63,7 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.UserId);
         EnsureTenantScope(cmd.TenantId);
+        await EnsureTenantParticipantAsync(cmd.UserId, ct).ConfigureAwait(false);
 
         var vault = new Vault(
             Guid.NewGuid(), cmd.TenantId, OwnerType.Tenant, ownerId: cmd.TenantId,
@@ -81,6 +84,7 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
         EnsureTenantScope(tenantId);
+        await EnsureTenantParticipantAsync(userId, ct).ConfigureAwait(false);
 
         // Direct user grants plus grants held by any group the user belongs to.
         var groupIds = await db.GroupMemberships
@@ -826,6 +830,21 @@ public sealed class VaultService(
         {
             throw new UnauthorizedAccessException(
                 "User scope mismatch: the request's user does not match the authenticated user.");
+        }
+    }
+
+    // Using vaults (creating/listing personal or team vaults) requires the user to actually belong to the
+    // current tenant — a system admin, or a member of this tenant. A bound user that is NOT a tenant member
+    // (e.g. a host role granted only the software-manager capability) therefore has no vault access at all,
+    // and — since share candidates are tenant members — can never be granted a team vault either.
+    private async Task EnsureTenantParticipantAsync(Guid userId, CancellationToken ct)
+    {
+        var isParticipant =
+            await db.Users.AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false)
+            || await db.TenantMemberships.AnyAsync(m => m.TenantId == tenant.TenantId && m.UserId == userId, ct).ConfigureAwait(false);
+        if (!isParticipant)
+        {
+            throw new UnauthorizedAccessException("Vault access requires membership in this tenant.");
         }
     }
 

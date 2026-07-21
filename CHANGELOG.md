@@ -5,7 +5,27 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **`AppUser.IsSoftwareManager` — a narrow "manage the software side" capability.** Distinct from
+  system-admin / tenant-admin (which grant everything), it lets a host bind a user who may manage
+  applications, their environments, per-environment data and client tokens — but can never read team-vault
+  passwords, manage groups, edit tenant default environments or use break-glass. Requires the
+  `SoftwareManagerFlag` migration (adds a `bit` column, default false). Exposed via
+  `IProjectService.CanManageAsync` for UI gating.
+
 ### Changed
+
+- **BREAKING (hardening): software mutations now require an operator, not just tenant scope.** `ProjectService`
+  and `SoftwareSecretService` accept `IsSoftwareManager` in their operator check; **client-token minting/rotation/
+  revocation and secret store/delete are now gated at all** (previously only tenant-scoped — any signed-in
+  tenant user could mint a credential or write a secret via the API). The gate is
+  system-admin OR tenant-admin OR software-manager. Read paths (the token-authenticated client API) stay
+  tenant-scoped.
+- **BREAKING (hardening): using vaults now requires tenant membership.** `VaultService`'s personal/team vault
+  create + list require the user to be a member of the current tenant (or a system admin). A bound user who is
+  not a member — e.g. a software-manager-only host role — therefore has no vault access at all, and (since
+  share candidates are members) can never be granted a team vault either.
 
 - **BREAKING: the software side is now ONE page.** The Applications page holds an application's environments,
   its data (per-environment secret values) and its client tokens as four tabs — «Applikation», «Umgebungen»,
