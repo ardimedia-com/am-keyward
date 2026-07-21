@@ -260,7 +260,6 @@
 }
 .keyward-ui ::deep .kw-detail-split > .kw-split-list { flex: 0 0 34%; min-width: 14rem; }
 .keyward-ui ::deep .kw-detail-split > .kw-split-detail { flex: 1 1 0; min-width: 0; }
-.keyward-ui ::deep .kw-split-detail-head { display: flex; justify-content: flex-end; margin-bottom: .5rem; }
 @media (max-width: 60rem) {
     .keyward-ui ::deep .kw-detail-split { flex-direction: column; }
     .keyward-ui ::deep .kw-detail-split > .kw-split-list { flex: none; width: 100%; min-width: 0; }

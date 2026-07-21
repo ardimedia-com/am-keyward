@@ -665,4 +665,6 @@
   <data name="Token.PerEnvHint" xml:space="preserve"><value>Un token client per ambiente.</value></data>
   <data name="Token.NoEnvironments" xml:space="preserve"><value>Questa applicazione non ha ancora ambienti.</value></data>
   <data name="Token.Status.None" xml:space="preserve"><value>Nessun token</value></data>
+  <data name="Token.Expires.Days" xml:space="preserve"><value>{0} giorni</value></data>
+  <data name="Token.Expires.Keep" xml:space="preserve"><value>Mantieni</value></data>
 </root>

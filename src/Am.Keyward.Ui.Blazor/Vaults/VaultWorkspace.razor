@@ -174,17 +174,14 @@ else
                             }
                             else if (itemMode == "view" && detail is not null)
                             {
-                                <div class="entries-detail-head">
-                                    <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
-                                </div>
                                 @ItemDetailCard
                             }
                             else
                             {
-                                <div class="entries-detail-head">
-                                    <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
-                                </div>
                                 <div class="card">
+                                    <div class="row" style="justify-content:flex-end;">
+                                        <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
+                                    </div>
                                     <div class="empty-state">
                                         <KeywardIcon Name="key" Size="28" />
                                         <p>@Loc["Vault.Items.SelectHint"]</p>
@@ -572,6 +569,7 @@ else
             <div class="row" style="justify-content:space-between;">
                 <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="@TypeIcon(detail!.Type)" Size="18" />@detail.Name</h3>
                 <div class="row">
+                    <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
                     <button class="icon-btn" title="@Loc["Vault.CopyLink"]" @onclick="CopyItemLinkAsync"><KeywardIcon Name="@(copiedKey == "link" ? "check" : "link")" Size="15" /></button>
                     <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">@Loc["Common.Edit"]</button>
                     <button class="btn-danger btn-sm" @onclick="() => confirmDeleteItem = true" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>

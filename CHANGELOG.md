@@ -7,6 +7,11 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Client-token validity is choosable again.** The «Client-Tokens» tab shows a validity select on each
+  environment row: minting/issuing offers 1/10/30/60/90/180/360 days or «nie» (default 90); rotating an
+  active token defaults to «Beibehalten» (keep the current lifetime) or a fresh window. (It had been fixed at
+  90 days when the software pages were consolidated.)
+
 - **`AppUser.IsSoftwareManager` — a narrow "manage the software side" capability.** Distinct from
   system-admin / tenant-admin (which grant everything), it lets a host bind a user who may manage
   applications, their environments, per-environment data and client tokens — but can never read team-vault
@@ -41,8 +46,9 @@ All notable changes to this project are documented here, following
 
 - **Vault «Einträge» tab is a two-pane master-detail.** The entry list stays on the left; the right pane
   shows the selected entry's detail — with edit/delete in its header and deliberately **no close button**
-  (clicking another entry simply replaces the pane). «Eintrag hinzufügen» moved from a collapsed accordion
-  above the list to a button at the pane's top right that opens the add form in the pane. Deep links and
+  (clicking another entry simply replaces the pane). «Eintrag hinzufügen» sits at the pane's top right,
+  docked inside the detail/empty card's header (not floating above it), and opens the add form in the pane.
+  The same two-pane + docked-add-button layout applies to the applications «Daten» tab. Deep links and
   search hits open their entry in the same pane. Stacks vertically on narrow viewports.
 
 - **Tab bar renders as a bordered tab area.** `KeywardTabBar` gains a `ChildContent` mode: bar + the active

@@ -17,12 +17,6 @@
     min-width: 0;
 }
 
-.entries-detail-head {
-    display: flex;
-    justify-content: flex-end;
-    margin-bottom: .5rem;
-}
-
 @media (max-width: 60rem) {
     .entries-split {
         flex-direction: column;

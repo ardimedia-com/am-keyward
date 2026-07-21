@@ -665,4 +665,6 @@
   <data name="Token.PerEnvHint" xml:space="preserve"><value>Un jeton client par environnement.</value></data>
   <data name="Token.NoEnvironments" xml:space="preserve"><value>Cette application n&apos;a pas encore d&apos;environnements.</value></data>
   <data name="Token.Status.None" xml:space="preserve"><value>Aucun jeton</value></data>
+  <data name="Token.Expires.Days" xml:space="preserve"><value>{0} jours</value></data>
+  <data name="Token.Expires.Keep" xml:space="preserve"><value>Conserver</value></data>
 </root>

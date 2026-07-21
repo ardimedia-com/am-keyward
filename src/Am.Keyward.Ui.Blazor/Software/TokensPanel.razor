@@ -41,6 +41,7 @@ else
                         @if (token is null)
                         {
                             <span class="badge">@Loc["Token.Status.None"]</span>
+                            @ExpirySelect()
                             <button class="btn-sm" @onclick="() => IssueForAsync(env.Name)" disabled="@busy"><KeywardIcon Name="plus" Size="14" />@Loc["Token.Issue.Action"]</button>
                         }
                         else
@@ -56,10 +57,14 @@ else
                             }
                             else if (!token.HasSecret)
                             {
+                                @* Pending → mint its first value; the validity (or "never") is chosen here. *@
+                                @ExpirySelect()
                                 <button class="btn-sm" @onclick="() => MintAsync(token.Id)" disabled="@busy">@Loc["Token.GenerateValue"]</button>
                             }
                             else
                             {
+                                @* Rotate keeps the current lifetime unless a new validity is chosen. *@
+                                @ExpirySelect(withKeep: true)
                                 <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["Token.Rotate"]</button>
                                 <button class="btn-danger btn-sm" @onclick="() => { SelectToken(token.Id); confirmRevoke = true; }" disabled="@busy">@Loc["Token.Revoke"]</button>
                             }
@@ -157,6 +162,46 @@ else
     private (string Text, bool IsError)? status;
     private bool busy;
 
+    // Token validity: the user chooses it when minting/issuing (days, or "never"); when rotating an active
+    // token the default keeps the current lifetime unless a new window is chosen.
+    private static readonly int[] ExpiryChoices = [1, 10, 30, 60, 90, 180, 360];
+    private string mintExpiryChoice = "90";
+    private string rotateExpiryChoice = "keep";
+
+    private RenderFragment ExpirySelect(bool withKeep = false) => __builder =>
+    {
+        <select class="kw-expiry" value="@(withKeep ? rotateExpiryChoice : mintExpiryChoice)"
+                @onchange="e => SetExpiryChoice(withKeep, e.Value?.ToString())"
+                aria-label="@Loc["Token.ExpiresInDays"]" title="@Loc["Token.ExpiresInDays"]" style="max-width:8.5rem;">
+            @if (withKeep)
+            {
+                <option value="keep">@Loc["Token.Expires.Keep"]</option>
+            }
+            @foreach (var d in ExpiryChoices)
+            {
+                <option value="@d">@Loc["Token.Expires.Days", d]</option>
+            }
+            @if (!withKeep)
+            {
+                @* "never" only for minting — rotate cannot express it (a null expiry there re-applies the lifetime). *@
+                <option value="">@Loc["Token.Expires.Never"]</option>
+            }
+        </select>
+    };
+
+    private void SetExpiryChoice(bool withKeep, string? value)
+    {
+        if (withKeep) { rotateExpiryChoice = value ?? "keep"; } else { mintExpiryChoice = value ?? "90"; }
+    }
+
+    // Mint/issue: a number → that many days from now; "" → no expiry (never).
+    private DateTimeOffset? MintExpiry() =>
+        int.TryParse(mintExpiryChoice, out var d) ? DateTimeOffset.UtcNow.AddDays(d) : null;
+
+    // Rotate: "keep" → null (the service re-applies the current lifetime); a number → a fresh window.
+    private DateTimeOffset? RotateExpiry() =>
+        int.TryParse(rotateExpiryChoice, out var d) ? DateTimeOffset.UtcNow.AddDays(d) : null;
+
     private SoftwareClientTokenInfo? TokenFor(Guid environmentId) =>
         tokens?.Where(t => t.EnvironmentId == environmentId).OrderByDescending(t => t.HasSecret).FirstOrDefault();
 
@@ -202,7 +247,7 @@ else
     private Task IssueForAsync(string environmentName) => RunAsync(async () =>
     {
         var issued = await TokenService.IssueAsync(
-            new IssueSoftwareClientTokenCommand(TenantId, ProjectId, environmentName, "", DateTimeOffset.UtcNow.AddDays(90), ActorUserId, ""));
+            new IssueSoftwareClientTokenCommand(TenantId, ProjectId, environmentName, "", MintExpiry(), ActorUserId, ""));
         issuedToken = issued.Token;
         issuedForTokenId = issued.TokenId;
         issuedCopied = false;
@@ -214,7 +259,7 @@ else
     // Mints the FIRST value of a pending placeholder (technically a rotation with an explicit expiry).
     private Task MintAsync(Guid tokenId) => RunAsync(async () =>
     {
-        var minted = await TokenService.RotateAsync(TenantId, tokenId, DateTimeOffset.UtcNow.AddDays(90), ActorUserId);
+        var minted = await TokenService.RotateAsync(TenantId, tokenId, MintExpiry(), ActorUserId);
         issuedToken = minted.Token;
         issuedForTokenId = tokenId;
         issuedCopied = false;
@@ -225,7 +270,7 @@ else
 
     private Task RotateAsync(Guid tokenId) => RunAsync(async () =>
     {
-        var rotated = await TokenService.RotateAsync(TenantId, tokenId, null, ActorUserId);
+        var rotated = await TokenService.RotateAsync(TenantId, tokenId, RotateExpiry(), ActorUserId);
         issuedToken = rotated.Token;
         issuedForTokenId = tokenId;
         issuedCopied = false;
