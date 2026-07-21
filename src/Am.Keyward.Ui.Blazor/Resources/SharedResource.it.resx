@@ -654,4 +654,5 @@
   <data name="BreakGlassStatus.Consumed" xml:space="preserve"><value>Utilizzata</value></data>
   <data name="BreakGlassStatus.Expired" xml:space="preserve"><value>Scaduta</value></data>
   <data name="Nav.BreakGlass" xml:space="preserve"><value>Accesso di emergenza</value></data>
+  <data name="Vault.Items.SelectHint" xml:space="preserve"><value>Scegli una voce a sinistra - o creane una nuova.</value></data>
 </root>

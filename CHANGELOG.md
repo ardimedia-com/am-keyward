@@ -7,6 +7,12 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **Vault «Einträge» tab is a two-pane master-detail.** The entry list stays on the left; the right pane
+  shows the selected entry's detail — with edit/delete in its header and deliberately **no close button**
+  (clicking another entry simply replaces the pane). «Eintrag hinzufügen» moved from a collapsed accordion
+  above the list to a button at the pane's top right that opens the add form in the pane. Deep links and
+  search hits open their entry in the same pane. Stacks vertically on narrow viewports.
+
 - **Tab bar renders as a bordered tab area.** `KeywardTabBar` gains a `ChildContent` mode: bar + the active
   tab's content framed by ONE border and radius (mirrors am.ui's `AmTabArea`, which this package cannot
   reference) — the segmented bar keeps its muted-pill styling. The vault pages («Einträge» /
