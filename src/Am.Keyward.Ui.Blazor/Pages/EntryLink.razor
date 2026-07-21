@@ -1,0 +1,43 @@
+@page "/amkeyward/e/{Code}"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@inject IVaultService VaultService
+@inject ICurrentUser CurrentUser
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> Loc
+
+@* Resolves a shareable deep link (/amkeyward/e/{base62 public id}) to a vault item and forwards to the right
+   vault page with the item opened. An unknown / inaccessible / malformed link falls back to the vault list —
+   never an error page (so a stale documentation link degrades gracefully). *@
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+<KeywardUi Fill="true">
+    <p class="muted">@Loc["Common.Loading"]</p>
+</KeywardUi>
+
+@code {
+    [Parameter] public string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = CurrentUser.UserId;
+
+        // Malformed code or no user -> the neutral fallback (personal vault list).
+        if (userId is null || !Base62Guid.TryDecode(Code, out var publicId))
+        {
+            Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
+            return;
+        }
+
+        var link = await VaultService.ResolveItemLinkAsync(userId.Value, publicId);
+        if (link is null)
+        {
+            // Unknown link, or the user may not read it — indistinguishable on purpose (no existence leak).
+            Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
+            return;
+        }
+
+        var page = link.IsTeamVault ? KeywardRoutes.TeamVaults : KeywardRoutes.PersonalVaults;
+        Nav.NavigateTo($"{page}?{KeywardRoutes.ItemQueryParam}={Code}", replace: true);
+    }
+}

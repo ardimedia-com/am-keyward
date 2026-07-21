@@ -539,6 +539,7 @@ public sealed class VaultService(
 
         var moved = new VaultItem(
             Guid.NewGuid(), targetVault.Id, targetVault.TenantId, targetVault.OwnerUserId, targetFolderId, item.Type, item.Name, userId, clock.UtcNow);
+        moved.AdoptPublicId(item.PublicId); // keep the shareable deep link stable across the vault move
         var versionId = Guid.NewGuid();
         var targetAad = Aad.ForVaultItemVersion(targetVault.TenantId, targetVault.OwnerType, targetVault.OwnerId, moved.Id, versionId, AlgVersion);
         var encrypted = await backend.ProtectAsync(plaintext, targetAad, ct).ConfigureAwait(false);
@@ -569,12 +570,19 @@ public sealed class VaultService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<VaultItemDetail?> GetItemAsync(Guid userId, Guid itemId, CancellationToken ct = default)
+    public Task<VaultItemDetail?> GetItemAsync(Guid userId, Guid itemId, CancellationToken ct = default) =>
+        GetItemDetailAsync(userId, i => i.Id == itemId, ct);
+
+    public Task<VaultItemDetail?> GetItemByPublicIdAsync(Guid userId, Guid publicId, CancellationToken ct = default) =>
+        GetItemDetailAsync(userId, i => i.PublicId == publicId, ct);
+
+    private async Task<VaultItemDetail?> GetItemDetailAsync(
+        Guid userId, System.Linq.Expressions.Expression<Func<VaultItem, bool>> match, CancellationToken ct)
     {
         EnsureUserScope(userId);
 
         var item = await db.VaultItems.Include(i => i.Versions)
-            .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+            .FirstOrDefaultAsync(match, ct).ConfigureAwait(false);
         if (item?.CurrentVersionId is null)
         {
             return null;
@@ -589,7 +597,32 @@ public sealed class VaultService(
         await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        return new VaultItemDetail(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, Encoding.UTF8.GetString(plaintext));
+        return new VaultItemDetail(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, Encoding.UTF8.GetString(plaintext), item.PublicId);
+    }
+
+    public async Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        // Routing only — no decryption, no read-audit (the open goes through GetItemAsync). AsNoTracking:
+        // read-only lookup.
+        var item = await db.VaultItems.AsNoTracking()
+            .Where(i => i.PublicId == publicId)
+            .Select(i => new { i.Id, i.VaultId })
+            .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (item is null)
+        {
+            return null;
+        }
+
+        // Enforce the same read gate as an open, so a link never reveals an item the user cannot read.
+        var vault = await LoadAuthorizedVaultOrNullAsync(userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        if (vault is null)
+        {
+            return null;
+        }
+
+        return new VaultItemLink(item.Id, item.VaultId, vault.TenantId is not null);
     }
 
     public async Task<IReadOnlyList<ImportedLogin>> ExportVaultLoginsAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
@@ -763,6 +796,28 @@ public sealed class VaultService(
         }
 
         return vault;
+    }
+
+    /// <summary>Like <see cref="LoadAuthorizedVaultAsync"/> but returns null instead of throwing when the
+    /// vault is missing or the user isn't authorized — for the deep-link resolver, where "no access" must be
+    /// indistinguishable from "unknown link" rather than an error.</summary>
+    private async Task<Vault?> LoadAuthorizedVaultOrNullAsync(Guid userId, Guid vaultId, Permission permission, CancellationToken ct)
+    {
+        var vault = await db.Vaults.FirstOrDefaultAsync(v => v.Id == vaultId, ct).ConfigureAwait(false);
+        if (vault is null)
+        {
+            return null;
+        }
+
+        if (vault.OwnerUserId is not null)
+        {
+            return vault.OwnerUserId == userId ? vault : null;
+        }
+
+        var allowed = await authorization
+            .IsAllowedAsync(userId, new GrantScope(GrantScopeKind.Vault, vaultId), permission, ct)
+            .ConfigureAwait(false);
+        return allowed ? vault : null;
     }
 
     private void EnsureUserScope(Guid requestedUserId)

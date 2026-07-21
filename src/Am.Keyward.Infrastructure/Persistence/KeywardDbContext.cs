@@ -249,6 +249,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasKey(x => x.Id);
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            // Stable, shareable deep-link id — unique so a link resolves to exactly one item, and indexed
+            // because the link resolver looks items up by it. Survives cross-vault moves (see AdoptPublicId).
+            e.HasIndex(x => x.PublicId).IsUnique();
             e.HasIndex(x => x.VaultId);
             e.HasIndex(x => x.FolderId);
             e.HasIndex(x => x.TenantId);

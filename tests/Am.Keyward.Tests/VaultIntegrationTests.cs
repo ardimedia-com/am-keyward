@@ -222,6 +222,57 @@ public class VaultIntegrationTests
     }
 
     [TestMethod, TestCategory("Integration")]
+    public async Task Deep_link_public_id_is_stable_and_survives_a_cross_vault_move()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var userId = Guid.NewGuid();
+        using var scope = ScopeForUser(provider, userId);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+
+        var source = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Source"));
+        var target = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Target"));
+        var itemId = await vaults.AddItemAsync(new AddVaultItemCommand(userId, source, null, ItemType.SecureNote, "Note", "link-me"));
+
+        // The public id (the deep link) is exposed on the detail and resolves to this item's location.
+        var publicId = (await vaults.GetItemAsync(userId, itemId))!.PublicId;
+        Assert.AreNotEqual(Guid.Empty, publicId);
+        Assert.AreNotEqual(itemId, publicId); // distinct from the crypto-bound primary key
+
+        var link = await vaults.ResolveItemLinkAsync(userId, publicId);
+        Assert.IsNotNull(link);
+        Assert.AreEqual(itemId, link.ItemId);
+        Assert.AreEqual(source, link.VaultId);
+        Assert.IsFalse(link.IsTeamVault); // a personal vault
+        Assert.AreEqual("link-me", (await vaults.GetItemByPublicIdAsync(userId, publicId))!.Content);
+
+        // Across vaults the primary key changes (re-encryption) but the public id — and thus the deep link —
+        // stays the same and now points at the new item in the target vault.
+        var movedId = await vaults.MoveItemAsync(userId, itemId, target, null);
+        Assert.AreNotEqual(itemId, movedId);
+
+        var movedDetail = await vaults.GetItemByPublicIdAsync(userId, publicId);
+        Assert.IsNotNull(movedDetail);
+        Assert.AreEqual(movedId, movedDetail.Id);
+        Assert.AreEqual(target, movedDetail.VaultId);
+        Assert.AreEqual(publicId, movedDetail.PublicId); // unchanged across the move
+        Assert.AreEqual("link-me", movedDetail.Content);
+
+        var movedLink = await vaults.ResolveItemLinkAsync(userId, publicId);
+        Assert.IsNotNull(movedLink);
+        Assert.AreEqual(movedId, movedLink.ItemId);
+        Assert.AreEqual(target, movedLink.VaultId);
+
+        // An unknown public id resolves to nothing (no existence leak, graceful fallback).
+        Assert.IsNull(await vaults.ResolveItemLinkAsync(userId, Guid.NewGuid()));
+    }
+
+    [TestMethod, TestCategory("Integration")]
     public async Task Move_changes_folder_within_a_vault_and_reencrypts_across_vaults()
     {
         await using var provider = BuildProvider();

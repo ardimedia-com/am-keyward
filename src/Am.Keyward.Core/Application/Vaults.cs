@@ -34,8 +34,13 @@ public sealed record VaultSummary(Guid Id, string Name, ProtectionMode Protectio
 
 public sealed record VaultItemSummary(Guid Id, Guid? FolderId, ItemType Type, string Name, DateTimeOffset CreatedAt);
 
-/// <summary>An item plus its decrypted content (for viewing/editing).</summary>
-public sealed record VaultItemDetail(Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, string Content);
+/// <summary>An item plus its decrypted content (for viewing/editing). <paramref name="PublicId"/> is the
+/// stable, shareable id used to build a deep link to this item (survives cross-vault moves).</summary>
+public sealed record VaultItemDetail(Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, string Content, Guid PublicId);
+
+/// <summary>Where a deep link (public item id) resolves to: the item, its vault, and whether that vault is a
+/// tenant ("team") vault — enough to route to the right page without decrypting the item.</summary>
+public sealed record VaultItemLink(Guid ItemId, Guid VaultId, bool IsTeamVault);
 
 public sealed record VaultFolderSummary(Guid Id, string Name, DateTimeOffset CreatedAt, Guid? ParentFolderId = null);
 
@@ -119,6 +124,18 @@ public interface IVaultService
 
     /// <summary>An item with its decrypted content (for view/edit). Null if not found / not accessible.</summary>
     Task<VaultItemDetail?> GetItemAsync(Guid userId, Guid itemId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Resolves a shareable public item id (deep link) to its location — item id, vault, and whether the vault
+    /// is a "team" vault — so the caller can route to the right page. Routing only: does NOT decrypt content
+    /// or record a read (the actual open goes through <see cref="GetItemAsync"/>). Null if the id matches no
+    /// item the user may read.
+    /// </summary>
+    Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default);
+
+    /// <summary>Like <see cref="GetItemAsync"/> but keyed by the shareable public id. Null if not found /
+    /// not accessible.</summary>
+    Task<VaultItemDetail?> GetItemByPublicIdAsync(Guid userId, Guid publicId, CancellationToken ct = default);
 
     /// <summary>
     /// Moves an item into another folder and/or another vault (the user needs Write on both sides). Within

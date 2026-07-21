@@ -130,6 +130,14 @@ public sealed class VaultItem
     public Guid Id { get; private set; }
     public Guid VaultId { get; private set; }
 
+    /// <summary>
+    /// Stable, shareable public id for deep links. A random value, unrelated to the crypto-bound
+    /// <see cref="Id"/> and NOT part of any AAD — so it survives a cross-vault move (which must mint a new
+    /// <see cref="Id"/> because the ciphertext is rebound to the target vault). A documentation link built on
+    /// this therefore stays valid across moves; <see cref="AdoptPublicId"/> carries it to the moved item.
+    /// </summary>
+    public Guid PublicId { get; private set; }
+
     /// <summary>Denormalized vault isolation keys (drive the query filter + row-level security).</summary>
     public Guid? TenantId { get; private set; }
     public Guid? OwnerUserId { get; private set; }
@@ -151,6 +159,7 @@ public sealed class VaultItem
 
         Id = id;
         VaultId = vaultId;
+        PublicId = Guid.NewGuid();
         TenantId = tenantId;
         OwnerUserId = ownerUserId;
         FolderId = folderId;
@@ -159,6 +168,13 @@ public sealed class VaultItem
         CreatedBy = createdBy;
         CreatedAt = createdAt;
     }
+
+    /// <summary>
+    /// Adopts another item's stable <see cref="PublicId"/>. Used only when a cross-vault move recreates this
+    /// item under a new <see cref="Id"/> (its ciphertext is rebound to the target vault) so the shareable
+    /// deep link survives the move.
+    /// </summary>
+    public void AdoptPublicId(Guid publicId) => PublicId = publicId;
 
     public VaultItemVersion AddVersion(Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
     {
