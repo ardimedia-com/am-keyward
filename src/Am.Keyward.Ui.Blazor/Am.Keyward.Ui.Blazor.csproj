@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.9" />
     <!-- Full localization package: lets AddKeywardUi register AddLocalization() itself and carry the
