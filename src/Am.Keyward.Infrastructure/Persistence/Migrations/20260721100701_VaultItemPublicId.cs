@@ -20,7 +20,17 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                 defaultValue: new Guid("00000000-0000-0000-0000-000000000000"));
 
             // Existing rows all landed on the empty-GUID default; give each a distinct value BEFORE the unique
-            // index is created, otherwise it would collide. Random per row = a stable public deep-link id.
+            // index is created, otherwise it collides. The catch: VaultItems carries the tenant-isolation RLS
+            // policy, and this migration runs WITHOUT a tenant SESSION_CONTEXT, so the FILTER predicate hides
+            // every existing row from the UPDATE — it would touch 0 rows and leave them all on the empty GUID,
+            // while CREATE UNIQUE INDEX (which is not RLS-filtered) then sees the duplicates and fails, rolling
+            // the whole migration back. So disable the policy for the backfill + index, then restore it.
+            // Guarded, so it is a harmless no-op if the policy isn't present yet (fresh DB / different order).
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.security_policies sp JOIN sys.schemas s ON s.schema_id = sp.schema_id
+           WHERE sp.name = 'TenantIsolationPolicy' AND s.name = 'amkeyward')
+    ALTER SECURITY POLICY amkeyward.TenantIsolationPolicy WITH (STATE = OFF);");
+
             migrationBuilder.Sql("UPDATE amkeyward.VaultItems SET PublicId = NEWID();");
 
             migrationBuilder.CreateIndex(
@@ -29,6 +39,11 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                 table: "VaultItems",
                 column: "PublicId",
                 unique: true);
+
+            migrationBuilder.Sql(@"
+IF EXISTS (SELECT 1 FROM sys.security_policies sp JOIN sys.schemas s ON s.schema_id = sp.schema_id
+           WHERE sp.name = 'TenantIsolationPolicy' AND s.name = 'amkeyward')
+    ALTER SECURITY POLICY amkeyward.TenantIsolationPolicy WITH (STATE = ON);");
         }
 
         /// <inheritdoc />

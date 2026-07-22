@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.3.1-preview] - 2026-07-22
+
+### Fixed
+
+- **`VaultItemPublicId` migration no longer fails under Row-Level Security.** The migration backfills a unique
+  `PublicId` for existing rows *before* creating the unique index, but `VaultItems` carries the
+  `TenantIsolationPolicy` RLS policy and the migrator runs **without a tenant `SESSION_CONTEXT`**, so the
+  FILTER predicate hid every existing row from the backfill `UPDATE` (0 rows touched). The rows kept the empty
+  GUID, `CREATE UNIQUE INDEX` (not RLS-filtered) then collided on the duplicates, and the whole migration
+  rolled back — which also blocked every later migration (`SoftwareManagerFlag`, …), leaving Keyward
+  **UNAVAILABLE** on any database that already had vault items (observed on the toolbox Prod/localhost DBs).
+  The migration now disables `TenantIsolationPolicy` around the backfill + index creation and restores it
+  (guarded, so it is a no-op if the policy isn't present). The old body never succeeded anywhere (it always
+  rolled back), so the corrected version applies cleanly on the next migration run. Requires the migrator
+  identity to hold `ALTER ANY SECURITY POLICY` (already required by the RLS policy migration itself).
+
 ## [0.3.0-preview] - 2026-07-22
 
 ### Added
