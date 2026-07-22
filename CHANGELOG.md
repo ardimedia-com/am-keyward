@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.3.0-preview] - 2026-07-22
+
 ### Added
 
 - **Client-token validity is choosable again.** The «Client-Tokens» tab shows a validity select on each
