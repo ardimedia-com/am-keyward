@@ -189,6 +189,9 @@
   <data name="Secret.Msg.Saved" xml:space="preserve"><value>Guardado {0} em {1}.</value></data>
   <data name="Secret.Msg.Created" xml:space="preserve"><value>Chave «{0}» criada.</value></data>
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Segredo eliminado.</value></data>
+  <data name="Secret.Rename" xml:space="preserve"><value>Mudar o nome da chave</value></data>
+  <data name="Secret.Rename.Hint" xml:space="preserve"><value>Mudar o nome altera apenas o nome de pesquisa — os valores guardados e as suas versões mantêm-se. O software implementado que lê a chave antiga deixará de a encontrar, por isso atualize-o também.</value></data>
+  <data name="Secret.Msg.Renamed" xml:space="preserve"><value>Chave «{0}» renomeada para «{1}».</value></data>
   <data name="Token.New" xml:space="preserve"><value>Novo token (copie-o agora — não voltará a ser mostrado):</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emitir um token</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Emite um token por aplicação e ambiente. O servidor atribui-lhe automaticamente o nome «aplicação-ambiente» (numerado se necessário) — ou dá-lhe um nome próprio, p. ex. com um sufixo de host ou finalidade. Opcional: uma nota (onde é usado, proprietário, ticket) e uma data de expiração após a qual deixa de funcionar. Restringir cada token a um único ambiente limita os danos se algum vazar.</value></data>

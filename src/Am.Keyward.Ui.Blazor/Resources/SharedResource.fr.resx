@@ -189,6 +189,9 @@
   <data name="Secret.Msg.Saved" xml:space="preserve"><value>{0} enregistré dans {1}.</value></data>
   <data name="Secret.Msg.Created" xml:space="preserve"><value>Clé « {0} » créée.</value></data>
   <data name="Secret.Msg.Deleted" xml:space="preserve"><value>Secret supprimé.</value></data>
+  <data name="Secret.Rename" xml:space="preserve"><value>Renommer la clé</value></data>
+  <data name="Secret.Rename.Hint" xml:space="preserve"><value>Renommer ne change que le nom de recherche — les valeurs enregistrées et leurs versions sont conservées. Le logiciel déployé qui lit l'ancienne clé ne la trouvera plus ; adaptez-le également.</value></data>
+  <data name="Secret.Msg.Renamed" xml:space="preserve"><value>Clé «{0}» renommée en «{1}».</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et environnement. Le serveur le nomme automatiquement « application-environnement » (numéroté au besoin) — ou donnez-lui votre propre nom, p. ex. avec un suffixe d'hôte ou d'usage. Facultatif : une note (où il tourne, propriétaire, ticket) et une date d'expiration après laquelle il cesse de fonctionner. Restreindre chaque jeton à un seul environnement limite les dégâts si l'un fuit un jour.</value></data>

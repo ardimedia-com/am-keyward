@@ -134,4 +134,101 @@ public class SoftwareSecretIntegrationTests
             Assert.AreEqual("dev-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Development", "ConnectionStrings:Main", null)));
         }
     }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Rename_keeps_every_environment_value_readable_under_the_new_key()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
+        await using var provider = services.BuildServiceProvider();
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            if (!await db.Database.CanConnectAsync())
+            {
+                Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+                return;
+            }
+
+            db.Tenants.Add(new Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
+            var project = new Project(projectId, tenantId, OwnerType.Tenant, tenantId, "rename-key", DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Production, DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Development, DateTimeOffset.UtcNow);
+            db.Projects.Add(project);
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "orderdesk-apikey-51833", "prod-value", null));
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Development", "orderdesk-apikey-51833", "dev-value", null));
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            await scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
+                .RenameSecretAsync(tenantId, projectId, "orderdesk-apikey-51833", "orderdesk-apikey-51833-balleristo", null);
+        }
+
+        // The values are bound to the secret's ID, not its key — so every environment still decrypts,
+        // and the old key is gone.
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            Assert.AreEqual("prod-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "orderdesk-apikey-51833-balleristo", null)));
+            Assert.AreEqual("dev-value", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Development", "orderdesk-apikey-51833-balleristo", null)));
+            Assert.IsNull(await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "orderdesk-apikey-51833", null)));
+
+            var keys = await svc.ListSecretsAsync(tenantId, projectId);
+            Assert.AreEqual(1, keys.Count);
+            Assert.AreEqual("orderdesk-apikey-51833-balleristo", keys[0].Key);
+        }
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Rename_onto_an_existing_key_is_rejected()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
+        await using var provider = services.BuildServiceProvider();
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            if (!await db.Database.CanConnectAsync())
+            {
+                Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+                return;
+            }
+
+            db.Tenants.Add(new Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
+            var project = new Project(projectId, tenantId, OwnerType.Tenant, tenantId, "rename-conflict", DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Production, DateTimeOffset.UtcNow);
+            db.Projects.Add(project);
+            await db.SaveChangesAsync();
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "Api:First", "a", null));
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "Api:Second", "b", null));
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            // Case-insensitive, like the "key already exists" check on creation.
+            await Assert.ThrowsExactlyAsync<InvalidOperationException>(
+                () => svc.RenameSecretAsync(tenantId, projectId, "Api:First", "api:second", null));
+        }
+    }
 }

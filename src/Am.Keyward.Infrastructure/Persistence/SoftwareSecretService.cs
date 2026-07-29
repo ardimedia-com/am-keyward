@@ -360,6 +360,47 @@ public sealed class SoftwareSecretService(
         return new SoftwareSecretDetail(secret.Key.Value, values);
     }
 
+    public async Task RenameSecretAsync(
+        Guid tenantId, Guid projectId, string key, string newKey, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
+
+        var currentKey = SecretKey.Create(key);
+        var targetKey = SecretKey.Create(newKey);
+
+        var secret = await db.SoftwareSecrets
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == currentKey, ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Secret '{currentKey}' not found in project {projectId}.");
+
+        if (currentKey == targetKey)
+        {
+            return;
+        }
+
+        // One key per project — the unique index would reject it anyway; fail with a usable message first.
+        // Compared case-insensitively to match how the UI de-duplicates keys.
+        var conflicting = await db.SoftwareSecrets
+            .Where(s => s.ProjectId == projectId && s.Id != secret.Id)
+            .Select(s => s.Key)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (conflicting.Any(k => string.Equals(k.Value, targetKey.Value, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"The key '{targetKey}' already exists in this project.");
+        }
+
+        // Values and versions stay as they are: the envelope AAD binds tenant/project/environment/secret/
+        // version IDs, never the key — so nothing has to be re-encrypted.
+        secret.Rename(targetKey);
+        await audit.AppendAsync(
+            new AuditRequest(tenantId, AuditAction.Update, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct)
+            .ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);

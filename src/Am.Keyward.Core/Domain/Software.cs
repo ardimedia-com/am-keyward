@@ -114,8 +114,9 @@ public sealed class RuntimeEnvironment
 }
 
 /// <summary>
-/// Aggregate root: a stable <see cref="SecretKey"/> within a project, holding one
-/// <see cref="SecretValue"/> per environment. Invariant: one key per project.
+/// Aggregate root: a <see cref="SecretKey"/> within a project, holding one <see cref="SecretValue"/>
+/// per environment. Invariant: one key per project. The key is the client-facing lookup name and can be
+/// renamed (<see cref="Rename"/>) without touching the values — identity is the ID, not the key.
 /// </summary>
 public sealed class SoftwareSecret
 {
@@ -144,6 +145,13 @@ public sealed class SoftwareSecret
         CreatedBy = createdBy;
         CreatedAt = createdAt;
     }
+
+    /// <summary>
+    /// Renames the key. Safe for the stored values: the envelope AAD binds the secret's ID (not its key),
+    /// so every existing version stays decryptable. Deployed software reading by key must follow, though —
+    /// that is a caller/UI concern, not an invariant of this aggregate.
+    /// </summary>
+    public void Rename(SecretKey key) => Key = key;
 
     /// <summary>Sets (or adds a new version of) this secret's value for a given environment.</summary>
     public SecretValue SetValue(Guid valueId, Guid environmentId, Guid versionId, EncryptedValue encrypted, DateTimeOffset at)

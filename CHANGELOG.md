@@ -5,6 +5,15 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Secret keys can be renamed.** The «Daten» tab of an application now offers «Umbenennen» on the selected
+  key (e.g. `orderdesk-apikey-51833` → `orderdesk-apikey-51833-balleristo`). The stored values and their
+  version chain are untouched — the encryption envelope binds the secret's ID, not its key, so nothing is
+  re-encrypted. Renaming onto an existing key is rejected (case-insensitively, like creating one), and the
+  UI warns that deployed software reading the old key must be updated too. New API:
+  `ISoftwareSecretService.RenameSecretAsync` (tenant-scoped, software-operator gated, audited).
+
 ## [0.3.1-preview] - 2026-07-22
 
 ### Fixed

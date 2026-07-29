@@ -60,6 +60,13 @@ public interface ISoftwareSecretService
     /// </summary>
     Task DeleteEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Renames a secret's key. The stored values and their version chain are untouched (the envelope binds
+    /// the secret's ID, not its key), but deployed software reading by the OLD key stops finding it — the
+    /// caller is expected to warn about that.
+    /// </summary>
+    Task RenameSecretAsync(Guid tenantId, Guid projectId, string key, string newKey, Guid? actorUserId, CancellationToken ct = default);
+
     /// <summary>Deletes a secret (its values in all environments) by key.</summary>
     Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default);
 }
