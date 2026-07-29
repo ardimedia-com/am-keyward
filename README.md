@@ -111,15 +111,17 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // NotificationLanguage (optional) sets the language for those background e-mails (account e-mails
 // follow the request culture); default English.
 // TokenEnvironmentVariableName / ClientApiBasePath (optional) only shape the ready-to-run PowerShell
-// snippet shown next to a freshly issued app token — name the variable your applications actually read,
-// and the path you mapped MapKeywardClientApi at.
+// snippet shown next to a freshly issued app token. By default the variable name is derived PER
+// APPLICATION (application "Bvd.Li.Toolbox" -> KEYWARD_BVD_LI_TOOLBOX_TOKEN), so two applications on one
+// host never collide; set TokenEnvironmentVariableName only if every application here reads one fixed
+// variable. ClientApiBasePath is the path you mapped MapKeywardClientApi at.
 builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
 builder.Services.AddKeywardUi(o =>
 {
     o.ProductName = "Contoso Secrets";
     o.PublicBaseUrl = "https://secrets.contoso.com";
     o.NotificationLanguage = "en";
-    o.TokenEnvironmentVariableName = "CONTOSO_SECRETS_TOKEN";   // default "KEYWARD_TOKEN"
+    o.TokenEnvironmentVariableName = "CONTOSO_SECRETS_TOKEN";   // default: derived per application
     o.ClientApiBasePath = "/keyward/api/v1";                    // default
 });
 

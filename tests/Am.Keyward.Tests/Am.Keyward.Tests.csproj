@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Am.Keyward.Core\Am.Keyward.Core.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Infrastructure\Am.Keyward.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Am.Keyward.Ui.Blazor\Am.Keyward.Ui.Blazor.csproj" />
   </ItemGroup>
 
 </Project>

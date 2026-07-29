@@ -135,7 +135,7 @@ else
                                     <button class="btn-ghost btn-sm" @onclick="CopyScriptAsync"><KeywardIcon Name="@(scriptCopied ? "check" : "copy")" Size="14" /> @Loc["Common.Copy"]</button>
                                 </div>
                                 <pre class="kw-script">@PowerShellSnippet(token)</pre>
-                                <p class="muted" style="margin:.35rem 0 0;">@Loc["Token.Ps.Hint", KeywardOptions.TokenEnvironmentVariableName]</p>
+                                <p class="muted" style="margin:.35rem 0 0;">@Loc["Token.Ps.Hint", KeywardOptions.TokenVariableFor(ApplicationName)]</p>
                             </div>
                         }
                     </div>
@@ -153,6 +153,10 @@ else
 @code {
     [Parameter, EditorRequired] public Guid TenantId { get; set; }
     [Parameter, EditorRequired] public Guid ProjectId { get; set; }
+
+    /// <summary>The application's name — the PowerShell snippet derives its env-variable name from it.</summary>
+    [Parameter] public string ApplicationName { get; set; } = "";
+
     [Parameter] public Guid? ActorUserId { get; set; }
 
     private Guid loadedProjectId;
@@ -346,7 +350,7 @@ else
         var environmentName = environments?.FirstOrDefault(e => e.Id == token.EnvironmentId)?.Name ?? "";
         var baseUrl = (string.IsNullOrWhiteSpace(KeywardOptions.PublicBaseUrl) ? Nav.BaseUri : KeywardOptions.PublicBaseUrl!).TrimEnd('/');
         var url = $"{baseUrl}/{KeywardOptions.ClientApiBasePath.Trim('/')}/secrets";
-        var variable = KeywardOptions.TokenEnvironmentVariableName;
+        var variable = KeywardOptions.TokenVariableFor(ApplicationName);
 
         // $$ raw string: {{…}} interpolates, so PowerShell's own braces stay literal.
         return $$"""

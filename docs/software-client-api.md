@@ -41,10 +41,12 @@ Tokens are issued by an administrator through the app-tokens UI or the managemen
 where the client can read it (an environment variable, a deployment secret) and treat it like a password.
 
 The UI shows the one-time plaintext together with a **ready-to-run PowerShell block** for the target
-machine: it puts the token into a machine-scope environment variable (`KEYWARD_TOKEN` by default — the host
-sets `KeywardUiOptions.TokenEnvironmentVariableName` to whatever its applications read) and appends an
-`Invoke-RestMethod` call against `GET /secrets` that proves the token works. Services pick the variable up
-after a restart.
+machine: it puts the token into a machine-scope environment variable and appends an `Invoke-RestMethod`
+call against `GET /secrets` that proves the token works. Services pick the variable up after a restart.
+
+The variable is named **per application** — `Bvd.Li.Toolbox` → `KEYWARD_BVD_LI_TOOLBOX_TOKEN` — so several
+applications can be deployed to one host without colliding. A host whose applications all read one fixed
+variable sets `KeywardUiOptions.TokenEnvironmentVariableName` instead.
 
 ```
 POST /keyward/api/v1/tenants/{tenantId}/projects/{projectId}/environments/{environment}/tokens

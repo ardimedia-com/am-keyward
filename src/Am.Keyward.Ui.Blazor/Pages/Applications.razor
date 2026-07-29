@@ -189,7 +189,7 @@
                             }
                             else if (appTab == "tokens")
                             {
-                                <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId" />
+                                <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ApplicationName="@(SelectedApp?.Name ?? "")" ActorUserId="@actorUserId" />
                             }
                         </KeywardTabBar>
                     }

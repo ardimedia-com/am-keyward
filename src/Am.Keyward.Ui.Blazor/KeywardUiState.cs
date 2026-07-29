@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -38,11 +40,54 @@ public sealed class KeywardUiOptions
     public string? NotificationLanguage { get; set; }
 
     /// <summary>
-    /// Name of the environment variable the deployed software reads its app token from. Only used to build
-    /// the ready-to-run PowerShell snippet shown next to a freshly issued token — Keyward itself never reads
-    /// it. Set it to whatever the consuming application expects.
+    /// Fixed name of the environment variable the deployed software reads its app token from. Only used to
+    /// build the ready-to-run PowerShell snippet shown next to a freshly issued token — Keyward itself never
+    /// reads it. Leave it <c>null</c> (the default) to derive a name PER APPLICATION from the application's
+    /// name (see <see cref="TokenVariableFor"/>), so two applications on the same host never collide; set it
+    /// only when every application of this installation reads the same, fixed variable.
     /// </summary>
-    public string TokenEnvironmentVariableName { get; set; } = "KEYWARD_TOKEN";
+    public string? TokenEnvironmentVariableName { get; set; }
+
+    /// <summary>The variable name to offer for one application: the fixed name if configured, else derived.</summary>
+    public string TokenVariableFor(string applicationName) =>
+        string.IsNullOrWhiteSpace(TokenEnvironmentVariableName)
+            ? DeriveTokenVariableName(applicationName)
+            : TokenEnvironmentVariableName!;
+
+    /// <summary>
+    /// Turns an application name into a conventional environment-variable name:
+    /// <c>Bvd.Li.Toolbox</c> → <c>KEYWARD_BVD_LI_TOOLBOX_TOKEN</c>. Upper-case with underscores (not the
+    /// hyphens of a slug) so it can be read as <c>$env:NAME</c> in PowerShell without bracing; diacritics
+    /// are folded (<c>Bürosoftware</c> → <c>BUROSOFTWARE</c>) rather than replaced by underscores. The
+    /// constant <c>KEYWARD_</c> prefix groups an installation's variables and keeps the name from starting
+    /// with a digit.
+    /// </summary>
+    public static string DeriveTokenVariableName(string applicationName)
+    {
+        var folded = (applicationName ?? "").Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder(folded.Length);
+        foreach (var c in folded)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(c) == UnicodeCategory.NonSpacingMark)
+            {
+                continue; // diacritic of the preceding base letter
+            }
+
+            var upper = char.ToUpperInvariant(c);
+            var keep = upper is >= 'A' and <= 'Z' || upper is >= '0' and <= '9';
+            if (keep)
+            {
+                sb.Append(upper);
+            }
+            else if (sb.Length > 0 && sb[^1] != '_')
+            {
+                sb.Append('_'); // one separator per run of punctuation/whitespace
+            }
+        }
+
+        var core = sb.ToString().Trim('_');
+        return core.Length == 0 ? "KEYWARD_APP_TOKEN" : $"KEYWARD_{core}_TOKEN";
+    }
 
     /// <summary>
     /// Path the software-client read API is mapped at (the <c>prefix</c> passed to
