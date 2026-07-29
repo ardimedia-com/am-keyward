@@ -93,6 +93,22 @@
     word-break: break-all;
 }
 
+/* Copy-and-run script block (the PowerShell that puts a freshly issued app token on the target host).
+   Long URLs and the token itself scroll INSIDE the block, so a wide line never widens the page. */
+.keyward-ui ::deep pre.kw-script {
+    margin: .35rem 0 0;
+    padding: .6rem .75rem;
+    background: var(--kw-muted);
+    color: var(--kw-text);
+    border: 1px solid var(--kw-border);
+    border-radius: var(--kw-radius);
+    font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+    font-size: .8rem;
+    line-height: 1.45;
+    white-space: pre;
+    overflow-x: auto;
+}
+
 .keyward-ui ::deep p { margin: .25rem 0 .75rem; }
 .keyward-ui ::deep .muted { color: var(--kw-muted-text); }
 .keyward-ui ::deep .lead { color: var(--kw-muted-text); margin-top: 0; }

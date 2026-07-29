@@ -193,6 +193,11 @@
   <data name="Secret.Rename.Hint" xml:space="preserve"><value>Renommer ne change que le nom de recherche — les valeurs enregistrées et leurs versions sont conservées. Le logiciel déployé qui lit l'ancienne clé ne la trouvera plus ; adaptez-le également.</value></data>
   <data name="Secret.Msg.Renamed" xml:space="preserve"><value>Clé «{0}» renommée en «{1}».</value></data>
   <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
+  <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell pour le système cible</value></data>
+  <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>jeton «{0}» ({1})</value></data>
+  <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Enregistrer pour toute la machine (exécuter dans un shell élevé) :</value></data>
+  <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Vérifier — lit les secrets de cet environnement :</value></data>
+  <data name="Token.Ps.Hint" xml:space="preserve"><value>À exécuter sur la machine qui héberge l'application. Les services et applications prennent en compte la nouvelle variable {0} après un redémarrage. Le jeton est un mot de passe : il se retrouve dans l'historique du shell de cette machine.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et environnement. Le serveur le nomme automatiquement « application-environnement » (numéroté au besoin) — ou donnez-lui votre propre nom, p. ex. avec un suffixe d'hôte ou d'usage. Facultatif : une note (où il tourne, propriétaire, ticket) et une date d'expiration après laquelle il cesse de fonctionner. Restreindre chaque jeton à un seul environnement limite les dégâts si l'un fuit un jour.</value></data>
   <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif)</value></data>

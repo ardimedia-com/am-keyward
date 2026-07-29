@@ -110,12 +110,17 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // PublicBaseUrl (optional) enables absolute links in notification e-mails sent by background jobs.
 // NotificationLanguage (optional) sets the language for those background e-mails (account e-mails
 // follow the request culture); default English.
+// TokenEnvironmentVariableName / ClientApiBasePath (optional) only shape the ready-to-run PowerShell
+// snippet shown next to a freshly issued app token — name the variable your applications actually read,
+// and the path you mapped MapKeywardClientApi at.
 builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
 builder.Services.AddKeywardUi(o =>
 {
     o.ProductName = "Contoso Secrets";
     o.PublicBaseUrl = "https://secrets.contoso.com";
     o.NotificationLanguage = "en";
+    o.TokenEnvironmentVariableName = "CONTOSO_SECRETS_TOKEN";   // default "KEYWARD_TOKEN"
+    o.ClientApiBasePath = "/keyward/api/v1";                    // default
 });
 
 // Optional — transient notifications ("Vault created", "Moved", errors). Keyward depends only on the

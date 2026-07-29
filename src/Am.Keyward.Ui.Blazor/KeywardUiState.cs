@@ -36,6 +36,20 @@ public sealed class KeywardUiOptions
     /// reset, confirmation) always use the request culture instead. Null/empty falls back to English.
     /// </summary>
     public string? NotificationLanguage { get; set; }
+
+    /// <summary>
+    /// Name of the environment variable the deployed software reads its app token from. Only used to build
+    /// the ready-to-run PowerShell snippet shown next to a freshly issued token — Keyward itself never reads
+    /// it. Set it to whatever the consuming application expects.
+    /// </summary>
+    public string TokenEnvironmentVariableName { get; set; } = "KEYWARD_TOKEN";
+
+    /// <summary>
+    /// Path the software-client read API is mapped at (the <c>prefix</c> passed to
+    /// <c>MapKeywardClientApi</c>). Only used to build the verification call in that same snippet; change it
+    /// when the host maps the API somewhere other than the default.
+    /// </summary>
+    public string ClientApiBasePath { get; set; } = "/keyward/api/v1";
 }
 
 /// <summary>Registers the services the embedded Keyward UI pages need (see the README embedding guide).</summary>

@@ -40,6 +40,12 @@ per token.
 Tokens are issued by an administrator through the app-tokens UI or the management API. Store the plaintext
 where the client can read it (an environment variable, a deployment secret) and treat it like a password.
 
+The UI shows the one-time plaintext together with a **ready-to-run PowerShell block** for the target
+machine: it puts the token into a machine-scope environment variable (`KEYWARD_TOKEN` by default — the host
+sets `KeywardUiOptions.TokenEnvironmentVariableName` to whatever its applications read) and appends an
+`Invoke-RestMethod` call against `GET /secrets` that proves the token works. Services pick the variable up
+after a restart.
+
 ```
 POST /keyward/api/v1/tenants/{tenantId}/projects/{projectId}/environments/{environment}/tokens
 { "name": "orders-service prod", "expiresAt": "2027-01-01T00:00:00Z" }

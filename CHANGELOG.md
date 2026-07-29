@@ -5,6 +5,16 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **A freshly issued app token comes with the PowerShell to deploy it.** Under the one-time token, the
+  «Client-Tokens» tab now shows a copyable block that puts the token into a machine-scope environment
+  variable on the target host and verifies it with an `Invoke-RestMethod` call against that environment's
+  `GET /secrets`. Two new host options on `KeywardUiOptions`: `TokenEnvironmentVariableName` (default
+  `KEYWARD_TOKEN` — name the variable your applications actually read) and `ClientApiBasePath` (default
+  `/keyward/api/v1`, for hosts that map the client API elsewhere). The base URL comes from
+  `PublicBaseUrl`, falling back to the running instance's own address.
+
 ## [0.4.0-preview] - 2026-07-29
 
 ### Added

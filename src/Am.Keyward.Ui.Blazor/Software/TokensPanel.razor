@@ -3,6 +3,7 @@
 @inject ISoftwareSecretService SecretService
 @inject IStringLocalizer<SharedResource> Loc
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 @* Client tokens for ONE application, rendered inside the Applications page's «Client-Tokens» tab. ONE ROW
    PER ENVIRONMENT: the model auto-creates a pending token slot per environment, so the natural unit is the
@@ -126,6 +127,15 @@ else
                                     <code style="flex:1; min-width:0; overflow-wrap:anywhere;">@issuedToken</code>
                                     <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
                                 </div>
+
+                                @* Ready-to-run deployment step: the same one-time secret, wrapped in the PowerShell
+                                   that puts it on the target machine (+ a call that proves it works). *@
+                                <div class="row" style="justify-content:space-between; margin-top:.9rem;">
+                                    <strong>@Loc["Token.Ps.Heading"]</strong>
+                                    <button class="btn-ghost btn-sm" @onclick="CopyScriptAsync"><KeywardIcon Name="@(scriptCopied ? "check" : "copy")" Size="14" /> @Loc["Common.Copy"]</button>
+                                </div>
+                                <pre class="kw-script">@PowerShellSnippet(token)</pre>
+                                <p class="muted" style="margin:.35rem 0 0;">@Loc["Token.Ps.Hint", KeywardOptions.TokenEnvironmentVariableName]</p>
                             </div>
                         }
                     </div>
@@ -154,6 +164,7 @@ else
     private Guid? issuedForTokenId;
     private string? issuedToken;
     private bool issuedCopied;
+    private bool scriptCopied;
     private bool confirmRevoke;
     private bool confirmDelete;
     private string editName = "";
@@ -322,6 +333,43 @@ else
         StateHasChanged();
         await Task.Delay(1500);
         issuedCopied = false;
+    }
+
+    /// <summary>
+    /// The deployment step for the freshly issued token, as a PowerShell block the operator can paste on the
+    /// target machine: the token in a variable (so the verification call below works in the SAME session —
+    /// a machine-scope variable does not reach the current process), persisted machine-wide, then a call
+    /// that proves the token can read this environment's secrets.
+    /// </summary>
+    private string PowerShellSnippet(SoftwareClientTokenInfo token)
+    {
+        var environmentName = environments?.FirstOrDefault(e => e.Id == token.EnvironmentId)?.Name ?? "";
+        var baseUrl = (string.IsNullOrWhiteSpace(KeywardOptions.PublicBaseUrl) ? Nav.BaseUri : KeywardOptions.PublicBaseUrl!).TrimEnd('/');
+        var url = $"{baseUrl}/{KeywardOptions.ClientApiBasePath.Trim('/')}/secrets";
+        var variable = KeywardOptions.TokenEnvironmentVariableName;
+
+        // $$ raw string: {{…}} interpolates, so PowerShell's own braces stay literal.
+        return $$"""
+            # {{KeywardOptions.ProductName}} — {{Loc["Token.Ps.Comment.Token", token.Name, environmentName]}}
+            $token = '{{issuedToken}}'
+
+            # {{Loc["Token.Ps.Comment.Persist"]}}
+            [Environment]::SetEnvironmentVariable('{{variable}}', $token, 'Machine')
+
+            # {{Loc["Token.Ps.Comment.Verify"]}}
+            Invoke-RestMethod -Uri '{{url}}' -Headers @{ Authorization = "Bearer $token" }
+            """;
+    }
+
+    private async Task CopyScriptAsync()
+    {
+        var token = tokens?.FirstOrDefault(t => t.Id == issuedForTokenId);
+        if (issuedToken is null || token is null) return;
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", PowerShellSnippet(token));
+        scriptCopied = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        scriptCopied = false;
     }
 
     private string StatusOf(SoftwareClientTokenInfo token) =>
