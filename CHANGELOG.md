@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.5.0-preview] - 2026-07-29
+
 ### Added
 
 - **A freshly issued app token comes with the PowerShell to deploy it.** Under the one-time token, the
