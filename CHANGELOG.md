@@ -14,6 +14,15 @@ All notable changes to this project are documented here, following
   UI warns that deployed software reading the old key must be updated too. New API:
   `ISoftwareSecretService.RenameSecretAsync` (tenant-scoped, software-operator gated, audited).
 
+### Fixed
+
+- **Icons on action buttons inside a list row were unreadable.** The row rule painted *every* icon below a
+  `.list-row` in the muted grey text colour — including the icon of a nested button, so the «+» on the
+  primary-purple «Token ausstellen» rendered grey-on-purple. An icon inside a nested button now inherits
+  that button's own foreground (which also makes an `.icon-btn`'s hover colour reach its glyph).
+- **Button and badge labels no longer break mid-phrase** («Token / ausstellen», «Kein / Token»): both are
+  `white-space: nowrap`, and the row's name column shrinks (ellipsis) first when a row runs out of width.
+
 ## [0.3.1-preview] - 2026-07-22
 
 ### Fixed

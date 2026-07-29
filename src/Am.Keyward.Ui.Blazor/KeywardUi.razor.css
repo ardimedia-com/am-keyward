@@ -107,6 +107,7 @@
     font-size: .95rem;
     font-weight: 500;
     line-height: 1.1;
+    white-space: nowrap; /* an action label never breaks mid-phrase («Token / ausstellen») */
     color: var(--kw-primary-foreground);
     background: var(--kw-primary);
     border: 1px solid var(--kw-primary);
@@ -206,6 +207,7 @@
     padding: .12rem .5rem;
     font-size: .75rem;
     font-weight: 500;
+    white-space: nowrap;
     border-radius: 999px;
     background: var(--kw-muted);
     color: var(--kw-muted-text);
@@ -393,7 +395,12 @@
 .keyward-ui ::deep button.list-row:last-child { border-bottom: none; }
 .keyward-ui ::deep button.list-row:hover { background: var(--kw-muted); border-color: var(--kw-border); }
 .keyward-ui ::deep .list-row .kw-icon { color: var(--kw-muted-text); flex-shrink: 0; }
-.keyward-ui ::deep .list-row-name { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ...but an icon inside a nested action button belongs to THAT button, not to the row: it has to take
+   the button's own foreground. Otherwise the muted grey above wins over the button's colour and the
+   glyph is unreadable (a grey «+» on the primary-purple «Token ausstellen»), and an .icon-btn's hover
+   colour never reaches its glyph. Needs the extra element in the selector to outweigh the rule above. */
+.keyward-ui ::deep .list-row button .kw-icon { color: inherit; }
+.keyward-ui ::deep .list-row-name { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .keyward-ui ::deep .list-row-meta { margin-left: auto; display: flex; align-items: center; gap: .6rem; color: var(--kw-muted-text); font-size: .8rem; flex-shrink: 0; }
 
 /* Item detail: two-column field grid (label above a read-only value box with copy/reveal) */
