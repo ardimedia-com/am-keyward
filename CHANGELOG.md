@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.4.0-preview] - 2026-07-29
+
 ### Added
 
 - **Secret keys can be renamed.** The «Daten» tab of an application now offers «Umbenennen» on the selected
