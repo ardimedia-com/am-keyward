@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **`KeywardVersion.Current`** (`Am.Keyward.Core.Support`) — the semantic version of the loaded Keyward
+  assemblies, read from the assembly's informational version (SourceLink build metadata stripped), so host
+  status/about pages can display which Keyward version is actually running without maintaining a constant.
+
 ## [0.6.0-preview] - 2026-07-30
 
 ### Added
