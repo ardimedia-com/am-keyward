@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.6.0-preview] - 2026-07-30
+
 ### Added
 
 - **Token access statistics with a «Statistics» tab per application.** Every authenticated software-client
