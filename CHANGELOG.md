@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.7.1-preview] - 2026-07-30
+
+### Changed
+
+- Dependency refresh: all Microsoft.* packages updated to 10.0.10 (EF Core trio in lockstep) and MSTest
+  to 4.3.2; the CI/release workflows now use actions/setup-dotnet v6. No functional changes.
+
 ## [0.7.0-preview] - 2026-07-30
 
 ### Added
