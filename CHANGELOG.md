@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.7.0-preview] - 2026-07-30
+
 ### Added
 
 - **`KeywardVersion.Current`** (`Am.Keyward.Core.Support`) — the semantic version of the loaded Keyward
