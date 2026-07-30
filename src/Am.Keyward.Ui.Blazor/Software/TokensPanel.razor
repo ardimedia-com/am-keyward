@@ -52,6 +52,15 @@ else
                             {
                                 <code style="font-size:.8rem;">@token.TokenPrefix</code>
                             }
+                            @* "Is this token in use?" at a glance — the signal that makes revoke/rotate safe. *@
+                            @if (token.HasSecret)
+                            {
+                                <span class="muted" style="font-size:.78rem;" title="@Loc["Token.LastAccess"]">
+                                    @(token.LastAccessAt is { } lastAccess
+                                        ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                        : Loc["Token.LastAccess.Never"])
+                                </span>
+                            }
                             @if (token.RevokedAt is not null)
                             {
                                 <button class="btn-ghost btn-sm" @onclick="() => ReactivateAsync(token.Id)" disabled="@busy">@Loc["Token.Reactivate"]</button>
@@ -116,6 +125,17 @@ else
                             <div class="detail-field">
                                 <label>@Loc["Token.Expires"]</label>
                                 <div class="detail-value"><span class="grow">@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</span></div>
+                            </div>
+                            <div class="detail-field">
+                                <label>@Loc["Token.LastAccess"]</label>
+                                <div class="detail-value"><span class="grow">
+                                    @if (token.LastAccessAt is { } lastAccessAt)
+                                    {
+                                        @lastAccessAt.UtcDateTime.ToString("u")
+                                        @if (token.LastAccessIp is { Length: > 0 } ip) { <text> · </text> <code>@ip</code> }
+                                    }
+                                    else { <text>—</text> }
+                                </span></div>
                             </div>
                         </div>
 

@@ -634,6 +634,34 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotiere einen Token auf der App-Tokens-Seite; der neue Wert wird genau einmal angezeigt.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>App-Tokens öffnen</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil App-Token-Ablauf-Benachrichtigungen aktiviert hast.</value></data>
+  <data name="App.Tab.Statistics" xml:space="preserve"><value>Statistik</value></data>
+  <data name="Token.LastAccess" xml:space="preserve"><value>Letzter Zugriff</value></data>
+  <data name="Token.LastAccess.Value" xml:space="preserve"><value>zuletzt {0}</value></data>
+  <data name="Token.LastAccess.Never" xml:space="preserve"><value>nie verwendet</value></data>
+  <data name="Stats.Empty" xml:space="preserve"><value>Noch keine Tokens — Statistiken erscheinen, sobald die Tokens der Applikation verwendet werden.</value></data>
+  <data name="Stats.Requests.Title" xml:space="preserve"><value>Zugriffe pro Tag (letzte {0} Tage)</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>Wie oft jeder Token seine Secrets gelesen hat, aggregiert pro UTC-Tag. Die Zähler aktualisieren sich innert etwa einer Minute nach einem Zugriff.</value></data>
+  <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} Zugriff(e)</value></data>
+  <data name="Stats.Ips.Title" xml:space="preserve"><value>Gesehene IP-Adressen</value></data>
+  <data name="Stats.Ips.Desc" xml:space="preserve"><value>Die Client-IPs, von denen jeder Token verwendet wurde (aus Sicht des Servers; hinter einem Proxy braucht es Forwarded-Headers). Einträge verfallen mit dem Aufbewahrungsfenster.</value></data>
+  <data name="Stats.Ips.Empty" xml:space="preserve"><value>Noch keine Zugriffe aufgezeichnet.</value></data>
+  <data name="Stats.Ips.Seen" xml:space="preserve"><value>zuerst gesehen {0} · zuletzt {1}</value></data>
+  <data name="Stats.Alerts.Title" xml:space="preserve"><value>Zugriffs-Warnungen</value></data>
+  <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Regelbasierte Signale: ein Token wurde von einer nie gesehenen IP verwendet oder ist nach langer Stille wieder aktiv. Ist eine Warnung unerwartet, widerrufe oder rotiere den Token.</value></data>
+  <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Keine Warnungen — keine ungewöhnlichen Zugriffsmuster.</value></data>
+  <data name="Stats.Alert.NewIp" xml:space="preserve"><value>Neue IP</value></data>
+  <data name="Stats.Alert.Resumed" xml:space="preserve"><value>Wieder aktiv</value></data>
+  <data name="Stats.Alert.NewIp.Text" xml:space="preserve"><value>«{0}» wurde von der bisher unbekannten IP {1} verwendet.</value></data>
+  <data name="Stats.Alert.Resumed.Text" xml:space="preserve"><value>«{0}» ist nach langer Stille wieder in Gebrauch (IP {1}).</value></data>
+  <data name="Profile.NotifyAccess.Label" xml:space="preserve"><value>E-Mail bei Token-Zugriffs-Warnungen erhalten (Token von nie gesehener IP verwendet oder nach langer Stille wieder aktiv).</value></data>
+  <data name="Email.TokenAccess.Subject" xml:space="preserve"><value>{0}: App-Token-Zugriffswarnung</value></data>
+  <data name="Email.TokenAccess.Title" xml:space="preserve"><value>Ungewöhnlicher App-Token-Zugriff</value></data>
+  <data name="Email.TokenAccess.Intro" xml:space="preserve"><value>Die folgenden App-Token-Zugriffe passen nicht zum bisherigen Muster:</value></data>
+  <data name="Email.TokenAccess.Line.NewIp" xml:space="preserve"><value>«{0}» ({1} / {2}) — von der bisher unbekannten IP {3} verwendet, am {4}.</value></data>
+  <data name="Email.TokenAccess.Line.Resumed" xml:space="preserve"><value>«{0}» ({1} / {2}) — nach langer Stille wieder in Gebrauch (IP {3}), am {4}.</value></data>
+  <data name="Email.TokenAccess.Outro" xml:space="preserve"><value>Ist ein Zugriff unerwartet, widerrufe oder rotiere den Token sofort — ein geleakter Token liest weiter Secrets, bis er widerrufen wird.</value></data>
+  <data name="Email.TokenAccess.Button" xml:space="preserve"><value>App-Tokens öffnen</value></data>
+  <data name="Email.TokenAccess.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil Token-Zugriffs-Warnungen aktiviert hast.</value></data>
   <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Notzugriff (Break-Glass)</value></data>
   <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Notzugriff auf Team-Tresore im Vier-Augen-Prinzip: ein System-Admin beantragt mit Begründung, ein zweiter genehmigt; das Einlösen gibt dem Antragsteller Manage-Zugriff auf den Tresor - vollständig protokolliert und widerrufbar.</value></data>
   <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>Der Notzugriff ist System-Administratoren vorbehalten.</value></data>

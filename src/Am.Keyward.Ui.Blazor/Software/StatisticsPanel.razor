@@ -1,0 +1,192 @@
+@namespace Am.Keyward.Ui.Blazor.Software
+@using Am.Keyward.Core.Domain.Software
+@inject ISoftwareClientTokenService TokenService
+@inject ISoftwareSecretService SecretService
+@inject ITokenAccessStatisticsService StatsService
+@inject IStringLocalizer<SharedResource> Loc
+
+@* Access statistics for ONE application, rendered inside the Applications page's «Statistics» tab. Three
+   sections: per-token daily request bars (trailing @ChartDays days), the IPs each token has been seen
+   from, and the recent access-pattern alerts (new IP / resumed after silence). All data is pre-aggregated
+   by the background flush — nothing here is per-request. Reloads when ProjectId changes. *@
+@if (tokens is null || daily is null || ips is null || alerts is null)
+{
+    <p class="muted">@Loc["Common.Loading"]</p>
+}
+else if (tokens.Count == 0)
+{
+    <div class="card">
+        <div class="empty-state">
+            <KeywardIcon Name="chart-column" Size="28" />
+            <p>@Loc["Stats.Empty"]</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card list-card">
+        <div class="list-head">
+            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="chart-column" Size="18" />@Loc["Stats.Requests.Title", ChartDays]</h3>
+            <p class="muted" style="margin:.25rem 0 0;">@Loc["Stats.Requests.Desc"]</p>
+        </div>
+        <div class="list-rows">
+            @foreach (var token in tokens.OrderBy(t => EnvironmentNameOf(t.EnvironmentId)).ThenBy(t => t.Name))
+            {
+                var byDay = DailyFor(token.Id);
+                var total = byDay.Values.Sum();
+                <div class="list-row" style="cursor:default; flex-wrap:wrap;">
+                    <KeywardIcon Name="ticket" Size="17" />
+                    <span class="list-row-name">@token.Name</span>
+                    <span class="badge">@EnvironmentNameOf(token.EnvironmentId)</span>
+                    <span class="list-row-meta">
+                        <span class="muted" style="font-size:.78rem;">
+                            @(token.LastAccessAt is { } lastAccess
+                                ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                : Loc["Token.LastAccess.Never"])
+                            @if (token.LastAccessIp is { Length: > 0 } lastIp) { <text> · </text> <code>@lastIp</code> }
+                        </span>
+                        <span class="kw-bars" role="img" aria-label="@Loc["Stats.Requests.Total", total]">
+                            @foreach (var day in ChartWindow())
+                            {
+                                var count = byDay.GetValueOrDefault(day);
+                                <span class="kw-bar @(count == 0 ? "kw-bar-empty" : "")"
+                                      style="height:@(BarHeightPercent(count, byDay))%"
+                                      title="@day.ToString("yyyy-MM-dd"): @count"></span>
+                            }
+                        </span>
+                        <span class="muted" style="font-size:.78rem; min-width:4.5rem; text-align:right;">@Loc["Stats.Requests.Total", total]</span>
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card list-card" style="margin-top:.75rem;">
+        <div class="list-head">
+            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="globe" Size="18" />@Loc["Stats.Ips.Title"]</h3>
+            <p class="muted" style="margin:.25rem 0 0;">@Loc["Stats.Ips.Desc"]</p>
+        </div>
+        @if (ips.Count == 0)
+        {
+            <p class="muted">@Loc["Stats.Ips.Empty"]</p>
+        }
+        else
+        {
+            <div class="list-rows">
+                @foreach (var ip in ips)
+                {
+                    <div class="list-row" style="cursor:default;">
+                        <KeywardIcon Name="globe" Size="17" />
+                        <code class="list-row-name" style="font-size:.85rem;">@ip.IpAddress</code>
+                        <span class="badge">@TokenNameOf(ip.TokenId)</span>
+                        <span class="list-row-meta">
+                            <span class="muted" style="font-size:.78rem;">
+                                @Loc["Stats.Ips.Seen", ip.FirstSeenAt.UtcDateTime.ToString("u"), ip.LastSeenAt.UtcDateTime.ToString("u")]
+                            </span>
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="card list-card" style="margin-top:.75rem;">
+        <div class="list-head">
+            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="bell" Size="18" />@Loc["Stats.Alerts.Title"]</h3>
+            <p class="muted" style="margin:.25rem 0 0;">@Loc["Stats.Alerts.Desc"]</p>
+        </div>
+        @if (alerts.Count == 0)
+        {
+            <p class="muted">@Loc["Stats.Alerts.Empty"]</p>
+        }
+        else
+        {
+            <div class="list-rows">
+                @foreach (var alert in alerts)
+                {
+                    <div class="list-row" style="cursor:default;">
+                        <KeywardIcon Name="bell" Size="17" />
+                        <span class="badge badge-warning">@KindLabel(alert.Kind)</span>
+                        <span class="list-row-name" style="font-weight:400;">@AlertText(alert)</span>
+                        <span class="list-row-meta">
+                            <span class="muted" style="font-size:.78rem;">@alert.CreatedAt.UtcDateTime.ToString("u")</span>
+                        </span>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private const int ChartDays = 14;
+    private const int LoadDays = 30;
+
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter, EditorRequired] public Guid ProjectId { get; set; }
+
+    private Guid loadedProjectId;
+
+    private IReadOnlyList<EnvironmentInfo>? environments;
+    private IReadOnlyList<SoftwareClientTokenInfo>? tokens;
+    private IReadOnlyList<TokenDailyAccessInfo>? daily;
+    private IReadOnlyList<TokenAccessIpInfo>? ips;
+    private IReadOnlyList<TokenAccessAlertInfo>? alerts;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProjectId != loadedProjectId)
+        {
+            loadedProjectId = ProjectId;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
+        tokens = await TokenService.ListAsync(TenantId, ProjectId);
+        daily = await StatsService.ListDailyAsync(TenantId, ProjectId, LoadDays);
+        ips = await StatsService.ListIpsAsync(TenantId, ProjectId);
+        alerts = await StatsService.ListAlertsAsync(TenantId, ProjectId);
+    }
+
+    private string EnvironmentNameOf(Guid environmentId) =>
+        environments?.FirstOrDefault(e => e.Id == environmentId)?.Name ?? "?";
+
+    private string TokenNameOf(Guid tokenId) =>
+        tokens?.FirstOrDefault(t => t.Id == tokenId)?.Name ?? "?";
+
+    private Dictionary<DateOnly, long> DailyFor(Guid tokenId) =>
+        daily!.Where(d => d.TokenId == tokenId).ToDictionary(d => d.Date, d => d.RequestCount);
+
+    // Fixed day slots (oldest → today, UTC) so every token's bars align on the same axis.
+    private static IEnumerable<DateOnly> ChartWindow()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        for (var i = ChartDays - 1; i >= 0; i--)
+        {
+            yield return today.AddDays(-i);
+        }
+    }
+
+    // Height relative to the token's own busiest day; a non-zero count always gets a visible sliver.
+    private static int BarHeightPercent(long count, Dictionary<DateOnly, long> byDay)
+    {
+        if (count == 0)
+        {
+            return 4;
+        }
+
+        var max = byDay.Values.Max();
+        return Math.Max((int)(count * 100 / max), 12);
+    }
+
+    private string KindLabel(TokenAccessAlertKind kind) =>
+        kind == TokenAccessAlertKind.NewIpAddress ? Loc["Stats.Alert.NewIp"] : Loc["Stats.Alert.Resumed"];
+
+    private string AlertText(TokenAccessAlertInfo alert) =>
+        alert.Kind == TokenAccessAlertKind.NewIpAddress
+            ? Loc["Stats.Alert.NewIp.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"]
+            : Loc["Stats.Alert.Resumed.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"];
+}

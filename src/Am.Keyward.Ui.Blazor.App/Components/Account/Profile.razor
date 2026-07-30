@@ -35,6 +35,10 @@
                         <input type="checkbox" name="notify" value="true" checked="@notifyTokenExpiry" style="width:auto; margin-top:.2rem;" />
                         <span>@Loc["Profile.Notify.Label"]</span>
                     </label>
+                    <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer; margin-top:.4rem;">
+                        <input type="checkbox" name="notifyAccess" value="true" checked="@notifyTokenAccessAlerts" style="width:auto; margin-top:.2rem;" />
+                        <span>@Loc["Profile.NotifyAccess.Label"]</span>
+                    </label>
                     <button type="submit" class="btn-sm" style="margin-top:.6rem;">@Loc["Common.Save"]</button>
                 </form>
                 @if (Saved == "1")
@@ -57,6 +61,7 @@
 
     private bool isAdmin;
     private bool notifyTokenExpiry;
+    private bool notifyTokenAccessAlerts;
 
     protected override async Task OnInitializedAsync()
     {
@@ -71,6 +76,7 @@
         if (appUser is null) return;
 
         notifyTokenExpiry = appUser.NotifyTokenExpiry;
+        notifyTokenAccessAlerts = appUser.NotifyTokenAccessAlerts;
         isAdmin = appUser.IsSystemAdmin
             || await Db.TenantMemberships.AnyAsync(m => m.UserId == appUser.Id && m.Role == TenantRole.TenantAdmin);
     }

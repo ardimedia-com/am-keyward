@@ -85,6 +85,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISoftwareClientAuthenticator, SoftwareClientAuthenticator>();
         services.AddHostedService<SoftwareClientTokenExpiryService>();
 
+        // Token access statistics: in-memory recording on the hot path, batched persistence + rule-based
+        // access-pattern alerts (new IP / resumed after silence) in the flush service, a read service for
+        // the per-application statistics tab. Configure via the "Keyward:TokenAccess" section (optional).
+        services.AddOptions<Statistics.TokenAccessOptions>();
+        services.AddSingleton<Statistics.TokenAccessAccumulator>();
+        services.AddSingleton<ITokenAccessRecorder>(sp => sp.GetRequiredService<Statistics.TokenAccessAccumulator>());
+        services.AddScoped<ITokenAccessStatisticsService, Statistics.TokenAccessStatisticsService>();
+        services.AddHostedService<Statistics.TokenAccessFlushService>();
+
         // Human vaults (server-side encrypted).
         services.AddScoped<IVaultService, VaultService>();
 

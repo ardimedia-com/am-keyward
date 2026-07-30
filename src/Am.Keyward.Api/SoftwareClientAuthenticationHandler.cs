@@ -28,17 +28,20 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
     private readonly ISoftwareClientAuthenticator authenticator;
     private readonly ITenantScopeSetter tenantScope;
+    private readonly ITokenAccessRecorder accessRecorder;
 
     public SoftwareClientAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
         ISoftwareClientAuthenticator authenticator,
-        ITenantScopeSetter tenantScope)
+        ITenantScopeSetter tenantScope,
+        ITokenAccessRecorder accessRecorder)
         : base(options, logger, encoder)
     {
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
+        this.accessRecorder = accessRecorder;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -63,6 +66,12 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
         // Server-authoritative tenant scope, from the token record (never from the request).
         tenantScope.SetTenant(principal.TenantId);
+
+        // Access statistics (last access, daily counters, seen IPs → alerts): purely in-memory here,
+        // persisted by the background flush — never a database write on the auth hot path. The IP is the
+        // connection's remote address; behind a proxy/load balancer it is only meaningful when the host
+        // has forwarded-headers middleware configured.
+        accessRecorder.Record(principal.TokenId, Context.Connection.RemoteIpAddress?.ToString());
 
         var identity = new ClaimsIdentity(
         [

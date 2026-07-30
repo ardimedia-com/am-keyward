@@ -634,6 +634,34 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Renouvelez un jeton sur la page des jetons d'app ; la nouvelle valeur est affichée une seule fois.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Ouvrir les jetons d'app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Vous recevez cet e-mail parce que vous avez activé les notifications d'expiration des jetons d'app dans votre profil.</value></data>
+  <data name="App.Tab.Statistics" xml:space="preserve"><value>Statistiques</value></data>
+  <data name="Token.LastAccess" xml:space="preserve"><value>Dernier accès</value></data>
+  <data name="Token.LastAccess.Value" xml:space="preserve"><value>utilisé {0}</value></data>
+  <data name="Token.LastAccess.Never" xml:space="preserve"><value>jamais utilisé</value></data>
+  <data name="Stats.Empty" xml:space="preserve"><value>Pas encore de jetons — les statistiques apparaissent dès que les jetons de l'application sont utilisés.</value></data>
+  <data name="Stats.Requests.Title" xml:space="preserve"><value>Requêtes par jour (derniers {0} jours)</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>La fréquence à laquelle chaque jeton a lu ses secrets, agrégée par jour UTC. Les compteurs se mettent à jour environ une minute après un accès.</value></data>
+  <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} requête(s)</value></data>
+  <data name="Stats.Ips.Title" xml:space="preserve"><value>Adresses IP observées</value></data>
+  <data name="Stats.Ips.Desc" xml:space="preserve"><value>Les IP clientes depuis lesquelles chaque jeton a été utilisé (vues par le serveur ; derrière un proxy, les en-têtes « forwarded » sont nécessaires). Les entrées expirent avec la fenêtre de rétention.</value></data>
+  <data name="Stats.Ips.Empty" xml:space="preserve"><value>Aucun accès enregistré pour l'instant.</value></data>
+  <data name="Stats.Ips.Seen" xml:space="preserve"><value>vue la première fois {0} · la dernière fois {1}</value></data>
+  <data name="Stats.Alerts.Title" xml:space="preserve"><value>Alertes d'accès</value></data>
+  <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Signaux basés sur des règles : un jeton utilisé depuis une IP jamais vue, ou de nouveau utilisé après un long silence. Si une alerte est inattendue, révoquez ou faites tourner le jeton.</value></data>
+  <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Aucune alerte — aucun schéma d'accès inhabituel.</value></data>
+  <data name="Stats.Alert.NewIp" xml:space="preserve"><value>Nouvelle IP</value></data>
+  <data name="Stats.Alert.Resumed" xml:space="preserve"><value>De nouveau actif</value></data>
+  <data name="Stats.Alert.NewIp.Text" xml:space="preserve"><value>« {0} » a été utilisé depuis l'IP jamais vue {1}.</value></data>
+  <data name="Stats.Alert.Resumed.Text" xml:space="preserve"><value>« {0} » est de nouveau utilisé après un long silence (IP {1}).</value></data>
+  <data name="Profile.NotifyAccess.Label" xml:space="preserve"><value>Recevoir un e-mail lors d'alertes d'accès aux jetons (jeton utilisé depuis une IP jamais vue, ou de nouveau actif après un long silence).</value></data>
+  <data name="Email.TokenAccess.Subject" xml:space="preserve"><value>{0} : alerte d'accès aux jetons d'app</value></data>
+  <data name="Email.TokenAccess.Title" xml:space="preserve"><value>Accès inhabituel à un jeton d'app</value></data>
+  <data name="Email.TokenAccess.Intro" xml:space="preserve"><value>Les accès suivants aux jetons d'app ne correspondent pas au schéma habituel :</value></data>
+  <data name="Email.TokenAccess.Line.NewIp" xml:space="preserve"><value>« {0} » ({1} / {2}) — utilisé depuis l'IP jamais vue {3}, le {4}.</value></data>
+  <data name="Email.TokenAccess.Line.Resumed" xml:space="preserve"><value>« {0} » ({1} / {2}) — de nouveau utilisé après un long silence (IP {3}), le {4}.</value></data>
+  <data name="Email.TokenAccess.Outro" xml:space="preserve"><value>Si un accès est inattendu, révoquez ou faites tourner le jeton immédiatement — un jeton divulgué continue de lire les secrets tant qu'il n'est pas révoqué.</value></data>
+  <data name="Email.TokenAccess.Button" xml:space="preserve"><value>Ouvrir les jetons d'app</value></data>
+  <data name="Email.TokenAccess.Footer" xml:space="preserve"><value>Vous recevez cet e-mail parce que vous avez activé les alertes d'accès aux jetons dans votre profil.</value></data>
   <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Accès d&apos;urgence (break-glass)</value></data>
   <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Accès d&apos;urgence aux coffres d&apos;équipe en double contrôle : un administrateur système fait la demande avec un motif, un second l&apos;approuve ; l&apos;utilisation accorde au demandeur l&apos;accès Manage au coffre - entièrement journalisé et révocable.</value></data>
   <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>L&apos;accès d&apos;urgence est réservé aux administrateurs système.</value></data>

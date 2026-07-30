@@ -7,6 +7,21 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **Token access statistics with a «Statistics» tab per application.** Every authenticated software-client
+  read is now counted — in memory on the hot path, persisted batched (default every 60 s) — so each app
+  token shows **when it was last used and from which IP** (token list + details): the signal that makes
+  revoking and zero-downtime rotation observable instead of blind. The new tab shows requests per day and
+  token (last 14 days, bars), the IPs each token has been seen from (first/last sighting), and recent
+  access alerts. Data is pre-aggregated per UTC day (no row per request), trimmed after a retention window
+  (default 90 days), and — like the token table — installation-global with reads always scoped through the
+  application. Config section `Keyward:TokenAccess` (`Enabled`, `FlushIntervalSeconds`, `RetentionDays`,
+  `SilenceAlertDays`).
+- **Rule-based access alerts, optionally by e-mail.** Two sharp, low-noise rules: a token used from a
+  **never-seen IP** (the classic leak signal; the very first IP is baseline, not an alert), and a token
+  **active again after a long silence** (default 30+ days). Alerts always appear in the Statistics tab;
+  administrators can additionally opt in on their profile (a second toggle next to the expiry one) to
+  receive them by e-mail, grouped per run and localized like the expiry mails.
+
 - **`Am.Keyward.Client` — the consumer package for deployed applications.** One call in `Program.cs`
   (`builder.Configuration.AddKeywardSecrets(...)`) loads the application's secrets from the software-client
   API straight into `IConfiguration`: the token is resolved by the same per-application environment-variable

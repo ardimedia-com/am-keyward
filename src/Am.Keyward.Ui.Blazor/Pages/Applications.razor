@@ -191,6 +191,10 @@
                             {
                                 <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ApplicationName="@(SelectedApp?.Name ?? "")" ActorUserId="@actorUserId" />
                             }
+                            else if (appTab == "stats")
+                            {
+                                <StatisticsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" />
+                            }
                         </KeywardTabBar>
                     }
                     else
@@ -221,6 +225,7 @@
         new("envs", Loc["App.Tab.Environments"], "layers"),
         new("data", Loc["App.Tab.Data"], "key"),
         new("tokens", Loc["App.Tab.Tokens"], "ticket"),
+        new("stats", Loc["App.Tab.Statistics"], "chart-column"),
     ];
 
     private IReadOnlyList<ProjectInfo>? apps;

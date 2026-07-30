@@ -634,6 +634,34 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rota un token en la página de tokens de app; el nuevo valor se muestra una sola vez.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Abrir los tokens de app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Recibes este correo porque activaste las notificaciones de expiración de tokens de app en tu perfil.</value></data>
+  <data name="App.Tab.Statistics" xml:space="preserve"><value>Estadísticas</value></data>
+  <data name="Token.LastAccess" xml:space="preserve"><value>Último acceso</value></data>
+  <data name="Token.LastAccess.Value" xml:space="preserve"><value>usado {0}</value></data>
+  <data name="Token.LastAccess.Never" xml:space="preserve"><value>nunca usado</value></data>
+  <data name="Stats.Empty" xml:space="preserve"><value>Aún no hay tokens — las estadísticas aparecen en cuanto se usan los tokens de la aplicación.</value></data>
+  <data name="Stats.Requests.Title" xml:space="preserve"><value>Solicitudes por día (últimos {0} días)</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>Con qué frecuencia cada token leyó sus secretos, agregado por día UTC. Los contadores se actualizan aproximadamente un minuto después de un acceso.</value></data>
+  <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} solicitud(es)</value></data>
+  <data name="Stats.Ips.Title" xml:space="preserve"><value>Direcciones IP observadas</value></data>
+  <data name="Stats.Ips.Desc" xml:space="preserve"><value>Las IP de cliente desde las que se usó cada token (vistas por el servidor; detrás de un proxy se necesitan cabeceras «forwarded»). Las entradas caducan con la ventana de retención.</value></data>
+  <data name="Stats.Ips.Empty" xml:space="preserve"><value>Aún no hay accesos registrados.</value></data>
+  <data name="Stats.Ips.Seen" xml:space="preserve"><value>vista por primera vez {0} · por última vez {1}</value></data>
+  <data name="Stats.Alerts.Title" xml:space="preserve"><value>Alertas de acceso</value></data>
+  <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Señales basadas en reglas: un token usado desde una IP nunca vista, o de nuevo en uso tras un largo silencio. Si una alerta es inesperada, revoca o rota el token.</value></data>
+  <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Sin alertas — ningún patrón de acceso inusual.</value></data>
+  <data name="Stats.Alert.NewIp" xml:space="preserve"><value>IP nueva</value></data>
+  <data name="Stats.Alert.Resumed" xml:space="preserve"><value>Activo de nuevo</value></data>
+  <data name="Stats.Alert.NewIp.Text" xml:space="preserve"><value>«{0}» se usó desde la IP nunca vista {1}.</value></data>
+  <data name="Stats.Alert.Resumed.Text" xml:space="preserve"><value>«{0}» está de nuevo en uso tras un largo silencio (IP {1}).</value></data>
+  <data name="Profile.NotifyAccess.Label" xml:space="preserve"><value>Recibir un correo con las alertas de acceso a tokens (token usado desde una IP nunca vista, o activo de nuevo tras un largo silencio).</value></data>
+  <data name="Email.TokenAccess.Subject" xml:space="preserve"><value>{0}: alerta de acceso a tokens de app</value></data>
+  <data name="Email.TokenAccess.Title" xml:space="preserve"><value>Acceso inusual a un token de app</value></data>
+  <data name="Email.TokenAccess.Intro" xml:space="preserve"><value>Los siguientes accesos a tokens de app no coinciden con el patrón anterior:</value></data>
+  <data name="Email.TokenAccess.Line.NewIp" xml:space="preserve"><value>«{0}» ({1} / {2}) — usado desde la IP nunca vista {3}, el {4}.</value></data>
+  <data name="Email.TokenAccess.Line.Resumed" xml:space="preserve"><value>«{0}» ({1} / {2}) — de nuevo en uso tras un largo silencio (IP {3}), el {4}.</value></data>
+  <data name="Email.TokenAccess.Outro" xml:space="preserve"><value>Si un acceso es inesperado, revoca o rota el token de inmediato — un token filtrado sigue leyendo secretos hasta que se revoca.</value></data>
+  <data name="Email.TokenAccess.Button" xml:space="preserve"><value>Abrir tokens de app</value></data>
+  <data name="Email.TokenAccess.Footer" xml:space="preserve"><value>Recibes este correo porque activaste las alertas de acceso a tokens en tu perfil.</value></data>
   <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Acceso de emergencia (break-glass)</value></data>
   <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Acceso de emergencia a las bóvedas de equipo con doble control: un administrador del sistema lo solicita con un motivo, un segundo lo aprueba; el uso concede al solicitante acceso Manage a la bóveda - totalmente auditado y revocable.</value></data>
   <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>El acceso de emergencia está reservado a los administradores del sistema.</value></data>

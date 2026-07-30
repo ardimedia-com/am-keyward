@@ -90,6 +90,20 @@ the fleet, then **revoke the old one** once every instance has picked up the new
 **Expiry notifications:** administrators who opt in on their profile page receive an e-mail 30, 20 and 10
 days before a token expires, then daily from 9 days; a background watcher additionally logs due tokens.
 
+## Access statistics & alerts
+
+Every authenticated read is counted in memory and persisted batched (default every 60 s, section
+`Keyward:TokenAccess`), so the server can answer "is this token still in use?" without a database write on
+the hot path. Per token it records the **last access (time + client IP)**, **requests per UTC day**, and
+the **set of IPs it has been seen from** — shown in the app-tokens list and the application's «Statistics»
+tab, and trimmed after the retention window (default 90 days). Two rule-based alerts derive from it: a
+token used from a **never-seen IP**, and a token **active again after 30+ days of silence**; both appear
+in the Statistics tab, and administrators can opt in on their profile to receive them by e-mail. Practical
+uses: verify a fleet has switched tokens before revoking the old one (its last access stops moving), spot
+a leaked token being used from an unexpected address, and find never-used placeholder tokens to clean up.
+Note: the recorded IP is the connection's remote address — behind a proxy/load balancer configure
+forwarded-headers middleware in the host, or the proxy's address is what gets recorded.
+
 ## Security notes
 
 - Tokens carry no secret material at rest — only a SHA-256 hash and a non-secret lookup prefix are stored.

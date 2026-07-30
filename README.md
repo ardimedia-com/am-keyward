@@ -205,6 +205,14 @@ app.MapKeywardClientApi();                       // GET /keyward/api/v1/secrets[
 app.MapKeywardApi(authorizationPolicy: "YourAdminPolicy");
 ```
 
+With the client API mapped, Keyward also records **access statistics** per app token (last access + IP,
+requests per day, seen IPs) and derives rule-based **access alerts** (never-seen IP, active again after a
+long silence) — visible on each application's «Statistics» tab and optionally e-mailed to opted-in admins.
+Recording is in-memory on the hot path and persisted batched; tune or disable via the `Keyward:TokenAccess`
+section (`Enabled`, `FlushIntervalSeconds`, `RetentionDays`, `SilenceAlertDays`). Details:
+[docs/software-client-api.md](docs/software-client-api.md). Behind a proxy, configure forwarded-headers
+middleware so the recorded IP is the client's, not the proxy's.
+
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 
 The consumer side of the software-client API is one line in the deployed application's `Program.cs` — no

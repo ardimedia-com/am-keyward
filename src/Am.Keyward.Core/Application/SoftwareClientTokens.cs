@@ -65,7 +65,9 @@ public sealed record SoftwareClientTokenInfo(
     DateTimeOffset? LastRotatedAt,
     DateTimeOffset? RevokedAt,
     bool IsActive,
-    bool HasSecret);
+    bool HasSecret,
+    DateTimeOffset? LastAccessAt,
+    string? LastAccessIp);
 
 /// <summary>Management of software-client tokens (issue / rotate / revoke / list).</summary>
 public interface ISoftwareClientTokenService

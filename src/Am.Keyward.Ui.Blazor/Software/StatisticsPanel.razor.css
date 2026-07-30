@@ -1,0 +1,17 @@
+/* The per-token daily request mini chart: fixed-width day slots, aligned across rows. */
+.kw-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 34px;
+}
+
+.kw-bar {
+    width: 7px;
+    border-radius: 2px 2px 0 0;
+    background: var(--kw-primary, #4f46e5);
+}
+
+.kw-bar-empty {
+    background: var(--kw-border, #e3e6ea);
+}

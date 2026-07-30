@@ -64,6 +64,13 @@ public sealed class AppUser
     /// </summary>
     public bool NotifyTokenExpiry { get; private set; }
 
+    /// <summary>
+    /// Opt-in: this user wants e-mail notifications about token access-pattern alerts (a token used from a
+    /// never-seen IP, or used again after a long silence). Only honored for users who administer the
+    /// token's tenant.
+    /// </summary>
+    public bool NotifyTokenAccessAlerts { get; private set; }
+
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt, bool isSoftwareManager = false)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -89,6 +96,8 @@ public sealed class AppUser
     public void RevokeSoftwareManager() => IsSoftwareManager = false;
 
     public void SetTokenExpiryNotification(bool enabled) => NotifyTokenExpiry = enabled;
+
+    public void SetTokenAccessAlertNotification(bool enabled) => NotifyTokenAccessAlerts = enabled;
 }
 
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>

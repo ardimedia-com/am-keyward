@@ -167,6 +167,10 @@ builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.Da
 // 30/20/10 days ahead, then daily from 9 days (TokenExpiryNoticePolicy).
 builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.TokenExpiryEmailService>();
 
+// E-mails administrators (who opted in on their profile) about token access-pattern alerts derived by the
+// statistics flush: a token used from a never-seen IP, or active again after a long silence.
+builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.TokenAccessAlertEmailService>();
+
 // Monitoring/health: a live KEK-availability probe and the cached ops-monitor snapshot (KEK integrity,
 // audit-chain integrity, token expiry). Exposed at /health (liveness) and /health/ready (readiness).
 builder.Services.AddHealthChecks()
@@ -250,9 +254,9 @@ app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager)
     return Results.LocalRedirect("/");
 }).DisableAntiforgery();
 
-// Per-user notification preference: e-mail when app tokens near expiry (antiforgery-protected form post
-// from the profile page; an unchecked checkbox posts no value).
-app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string? notify,
+// Per-user notification preferences: e-mail when app tokens near expiry, and on token access alerts
+// (antiforgery-protected form post from the profile page; an unchecked checkbox posts no value).
+app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string? notify, [FromForm] string? notifyAccess,
     UserManager<IdentityUser> users, KeywardDbContext db) =>
 {
     var identityId = users.GetUserId(ctx.User);
@@ -265,6 +269,7 @@ app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string
     if (appUser is not null)
     {
         appUser.SetTokenExpiryNotification(notify == "true");
+        appUser.SetTokenAccessAlertNotification(notifyAccess == "true");
         await db.SaveChangesAsync();
     }
 

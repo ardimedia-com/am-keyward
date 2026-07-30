@@ -634,6 +634,34 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotate a token on the app-tokens page; the new value is shown exactly once.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Open app tokens</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>You receive this because you enabled app-token expiry notifications in your profile.</value></data>
+  <data name="App.Tab.Statistics" xml:space="preserve"><value>Statistics</value></data>
+  <data name="Token.LastAccess" xml:space="preserve"><value>Last access</value></data>
+  <data name="Token.LastAccess.Value" xml:space="preserve"><value>used {0}</value></data>
+  <data name="Token.LastAccess.Never" xml:space="preserve"><value>never used</value></data>
+  <data name="Stats.Empty" xml:space="preserve"><value>No tokens yet — statistics appear once the application's tokens are used.</value></data>
+  <data name="Stats.Requests.Title" xml:space="preserve"><value>Requests per day (last {0} days)</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>How often each token read its secrets, aggregated per UTC day. Counters update within about a minute of an access.</value></data>
+  <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} request(s)</value></data>
+  <data name="Stats.Ips.Title" xml:space="preserve"><value>Seen IP addresses</value></data>
+  <data name="Stats.Ips.Desc" xml:space="preserve"><value>The client IPs each token has been used from (as seen by the server; behind a proxy this needs forwarded headers). Entries age out with the retention window.</value></data>
+  <data name="Stats.Ips.Empty" xml:space="preserve"><value>No accesses recorded yet.</value></data>
+  <data name="Stats.Ips.Seen" xml:space="preserve"><value>first seen {0} · last seen {1}</value></data>
+  <data name="Stats.Alerts.Title" xml:space="preserve"><value>Access alerts</value></data>
+  <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Rule-based signals: a token used from a never-seen IP, or used again after a long silence. If an alert is unexpected, revoke or rotate the token.</value></data>
+  <data name="Stats.Alerts.Empty" xml:space="preserve"><value>No alerts — no unusual access patterns.</value></data>
+  <data name="Stats.Alert.NewIp" xml:space="preserve"><value>New IP</value></data>
+  <data name="Stats.Alert.Resumed" xml:space="preserve"><value>Active again</value></data>
+  <data name="Stats.Alert.NewIp.Text" xml:space="preserve"><value>“{0}” was used from the previously unseen IP {1}.</value></data>
+  <data name="Stats.Alert.Resumed.Text" xml:space="preserve"><value>“{0}” is in use again after a long silence (IP {1}).</value></data>
+  <data name="Profile.NotifyAccess.Label" xml:space="preserve"><value>E-mail me on token access alerts (a token used from a never-seen IP, or active again after a long silence).</value></data>
+  <data name="Email.TokenAccess.Subject" xml:space="preserve"><value>{0}: app-token access alert</value></data>
+  <data name="Email.TokenAccess.Title" xml:space="preserve"><value>Unusual app-token access</value></data>
+  <data name="Email.TokenAccess.Intro" xml:space="preserve"><value>The following app-token accesses did not match the previous pattern:</value></data>
+  <data name="Email.TokenAccess.Line.NewIp" xml:space="preserve"><value>“{0}” ({1} / {2}) — used from the previously unseen IP {3} on {4}.</value></data>
+  <data name="Email.TokenAccess.Line.Resumed" xml:space="preserve"><value>“{0}” ({1} / {2}) — in use again after a long silence (IP {3}) on {4}.</value></data>
+  <data name="Email.TokenAccess.Outro" xml:space="preserve"><value>If an access is unexpected, revoke or rotate the token immediately — a leaked token keeps reading secrets until it is revoked.</value></data>
+  <data name="Email.TokenAccess.Button" xml:space="preserve"><value>Open app tokens</value></data>
+  <data name="Email.TokenAccess.Footer" xml:space="preserve"><value>You receive this because you enabled token access alerts in your profile.</value></data>
   <data name="Page.BreakGlass.Title" xml:space="preserve"><value>Emergency access (break-glass)</value></data>
   <data name="Page.BreakGlass.Desc" xml:space="preserve"><value>Dual-control emergency access to team vaults: one system admin requests with a reason, a second approves, and consuming the approved request grants the requester Manage access to the vault - fully audited and revocable.</value></data>
   <data name="BreakGlass.AdminOnly" xml:space="preserve"><value>Emergency access is restricted to system administrators.</value></data>

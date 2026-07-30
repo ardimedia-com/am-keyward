@@ -162,7 +162,8 @@ public sealed class SoftwareClientTokenService(
         return tokens
             .Select(t => new SoftwareClientTokenInfo(
                 t.Id, t.ProjectId, t.EnvironmentId, t.Name, t.Note, t.TokenPrefix,
-                t.CreatedAt, t.ExpiresAt, t.LastRotatedAt, t.RevokedAt, t.IsActive(now), t.HasSecret))
+                t.CreatedAt, t.ExpiresAt, t.LastRotatedAt, t.RevokedAt, t.IsActive(now), t.HasSecret,
+                t.LastAccessAt, t.LastAccessIp))
             .ToList();
     }
 

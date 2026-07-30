@@ -39,6 +39,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SecretValue> SecretValues => Set<SecretValue>();
     public DbSet<SecretVersion> SecretVersions => Set<SecretVersion>();
     public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
+    public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
+    public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
+    public DbSet<TokenAccessAlert> TokenAccessAlerts => Set<TokenAccessAlert>();
     public DbSet<Vault> Vaults => Set<Vault>();
     public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<VaultItem> VaultItems => Set<VaultItem>();
@@ -197,6 +200,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Note).HasMaxLength(1024).IsRequired();
             e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
             e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            e.Property(x => x.LastAccessIp).HasMaxLength(64);
             // Unique lookup handle for issued tokens; pending placeholders share the empty prefix, so the
             // uniqueness is filtered to minted values.
             e.HasIndex(x => x.TokenPrefix).IsUnique().HasFilter("[TokenPrefix] <> ''");
@@ -207,6 +211,44 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             // row-level-security policy — it must be looked up by prefix BEFORE the tenant is known. The
             // record carries TenantId only to scope the request once the token is authenticated. It holds
             // no secret material (only a hash + a non-secret prefix).
+        });
+
+        // Token access statistics: pre-aggregated daily counters, seen IPs and access-pattern alerts.
+        // Like the token table, these are installation-global (deliberately NO tenant query filter and NOT
+        // in row-level security): they are written by the background flush outside any tenant scope, hold
+        // no secret material (counts, IPs, timestamps), and every read goes through the token's
+        // (tenant, project) in the statistics service. The FK to the token cascades so deleting a token
+        // takes its statistics along.
+        model.Entity<TokenDailyAccess>(e =>
+        {
+            e.ToTable("TokenDailyAccesses");
+            e.HasKey(x => x.Id);
+            e.HasIndex(x => new { x.TokenId, x.Date }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<TokenAccessIp>(e =>
+        {
+            e.ToTable("TokenAccessIps");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.IpAddress).HasMaxLength(64).IsRequired();
+            e.HasIndex(x => new { x.TokenId, x.IpAddress }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<TokenAccessAlert>(e =>
+        {
+            e.ToTable("TokenAccessAlerts");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Kind).HasConversion<string>().HasMaxLength(32);
+            e.Property(x => x.IpAddress).HasMaxLength(64);
+            e.HasIndex(x => new { x.TokenId, x.CreatedAt });
+            e.HasIndex(x => x.TenantId);
+            // The mail job polls for not-yet-emailed alerts; the filtered index keeps that poll cheap.
+            e.HasIndex(x => x.EmailedAt).HasFilter("[EmailedAt] IS NULL");
+            e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // Human vaults. Isolation boundary: tenant vaults by TenantId, personal (tenant-less) vaults by

@@ -42,6 +42,23 @@ public sealed class SoftwareClientToken
 
     public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
 
+    /// <summary>
+    /// When this token last authenticated a secret read — the "is this token still in use?" signal that
+    /// makes revocation and zero-downtime rotation observable. Written batched/throttled by the access
+    /// recorder (never per request), so it is accurate to the flush interval, not the millisecond.
+    /// </summary>
+    public DateTimeOffset? LastAccessAt { get; private set; }
+
+    /// <summary>The client IP observed on the most recent access (as seen by the server; proxy-dependent).</summary>
+    public string? LastAccessIp { get; private set; }
+
+    /// <summary>Records the latest observed access (called by the statistics flush, not per request).</summary>
+    public void RecordAccess(DateTimeOffset at, string? ip)
+    {
+        LastAccessAt = at;
+        LastAccessIp = string.IsNullOrWhiteSpace(ip) ? LastAccessIp : ip;
+    }
+
     public SoftwareClientToken(
         Guid id,
         Guid tenantId,
