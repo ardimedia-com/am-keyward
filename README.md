@@ -80,7 +80,9 @@ AM KEYWARD is library-first: you add it to your own **.NET 10 Blazor Web App (in
 brings its services, API, and feature UI. Reference it either as the published **preview NuGet packages**
 (`dotnet add package Am.Keyward.Infrastructure --prerelease`, same for `Am.Keyward.AspNetCore`,
 `Am.Keyward.Ui.Blazor`, and `Am.Keyward.Api` if you expose the REST APIs) or as direct `ProjectReference`s
-(e.g. a git submodule).
+(e.g. a git submodule). Deployed applications that only **read** their secrets reference the lightweight
+`Am.Keyward.Client` package instead — see
+[Consuming secrets from a deployed application](#consuming-secrets-from-a-deployed-application-amkeywardclient).
 
 **0. Prerequisites** — the Keyward pages are interactive-server and `[Authorize]`-protected, so your app
 needs interactivity, auth-state cascading and (that's all — localization comes with `AddKeywardUi`):
@@ -201,6 +203,44 @@ app.UseRateLimiter();                            // the mapped group requires th
 app.MapKeywardClientApi();                       // GET /keyward/api/v1/secrets[/{key}]
 // Optional management REST API, guarded by YOUR admin policy:
 app.MapKeywardApi(authorizationPolicy: "YourAdminPolicy");
+```
+
+## Consuming secrets from a deployed application (Am.Keyward.Client)
+
+The consumer side of the software-client API is one line in the deployed application's `Program.cs` — no
+hand-rolled HTTP. `Am.Keyward.Client` is deliberately lightweight (no EF Core, no server code; just the
+configuration provider and a typed HTTP client):
+
+```csharp
+builder.Configuration.AddKeywardSecrets(o =>
+{
+    o.ServiceUri = new Uri("https://keyward.example.com");
+    o.ApplicationName = "Bvd.Li.Toolbox";   // token read from KEYWARD_BVD_LI_TOOLBOX_TOKEN
+});
+```
+
+The bulk read (`GET /secrets`) lands in `IConfiguration`, so `ConnectionStrings:Main`, options binding
+etc. resolve like any other configuration value — later sources overlay earlier ones as usual. The token
+comes from the **same per-application environment variable** the Keyward UI's deployment PowerShell snippet
+sets on the host (set `o.TokenEnvironmentVariableName` for a fixed name, or `o.Token` to pass it directly).
+
+Defaults are deliberate: the source **fails the host loudly at startup** when no token is deployed or the
+server is unreachable (an app whose connection strings live in Keyward must not silently start without
+them; set `o.Optional = true` to tolerate it), and the startup load retries with backoff
+(`LoadRetryCount`/`LoadRetryDelay`) so a service booting right after a host reboot does not lose the race
+against the Keyward server. Set `o.ReloadInterval` to re-read periodically and raise a configuration reload
+when values changed (`IOptionsMonitor<T>` picks it up); a failed refresh keeps the last known good values.
+
+For direct runtime reads (a secret fetched on demand rather than at startup), register the typed client via
+`IHttpClientFactory` and inject `KeywardSecretsClient`:
+
+```csharp
+builder.Services.AddKeywardSecretsClient(o =>
+{
+    o.ServiceUri = new Uri("https://keyward.example.com");
+    o.ApplicationName = "Bvd.Li.Toolbox";
+});
+// ...then: string? value = await keywardSecretsClient.GetAsync("ConnectionStrings:Main", ct);
 ```
 
 **Styling and routes come for free.** The UI theme is component-scoped CSS in the RCL, so it is folded into

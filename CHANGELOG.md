@@ -5,6 +5,25 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **`Am.Keyward.Client` — the consumer package for deployed applications.** One call in `Program.cs`
+  (`builder.Configuration.AddKeywardSecrets(...)`) loads the application's secrets from the software-client
+  API straight into `IConfiguration`: the token is resolved by the same per-application environment-variable
+  convention the deployment PowerShell snippet sets (`Bvd.Li.Toolbox` → `KEYWARD_BVD_LI_TOOLBOX_TOKEN`), the
+  startup load retries with backoff and fails the host loudly when no token is deployed or the server is
+  unreachable (opt out with `Optional`), and an optional `ReloadInterval` re-reads periodically and raises a
+  configuration reload on change (keeping the last known good values when a refresh fails). A typed
+  `KeywardSecretsClient` (registered via `AddKeywardSecretsClient`, `IHttpClientFactory`-based) covers
+  on-demand runtime reads. The package is deliberately lightweight: no server-side dependencies, only the
+  wire contracts.
+- **`Am.Keyward.Contracts` now carries the shared wire conventions.** `SecretResponse`, the default API base
+  path (`KeywardApiDefaults.BasePath`) and the token env-var derivation (`KeywardTokenConventions`,
+  previously a static on `KeywardUiOptions`) moved there, so server and client share one definition.
+  **BREAKING:** callers of `KeywardUiOptions.DeriveTokenVariableName` use
+  `KeywardTokenConventions.DeriveTokenVariableName` now, and `KeywardApi.SecretResponse` became
+  `Am.Keyward.Contracts.SecretResponse`.
+
 ## [0.5.0-preview] - 2026-07-29
 
 ### Added

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Am.Keyward.Contracts;
 using Am.Keyward.Core.Application;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,7 +17,7 @@ public static class KeywardClientApi
     /// <summary>Rate-limiter policy name (registered by <c>AddKeywardSoftwareClientApi</c>), partitioned per token.</summary>
     public const string RateLimiterPolicy = "keyward-software-client";
 
-    public static IEndpointRouteBuilder MapKeywardClientApi(this IEndpointRouteBuilder endpoints, string prefix = "/keyward/api/v1")
+    public static IEndpointRouteBuilder MapKeywardClientApi(this IEndpointRouteBuilder endpoints, string prefix = KeywardApiDefaults.BasePath)
     {
         var group = endpoints.MapGroup(prefix)
             .WithTags("Keyward.SoftwareClient")
@@ -37,7 +38,7 @@ public static class KeywardClientApi
         {
             var (tenantId, projectId, environmentId) = ReadScope(user);
             var value = await reader.ReadAsync(tenantId, projectId, environmentId, key, null, ct);
-            return value is null ? Results.NotFound() : Results.Ok(new KeywardApi.SecretResponse(key, value));
+            return value is null ? Results.NotFound() : Results.Ok(new SecretResponse(key, value));
         });
 
         return endpoints;

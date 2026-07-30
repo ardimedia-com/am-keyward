@@ -1,3 +1,4 @@
+using Am.Keyward.Contracts;
 using Am.Keyward.Ui.Blazor;
 
 namespace Am.Keyward.Tests;
@@ -20,7 +21,7 @@ public class TokenEnvironmentVariableNameTests
     [DataRow("...", "KEYWARD_APP_TOKEN")]                     // nothing usable left
     [DataRow("", "KEYWARD_APP_TOKEN")]
     public void Derives_a_conventional_variable_name(string applicationName, string expected) =>
-        Assert.AreEqual(expected, KeywardUiOptions.DeriveTokenVariableName(applicationName));
+        Assert.AreEqual(expected, KeywardTokenConventions.DeriveTokenVariableName(applicationName));
 
     [TestMethod, TestCategory("Unit")]
     public void A_host_configured_fixed_name_wins_over_the_derived_one()

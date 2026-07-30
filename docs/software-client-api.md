@@ -19,6 +19,26 @@ per token.
 `GET /secrets` returns a flat JSON object (`{ "Section:Key": "value", ... }`) shaped for binding into
 .NET `IConfiguration`.
 
+## .NET client — `Am.Keyward.Client`
+
+.NET applications should not hand-roll these HTTP calls: the `Am.Keyward.Client` package wraps them as a
+standard configuration provider (plus a typed client for on-demand reads):
+
+```csharp
+builder.Configuration.AddKeywardSecrets(o =>
+{
+    o.ServiceUri = new Uri("https://keyward.example.com");
+    o.ApplicationName = "Bvd.Li.Toolbox";   // token read from KEYWARD_BVD_LI_TOOLBOX_TOKEN (see below)
+    // o.ReloadInterval = TimeSpan.FromMinutes(15);   // optional periodic re-read
+});
+```
+
+The token is resolved from the same per-application environment variable this document describes (or a
+fixed `TokenEnvironmentVariableName`, or an explicit `Token`). By default a missing token or unreachable
+server fails the host at startup — loudly, with the variable name in the message — after a short retry
+window; `Optional = true` tolerates it with an empty source. See the README section *Consuming secrets
+from a deployed application* for the full option list.
+
 ## Token lifecycle
 
 - **Pending placeholders.** Creating an application (or adding an environment) automatically creates one

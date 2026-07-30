@@ -1,3 +1,4 @@
+using Am.Keyward.Contracts;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Microsoft.AspNetCore.Builder;
@@ -17,7 +18,7 @@ public static class KeywardApi
     /// <see cref="KeywardClientApi.MapKeywardClientApi"/>.)
     /// </summary>
     public static IEndpointRouteBuilder MapKeywardApi(
-        this IEndpointRouteBuilder endpoints, string prefix = "/keyward/api/v1", string? authorizationPolicy = null)
+        this IEndpointRouteBuilder endpoints, string prefix = KeywardApiDefaults.BasePath, string? authorizationPolicy = null)
     {
         var group = endpoints.MapGroup(prefix).WithTags("Keyward").DisableAntiforgery();
 
@@ -100,8 +101,6 @@ public static class KeywardApi
     }
 
     public sealed record StoreSecretRequest(string Value);
-
-    public sealed record SecretResponse(string Key, string Value);
 
     public sealed record IssueTokenRequest(string Name, DateTimeOffset? ExpiresAt);
 
