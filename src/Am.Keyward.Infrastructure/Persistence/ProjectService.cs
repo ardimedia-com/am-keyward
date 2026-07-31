@@ -15,10 +15,10 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// for explicit confirmation spelling that out.
 /// </summary>
 public sealed class ProjectService(
-    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
     IClock clock,
     ICurrentTenant tenant,
-    IAuditSink audit,
+    DbAuditSink audit,
     ISoftwareClientTokenService tokens) : IProjectService
 {
     private const string ResourceType = "Project";
@@ -27,6 +27,7 @@ public sealed class ProjectService(
     {
         EnsureTenantScope(tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var projects = await db.Projects.AsNoTracking()
             .Where(p => p.TenantId == tenantId)
             .OrderBy(p => p.Name)
@@ -50,10 +51,11 @@ public sealed class ProjectService(
     public async Task<Guid> CreateAsync(Guid tenantId, string name, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var trimmed = name?.Trim() ?? "";
-        await EnsureNameFreeAsync(tenantId, trimmed, exceptProjectId: null, ct).ConfigureAwait(false);
+        await EnsureNameFreeAsync(db, tenantId, trimmed, exceptProjectId: null, ct).ConfigureAwait(false);
 
         var now = clock.UtcNow;
         var project = new Project(Guid.NewGuid(), tenantId, OwnerType.Tenant, tenantId, trimmed, now);
@@ -71,7 +73,7 @@ public sealed class ProjectService(
         }
 
         db.Projects.Add(project);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, ResourceType, project.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, project.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         // Every environment starts with a pending app token (no secret yet — the value is minted on the
@@ -87,23 +89,25 @@ public sealed class ProjectService(
     public async Task RenameAsync(Guid tenantId, Guid projectId, string name, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.TenantId == tenantId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Project {projectId} not found.");
 
         var trimmed = name?.Trim() ?? "";
-        await EnsureNameFreeAsync(tenantId, trimmed, exceptProjectId: projectId, ct).ConfigureAwait(false);
+        await EnsureNameFreeAsync(db, tenantId, trimmed, exceptProjectId: projectId, ct).ConfigureAwait(false);
 
         project.Rename(trimmed);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Update, ResourceType, projectId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, ResourceType, projectId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Guid tenantId, Guid projectId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.TenantId == tenantId, ct).ConfigureAwait(false);
         if (project is null)
@@ -123,14 +127,14 @@ public sealed class ProjectService(
         // per-token lifecycle trail), plus the project-level entry below.
         foreach (var token in tokens)
         {
-            await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareClientToken", token.Id, actorUserId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, "SoftwareClientToken", token.Id, actorUserId), ct).ConfigureAwait(false);
         }
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, ResourceType, projectId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, ResourceType, projectId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task EnsureNameFreeAsync(Guid tenantId, string name, Guid? exceptProjectId, CancellationToken ct)
+    private static async Task EnsureNameFreeAsync(KeywardDbContext db, Guid tenantId, string name, Guid? exceptProjectId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -152,6 +156,12 @@ public sealed class ProjectService(
     /// </summary>
     public async Task<bool> CanManageAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await CanManageAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
+    }
+
+    private static async Task<bool> CanManageAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    {
         if (actorUserId is not { } actor)
         {
             return false;
@@ -162,7 +172,7 @@ public sealed class ProjectService(
                 m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
     }
 
-    private async Task EnsureOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    private static async Task EnsureOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
         // A null actor is a trusted/system caller (management API authorized at the HTTP layer; seed/system
         // operations). Every UI call carries the acting user, and THAT must be a manager. (CanManageAsync
@@ -173,7 +183,7 @@ public sealed class ProjectService(
             return;
         }
 
-        if (!await CanManageAsync(tenantId, actorUserId, ct).ConfigureAwait(false))
+        if (!await CanManageAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false))
         {
             throw new UnauthorizedAccessException("Managing applications requires the tenant-admin or software-manager role.");
         }

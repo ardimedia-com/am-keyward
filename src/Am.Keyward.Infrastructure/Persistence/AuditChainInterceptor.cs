@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Audit;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// <see cref="AuditEntry"/> its per-tenant sequence number and chained hashes while holding a
 /// session-scoped SQL Server application lock, so concurrent writers — even across instances — cannot fork
 /// a tenant's chain or collide on its sequence. The lock is released after commit (or on failure).
-/// Scoped per DbContext (a context is used sequentially), so the small amount of per-save state is safe.
+/// One scoped instance is shared by every context the scope's factory creates, so the per-save state
+/// (opened connection, held locks) is keyed per context — never held in instance fields.
 /// </summary>
 public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor
 {
@@ -27,8 +29,17 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         "EXEC sp_set_session_context @key = N'TenantId', @value = @tenant, @read_only = 1;" +
         "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;";
 
-    private DbConnection? _connectionOpenedHere;
-    private readonly List<string> _heldLocks = [];
+    // Per-context save state: this scoped interceptor instance is shared by all factory-created contexts
+    // of the scope, and two of them may save concurrently. The table entry lives only from
+    // SavingChangesAsync to Saved/Failed and is removed there; a context is used sequentially, so the
+    // state object itself needs no further synchronization.
+    private sealed class SaveState
+    {
+        public DbConnection? ConnectionOpenedHere;
+        public List<string> HeldLocks { get; } = [];
+    }
+
+    private readonly ConditionalWeakTable<DbContext, SaveState> states = new();
 
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken ct = default)
@@ -48,11 +59,12 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             return result;
         }
 
+        var state = states.GetOrCreateValue(context);
         var connection = context.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open)
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
-            _connectionOpenedHere = connection;
+            state.ConnectionOpenedHere = connection;
             await SetSessionContextAsync(connection, ct).ConfigureAwait(false); // EF's interceptor didn't fire
         }
 
@@ -72,7 +84,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
                 await ExecuteAsync(connection,
                     $"EXEC sp_getapplock @Resource = N'{resource}', @LockMode = 'Exclusive', @LockOwner = 'Session';", ct)
                     .ConfigureAwait(false);
-                _heldLocks.Add(resource);
+                state.HeldLocks.Add(resource);
 
                 var (sequence, previousHash) = await ReadHeadAsync(connection, group.Key, ct).ConfigureAwait(false);
                 foreach (var entry in group.OrderBy(e => e.OccurredAt))
@@ -108,15 +120,17 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
 
     private async Task ReleaseAsync(DbContext? context, CancellationToken ct)
     {
-        if (_heldLocks.Count == 0 && _connectionOpenedHere is null)
+        if (context is null || !states.TryGetValue(context, out var state))
         {
             return;
         }
 
-        var connection = context?.Database.GetDbConnection();
-        if (_heldLocks.Count > 0 && connection is { State: ConnectionState.Open })
+        states.Remove(context);
+
+        var connection = context.Database.GetDbConnection();
+        if (state.HeldLocks.Count > 0 && connection is { State: ConnectionState.Open })
         {
-            foreach (var resource in _heldLocks)
+            foreach (var resource in state.HeldLocks)
             {
                 try
                 {
@@ -129,12 +143,9 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             }
         }
 
-        _heldLocks.Clear();
-
-        if (_connectionOpenedHere is not null)
+        if (state.ConnectionOpenedHere is not null)
         {
-            await _connectionOpenedHere.CloseAsync().ConfigureAwait(false);
-            _connectionOpenedHere = null;
+            await state.ConnectionOpenedHere.CloseAsync().ConfigureAwait(false);
         }
     }
 

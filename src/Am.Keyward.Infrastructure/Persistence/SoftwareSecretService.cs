@@ -12,12 +12,15 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// <summary>
 /// Walking-skeleton implementation of the software-credentials use case: encrypts a value into the
 /// envelope (binding the full logical slot via AAD) and persists it as a new secret version; reads the
-/// current version and decrypts. Each operation is audited.
+/// current version and decrypts. Each operation is audited. Every operation runs on its own short-lived
+/// context from the factory (Blazor Server: the scope is the circuit, and concurrent component lifecycles
+/// must not share one context); the audit entry is staged on that same context, so audit and business
+/// write still commit in one SaveChanges.
 /// </summary>
 public sealed class SoftwareSecretService(
-    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
     ISecretBackend backend,
-    IAuditSink audit,
+    DbAuditSink audit,
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
@@ -30,6 +33,7 @@ public sealed class SoftwareSecretService(
     {
         EnsureTenantScope(tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var environments = await db.RuntimeEnvironments.AsNoTracking()
             .Where(e => e.ProjectId == projectId)
             .OrderBy(e => e.Name)
@@ -41,7 +45,8 @@ public sealed class SoftwareSecretService(
     public async Task RenameEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, string newName, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
@@ -55,14 +60,15 @@ public sealed class SoftwareSecretService(
         }
 
         environment.Rename(name);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Update, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
@@ -88,17 +94,17 @@ public sealed class SoftwareSecretService(
         // Each destroyed credential leaves its own trace in the audit chain, plus the environment entry.
         foreach (var token in environmentTokens)
         {
-            await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareClientToken", token.Id, actorUserId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, "SoftwareClientToken", token.Id, actorUserId), ct).ConfigureAwait(false);
         }
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     // Managing the software side (environments AND per-environment data/secrets) requires a system admin,
     // a tenant admin, OR a software manager. NOTE: this gates the UI mutation paths only — the token-
     // authenticated client READ paths (ReadAsync/ReadAllAsync) stay tenant-scoped (the token is the auth).
-    private async Task EnsureSoftwareOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    private static async Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
         // A null actor is a trusted/system caller: the management API authorizes at the HTTP layer (its
         // managementPolicy) before calling in, and seed/system operations attribute no user. Every UI call
@@ -121,7 +127,8 @@ public sealed class SoftwareSecretService(
     {
         EnsureTenantScope(tenantId);
 
-        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var project = await db.Projects.Include(p => p.Environments)
             .FirstOrDefaultAsync(p => p.Id == projectId, ct).ConfigureAwait(false)
@@ -129,7 +136,7 @@ public sealed class SoftwareSecretService(
 
         var environment = project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Create(name), clock.UtcNow);
         db.RuntimeEnvironments.Add(environment); // new child of a tracked aggregate -> mark Added explicitly
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, "Environment", environment.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "Environment", environment.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         // A new environment starts with a pending app token (no secret yet), like at application creation.
@@ -139,10 +146,11 @@ public sealed class SoftwareSecretService(
     public async Task StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
-        await EnsureSoftwareOperatorAsync(cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(cmd.ProjectId, Permission.Write, ct).ConfigureAwait(false);
 
-        var environment = await ResolveEnvironmentAsync(cmd.ProjectId, cmd.Environment, ct)
+        var environment = await ResolveEnvironmentAsync(db, cmd.ProjectId, cmd.Environment, ct)
             ?? throw new InvalidOperationException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
 
         var key = SecretKey.Create(cmd.Key);
@@ -178,7 +186,7 @@ public sealed class SoftwareSecretService(
         }
 
         await audit.AppendAsync(
-            new AuditRequest(cmd.TenantId, AuditAction.Update, "SoftwareSecret", secret.Id, cmd.ActorUserId ?? currentUser.UserId), ct)
+            db, new AuditRequest(cmd.TenantId, AuditAction.Update, "SoftwareSecret", secret.Id, cmd.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -188,7 +196,8 @@ public sealed class SoftwareSecretService(
         EnsureTenantScope(query.TenantId);
         await EnsureAuthorizedAsync(query.ProjectId, Permission.Read, ct).ConfigureAwait(false);
 
-        var environment = await ResolveEnvironmentAsync(query.ProjectId, query.Environment, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var environment = await ResolveEnvironmentAsync(db, query.ProjectId, query.Environment, ct).ConfigureAwait(false);
         if (environment is null)
         {
             return null;
@@ -210,7 +219,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         await audit.AppendAsync(
-            new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId ?? currentUser.UserId), ct)
+            db, new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -225,6 +234,7 @@ public sealed class SoftwareSecretService(
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var secretKey = SecretKey.Create(key);
         var secret = await db.SoftwareSecrets
             .Include(s => s.Values).ThenInclude(v => v.Versions)
@@ -241,7 +251,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         await audit.AppendAsync(
-            new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, actorUserId), ct)
+            db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, actorUserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -254,6 +264,7 @@ public sealed class SoftwareSecretService(
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var secrets = await db.SoftwareSecrets
             .Where(s => s.ProjectId == projectId)
             .Include(s => s.Values).ThenInclude(v => v.Versions)
@@ -275,7 +286,7 @@ public sealed class SoftwareSecretService(
         }
 
         await audit.AppendAsync(
-            new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", null, actorUserId), ct)
+            db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", null, actorUserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
@@ -298,6 +309,7 @@ public sealed class SoftwareSecretService(
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var envNames = await db.RuntimeEnvironments
             .Where(e => e.ProjectId == projectId)
             .ToDictionaryAsync(e => e.Id, e => e.Name.Value, ct)
@@ -325,6 +337,7 @@ public sealed class SoftwareSecretService(
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var secretKey = SecretKey.Create(key);
         var environments = await db.RuntimeEnvironments
             .Where(e => e.ProjectId == projectId)
@@ -354,7 +367,7 @@ public sealed class SoftwareSecretService(
             values.Add(new SecretEnvironmentValue(environment.Name.Value, true, plaintext));
         }
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, currentUser.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new SoftwareSecretDetail(secret.Key.Value, values);
@@ -364,7 +377,8 @@ public sealed class SoftwareSecretService(
         Guid tenantId, Guid projectId, string key, string newKey, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
 
         var currentKey = SecretKey.Create(key);
@@ -396,7 +410,7 @@ public sealed class SoftwareSecretService(
         // version IDs, never the key — so nothing has to be re-encrypted.
         secret.Rename(targetKey);
         await audit.AppendAsync(
-            new AuditRequest(tenantId, AuditAction.Update, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct)
+            db, new AuditRequest(tenantId, AuditAction.Update, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
@@ -404,7 +418,8 @@ public sealed class SoftwareSecretService(
     public async Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureSoftwareOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
 
         var secretKey = SecretKey.Create(key);
@@ -417,7 +432,7 @@ public sealed class SoftwareSecretService(
         }
 
         db.SoftwareSecrets.Remove(secret); // values + versions cascade
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -451,7 +466,8 @@ public sealed class SoftwareSecretService(
         }
     }
 
-    private async Task<RuntimeEnvironment?> ResolveEnvironmentAsync(Guid projectId, string environment, CancellationToken ct)
+    private static async Task<RuntimeEnvironment?> ResolveEnvironmentAsync(
+        KeywardDbContext db, Guid projectId, string environment, CancellationToken ct)
     {
         var name = EnvironmentName.Create(environment);
         return await db.RuntimeEnvironments

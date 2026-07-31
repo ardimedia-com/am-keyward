@@ -12,7 +12,7 @@ namespace Am.Keyward.Infrastructure.Auth;
 /// token record by that prefix, then constant-time compare the full-token hash and check it is active. On
 /// success it returns the token's (tenant, project, environment) scope.
 /// </summary>
-public sealed class SoftwareClientAuthenticator(KeywardDbContext db, IClock clock) : ISoftwareClientAuthenticator
+public sealed class SoftwareClientAuthenticator(IDbContextFactory<KeywardDbContext> dbFactory, IClock clock) : ISoftwareClientAuthenticator
 {
     public async Task<SoftwareClientPrincipal?> AuthenticateAsync(string presentedToken, CancellationToken ct = default)
     {
@@ -20,6 +20,8 @@ public sealed class SoftwareClientAuthenticator(KeywardDbContext db, IClock cloc
         {
             return null;
         }
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
 
         // The token table is installation-global (not tenant-scoped): it must be read before the tenant is
         // known. IgnoreQueryFilters is defensive in case a filter is ever added.

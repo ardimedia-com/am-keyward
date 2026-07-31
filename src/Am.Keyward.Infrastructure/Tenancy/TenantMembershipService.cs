@@ -10,10 +10,11 @@ namespace Am.Keyward.Infrastructure.Tenancy;
 /// an explicit membership row. Used at the host edge (see the management API) to gate the server-authoritative
 /// tenant scope against a caller-supplied <c>{tenantId}</c>.
 /// </summary>
-public sealed class TenantMembershipService(KeywardDbContext db) : ITenantMembership
+public sealed class TenantMembershipService(IDbContextFactory<KeywardDbContext> dbFactory) : ITenantMembership
 {
     public async ValueTask<bool> IsMemberAsync(Guid userId, Guid tenantId, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         if (await db.Users.AsNoTracking()
             .AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct)
             .ConfigureAwait(false))

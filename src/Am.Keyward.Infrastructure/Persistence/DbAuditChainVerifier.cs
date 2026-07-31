@@ -9,10 +9,11 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// differs (tampering), the chain links to the wrong previous hash, or a sequence number is missing.
 /// Reads through the tenant query filter, so the caller must run in the tenant's scope.
 /// </summary>
-public sealed class DbAuditChainVerifier(KeywardDbContext db) : IAuditChainVerifier
+public sealed class DbAuditChainVerifier(IDbContextFactory<KeywardDbContext> dbFactory) : IAuditChainVerifier
 {
     public async Task<AuditChainStatus> VerifyAsync(Guid? tenantId, CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var entries = await db.AuditEntries
             .Where(a => a.TenantId == tenantId)
             .OrderBy(a => a.Sequence)

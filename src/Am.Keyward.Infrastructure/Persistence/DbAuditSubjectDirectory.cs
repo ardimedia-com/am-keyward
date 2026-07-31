@@ -9,16 +9,22 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// <summary>
 /// Crypto-shredding directory: maps an actor to a stable opaque pseudonym and stores that actor's PII
 /// encrypted under a per-subject DEK (envelope, KEK-wrapped). Erasure clears the ciphertext so the PII is
-/// irrecoverable while the audit chain keeps the pseudonym. Shares the request's <see cref="KeywardDbContext"/>
-/// so a newly-created subject is persisted by the caller's SaveChanges, in the same unit of work as the
-/// audit entry that references it.
+/// irrecoverable while the audit chain keeps the pseudonym. The db-parametric
+/// <see cref="ResolvePseudonymAsync(KeywardDbContext, string?, AuditSubjectPii, CancellationToken)"/>
+/// stages a newly-created subject on the CALLER's unit of work, so it is persisted by the caller's
+/// SaveChanges together with the audit entry that references it; the port methods run on the scope's shared
+/// context (endpoint semantics).
 /// </summary>
 public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend backend, IClock clock) : IAuditSubjectDirectory
 {
     private const int AlgVersion = 1;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public async ValueTask<Guid?> ResolvePseudonymAsync(string? subjectReference, AuditSubjectPii pii, CancellationToken ct = default)
+    public ValueTask<Guid?> ResolvePseudonymAsync(string? subjectReference, AuditSubjectPii pii, CancellationToken ct = default) =>
+        ResolvePseudonymAsync(db, subjectReference, pii, ct);
+
+    public async ValueTask<Guid?> ResolvePseudonymAsync(
+        KeywardDbContext target, string? subjectReference, AuditSubjectPii pii, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(subjectReference))
         {
@@ -29,7 +35,7 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
 
         // Reuse an existing pseudonym: check entities already staged in this unit of work first (a single
         // SaveChanges may append several events for the same new actor), then the database.
-        var staged = db.ChangeTracker.Entries<AuditSubject>()
+        var staged = target.ChangeTracker.Entries<AuditSubject>()
             .Select(e => e.Entity)
             .FirstOrDefault(s => s.SubjectReference == reference && !s.IsErased);
         if (staged is not null)
@@ -37,7 +43,7 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
             return staged.Id;
         }
 
-        var existing = await db.AuditSubjects
+        var existing = await target.AuditSubjects
             .FirstOrDefaultAsync(s => s.SubjectReference == reference && s.ErasedAt == null, ct)
             .ConfigureAwait(false);
         if (existing is not null)
@@ -49,7 +55,7 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
         var aad = Aad.ForAuditSubjectPii(pseudonymId, AlgVersion);
         var plaintext = JsonSerializer.SerializeToUtf8Bytes(pii, Json);
         var encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
-        db.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
+        target.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
         return pseudonymId;
     }
 

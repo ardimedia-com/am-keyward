@@ -15,8 +15,8 @@ namespace Am.Keyward.Infrastructure.Tenancy;
 /// mutation is audited. The tables are tenant-scoped (query filter + row-level security).
 /// </summary>
 public sealed class GroupService(
-    KeywardDbContext db,
-    IAuditSink audit,
+    IDbContextFactory<KeywardDbContext> dbFactory,
+    DbAuditSink audit,
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser) : IGroupService
@@ -24,11 +24,12 @@ public sealed class GroupService(
     public async Task<Guid> CreateGroupAsync(Guid actorUserId, Guid tenantId, string name, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        await EnsureGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false);
 
         var group = new UserGroup(Guid.NewGuid(), tenantId, name, clock.UtcNow);
         db.Groups.Add(group);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, "Group", group.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "Group", group.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return group.Id;
     }
@@ -36,20 +37,22 @@ public sealed class GroupService(
     public async Task RenameGroupAsync(Guid actorUserId, Guid tenantId, Guid groupId, string name, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        await EnsureGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false);
 
-        var group = await LoadGroupAsync(groupId, ct).ConfigureAwait(false);
+        var group = await LoadGroupAsync(db, groupId, ct).ConfigureAwait(false);
         group.Rename(name);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Update, "Group", group.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, "Group", group.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteGroupAsync(Guid actorUserId, Guid tenantId, Guid groupId, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        await EnsureGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false);
 
-        var group = await LoadGroupAsync(groupId, ct).ConfigureAwait(false);
+        var group = await LoadGroupAsync(db, groupId, ct).ConfigureAwait(false);
 
         // The group's memberships and the access grants HELD BY the group go with it (no FKs to cascade).
         db.GroupMemberships.RemoveRange(await db.GroupMemberships
@@ -59,7 +62,7 @@ public sealed class GroupService(
             .ToListAsync(ct).ConfigureAwait(false));
         db.Groups.Remove(group);
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -67,6 +70,7 @@ public sealed class GroupService(
     {
         EnsureScopes(actorUserId, tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var groups = await db.Groups
             .OrderBy(g => g.Name)
             .Select(g => new
@@ -89,6 +93,7 @@ public sealed class GroupService(
     {
         EnsureScopes(actorUserId, tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await db.GroupMemberships
             .Where(m => m.GroupId == groupId)
             .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { u.Id, u.DisplayName, m.Role })
@@ -102,6 +107,7 @@ public sealed class GroupService(
     {
         EnsureScopes(actorUserId, tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await db.TenantMemberships
             .Where(m => m.TenantId == tenantId)
             .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { u.Id, u.DisplayName })
@@ -114,8 +120,9 @@ public sealed class GroupService(
     public async Task AddMemberAsync(Guid actorUserId, Guid tenantId, Guid groupId, Guid userId, GroupRole role, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        await EnsureMemberManagerAsync(actorUserId, tenantId, groupId, ct).ConfigureAwait(false);
-        await LoadGroupAsync(groupId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureMemberManagerAsync(db, actorUserId, tenantId, groupId, ct).ConfigureAwait(false);
+        await LoadGroupAsync(db, groupId, ct).ConfigureAwait(false);
 
         // Only tenant members can join a group (groups refine the tenant, they never widen it).
         if (!await db.TenantMemberships.AnyAsync(m => m.TenantId == tenantId && m.UserId == userId, ct).ConfigureAwait(false))
@@ -134,14 +141,15 @@ public sealed class GroupService(
             db.GroupMemberships.Add(new GroupMembership(Guid.NewGuid(), tenantId, groupId, userId, role, clock.UtcNow));
         }
 
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Grant, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Grant, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task RemoveMemberAsync(Guid actorUserId, Guid tenantId, Guid groupId, Guid userId, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        await EnsureMemberManagerAsync(actorUserId, tenantId, groupId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureMemberManagerAsync(db, actorUserId, tenantId, groupId, ct).ConfigureAwait(false);
 
         var membership = await db.GroupMemberships
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId, ct).ConfigureAwait(false);
@@ -151,7 +159,7 @@ public sealed class GroupService(
         }
 
         db.GroupMemberships.Remove(membership);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Revoke, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Revoke, "Group", groupId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -161,7 +169,8 @@ public sealed class GroupService(
     public async Task<bool> CanManageGroupsAsync(Guid actorUserId, Guid tenantId, CancellationToken ct = default)
     {
         EnsureScopes(actorUserId, tenantId);
-        return await IsGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await IsGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false);
     }
 
     // --- guards ---
@@ -179,26 +188,26 @@ public sealed class GroupService(
         }
     }
 
-    private async Task<UserGroup> LoadGroupAsync(Guid groupId, CancellationToken ct) =>
+    private static async Task<UserGroup> LoadGroupAsync(KeywardDbContext db, Guid groupId, CancellationToken ct) =>
         await db.Groups.FirstOrDefaultAsync(g => g.Id == groupId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Group {groupId} not found.");
 
-    private async Task<bool> IsGroupOperatorAsync(Guid actorUserId, Guid tenantId, CancellationToken ct) =>
+    private static async Task<bool> IsGroupOperatorAsync(KeywardDbContext db, Guid actorUserId, Guid tenantId, CancellationToken ct) =>
         await db.Users.AnyAsync(u => u.Id == actorUserId && u.IsSystemAdmin, ct).ConfigureAwait(false)
         || await db.TenantMemberships.AnyAsync(
             m => m.TenantId == tenantId && m.UserId == actorUserId && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
 
-    private async Task EnsureGroupOperatorAsync(Guid actorUserId, Guid tenantId, CancellationToken ct)
+    private static async Task EnsureGroupOperatorAsync(KeywardDbContext db, Guid actorUserId, Guid tenantId, CancellationToken ct)
     {
-        if (!await IsGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false))
+        if (!await IsGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false))
         {
             throw new UnauthorizedAccessException("Managing groups requires the tenant-admin role.");
         }
     }
 
-    private async Task EnsureMemberManagerAsync(Guid actorUserId, Guid tenantId, Guid groupId, CancellationToken ct)
+    private static async Task EnsureMemberManagerAsync(KeywardDbContext db, Guid actorUserId, Guid tenantId, Guid groupId, CancellationToken ct)
     {
-        if (await IsGroupOperatorAsync(actorUserId, tenantId, ct).ConfigureAwait(false))
+        if (await IsGroupOperatorAsync(db, actorUserId, tenantId, ct).ConfigureAwait(false))
         {
             return;
         }

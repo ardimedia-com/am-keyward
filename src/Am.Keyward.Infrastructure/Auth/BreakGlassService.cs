@@ -16,15 +16,16 @@ namespace Am.Keyward.Infrastructure.Auth;
 /// system-admin check, not by tenant scope.
 /// </summary>
 public sealed class BreakGlassService(
-    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
     IBreakGlassSink sink,
-    IAuditSink audit,
+    DbAuditSink audit,
     IClock clock,
     IOptions<BreakGlassOptions> options) : IBreakGlassService
 {
     public async Task<Guid> RequestAsync(RequestBreakGlassCommand cmd, CancellationToken ct = default)
     {
-        await EnsureSystemAdminAsync(cmd.RequesterUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, cmd.RequesterUserId, ct).ConfigureAwait(false);
 
         var now = clock.UtcNow;
         var grant = new BreakGlassGrant(
@@ -32,7 +33,7 @@ public sealed class BreakGlassService(
             now, now.AddMinutes(Math.Max(1, options.Value.ValidityMinutes)));
 
         db.BreakGlassGrants.Add(grant);
-        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, cmd.RequesterUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, cmd.RequesterUserId), ct).ConfigureAwait(false);
         await WriteSinkAsync("Requested", grant, cmd.RequesterUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return grant.Id;
@@ -40,42 +41,51 @@ public sealed class BreakGlassService(
 
     public async Task ApproveAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default)
     {
-        await EnsureSystemAdminAsync(approverUserId, ct).ConfigureAwait(false);
-        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, approverUserId, ct).ConfigureAwait(false);
+        var grant = await LoadAsync(db, grantId, ct).ConfigureAwait(false);
 
         grant.Approve(approverUserId, clock.UtcNow); // domain enforces approver != requester (dual control)
 
         // The non-repudiable approval record goes out-of-band first, so it survives even if the DB write fails.
         await WriteSinkAsync("Approved", grant, approverUserId, ct).ConfigureAwait(false);
-        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task RejectAsync(Guid grantId, Guid approverUserId, CancellationToken ct = default)
     {
-        await EnsureSystemAdminAsync(approverUserId, ct).ConfigureAwait(false);
-        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, approverUserId, ct).ConfigureAwait(false);
+        var grant = await LoadAsync(db, grantId, ct).ConfigureAwait(false);
 
         grant.Reject(approverUserId, clock.UtcNow);
 
         await WriteSinkAsync("Rejected", grant, approverUserId, ct).ConfigureAwait(false);
-        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, approverUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<BreakGlassGrant>> ListPendingAsync(CancellationToken ct = default) =>
-        await db.BreakGlassGrants
+    public async Task<IReadOnlyList<BreakGlassGrant>> ListPendingAsync(CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.BreakGlassGrants
             .Where(g => g.Status == BreakGlassStatus.Pending)
             .OrderBy(g => g.RequestedAt)
             .ToListAsync(ct)
             .ConfigureAwait(false);
+    }
 
-    public Task<bool> IsSystemAdminAsync(Guid userId, CancellationToken ct = default) =>
-        db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct);
+    public async Task<bool> IsSystemAdminAsync(Guid userId, CancellationToken ct = default)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false);
+    }
 
     public async Task<IReadOnlyList<BreakGlassTargetVault>> ListTargetVaultsAsync(Guid actorUserId, Guid tenantId, CancellationToken ct = default)
     {
-        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, actorUserId, ct).ConfigureAwait(false);
 
         // Metadata only (id + name) — the recovery target picker. The tenant query filter already scopes
         // this to the current tenant; the explicit TenantId predicate additionally excludes the caller's
@@ -90,7 +100,8 @@ public sealed class BreakGlassService(
 
     public async Task<IReadOnlyList<BreakGlassGrantInfo>> ListGrantsAsync(Guid actorUserId, int take = 50, CancellationToken ct = default)
     {
-        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, actorUserId, ct).ConfigureAwait(false);
 
         var grants = await db.BreakGlassGrants.AsNoTracking()
             .OrderByDescending(g => g.RequestedAt)
@@ -130,9 +141,10 @@ public sealed class BreakGlassService(
     {
         // Re-check system-admin at consume time (mirrors request/approve/reject): a user de-privileged after
         // approval must not still be able to consume an outstanding grant.
-        await EnsureSystemAdminAsync(actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSystemAdminAsync(db, actorUserId, ct).ConfigureAwait(false);
 
-        var grant = await LoadAsync(grantId, ct).ConfigureAwait(false);
+        var grant = await LoadAsync(db, grantId, ct).ConfigureAwait(false);
         if (grant.ApproverUserId != actorUserId && grant.RequesterUserId != actorUserId)
         {
             throw new UnauthorizedAccessException("Only the break-glass requester or approver may consume the grant.");
@@ -168,15 +180,15 @@ public sealed class BreakGlassService(
         }
 
         await WriteSinkAsync("Consumed", grant, actorUserId, ct).ConfigureAwait(false);
-        await audit.AppendAsync(new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(grant.TenantId, AuditAction.BreakGlass, "BreakGlassGrant", grant.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task<BreakGlassGrant> LoadAsync(Guid grantId, CancellationToken ct) =>
+    private static async Task<BreakGlassGrant> LoadAsync(KeywardDbContext db, Guid grantId, CancellationToken ct) =>
         await db.BreakGlassGrants.FirstOrDefaultAsync(g => g.Id == grantId, ct).ConfigureAwait(false)
         ?? throw new InvalidOperationException($"Break-glass grant {grantId} not found.");
 
-    private async Task EnsureSystemAdminAsync(Guid userId, CancellationToken ct)
+    private static async Task EnsureSystemAdminAsync(KeywardDbContext db, Guid userId, CancellationToken ct)
     {
         var isAdmin = await db.Users.AsNoTracking().AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false);
         if (!isAdmin)

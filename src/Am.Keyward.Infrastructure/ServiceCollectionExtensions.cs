@@ -51,21 +51,34 @@ public static class ServiceCollectionExtensions
         services.AddScoped<AuditChainInterceptor>();
         services.AddSingleton<ChangeTrackerResetInterceptor>();
 
-        services.AddDbContext<KeywardDbContext>((sp, options) =>
+        // A SCOPED factory (not the singleton default): the context constructor and the interceptors carry
+        // the scope's ambient tenant/user state. The factory registration also registers KeywardDbContext
+        // itself as a scoped service, so per-request consumers (API endpoints, startup seeding, tests) keep
+        // injecting the context directly. Application services create a SHORT-LIVED context PER OPERATION
+        // from the factory — in Blazor Server the DI scope is the whole circuit, and concurrent component
+        // lifecycles sharing one scoped context raced ("a second operation was started on this context").
+        services.AddDbContextFactory<KeywardDbContext>((sp, options) =>
             options.UseSqlServer(connectionString, sql =>
                     sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
                 .AddInterceptors(
                     sp.GetRequiredService<TenantSessionContextInterceptor>(),
                     sp.GetRequiredService<AuditChainInterceptor>(),
-                    // Clear the change tracker after each save so the circuit-scoped context does not
-                    // accumulate tracked entities or serve stale reads across a long-lived Blazor circuit.
-                    sp.GetRequiredService<ChangeTrackerResetInterceptor>()));
+                    // Clear the change tracker after each save so a longer-lived scoped context does not
+                    // accumulate tracked entities or serve stale reads (e.g. across a Blazor circuit).
+                    sp.GetRequiredService<ChangeTrackerResetInterceptor>()),
+            ServiceLifetime.Scoped);
 
         services.AddSingleton<IKekProvider>(kekProviderFactory);
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<ISecretBackend, EnvelopeSecretBackend>();
-        services.AddScoped<IAuditSubjectDirectory, DbAuditSubjectDirectory>();
-        services.AddScoped<IAuditSink, DbAuditSink>();
+        // The audit sink/directory are exposed twice: as their Core ports (scoped-context semantics — an
+        // endpoint stages an entry and its own SaveChanges persists it) and as the concrete classes, whose
+        // db-parametric overloads let a factory-based service stage the audit entry on ITS per-operation
+        // context so audit and business write still commit in one SaveChanges.
+        services.AddScoped<DbAuditSubjectDirectory>();
+        services.AddScoped<IAuditSubjectDirectory>(sp => sp.GetRequiredService<DbAuditSubjectDirectory>());
+        services.AddScoped<DbAuditSink>();
+        services.AddScoped<IAuditSink>(sp => sp.GetRequiredService<DbAuditSink>());
         services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
         services.AddScoped<IKekIntegrityVerifier, DbKekIntegrityVerifier>();
 

@@ -17,9 +17,9 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// tenant vaults go through the central <see cref="IKeywardAccessPolicy"/>; personal vaults are owner-only.
 /// </summary>
 public sealed class VaultService(
-    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
     ISecretBackend backend,
-    IAuditSink audit,
+    DbAuditSink audit,
     IClock clock,
     ICurrentTenant tenant,
     ICurrentUser currentUser,
@@ -33,12 +33,13 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.UserId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var vault = new Vault(
             Guid.NewGuid(), tenantId: null, OwnerType.User, ownerId: cmd.UserId,
             ProtectionMode.ServerSide, cmd.Name, clock.UtcNow);
 
         db.Vaults.Add(vault);
-        await audit.AppendAsync(new AuditRequest(null, AuditAction.Create, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(null, AuditAction.Create, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return vault.Id;
     }
@@ -47,6 +48,7 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await db.Vaults
             .Where(v => v.OwnerUserId == userId) // personal vaults
             .OrderBy(v => v.Name)
@@ -61,7 +63,8 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.UserId);
         EnsureTenantScope(cmd.TenantId);
-        await EnsureTenantParticipantAsync(cmd.UserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureTenantParticipantAsync(db, cmd.UserId, ct).ConfigureAwait(false);
 
         var vault = new Vault(
             Guid.NewGuid(), cmd.TenantId, OwnerType.Tenant, ownerId: cmd.TenantId,
@@ -73,7 +76,7 @@ public sealed class VaultService(
             Guid.NewGuid(), cmd.TenantId, PrincipalType.User, cmd.UserId,
             new GrantScope(GrantScopeKind.Vault, vault.Id), Permission.Manage, cmd.UserId, clock.UtcNow));
 
-        await audit.AppendAsync(new AuditRequest(cmd.TenantId, AuditAction.Create, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(cmd.TenantId, AuditAction.Create, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return vault.Id;
     }
@@ -87,6 +90,7 @@ public sealed class VaultService(
         // result an outsider in another tenant sees. The membership gate lives on CREATE, where it matters.
 
         // Direct user grants plus grants held by any group the user belongs to.
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var groupIds = await db.GroupMemberships
             .Where(m => m.UserId == userId)
             .Select(m => m.GroupId)
@@ -113,7 +117,8 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.ActorUserId);
         EnsureTenantScope(cmd.TenantId);
-        await LoadAuthorizedVaultAsync(cmd.ActorUserId, cmd.VaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, cmd.ActorUserId, cmd.VaultId, Permission.Manage, ct).ConfigureAwait(false);
 
         var existing = await db.AccessGrants.FirstOrDefaultAsync(
             g => g.PrincipalType == PrincipalType.User && g.PrincipalId == cmd.GranteeUserId
@@ -131,7 +136,7 @@ public sealed class VaultService(
                 new GrantScope(GrantScopeKind.Vault, cmd.VaultId), cmd.Permission, cmd.ActorUserId, clock.UtcNow));
         }
 
-        await audit.AppendAsync(new AuditRequest(cmd.TenantId, AuditAction.Grant, "Vault", cmd.VaultId, cmd.ActorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(cmd.TenantId, AuditAction.Grant, "Vault", cmd.VaultId, cmd.ActorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -139,7 +144,8 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.ActorUserId);
         EnsureTenantScope(cmd.TenantId);
-        await LoadAuthorizedVaultAsync(cmd.ActorUserId, cmd.VaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, cmd.ActorUserId, cmd.VaultId, Permission.Manage, ct).ConfigureAwait(false);
 
         if (!await db.Groups.AnyAsync(g => g.Id == cmd.GroupId && g.TenantId == cmd.TenantId, ct).ConfigureAwait(false))
         {
@@ -162,7 +168,7 @@ public sealed class VaultService(
                 new GrantScope(GrantScopeKind.Vault, cmd.VaultId), cmd.Permission, cmd.ActorUserId, clock.UtcNow));
         }
 
-        await audit.AppendAsync(new AuditRequest(cmd.TenantId, AuditAction.Grant, "Vault", cmd.VaultId, cmd.ActorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(cmd.TenantId, AuditAction.Grant, "Vault", cmd.VaultId, cmd.ActorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -170,7 +176,8 @@ public sealed class VaultService(
     {
         EnsureUserScope(actorUserId);
         EnsureTenantScope(tenantId);
-        await LoadAuthorizedVaultAsync(actorUserId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, actorUserId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
 
         var grants = await db.AccessGrants
             .Where(g => g.PrincipalType == principalType && g.PrincipalId == principalId
@@ -182,7 +189,7 @@ public sealed class VaultService(
         }
 
         db.AccessGrants.RemoveRange(grants);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Revoke, "Vault", vaultId, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Revoke, "Vault", vaultId, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -194,6 +201,7 @@ public sealed class VaultService(
         // Users are installation-global, so candidates are scoped by explicit tenant membership — a user
         // from another tenant (or test residue in a shared database) must never appear in a share list.
         // Exclude the actor.
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         return await db.TenantMemberships
             .Where(m => m.TenantId == tenantId && m.UserId != actorUserId)
             .Join(db.Users, m => m.UserId, u => u.Id, (m, u) => new { u.Id, u.DisplayName })
@@ -206,7 +214,8 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<VaultShare>> ListVaultSharesAsync(Guid actorUserId, Guid vaultId, CancellationToken ct = default)
     {
         EnsureUserScope(actorUserId);
-        await LoadAuthorizedVaultAsync(actorUserId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, actorUserId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
 
         var grants = await db.AccessGrants
             .Where(g => g.Scope.Kind == GrantScopeKind.Vault && g.Scope.TargetId == vaultId)
@@ -243,7 +252,8 @@ public sealed class VaultService(
     public async Task<Guid> AddFolderAsync(AddVaultFolderCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
-        var vault = await LoadAuthorizedVaultAsync(cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
 
         // A parent must exist in the SAME vault — a cross-vault parent would break the tree invariant.
         if (cmd.ParentFolderId is { } parentId
@@ -254,7 +264,7 @@ public sealed class VaultService(
 
         var folder = vault.AddFolder(Guid.NewGuid(), cmd.Name, clock.UtcNow, cmd.ParentFolderId);
         db.Folders.Add(folder); // new child of a tracked aggregate (app-assigned key) -> mark Added explicitly
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return folder.Id;
     }
@@ -262,7 +272,8 @@ public sealed class VaultService(
     public async Task<Guid> AddItemAsync(AddVaultItemCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
-        var vault = await LoadAuthorizedVaultAsync(cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
 
         var item = new VaultItem(
             Guid.NewGuid(), vault.Id, vault.TenantId, vault.OwnerUserId, cmd.FolderId, cmd.Type, cmd.Name, cmd.UserId, clock.UtcNow);
@@ -273,7 +284,7 @@ public sealed class VaultService(
         item.AddVersion(versionId, encrypted, clock.UtcNow);
 
         db.VaultItems.Add(item); // new aggregate -> whole graph Added
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Create, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Create, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return item.Id;
     }
@@ -282,6 +293,7 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var item = await db.VaultItems
             .Include(i => i.Versions)
             .FirstOrDefaultAsync(i => i.Id == itemId, ct)
@@ -291,13 +303,13 @@ public sealed class VaultService(
             return null;
         }
 
-        var vault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
 
         var version = item.Versions.Single(v => v.Id == item.CurrentVersionId);
         var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
         var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return Encoding.UTF8.GetString(plaintext);
@@ -306,7 +318,8 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<VaultFolderSummary>> ListFoldersAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
 
         return await db.Folders
             .Where(f => f.VaultId == vaultId)
@@ -319,7 +332,8 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<VaultItemSummary>> ListItemsAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
 
         return await db.VaultItems
             .Where(i => i.VaultId == vaultId)
@@ -332,16 +346,18 @@ public sealed class VaultService(
     public async Task RenameVaultAsync(Guid userId, Guid vaultId, string name, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
         vault.Rename(name);
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteVaultAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
 
         // Remove the vault's access grants (no FK to clean them up automatically), then the vault itself
         // (folders / items / versions cascade).
@@ -351,25 +367,27 @@ public sealed class VaultService(
         db.AccessGrants.RemoveRange(grants);
         db.Vaults.Remove(vault);
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Delete, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Delete, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task RenameFolderAsync(Guid userId, Guid vaultId, Guid folderId, string name, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
         var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == folderId && f.VaultId == vaultId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Folder {folderId} not found.");
         folder.Rename(name);
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteFolderAsync(Guid userId, Guid vaultId, Guid folderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
 
         // Deleting a folder keeps its contents: items AND child folders move up to the deleted folder's
         // parent (vault root when it had none). FolderId/ParentFolderId carry no FK, so this is explicit.
@@ -387,7 +405,7 @@ public sealed class VaultService(
             .ConfigureAwait(false);
         await db.Folders.Where(f => f.Id == folderId && f.VaultId == vaultId).ExecuteDeleteAsync(ct).ConfigureAwait(false);
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "Vault", vault.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -395,10 +413,11 @@ public sealed class VaultService(
     {
         EnsureUserScope(cmd.UserId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var item = await db.VaultItems.Include(i => i.Versions)
             .FirstOrDefaultAsync(i => i.Id == cmd.ItemId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {cmd.ItemId} not found.");
-        var vault = await LoadAuthorizedVaultAsync(cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
 
         item.Rename(cmd.Name);
         item.MoveToFolder(cmd.FolderId);
@@ -409,14 +428,15 @@ public sealed class VaultService(
         item.AddVersion(versionId, encrypted, clock.UtcNow);
         db.VaultItemVersions.Add(item.Current); // new version of a tracked item -> mark Added explicitly
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Update, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<Guid> MoveItemAsync(Guid userId, Guid itemId, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var movedId = await MoveItemCoreAsync(userId, itemId, targetVaultId, targetFolderId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var movedId = await MoveItemCoreAsync(db, userId, itemId, targetVaultId, targetFolderId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return movedId;
     }
@@ -424,9 +444,10 @@ public sealed class VaultService(
     public async Task MoveItemsAsync(Guid userId, IReadOnlyList<Guid> itemIds, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         foreach (var itemId in itemIds.Distinct())
         {
-            await MoveItemCoreAsync(userId, itemId, targetVaultId, targetFolderId, ct).ConfigureAwait(false);
+            await MoveItemCoreAsync(db, userId, itemId, targetVaultId, targetFolderId, ct).ConfigureAwait(false);
         }
 
         // One SaveChanges for the whole batch: either every item moves or none does.
@@ -437,10 +458,11 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var folder = await db.Folders.FirstOrDefaultAsync(f => f.Id == folderId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Folder {folderId} not found.");
-        var sourceVault = await LoadAuthorizedVaultAsync(userId, folder.VaultId, Permission.Write, ct).ConfigureAwait(false);
-        var targetVault = await LoadAuthorizedVaultAsync(userId, targetVaultId, Permission.Write, ct).ConfigureAwait(false);
+        var sourceVault = await LoadAuthorizedVaultAsync(db, userId, folder.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        var targetVault = await LoadAuthorizedVaultAsync(db, userId, targetVaultId, Permission.Write, ct).ConfigureAwait(false);
 
         if (targetParentFolderId is { } parentId
             && !await db.Folders.AnyAsync(f => f.Id == parentId && f.VaultId == targetVaultId, ct).ConfigureAwait(false))
@@ -466,7 +488,7 @@ public sealed class VaultService(
             }
 
             folder.MoveTo(targetParentFolderId);
-            await audit.AppendAsync(new AuditRequest(sourceVault.TenantId, AuditAction.Update, "Folder", folder.Id, userId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(sourceVault.TenantId, AuditAction.Update, "Folder", folder.Id, userId), ct).ConfigureAwait(false);
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
             return folder.Id;
         }
@@ -486,8 +508,8 @@ public sealed class VaultService(
             idMap[f.Id] = clone.Id;
         }
 
-        await audit.AppendAsync(new AuditRequest(sourceVault.TenantId, AuditAction.Update, "Folder", folder.Id, userId), ct).ConfigureAwait(false);
-        await audit.AppendAsync(new AuditRequest(targetVault.TenantId, AuditAction.Create, "Folder", idMap[folder.Id], userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(sourceVault.TenantId, AuditAction.Update, "Folder", folder.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(targetVault.TenantId, AuditAction.Create, "Folder", idMap[folder.Id], userId), ct).ConfigureAwait(false);
 
         var subtreeIds = subtree.Select(f => f.Id).ToList();
         var itemEntries = await db.VaultItems
@@ -496,7 +518,7 @@ public sealed class VaultService(
             .ToListAsync(ct).ConfigureAwait(false);
         foreach (var entry in itemEntries)
         {
-            await MoveItemCoreAsync(userId, entry.Id, targetVaultId, idMap[entry.FolderId], ct).ConfigureAwait(false);
+            await MoveItemCoreAsync(db, userId, entry.Id, targetVaultId, idMap[entry.FolderId], ct).ConfigureAwait(false);
         }
 
         db.Folders.RemoveRange(subtree);
@@ -504,13 +526,13 @@ public sealed class VaultService(
         return idMap[folder.Id];
     }
 
-    private async Task<Guid> MoveItemCoreAsync(Guid userId, Guid itemId, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct)
+    private async Task<Guid> MoveItemCoreAsync(KeywardDbContext db, Guid userId, Guid itemId, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct)
     {
         var item = await db.VaultItems.Include(i => i.Versions)
             .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {itemId} not found.");
-        var sourceVault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
-        var targetVault = await LoadAuthorizedVaultAsync(userId, targetVaultId, Permission.Write, ct).ConfigureAwait(false);
+        var sourceVault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        var targetVault = await LoadAuthorizedVaultAsync(db, userId, targetVaultId, Permission.Write, ct).ConfigureAwait(false);
 
         // The target folder must live in the TARGET vault. It may be a not-yet-saved clone from a
         // folder-subtree move, so the change tracker counts as much as the database.
@@ -525,7 +547,7 @@ public sealed class VaultService(
         {
             // Same vault: a plain folder change — the ciphertext's binding is unaffected.
             item.MoveToFolder(targetFolderId);
-            await audit.AppendAsync(new AuditRequest(sourceVault.TenantId, AuditAction.Update, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(sourceVault.TenantId, AuditAction.Update, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
             return item.Id;
         }
 
@@ -552,8 +574,8 @@ public sealed class VaultService(
         db.VaultItems.Add(moved);
         db.VaultItems.Remove(item); // versions cascade
 
-        await audit.AppendAsync(new AuditRequest(sourceVault.TenantId, AuditAction.Delete, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
-        await audit.AppendAsync(new AuditRequest(targetVault.TenantId, AuditAction.Create, "VaultItem", moved.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(sourceVault.TenantId, AuditAction.Delete, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(targetVault.TenantId, AuditAction.Create, "VaultItem", moved.Id, userId), ct).ConfigureAwait(false);
         return moved.Id;
     }
 
@@ -561,16 +583,17 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var item = await db.VaultItems.FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
         if (item is null)
         {
             return;
         }
 
-        var vault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
         db.VaultItems.Remove(item); // versions cascade
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Delete, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Delete, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
@@ -585,6 +608,7 @@ public sealed class VaultService(
     {
         EnsureUserScope(userId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var item = await db.VaultItems.Include(i => i.Versions)
             .FirstOrDefaultAsync(match, ct).ConfigureAwait(false);
         if (item?.CurrentVersionId is null)
@@ -592,13 +616,13 @@ public sealed class VaultService(
             return null;
         }
 
-        var vault = await LoadAuthorizedVaultAsync(userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
 
         var version = item.Versions.Single(v => v.Id == item.CurrentVersionId);
         var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
         var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
 
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItem", item.Id, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new VaultItemDetail(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, Encoding.UTF8.GetString(plaintext), item.PublicId);
@@ -610,6 +634,7 @@ public sealed class VaultService(
 
         // Routing only — no decryption, no read-audit (the open goes through GetItemAsync). AsNoTracking:
         // read-only lookup.
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var item = await db.VaultItems.AsNoTracking()
             .Where(i => i.PublicId == publicId)
             .Select(i => new { i.Id, i.VaultId })
@@ -620,7 +645,7 @@ public sealed class VaultService(
         }
 
         // Enforce the same read gate as an open, so a link never reveals an item the user cannot read.
-        var vault = await LoadAuthorizedVaultOrNullAsync(userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultOrNullAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
         if (vault is null)
         {
             return null;
@@ -632,7 +657,8 @@ public sealed class VaultService(
     public async Task<IReadOnlyList<ImportedLogin>> ExportVaultLoginsAsync(Guid userId, Guid vaultId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
 
         // A team-vault export disclosed every password at once — tenant admins (or system admins) only;
         // an ordinary Manage grant is deliberately NOT enough.
@@ -667,7 +693,7 @@ public sealed class VaultService(
         }
 
         // One audit event for the export (not one Read per item — see the search rationale).
-        await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Read, "VaultExport", vaultId, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Read, "VaultExport", vaultId, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return result;
     }
@@ -686,10 +712,11 @@ public sealed class VaultService(
             ? await ListSharedVaultsAsync(userId, tenantId, ct).ConfigureAwait(false)
             : await ListVaultsAsync(userId, ct).ConfigureAwait(false);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var hits = new List<VaultItemSearchHit>();
         foreach (var vaultSummary in vaults)
         {
-            var vault = await LoadAuthorizedVaultAsync(userId, vaultSummary.Id, Permission.Read, ct).ConfigureAwait(false);
+            var vault = await LoadAuthorizedVaultAsync(db, userId, vaultSummary.Id, Permission.Read, ct).ConfigureAwait(false);
             var items = await db.VaultItems.AsNoTracking().Include(i => i.Versions)
                 .Where(i => i.VaultId == vaultSummary.Id)
                 .OrderBy(i => i.Name)
@@ -730,7 +757,7 @@ public sealed class VaultService(
 
         // One audit entry per executed search (a search decrypts many items; auditing each would flood the
         // chain — opening a hit still writes the usual per-item Read).
-        await audit.AppendAsync(new AuditRequest(teamVaults ? tenantId : null, AuditAction.Read, "VaultSearch", null, userId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(teamVaults ? tenantId : null, AuditAction.Read, "VaultSearch", null, userId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return hits;
@@ -739,7 +766,8 @@ public sealed class VaultService(
     public async Task<int> ImportLoginsAsync(Guid userId, Guid vaultId, IReadOnlyList<ImportedLogin> logins, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        var vault = await LoadAuthorizedVaultAsync(userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Write, ct).ConfigureAwait(false);
 
         var imported = 0;
         foreach (var login in logins)
@@ -765,7 +793,7 @@ public sealed class VaultService(
 
         if (imported > 0)
         {
-            await audit.AppendAsync(new AuditRequest(vault.TenantId, AuditAction.Create, "VaultItem", vault.Id, userId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Create, "VaultItem", vault.Id, userId), ct).ConfigureAwait(false);
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 
@@ -776,7 +804,7 @@ public sealed class VaultService(
     /// Loads a vault the current user may access at <paramref name="permission"/>: personal vaults are
     /// owner-only; tenant vaults require a matching access grant (via the central authorization service).
     /// </summary>
-    private async Task<Vault> LoadAuthorizedVaultAsync(Guid userId, Guid vaultId, Permission permission, CancellationToken ct)
+    private async Task<Vault> LoadAuthorizedVaultAsync(KeywardDbContext db, Guid userId, Guid vaultId, Permission permission, CancellationToken ct)
     {
         var vault = await db.Vaults.FirstOrDefaultAsync(v => v.Id == vaultId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Vault {vaultId} not found.");
@@ -805,7 +833,7 @@ public sealed class VaultService(
     /// <summary>Like <see cref="LoadAuthorizedVaultAsync"/> but returns null instead of throwing when the
     /// vault is missing or the user isn't authorized — for the deep-link resolver, where "no access" must be
     /// indistinguishable from "unknown link" rather than an error.</summary>
-    private async Task<Vault?> LoadAuthorizedVaultOrNullAsync(Guid userId, Guid vaultId, Permission permission, CancellationToken ct)
+    private async Task<Vault?> LoadAuthorizedVaultOrNullAsync(KeywardDbContext db, Guid userId, Guid vaultId, Permission permission, CancellationToken ct)
     {
         var vault = await db.Vaults.FirstOrDefaultAsync(v => v.Id == vaultId, ct).ConfigureAwait(false);
         if (vault is null)
@@ -839,7 +867,7 @@ public sealed class VaultService(
     // members — can never be granted one either, so team vaults stay entirely outside its reach. LIST/READ are
     // already grant-filtered (a non-member simply sees nothing), and personal vaults are tenant-LESS and
     // owner-owned (gated by the owner scope alone), so the check lives here on create only.
-    private async Task EnsureTenantParticipantAsync(Guid userId, CancellationToken ct)
+    private async Task EnsureTenantParticipantAsync(KeywardDbContext db, Guid userId, CancellationToken ct)
     {
         var isParticipant =
             await db.Users.AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false)

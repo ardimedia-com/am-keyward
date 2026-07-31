@@ -10,13 +10,14 @@ namespace Am.Keyward.Infrastructure.Statistics;
 /// flush service), so every query goes through the application's token set — which IS tenant-checked: the
 /// requested tenant must match the server-authoritative scope, exactly like the token service.
 /// </summary>
-public sealed class TokenAccessStatisticsService(KeywardDbContext db, ICurrentTenant tenant, IClock clock) : ITokenAccessStatisticsService
+public sealed class TokenAccessStatisticsService(IDbContextFactory<KeywardDbContext> dbFactory, ICurrentTenant tenant, IClock clock) : ITokenAccessStatisticsService
 {
     public async Task<IReadOnlyList<TokenDailyAccessInfo>> ListDailyAsync(Guid tenantId, Guid projectId, int days, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var since = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime).AddDays(-Math.Max(days, 1) + 1);
-        var tokenIds = TokenIds(tenantId, projectId);
+        var tokenIds = TokenIds(db, tenantId, projectId);
         return await db.TokenDailyAccesses.AsNoTracking()
             .Where(d => tokenIds.Contains(d.TokenId) && d.Date >= since)
             .OrderBy(d => d.Date)
@@ -28,7 +29,8 @@ public sealed class TokenAccessStatisticsService(KeywardDbContext db, ICurrentTe
     public async Task<IReadOnlyList<TokenAccessIpInfo>> ListIpsAsync(Guid tenantId, Guid projectId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        var tokenIds = TokenIds(tenantId, projectId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var tokenIds = TokenIds(db, tenantId, projectId);
         return await db.TokenAccessIps.AsNoTracking()
             .Where(i => tokenIds.Contains(i.TokenId))
             .OrderByDescending(i => i.LastSeenAt)
@@ -40,7 +42,8 @@ public sealed class TokenAccessStatisticsService(KeywardDbContext db, ICurrentTe
     public async Task<IReadOnlyList<TokenAccessAlertInfo>> ListAlertsAsync(Guid tenantId, Guid projectId, int take = 50, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        var tokenIds = TokenIds(tenantId, projectId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var tokenIds = TokenIds(db, tenantId, projectId);
         return await db.TokenAccessAlerts.AsNoTracking()
             .Where(a => tokenIds.Contains(a.TokenId))
             .OrderByDescending(a => a.CreatedAt)
@@ -50,7 +53,7 @@ public sealed class TokenAccessStatisticsService(KeywardDbContext db, ICurrentTe
             .ConfigureAwait(false);
     }
 
-    private IQueryable<Guid> TokenIds(Guid tenantId, Guid projectId) =>
+    private static IQueryable<Guid> TokenIds(KeywardDbContext db, Guid tenantId, Guid projectId) =>
         db.SoftwareClientTokens.Where(t => t.TenantId == tenantId && t.ProjectId == projectId).Select(t => t.Id);
 
     private void EnsureTenantScope(Guid requestedTenantId)

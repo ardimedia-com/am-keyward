@@ -17,10 +17,11 @@ namespace Am.Keyward.Infrastructure.Crypto;
 /// rows by row-level security). It checks KEK-id resolvability only — it does not unwrap each DEK, which
 /// would cost a KEK round-trip per row.
 /// </remarks>
-public sealed class DbKekIntegrityVerifier(KeywardDbContext db, IKekProvider kek) : IKekIntegrityVerifier
+public sealed class DbKekIntegrityVerifier(IDbContextFactory<KeywardDbContext> dbFactory, IKekProvider kek) : IKekIntegrityVerifier
 {
     public async Task<KekIntegrityReport> VerifyAsync(CancellationToken ct = default)
     {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         long checkedCount = 0;
         var issues = new List<KekIntegrityIssue>();
 

@@ -5,6 +5,19 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **Blazor circuit crash under concurrent loads** ("A second operation was started on this context
+  instance"). All infrastructure services now create a short-lived `KeywardDbContext` per operation from a
+  scoped `IDbContextFactory` instead of sharing the circuit-scoped context — in Blazor Server the DI scope
+  is the whole circuit, so two overlapping component lifecycles (e.g. switching to the Statistics tab while
+  the page's handler was still running) raced on one context and killed the circuit. Audit entries are
+  staged on the same per-operation context (`DbAuditSink` gained a context-parametric overload), so an
+  audit record still commits atomically with its business write, and `AuditChainInterceptor` keeps its
+  per-save state per context, since one scoped interceptor instance is now shared by all of a scope's
+  contexts. Endpoint/startup code keeps injecting the scoped context directly (the factory registration
+  also provides it).
+
 ### Changed
 
 - Reference shell: circuit `DetailedErrors` are now enabled in Development, so an unhandled circuit

@@ -15,10 +15,10 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// on the tenant-admin role and audited; existing applications are never touched.
 /// </summary>
 public sealed class DefaultEnvironmentService(
-    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
     IClock clock,
     ICurrentTenant tenant,
-    IAuditSink audit) : IDefaultEnvironmentService
+    DbAuditSink audit) : IDefaultEnvironmentService
 {
     private const string ResourceType = "DefaultEnvironment";
 
@@ -26,6 +26,7 @@ public sealed class DefaultEnvironmentService(
     {
         EnsureTenantScope(tenantId);
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var rows = await db.TenantDefaultEnvironments.AsNoTracking()
             .Where(d => d.TenantId == tenantId)
             .OrderBy(d => d.Name)
@@ -37,7 +38,8 @@ public sealed class DefaultEnvironmentService(
     public async Task CustomizeAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         if (await db.TenantDefaultEnvironments.AnyAsync(d => d.TenantId == tenantId, ct).ConfigureAwait(false))
         {
@@ -49,7 +51,7 @@ public sealed class DefaultEnvironmentService(
         {
             var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, name, now);
             db.TenantDefaultEnvironments.Add(row);
-            await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
+            await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
         }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -58,37 +60,40 @@ public sealed class DefaultEnvironmentService(
     public async Task AddAsync(Guid tenantId, string name, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var environmentName = EnvironmentName.Create(name);
-        await EnsureNameFreeAsync(tenantId, environmentName, exceptId: null, ct).ConfigureAwait(false);
+        await EnsureNameFreeAsync(db, tenantId, environmentName, exceptId: null, ct).ConfigureAwait(false);
 
         var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, environmentName, clock.UtcNow);
         db.TenantDefaultEnvironments.Add(row);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task RenameAsync(Guid tenantId, Guid id, string name, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var row = await db.TenantDefaultEnvironments.FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Default environment {id} not found.");
 
         var environmentName = EnvironmentName.Create(name);
-        await EnsureNameFreeAsync(tenantId, environmentName, exceptId: id, ct).ConfigureAwait(false);
+        await EnsureNameFreeAsync(db, tenantId, environmentName, exceptId: id, ct).ConfigureAwait(false);
 
         row.Rename(environmentName);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Update, ResourceType, id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, ResourceType, id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Guid tenantId, Guid id, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
-        await EnsureOperatorAsync(tenantId, actorUserId, ct).ConfigureAwait(false);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var row = await db.TenantDefaultEnvironments.FirstOrDefaultAsync(d => d.Id == id && d.TenantId == tenantId, ct).ConfigureAwait(false);
         if (row is null)
@@ -98,11 +103,11 @@ public sealed class DefaultEnvironmentService(
 
         // Deleting the LAST row is allowed on purpose: it returns the tenant to the built-in default set.
         db.TenantDefaultEnvironments.Remove(row);
-        await audit.AppendAsync(new AuditRequest(tenantId, AuditAction.Delete, ResourceType, id, actorUserId), ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, ResourceType, id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
-    private async Task EnsureNameFreeAsync(Guid tenantId, EnvironmentName name, Guid? exceptId, CancellationToken ct)
+    private static async Task EnsureNameFreeAsync(KeywardDbContext db, Guid tenantId, EnvironmentName name, Guid? exceptId, CancellationToken ct)
     {
         if (await db.TenantDefaultEnvironments.AnyAsync(
                 d => d.TenantId == tenantId && d.Id != exceptId && d.Name == name, ct).ConfigureAwait(false))
@@ -111,7 +116,7 @@ public sealed class DefaultEnvironmentService(
         }
     }
 
-    private async Task EnsureOperatorAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct)
+    private static async Task EnsureOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
     {
         var isOperator = actorUserId is { } actor
             && (await db.Users.AnyAsync(u => u.Id == actor && u.IsSystemAdmin, ct).ConfigureAwait(false)

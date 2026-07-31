@@ -13,7 +13,7 @@ namespace Am.Keyward.Infrastructure.Tenancy;
 /// v0.1 enforces tenant isolation only; fine-grained per-user / per-group <c>AccessGrant</c> evaluation
 /// is layered in here when human vaults arrive, without changing the call sites.
 /// </summary>
-public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTenant tenant) : IKeywardAccessPolicy
+public sealed class TenantAuthorizationService(IDbContextFactory<KeywardDbContext> dbFactory, ICurrentTenant tenant) : IKeywardAccessPolicy
 {
     public async ValueTask<bool> IsAllowedAsync(Guid? userId, GrantScope resource, Permission action, CancellationToken ct = default)
     {
@@ -23,19 +23,21 @@ public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTena
             return false; // No tenant scope established -> deny; system operations use an elevated path.
         }
 
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
         // Vaults are ACL-controlled within the tenant: access requires a grant to the user (group grants
         // are layered on later). Tenant isolation (filter + RLS) is the outer boundary; this is the refiner.
         if (resource.Kind == GrantScopeKind.Vault)
         {
-            return userId is not null && await HasVaultGrantAsync(userId.Value, resource.TargetId, action, ct).ConfigureAwait(false);
+            return userId is not null && await HasVaultGrantAsync(db, userId.Value, resource.TargetId, action, ct).ConfigureAwait(false);
         }
 
         // Projects/environments (software secrets): tenant-wide within the current tenant.
-        var resourceTenant = await ResolveResourceTenantAsync(resource, ct).ConfigureAwait(false);
+        var resourceTenant = await ResolveResourceTenantAsync(db, resource, ct).ConfigureAwait(false);
         return resourceTenant is not null && resourceTenant == current;
     }
 
-    private async Task<bool> HasVaultGrantAsync(Guid userId, Guid vaultId, Permission action, CancellationToken ct)
+    private static async Task<bool> HasVaultGrantAsync(KeywardDbContext db, Guid userId, Guid vaultId, Permission action, CancellationToken ct)
     {
         // Direct user grants plus grants held by any group the user belongs to. Permission is stored as
         // a string, so compare the levels in memory (the set per user+vault is tiny).
@@ -57,7 +59,7 @@ public sealed class TenantAuthorizationService(KeywardDbContext db, ICurrentTena
         return permissions.Any(p => p >= action);
     }
 
-    private async Task<Guid?> ResolveResourceTenantAsync(GrantScope resource, CancellationToken ct) =>
+    private static async Task<Guid?> ResolveResourceTenantAsync(KeywardDbContext db, GrantScope resource, CancellationToken ct) =>
         resource.Kind switch
         {
             GrantScopeKind.Project => await db.Projects.IgnoreQueryFilters()
