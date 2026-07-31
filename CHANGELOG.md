@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.7.2-preview] - 2026-07-31
+
 ### Fixed
 
 - **Blazor circuit crash under concurrent loads** ("A second operation was started on this context
