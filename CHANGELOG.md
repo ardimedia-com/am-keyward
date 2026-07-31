@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- Reference shell: circuit `DetailedErrors` are now enabled in Development, so an unhandled circuit
+  exception shows its full stack trace in the browser console instead of the generic termination message
+  (never enabled outside Development).
+
 ## [0.7.1-preview] - 2026-07-30
 
 ### Changed

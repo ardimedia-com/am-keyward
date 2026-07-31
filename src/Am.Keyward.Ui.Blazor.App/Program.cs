@@ -30,7 +30,13 @@ builder.Services.AddRazorComponents()
     // Hold a disconnected circuit longer so a short network drop / device sleep returns to a live session
     // instead of a full reload (server memory cost is negligible for this low-concurrency admin UI).
     .AddInteractiveServerComponents(options =>
-        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(30));
+    {
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(30);
+        // Development only: surface the full circuit exception in the browser console instead of the
+        // generic "unhandled exception on the current circuit" message. Never enabled in production —
+        // stack traces can leak internals.
+        options.DetailedErrors = builder.Environment.IsDevelopment();
+    });
 
 // Persist the Data Protection key ring to a stable location OUTSIDE the deploy folder, so an app restart
 // or redeploy does not regenerate the keys and sign every user out (and break outstanding Identity reset /
