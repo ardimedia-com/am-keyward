@@ -195,12 +195,13 @@
   <data name="Token.New" xml:space="preserve"><value>Neuer Token (kopiere ihn jetzt — er wird nicht erneut angezeigt):</value></data>
   <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell für das Zielsystem</value></data>
   <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>Token «{0}» ({1})</value></data>
+  <data name="Token.Ps.Comment.Current" xml:space="preserve"><value>Aktueller maschinenweiter Wert (zur Kontrolle vor dem Überschreiben — bei Bedarf für ein Rollback notieren):</value></data>
   <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Maschinenweit hinterlegen (in einer Shell mit erhöhten Rechten ausführen):</value></data>
   <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Prüfen — liest die Secrets dieser Umgebung:</value></data>
   <data name="Token.Ps.Hint" xml:space="preserve"><value>Auf dem Rechner ausführen, der die Applikation betreibt. Dienste und Anwendungen übernehmen das neue {0} nach einem Neustart. Der Token ist ein Passwort: er landet in der Shell-History dieses Rechners.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Token ausstellen</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Stelle pro Anwendung und Umgebung einen Token aus. Den Namen vergibt der Server automatisch als «applikation-umgebung» (bei Bedarf durchnummeriert) — du kannst aber auch einen eigenen setzen, z. B. mit Host- oder Zweck-Zusatz. Optional: eine Notiz (wo er läuft, Eigentümer, Ticket) und ein Ablaufdatum, nach dem er nicht mehr funktioniert. Jeden Token auf eine einzige Umgebung zu beschränken hält den Schaden klein, falls einer einmal durchsickert.</value></data>
-  <data name="Token.NoteOptional" xml:space="preserve"><value>Notiz (optional)</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Notiz (optional) — z. B. der Computername, auf dem der Token verwendet wird</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>wo er verwendet wird, Eigentümer, Ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Läuft ab in (Tagen, optional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>

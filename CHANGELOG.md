@@ -16,6 +16,19 @@ All notable changes to this project are documented here, following
   environment set (including their pending app tokens). Imported keys exist without a value in any
   environment until one is set in the Data tab (new `ISoftwareSecretService.CreateSecretAsync`).
 
+### Changed
+
+- Client-token deployment snippet: the PowerShell block now prints the CURRENT machine-wide variable value
+  (`GetEnvironmentVariable`) before overwriting it, so the operator sees what is being replaced and can
+  note it for a rollback. The token note field's placeholder now suggests recording the computer name the
+  token is used on; the name field gained a placeholder/tooltip.
+
+### Fixed
+
+- Client-token detail card opened with EMPTY name/note inputs when reached via Rotate / Generate / Issue
+  (only a row click populated them) — overwriting the token's name with a blank value was one save away.
+  All paths that open the card now load the current name and note.
+
 ## [0.7.2-preview] - 2026-07-31
 
 ### Fixed

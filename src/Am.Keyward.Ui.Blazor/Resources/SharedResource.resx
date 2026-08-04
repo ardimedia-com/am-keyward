@@ -195,12 +195,13 @@
   <data name="Token.New" xml:space="preserve"><value>New token (copy it now — it will not be shown again):</value></data>
   <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell for the target system</value></data>
   <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>token &#8220;{0}&#8221; ({1})</value></data>
+  <data name="Token.Ps.Comment.Current" xml:space="preserve"><value>Current machine-wide value (shown before overwriting — note it if you may need to roll back):</value></data>
   <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Persist it for every process on this machine (run in an elevated shell):</value></data>
   <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Check that it works — reads this environment's secrets:</value></data>
   <data name="Token.Ps.Hint" xml:space="preserve"><value>Run this on the machine that hosts the application. Services and applications pick the new {0} up after a restart. The token is a password: it ends up in the shell history of that machine.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Issue a token</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Issue one token per application and environment. The server names it “application-environment” automatically (numbered when needed) — or give it your own name, e.g. with a host or purpose suffix. Optional: a note (where it runs, owner, ticket) and an expiry date after which it stops working. Restricting each token to a single environment keeps the damage small if one ever leaks.</value></data>
-  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (optional)</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (optional) — e.g. the computer name where this token is used</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>where it's used, owner, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expires in (days, optional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Issue token</value></data>

@@ -195,12 +195,13 @@
   <data name="Token.New" xml:space="preserve"><value>Nuovo token (copialo ora — non verrà più mostrato):</value></data>
   <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell per il sistema di destinazione</value></data>
   <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>token «{0}» ({1})</value></data>
+  <data name="Token.Ps.Comment.Current" xml:space="preserve"><value>Valore attuale a livello di macchina (mostrato prima della sovrascrittura — annotarlo per un eventuale ripristino):</value></data>
   <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Salvare a livello di macchina (eseguire in una shell con privilegi elevati):</value></data>
   <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Verifica — legge i secret di questo ambiente:</value></data>
   <data name="Token.Ps.Hint" xml:space="preserve"><value>Da eseguire sulla macchina che ospita l'applicazione. Servizi e applicazioni rilevano la nuova variabile {0} dopo un riavvio. Il token è una password: finisce nella cronologia della shell di quella macchina.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emetti un token</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Emetti un token per applicazione e ambiente. Il server lo nomina automaticamente «applicazione-ambiente» (numerato se serve) — oppure assegnagli un nome tuo, ad es. con un suffisso di host o scopo. Facoltativo: una nota (dove gira, proprietario, ticket) e una scadenza dopo la quale smette di funzionare. Limitare ogni token a un solo ambiente contiene i danni se uno dovesse trapelare.</value></data>
-  <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (facoltativa)</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (facoltativa) — ad es. il nome del computer su cui viene usato il token</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>dove è usato, proprietario, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Scade tra (giorni, facoltativo)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Emetti token</value></data>

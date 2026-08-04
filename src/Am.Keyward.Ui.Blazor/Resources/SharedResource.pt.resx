@@ -195,12 +195,13 @@
   <data name="Token.New" xml:space="preserve"><value>Novo token (copie-o agora — não voltará a ser mostrado):</value></data>
   <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell para o sistema de destino</value></data>
   <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>token «{0}» ({1})</value></data>
+  <data name="Token.Ps.Comment.Current" xml:space="preserve"><value>Valor atual a nível de máquina (mostrado antes de substituir — anote-o caso precise de reverter):</value></data>
   <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Guardar para toda a máquina (executar numa shell com privilégios elevados):</value></data>
   <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Verificar — lê os segredos deste ambiente:</value></data>
   <data name="Token.Ps.Hint" xml:space="preserve"><value>Execute na máquina que aloja a aplicação. Os serviços e as aplicações assumem a nova variável {0} após reiniciarem. O token é uma palavra-passe: fica no histórico da shell dessa máquina.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Emitir um token</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Emite um token por aplicação e ambiente. O servidor atribui-lhe automaticamente o nome «aplicação-ambiente» (numerado se necessário) — ou dá-lhe um nome próprio, p. ex. com um sufixo de host ou finalidade. Opcional: uma nota (onde é usado, proprietário, ticket) e uma data de expiração após a qual deixa de funcionar. Restringir cada token a um único ambiente limita os danos se algum vazar.</value></data>
-  <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (opcional)</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Nota (opcional) — p. ex. o nome do computador onde o token é usado</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>onde é utilizado, responsável, bilhete…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expira em (dias, opcional)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>

@@ -195,12 +195,13 @@
   <data name="Token.New" xml:space="preserve"><value>Nouveau jeton (copiez-le maintenant — il ne sera plus affiché) :</value></data>
   <data name="Token.Ps.Heading" xml:space="preserve"><value>PowerShell pour le système cible</value></data>
   <data name="Token.Ps.Comment.Token" xml:space="preserve"><value>jeton «{0}» ({1})</value></data>
+  <data name="Token.Ps.Comment.Current" xml:space="preserve"><value>Valeur actuelle au niveau machine (affichée avant l'écrasement — à noter pour un éventuel retour en arrière) :</value></data>
   <data name="Token.Ps.Comment.Persist" xml:space="preserve"><value>Enregistrer pour toute la machine (exécuter dans un shell élevé) :</value></data>
   <data name="Token.Ps.Comment.Verify" xml:space="preserve"><value>Vérifier — lit les secrets de cet environnement :</value></data>
   <data name="Token.Ps.Hint" xml:space="preserve"><value>À exécuter sur la machine qui héberge l'application. Les services et applications prennent en compte la nouvelle variable {0} après un redémarrage. Le jeton est un mot de passe : il se retrouve dans l'historique du shell de cette machine.</value></data>
   <data name="Token.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
   <data name="Token.Issue.Desc" xml:space="preserve"><value>Émettez un jeton par application et environnement. Le serveur le nomme automatiquement « application-environnement » (numéroté au besoin) — ou donnez-lui votre propre nom, p. ex. avec un suffixe d'hôte ou d'usage. Facultatif : une note (où il tourne, propriétaire, ticket) et une date d'expiration après laquelle il cesse de fonctionner. Restreindre chaque jeton à un seul environnement limite les dégâts si l'un fuit un jour.</value></data>
-  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif)</value></data>
+  <data name="Token.NoteOptional" xml:space="preserve"><value>Note (facultatif) — p. ex. le nom de l'ordinateur qui utilise ce jeton</value></data>
   <data name="Token.NotePlaceholder" xml:space="preserve"><value>où il est utilisé, propriétaire, ticket…</value></data>
   <data name="Token.ExpiresInDays" xml:space="preserve"><value>Expire dans (jours, facultatif)</value></data>
   <data name="Token.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>

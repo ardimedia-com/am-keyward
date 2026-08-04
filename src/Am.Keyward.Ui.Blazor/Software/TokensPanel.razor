@@ -89,8 +89,8 @@ else
                         <div class="row" style="justify-content:space-between; flex-wrap:wrap;">
                             <div class="row" style="flex:1; min-width:20rem; flex-wrap:nowrap;">
                                 <KeywardIcon Name="ticket" Size="18" />
-                                <input @bind="editName" aria-label="@(Loc["Common.Name"])" style="max-width:14rem; font-weight:600;" />
-                                <input @bind="editNote" aria-label="@(Loc["Common.Note"])" placeholder="@(Loc["Token.NoteOptional"])" style="max-width:18rem;" />
+                                <input @bind="editName" aria-label="@(Loc["Common.Name"])" placeholder="@(Loc["Common.Name"])" title="@(Loc["Common.Name"])" style="max-width:14rem; font-weight:600;" />
+                                <input @bind="editNote" aria-label="@(Loc["Common.Note"])" placeholder="@(Loc["Token.NoteOptional"])" title="@(Loc["Token.NoteOptional"])" style="max-width:18rem;" />
                                 <button class="btn-ghost btn-sm" @onclick="SaveEditAsync" disabled="@(busy || string.IsNullOrWhiteSpace(editName))">@Loc["Common.Save"]</button>
                             </div>
                             <div class="row">
@@ -275,6 +275,13 @@ else
         selectedTokenId = selectedTokenId == tokenId ? null : tokenId; // toggle
         confirmRevoke = false;
         confirmDelete = false;
+        LoadEditFor(tokenId);
+    }
+
+    // The name/note inputs must be populated on EVERY path that opens the detail card — not only the
+    // row click (SelectToken) but also mint/rotate/issue, which select the row programmatically.
+    private void LoadEditFor(Guid tokenId)
+    {
         var t = tokens?.FirstOrDefault(x => x.Id == tokenId);
         editName = t?.Name ?? "";
         editNote = t?.Note ?? "";
@@ -290,6 +297,7 @@ else
         issuedCopied = false;
         await RefreshAsync();
         selectedTokenId = issued.TokenId;
+        LoadEditFor(issued.TokenId);
         status = (Loc["Token.Msg.Issued", environmentName, environmentName], false);
     }, true);
 
@@ -302,6 +310,7 @@ else
         issuedCopied = false;
         selectedTokenId = tokenId;
         await RefreshAsync();
+        LoadEditFor(tokenId);
         status = (Loc["Token.Msg.Generated"], false);
     }, true);
 
@@ -313,6 +322,7 @@ else
         issuedCopied = false;
         selectedTokenId = tokenId;
         await RefreshAsync();
+        LoadEditFor(tokenId);
         status = (Loc["Token.Msg.Rotated"], false);
     }, true);
 
@@ -376,6 +386,9 @@ else
         return $$"""
             # {{KeywardOptions.ProductName}} — {{Loc["Token.Ps.Comment.Token", token.Name, environmentName]}}
             $token = '{{issuedToken}}'
+
+            # {{Loc["Token.Ps.Comment.Current"]}}
+            [Environment]::GetEnvironmentVariable('{{variable}}', 'Machine')
 
             # {{Loc["Token.Ps.Comment.Persist"]}}
             [Environment]::SetEnvironmentVariable('{{variable}}', $token, 'Machine')
