@@ -25,7 +25,8 @@ public sealed class SoftwareSecretService(
     ICurrentTenant tenant,
     ICurrentUser currentUser,
     IKeywardAccessPolicy authorization,
-    ISoftwareClientTokenService tokens) : ISoftwareSecretService, ISoftwareSecretReader
+    ISoftwareClientTokenService tokens,
+    ISecretReadRecorder readStatistics) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
 
@@ -80,10 +81,13 @@ public sealed class SoftwareSecretService(
             throw new InvalidOperationException("The project's last environment cannot be deleted.");
         }
 
-        // Everything scoped to the environment goes with it: its secret values (versions cascade) and its
-        // app tokens (they could never read anything again — the deletion itself stays in the audit chain).
+        // Everything scoped to the environment goes with it: its secret values (versions cascade), its
+        // read-statistics rows (no FK to the environment — see SecretReadAccess), and its app tokens (they
+        // could never read anything again — the deletion itself stays in the audit chain).
         var values = await db.SecretValues.Where(v => v.EnvironmentId == environmentId).ToListAsync(ct).ConfigureAwait(false);
         db.SecretValues.RemoveRange(values);
+        var readAccesses = await db.SecretReadAccesses.Where(r => r.EnvironmentId == environmentId).ToListAsync(ct).ConfigureAwait(false);
+        db.SecretReadAccesses.RemoveRange(readAccesses);
         var environmentTokens = await db.SoftwareClientTokens
             .Where(t => t.EnvironmentId == environmentId)
             .ToListAsync(ct).ConfigureAwait(false);
@@ -218,6 +222,7 @@ public sealed class SoftwareSecretService(
         var plaintext = await DecryptCurrentAsync(query.TenantId, query.ProjectId, environment.Id, secret.Id, value, ct)
             .ConfigureAwait(false);
 
+        readStatistics.Record(query.TenantId, secret.Id, environment.Id, SecretReadSource.InProcess);
         await audit.AppendAsync(
             db, new AuditRequest(query.TenantId, AuditAction.Read, "SoftwareSecret", secret.Id, query.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
@@ -250,6 +255,7 @@ public sealed class SoftwareSecretService(
         var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
             .ConfigureAwait(false);
 
+        readStatistics.Record(tenantId, secret.Id, environmentId, SecretReadSource.Client);
         await audit.AppendAsync(
             db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, actorUserId), ct)
             .ConfigureAwait(false);
@@ -283,6 +289,7 @@ public sealed class SoftwareSecretService(
             var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
                 .ConfigureAwait(false);
             result.Add(new KeyValuePair<string, string>(secret.Key.Value, plaintext));
+            readStatistics.Record(tenantId, secret.Id, environmentId, SecretReadSource.Client);
         }
 
         await audit.AppendAsync(
@@ -353,18 +360,28 @@ public sealed class SoftwareSecretService(
             return null;
         }
 
+        // Read statistics (last read at/via, total count) — shown per environment so the management view
+        // answers "is this secret still used?". A view like this one deliberately does not count as a read.
+        var readAccesses = await db.SecretReadAccesses.AsNoTracking()
+            .Where(r => r.SoftwareSecretId == secret.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
         var values = new List<SecretEnvironmentValue>();
         foreach (var environment in environments.OrderBy(e => e.Name.Value))
         {
+            var read = readAccesses.FirstOrDefault(r => r.EnvironmentId == environment.Id);
             var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
             if (value?.CurrentVersionId is null)
             {
-                values.Add(new SecretEnvironmentValue(environment.Name.Value, false, null));
+                values.Add(new SecretEnvironmentValue(
+                    environment.Name.Value, false, null, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0));
                 continue;
             }
 
             var plaintext = await DecryptCurrentAsync(tenantId, projectId, environment.Id, secret.Id, value, ct).ConfigureAwait(false);
-            values.Add(new SecretEnvironmentValue(environment.Name.Value, true, plaintext));
+            values.Add(new SecretEnvironmentValue(
+                environment.Name.Value, true, plaintext, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0));
         }
 
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, currentUser.UserId), ct).ConfigureAwait(false);

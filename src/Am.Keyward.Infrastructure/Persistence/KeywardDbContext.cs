@@ -42,6 +42,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
     public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
     public DbSet<TokenAccessAlert> TokenAccessAlerts => Set<TokenAccessAlert>();
+    public DbSet<SecretReadAccess> SecretReadAccesses => Set<SecretReadAccess>();
     public DbSet<Vault> Vaults => Set<Vault>();
     public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<VaultItem> VaultItems => Set<VaultItem>();
@@ -249,6 +250,19 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             // The mail job polls for not-yet-emailed alerts; the filtered index keeps that poll cheap.
             e.HasIndex(x => x.EmailedAt).HasFilter("[EmailedAt] IS NULL");
             e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        model.Entity<SecretReadAccess>(e =>
+        {
+            e.ToTable("SecretReadAccesses");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.LastReadSource).HasConversion<string>().HasMaxLength(32);
+            e.HasIndex(x => new { x.SoftwareSecretId, x.EnvironmentId }).IsUnique();
+            e.HasIndex(x => x.TenantId);
+            e.HasOne<SoftwareSecret>().WithMany().HasForeignKey(x => x.SoftwareSecretId).OnDelete(DeleteBehavior.Cascade);
+            // EnvironmentId deliberately has NO foreign key: a cascade from RuntimeEnvironment would open a
+            // second cascade path (both reach the project), which SQL Server rejects — environment deletion
+            // removes these rows explicitly in SoftwareSecretService.DeleteEnvironmentAsync.
         });
 
         // Human vaults. Isolation boundary: tenant vaults by TenantId, personal (tenant-less) vaults by

@@ -12,13 +12,16 @@ namespace Am.Keyward.Infrastructure.Statistics;
 /// <summary>
 /// Persists the <see cref="TokenAccessAccumulator"/> batch on an interval: last access (+ IP) onto the
 /// token record, per-day counters, the seen-IP set — and derives the rule-based access-pattern alerts
-/// (new IP, resumed after silence) while it has both the previous and the fresh state in hand. Once a day
-/// it trims counters/IPs/alerts past the retention window. Best-effort: failures are logged and never
+/// (new IP, resumed after silence) while it has both the previous and the fresh state in hand. Also
+/// upserts the <see cref="SecretReadAccumulator"/> batch (last read + count per secret/environment; those
+/// rows are never retention-trimmed — the long-term "is this secret still used?" signal). Once a day it
+/// trims counters/IPs/alerts past the retention window. Best-effort: failures are logged and never
 /// crash the host; a failed flush loses that interval's numbers, never the secret reads themselves. The
 /// statistics tables are installation-global (like the token table), so this runs without a tenant scope.
 /// </summary>
 public sealed class TokenAccessFlushService(
     TokenAccessAccumulator accumulator,
+    SecretReadAccumulator secretReads,
     IServiceScopeFactory scopeFactory,
     IClock clock,
     IOptions<TokenAccessOptions> options,
@@ -74,9 +77,10 @@ public sealed class TokenAccessFlushService(
     private async Task FlushAsync(CancellationToken ct)
     {
         var batch = accumulator.Drain();
+        var secretBatch = secretReads.Drain();
         var now = clock.UtcNow;
         var cleanupDue = now - lastCleanupAt >= CleanupInterval;
-        if (batch.Count == 0 && !cleanupDue)
+        if (batch.Count == 0 && secretBatch.Count == 0 && !cleanupDue)
         {
             return;
         }
@@ -89,7 +93,13 @@ public sealed class TokenAccessFlushService(
             await PersistTokenBatchAsync(db, tokenId, access, ct).ConfigureAwait(false);
         }
 
-        if (batch.Count > 0)
+        var scopeSetter = scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>();
+        foreach (var ((secretId, environmentId), read) in secretBatch)
+        {
+            await PersistSecretReadBatchAsync(db, scopeSetter, secretId, environmentId, read, ct).ConfigureAwait(false);
+        }
+
+        if (batch.Count > 0 || secretBatch.Count > 0)
         {
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
@@ -162,6 +172,32 @@ public sealed class TokenAccessFlushService(
                 }
             }
         }
+    }
+
+    private static async Task PersistSecretReadBatchAsync(
+        KeywardDbContext db, ITenantScopeSetter scopeSetter, Guid secretId, Guid environmentId, PendingSecretRead read, CancellationToken ct)
+    {
+        var row = await db.SecretReadAccesses
+            .FirstOrDefaultAsync(r => r.SoftwareSecretId == secretId && r.EnvironmentId == environmentId, ct)
+            .ConfigureAwait(false);
+        if (row is not null)
+        {
+            row.RecordRead(read.LastReadAt, read.LastSource, read.Count);
+            return;
+        }
+
+        // The secret may have been deleted between read and flush — inserting then would violate the FK.
+        // SoftwareSecrets is tenant-scoped (query filter + row-level security), and this job runs outside
+        // any tenant scope — set the row's tenant for the check (the OpsMonitor pattern), or RLS would hide
+        // an existing secret and the row would silently never be written.
+        scopeSetter.SetTenant(read.TenantId);
+        if (!await db.SoftwareSecrets.IgnoreQueryFilters().AnyAsync(s => s.Id == secretId, ct).ConfigureAwait(false))
+        {
+            return;
+        }
+
+        db.SecretReadAccesses.Add(new SecretReadAccess(
+            Guid.NewGuid(), read.TenantId, secretId, environmentId, read.LastReadAt, read.LastSource, read.Count));
     }
 
     private async Task CleanupAsync(KeywardDbContext db, DateTimeOffset now, CancellationToken ct)

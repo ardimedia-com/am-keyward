@@ -178,6 +178,11 @@
   <data name="Secret.RevealValues" xml:space="preserve"><value>Reveal values</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Set or change the value per environment. Each save creates a new encrypted version.</value></data>
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Current value</value></data>
+  <data name="Secret.LastRead" xml:space="preserve"><value>Last read</value></data>
+  <data name="Secret.NeverRead" xml:space="preserve"><value>Never read</value></data>
+  <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
+  <data name="Secret.ReadSource.Client" xml:space="preserve"><value>client token</value></data>
+  <data name="Secret.ReadCount" xml:space="preserve"><value>{0} read(s) in total</value></data>
   <data name="Secret.SetNewValue" xml:space="preserve"><value>Set new value</value></data>
   <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>new value</value></data>
   <data name="Secret.Key" xml:space="preserve"><value>Key</value></data>

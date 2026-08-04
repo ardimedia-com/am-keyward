@@ -1,4 +1,16 @@
+using Am.Keyward.Core.Domain.Software;
+
 namespace Am.Keyward.Core.Application;
+
+/// <summary>
+/// The hot-path side of per-secret read statistics: called on every successful software read of a secret
+/// value (client API and in-process — never on management views), so it must be in-memory, non-blocking
+/// and infallible. A background flush upserts the accumulated last-read/count per (secret, environment).
+/// </summary>
+public interface ISecretReadRecorder
+{
+    void Record(Guid tenantId, Guid secretId, Guid environmentId, SecretReadSource source);
+}
 
 /// <summary>Stores (creates or versions) a software secret's value for one project environment.</summary>
 public sealed record StoreSoftwareSecretCommand(
@@ -23,8 +35,18 @@ public sealed record SoftwareSecretSummary(string Key, IReadOnlyList<string> Env
 /// <summary>One project environment (id + display name).</summary>
 public sealed record EnvironmentInfo(Guid Id, string Name);
 
-/// <summary>One environment's current value for a secret (Value is null when that environment has none).</summary>
-public sealed record SecretEnvironmentValue(string Environment, bool HasValue, string? Value);
+/// <summary>
+/// One environment's current value for a secret (Value is null when that environment has none), plus its
+/// read statistics: when software last read it (null = never), via which source ("InProcess" | "Client",
+/// the <see cref="SecretReadSource"/> name), and how many reads in total. Management views don't count.
+/// </summary>
+public sealed record SecretEnvironmentValue(
+    string Environment,
+    bool HasValue,
+    string? Value,
+    DateTimeOffset? LastReadAt = null,
+    string? LastReadVia = null,
+    long ReadCount = 0);
 
 /// <summary>A secret with its current value in every project environment (for the management view).</summary>
 public sealed record SoftwareSecretDetail(string Key, IReadOnlyList<SecretEnvironmentValue> Environments);

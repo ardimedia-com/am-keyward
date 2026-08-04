@@ -178,6 +178,11 @@
   <data name="Secret.RevealValues" xml:space="preserve"><value>Révéler les valeurs</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Définissez ou modifiez la valeur par environnement. Chaque enregistrement crée une nouvelle version chiffrée.</value></data>
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Valeur actuelle</value></data>
+  <data name="Secret.LastRead" xml:space="preserve"><value>Dernière lecture</value></data>
+  <data name="Secret.NeverRead" xml:space="preserve"><value>Jamais lue</value></data>
+  <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
+  <data name="Secret.ReadSource.Client" xml:space="preserve"><value>jeton client</value></data>
+  <data name="Secret.ReadCount" xml:space="preserve"><value>{0} lectures au total</value></data>
   <data name="Secret.SetNewValue" xml:space="preserve"><value>Définir une nouvelle valeur</value></data>
   <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>nouvelle valeur</value></data>
   <data name="Secret.Key" xml:space="preserve"><value>Clé</value></data>

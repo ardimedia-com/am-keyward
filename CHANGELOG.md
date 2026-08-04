@@ -5,6 +5,20 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Per-secret read statistics — "is this secret still used?".** Every successful software read of a
+  secret value is now recorded per (secret, environment): last read at, last read source (client token vs
+  in-process host code) and a total read count. The application's Data tab shows a new "Last read" column
+  per environment (with the total count as tooltip); a value never read by software shows "Never read".
+  Management views (the Data tab itself) deliberately do NOT count — only the software-client API and
+  in-process `ISoftwareSecretService.ReadAsync` reads do. Recording is in-memory on the hot path and
+  persisted batched by the existing access-statistics flush (section `Keyward:TokenAccess` governs
+  Enabled/FlushIntervalSeconds); unlike the token counters these rows are never retention-trimmed, since
+  "when was this key last read" is exactly the long-term signal. New table `SecretReadAccesses`
+  (migration `SecretReadStatistics`); `SecretEnvironmentValue` gained optional `LastReadAt` /
+  `LastReadVia` / `ReadCount` fields (additive).
+
 ## [0.8.0-preview] - 2026-08-04
 
 ### Added

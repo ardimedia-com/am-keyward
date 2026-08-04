@@ -109,6 +109,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenAccessStatisticsService, Statistics.TokenAccessStatisticsService>();
         services.AddHostedService<Statistics.TokenAccessFlushService>();
 
+        // Per-secret read statistics ("is this secret still used?"): recorded on every successful software
+        // read (client API and in-process; management views don't count), upserted by the same flush
+        // service — the "Keyward:TokenAccess" section's Enabled/FlushIntervalSeconds govern both.
+        services.AddSingleton<Statistics.SecretReadAccumulator>();
+        services.AddSingleton<ISecretReadRecorder>(sp => sp.GetRequiredService<Statistics.SecretReadAccumulator>());
+
         // Human vaults (server-side encrypted).
         services.AddScoped<IVaultService, VaultService>();
 

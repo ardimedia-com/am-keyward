@@ -178,6 +178,11 @@
   <data name="Secret.RevealValues" xml:space="preserve"><value>Mostrar valores</value></data>
   <data name="Secret.View.Desc" xml:space="preserve"><value>Defina ou altere o valor por ambiente. Cada gravação cria uma nova versão encriptada.</value></data>
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Valor atual</value></data>
+  <data name="Secret.LastRead" xml:space="preserve"><value>Última leitura</value></data>
+  <data name="Secret.NeverRead" xml:space="preserve"><value>Nunca lida</value></data>
+  <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
+  <data name="Secret.ReadSource.Client" xml:space="preserve"><value>token de cliente</value></data>
+  <data name="Secret.ReadCount" xml:space="preserve"><value>{0} leituras no total</value></data>
   <data name="Secret.SetNewValue" xml:space="preserve"><value>Definir novo valor</value></data>
   <data name="Secret.NewValuePlaceholder" xml:space="preserve"><value>novo valor</value></data>
   <data name="Secret.Key" xml:space="preserve"><value>Chave</value></data>

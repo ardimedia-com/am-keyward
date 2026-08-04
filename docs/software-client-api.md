@@ -104,6 +104,11 @@ a leaked token being used from an unexpected address, and find never-used placeh
 Note: the recorded IP is the connection's remote address — behind a proxy/load balancer configure
 forwarded-headers middleware in the host, or the proxy's address is what gets recorded.
 
+Independently of the per-token statistics, every successful software read is also recorded **per secret
+and environment** (last read at, source client-token vs in-process, total count) and shown as the "Last
+read" column in the application's Data tab — the direct answer to "is this secret still used?".
+Management views don't count as reads, and these rows are never retention-trimmed.
+
 ## Security notes
 
 - Tokens carry no secret material at rest — only a SHA-256 hash and a non-secret lookup prefix are stored.
