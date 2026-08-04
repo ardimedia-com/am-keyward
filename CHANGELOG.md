@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.8.0-preview] - 2026-08-04
+
 ### Added
 
 - **Bulk import of applications and secret keys** on the Applications page ("Import…" below the new-app
