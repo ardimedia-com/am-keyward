@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.9.1-preview] - 2026-08-04
+
 ### Fixed
 
 - Application Data tab: on narrow viewports the per-environment value table collapsed onto itself (current
