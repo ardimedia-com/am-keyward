@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.9.0-preview] - 2026-08-04
+
 ### Added
 
 - **Per-secret read statistics — "is this secret still used?".** Every successful software read of a
