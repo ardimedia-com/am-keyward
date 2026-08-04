@@ -703,4 +703,24 @@
   <data name="Token.Status.None" xml:space="preserve"><value>No token</value></data>
   <data name="Token.Expires.Days" xml:space="preserve"><value>{0} days</value></data>
   <data name="Token.Expires.Keep" xml:space="preserve"><value>Keep current</value></data>
+  <data name="Import.Open" xml:space="preserve"><value>Import…</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Import applications &amp; keys</value></data>
+  <data name="Import.Desc" xml:space="preserve"><value>Paste a structured list of applications and their keys. Only the structure is imported — values are never read from the input; set them per environment afterwards in the Data tab. Existing applications and keys are left untouched.</value></data>
+  <data name="Import.Help" xml:space="preserve"><value>Three input forms are accepted:&#10;• Indented text — an unindented line names an application, the indented lines below it are its keys.&#10;• A JSON object mapping application names to arrays of keys.&#10;• An appsettings.json — its configuration paths (Section:Key) become the keys of the application named below; the values are ignored and never stored.&#10;Check shows a preview first; Import creates only what is marked as new. New applications start with the default environment set.</value></data>
+  <data name="Import.Source" xml:space="preserve"><value>Applications and keys</value></data>
+  <data name="Import.Placeholder" xml:space="preserve"><value># One application per line, its keys indented&#10;Shop.Web&#10;    ConnectionStrings:Main&#10;    Smtp:Host&#10;&#10;Shop.Worker&#10;    ApiKeys:OpenAi</value></data>
+  <data name="Import.AppName" xml:space="preserve"><value>Target application (appsettings.json only)</value></data>
+  <data name="Import.AppName.Placeholder" xml:space="preserve"><value>Application name…</value></data>
+  <data name="Import.AppName.Hint" xml:space="preserve"><value>Only needed when pasting an appsettings.json — the file itself carries no application name.</value></data>
+  <data name="Import.Check" xml:space="preserve"><value>Check</value></data>
+  <data name="Import.Run" xml:space="preserve"><value>Import</value></data>
+  <data name="Import.Errors.Title" xml:space="preserve"><value>The input has errors — nothing was imported.</value></data>
+  <data name="Import.Errors.Line" xml:space="preserve"><value>Line {0}: {1}</value></data>
+  <data name="Import.Badge.New" xml:space="preserve"><value>new</value></data>
+  <data name="Import.Badge.Exists" xml:space="preserve"><value>exists</value></data>
+  <data name="Import.Badge.Skip" xml:space="preserve"><value>skipped (exists)</value></data>
+  <data name="Import.Preview.Title" xml:space="preserve"><value>Preview</value></data>
+  <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} new application(s), {1} new key(s); {2} already exist and will be skipped.</value></data>
+  <data name="Import.Preview.Empty" xml:space="preserve"><value>Nothing to import — everything in the input already exists.</value></data>
+  <data name="Import.Msg.Done" xml:space="preserve"><value>Import complete: {0} application(s) and {1} key(s) created, {2} skipped (already existed).</value></data>
 </root>

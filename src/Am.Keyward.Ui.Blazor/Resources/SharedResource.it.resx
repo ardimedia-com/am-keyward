@@ -703,4 +703,24 @@
   <data name="Token.Status.None" xml:space="preserve"><value>Nessun token</value></data>
   <data name="Token.Expires.Days" xml:space="preserve"><value>{0} giorni</value></data>
   <data name="Token.Expires.Keep" xml:space="preserve"><value>Mantieni</value></data>
+  <data name="Import.Open" xml:space="preserve"><value>Importa…</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Importa applicazioni e chiavi</value></data>
+  <data name="Import.Desc" xml:space="preserve"><value>Incolla un elenco strutturato di applicazioni e delle loro chiavi. Viene importata solo la struttura — i valori non vengono mai letti dall'input; impostali poi per ambiente nella scheda Dati. Applicazioni e chiavi esistenti restano intatte.</value></data>
+  <data name="Import.Help" xml:space="preserve"><value>Sono accettate tre forme di input:&#10;• Testo indentato — una riga non indentata indica un'applicazione, le righe indentate sotto sono le sue chiavi.&#10;• Un oggetto JSON che associa nomi di applicazioni ad array di chiavi.&#10;• Un appsettings.json — i suoi percorsi di configurazione (Section:Key) diventano le chiavi dell'applicazione indicata sotto; i valori vengono ignorati e mai salvati.&#10;Verifica mostra prima un'anteprima; Importa crea solo ciò che è contrassegnato come nuovo. Le nuove applicazioni partono con il set di ambienti predefinito.</value></data>
+  <data name="Import.Source" xml:space="preserve"><value>Applicazioni e chiavi</value></data>
+  <data name="Import.Placeholder" xml:space="preserve"><value># Un'applicazione per riga, le sue chiavi indentate&#10;Shop.Web&#10;    ConnectionStrings:Main&#10;    Smtp:Host&#10;&#10;Shop.Worker&#10;    ApiKeys:OpenAi</value></data>
+  <data name="Import.AppName" xml:space="preserve"><value>Applicazione di destinazione (solo appsettings.json)</value></data>
+  <data name="Import.AppName.Placeholder" xml:space="preserve"><value>Nome dell'applicazione…</value></data>
+  <data name="Import.AppName.Hint" xml:space="preserve"><value>Necessario solo quando si incolla un appsettings.json — il file stesso non contiene un nome di applicazione.</value></data>
+  <data name="Import.Check" xml:space="preserve"><value>Verifica</value></data>
+  <data name="Import.Run" xml:space="preserve"><value>Importa</value></data>
+  <data name="Import.Errors.Title" xml:space="preserve"><value>L'input contiene errori — non è stato importato nulla.</value></data>
+  <data name="Import.Errors.Line" xml:space="preserve"><value>Riga {0}: {1}</value></data>
+  <data name="Import.Badge.New" xml:space="preserve"><value>nuovo</value></data>
+  <data name="Import.Badge.Exists" xml:space="preserve"><value>esistente</value></data>
+  <data name="Import.Badge.Skip" xml:space="preserve"><value>saltato (esistente)</value></data>
+  <data name="Import.Preview.Title" xml:space="preserve"><value>Anteprima</value></data>
+  <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} nuove applicazioni, {1} nuove chiavi; {2} esistono già e verranno saltate.</value></data>
+  <data name="Import.Preview.Empty" xml:space="preserve"><value>Niente da importare — tutto ciò che è nell'input esiste già.</value></data>
+  <data name="Import.Msg.Done" xml:space="preserve"><value>Importazione completata: {0} applicazioni e {1} chiavi create, {2} saltate (già esistenti).</value></data>
 </root>

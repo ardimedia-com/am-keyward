@@ -703,4 +703,24 @@
   <data name="Token.Status.None" xml:space="preserve"><value>Aucun jeton</value></data>
   <data name="Token.Expires.Days" xml:space="preserve"><value>{0} jours</value></data>
   <data name="Token.Expires.Keep" xml:space="preserve"><value>Conserver</value></data>
+  <data name="Import.Open" xml:space="preserve"><value>Importer…</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Importer des applications &amp; clés</value></data>
+  <data name="Import.Desc" xml:space="preserve"><value>Collez une liste structurée d'applications et de leurs clés. Seule la structure est importée — les valeurs ne sont jamais lues depuis l'entrée ; définissez-les ensuite par environnement dans l'onglet Données. Les applications et clés existantes restent intactes.</value></data>
+  <data name="Import.Help" xml:space="preserve"><value>Trois formes d'entrée sont acceptées :&#10;• Texte indenté — une ligne non indentée nomme une application, les lignes indentées en dessous sont ses clés.&#10;• Un objet JSON associant des noms d'applications à des tableaux de clés.&#10;• Un appsettings.json — ses chemins de configuration (Section:Key) deviennent les clés de l'application indiquée ci-dessous ; les valeurs sont ignorées et jamais enregistrées.&#10;Vérifier affiche d'abord un aperçu ; Importer ne crée que ce qui est marqué comme nouveau. Les nouvelles applications démarrent avec le jeu d'environnements par défaut.</value></data>
+  <data name="Import.Source" xml:space="preserve"><value>Applications et clés</value></data>
+  <data name="Import.Placeholder" xml:space="preserve"><value># Une application par ligne, ses clés indentées&#10;Shop.Web&#10;    ConnectionStrings:Main&#10;    Smtp:Host&#10;&#10;Shop.Worker&#10;    ApiKeys:OpenAi</value></data>
+  <data name="Import.AppName" xml:space="preserve"><value>Application cible (appsettings.json uniquement)</value></data>
+  <data name="Import.AppName.Placeholder" xml:space="preserve"><value>Nom de l'application…</value></data>
+  <data name="Import.AppName.Hint" xml:space="preserve"><value>Nécessaire uniquement lorsqu'un appsettings.json est collé — le fichier lui-même ne contient pas de nom d'application.</value></data>
+  <data name="Import.Check" xml:space="preserve"><value>Vérifier</value></data>
+  <data name="Import.Run" xml:space="preserve"><value>Importer</value></data>
+  <data name="Import.Errors.Title" xml:space="preserve"><value>L'entrée contient des erreurs — rien n'a été importé.</value></data>
+  <data name="Import.Errors.Line" xml:space="preserve"><value>Ligne {0} : {1}</value></data>
+  <data name="Import.Badge.New" xml:space="preserve"><value>nouveau</value></data>
+  <data name="Import.Badge.Exists" xml:space="preserve"><value>existe</value></data>
+  <data name="Import.Badge.Skip" xml:space="preserve"><value>ignoré (existe)</value></data>
+  <data name="Import.Preview.Title" xml:space="preserve"><value>Aperçu</value></data>
+  <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} nouvelle(s) application(s), {1} nouvelle(s) clé(s) ; {2} existent déjà et seront ignorées.</value></data>
+  <data name="Import.Preview.Empty" xml:space="preserve"><value>Rien à importer — tout ce qui figure dans l'entrée existe déjà.</value></data>
+  <data name="Import.Msg.Done" xml:space="preserve"><value>Import terminé : {0} application(s) et {1} clé(s) créées, {2} ignorée(s) (déjà existantes).</value></data>
 </root>

@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Bulk import of applications and secret keys** on the Applications page ("Import…" below the new-app
+  field, managers only). Paste an indented text list (application per line, keys indented), a JSON object
+  mapping application names to key arrays, or a whole appsettings.json whose configuration paths become the
+  keys of one named application — values are never read from the input. Check shows a diff preview against
+  the current state first; Import is additive and idempotent: existing applications are reused, existing
+  keys skipped, nothing is overwritten or deleted, and new applications start with the tenant's default
+  environment set (including their pending app tokens). Imported keys exist without a value in any
+  environment until one is set in the Data tab (new `ISoftwareSecretService.CreateSecretAsync`).
+
 ## [0.7.2-preview] - 2026-07-31
 
 ### Fixed

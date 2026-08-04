@@ -92,6 +92,8 @@ public static class ServiceCollectionExtensions
         // plus the tenant's default environment set every new application starts with.
         services.AddScoped<IProjectService, ProjectService>();
         services.AddScoped<IDefaultEnvironmentService, DefaultEnvironmentService>();
+        // Bulk import of applications + secret keys (no values); composes the two services above.
+        services.AddScoped<IApplicationImportService, ApplicationImportService>();
 
         // Software-client tokens: management + authentication, and a best-effort expiry watcher.
         services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();

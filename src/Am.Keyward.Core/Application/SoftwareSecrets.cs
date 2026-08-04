@@ -69,4 +69,11 @@ public interface ISoftwareSecretService
 
     /// <summary>Deletes a secret (its values in all environments) by key.</summary>
     Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Creates a secret KEY with no value in any environment yet (import / prepare-first workflows —
+    /// values are set later per environment). Returns false when the key already exists in the project;
+    /// nothing is changed then.
+    /// </summary>
+    Task<bool> CreateSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default);
 }

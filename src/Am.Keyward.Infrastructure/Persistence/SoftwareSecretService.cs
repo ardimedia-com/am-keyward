@@ -436,6 +436,35 @@ public sealed class SoftwareSecretService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task<bool> CreateSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
+
+        var secretKey = SecretKey.Create(key);
+
+        // Compared case-insensitively to match how the UI de-duplicates keys (and the rename guard above).
+        var existingKeys = await db.SoftwareSecrets
+            .Where(s => s.ProjectId == projectId)
+            .Select(s => s.Key)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        if (existingKeys.Any(k => string.Equals(k.Value, secretKey.Value, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
+
+        // The key exists without a SecretValue in any environment: it lists with zero environments, the
+        // client read paths simply don't deliver it, and values are set later per environment as usual.
+        var secret = new SoftwareSecret(Guid.NewGuid(), projectId, tenantId, secretKey, actorUserId, clock.UtcNow);
+        db.SoftwareSecrets.Add(secret);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return true;
+    }
+
     /// <summary>
     /// Server-authoritative tenant gate: the command's tenant must match the ambient scope set by the
     /// host edge (route/circuit). This is the central application-level cross-tenant check, backed in

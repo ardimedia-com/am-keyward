@@ -703,4 +703,24 @@
   <data name="Token.Status.None" xml:space="preserve"><value>Sem token</value></data>
   <data name="Token.Expires.Days" xml:space="preserve"><value>{0} dias</value></data>
   <data name="Token.Expires.Keep" xml:space="preserve"><value>Manter</value></data>
+  <data name="Import.Open" xml:space="preserve"><value>Importar…</value></data>
+  <data name="Import.Title" xml:space="preserve"><value>Importar aplicações e chaves</value></data>
+  <data name="Import.Desc" xml:space="preserve"><value>Cole uma lista estruturada de aplicações e das suas chaves. Só a estrutura é importada — os valores nunca são lidos da entrada; defina-os depois por ambiente no separador Dados. Aplicações e chaves existentes permanecem intactas.</value></data>
+  <data name="Import.Help" xml:space="preserve"><value>São aceites três formas de entrada:&#10;• Texto indentado — uma linha sem indentação nomeia uma aplicação, as linhas indentadas abaixo são as suas chaves.&#10;• Um objeto JSON que mapeia nomes de aplicações para arrays de chaves.&#10;• Um appsettings.json — os seus caminhos de configuração (Section:Key) tornam-se as chaves da aplicação indicada abaixo; os valores são ignorados e nunca guardados.&#10;Verificar mostra primeiro uma pré-visualização; Importar cria apenas o que está marcado como novo. Novas aplicações começam com o conjunto de ambientes padrão.</value></data>
+  <data name="Import.Source" xml:space="preserve"><value>Aplicações e chaves</value></data>
+  <data name="Import.Placeholder" xml:space="preserve"><value># Uma aplicação por linha, as suas chaves indentadas&#10;Shop.Web&#10;    ConnectionStrings:Main&#10;    Smtp:Host&#10;&#10;Shop.Worker&#10;    ApiKeys:OpenAi</value></data>
+  <data name="Import.AppName" xml:space="preserve"><value>Aplicação de destino (apenas appsettings.json)</value></data>
+  <data name="Import.AppName.Placeholder" xml:space="preserve"><value>Nome da aplicação…</value></data>
+  <data name="Import.AppName.Hint" xml:space="preserve"><value>Só necessário ao colar um appsettings.json — o próprio ficheiro não contém um nome de aplicação.</value></data>
+  <data name="Import.Check" xml:space="preserve"><value>Verificar</value></data>
+  <data name="Import.Run" xml:space="preserve"><value>Importar</value></data>
+  <data name="Import.Errors.Title" xml:space="preserve"><value>A entrada contém erros — nada foi importado.</value></data>
+  <data name="Import.Errors.Line" xml:space="preserve"><value>Linha {0}: {1}</value></data>
+  <data name="Import.Badge.New" xml:space="preserve"><value>novo</value></data>
+  <data name="Import.Badge.Exists" xml:space="preserve"><value>existe</value></data>
+  <data name="Import.Badge.Skip" xml:space="preserve"><value>ignorado (existe)</value></data>
+  <data name="Import.Preview.Title" xml:space="preserve"><value>Pré-visualização</value></data>
+  <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} nova(s) aplicação(ões), {1} nova(s) chave(s); {2} já existem e serão ignoradas.</value></data>
+  <data name="Import.Preview.Empty" xml:space="preserve"><value>Nada a importar — tudo na entrada já existe.</value></data>
+  <data name="Import.Msg.Done" xml:space="preserve"><value>Importação concluída: {0} aplicação(ões) e {1} chave(s) criadas, {2} ignoradas (já existiam).</value></data>
 </root>

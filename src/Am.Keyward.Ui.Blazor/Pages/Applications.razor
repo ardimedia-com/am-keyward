@@ -58,12 +58,20 @@
                         <input @bind="newAppName" @bind:event="oninput" placeholder="@(Loc["App.New.Placeholder"])" aria-label="@(Loc["App.New.Placeholder"])" />
                         <button class="btn-sm" @onclick="CreateAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newAppName))" title="@Loc["App.Create"]"><KeywardIcon Name="plus" /></button>
                     </div>
+                    <button class="tree-node @(importing ? "active" : "")" @onclick="StartImport">
+                        <KeywardIcon Name="upload" /><span class="tree-label">@Loc["Import.Open"]</span>
+                    </button>
                 }
             </aside>
 
             @* ---------- Right: the selected application's tabs ---------- *@
             <section class="ws-main">
-                @if (selectedAppId is null || SelectedApp is not { } selected)
+                @if (importing)
+                {
+                    <ImportPanel TenantId="@tenantId" ActorUserId="@actorUserId"
+                                 OnImported="OnImportedAsync" OnClose="@(() => importing = false)" />
+                }
+                else if (selectedAppId is null || SelectedApp is not { } selected)
                 {
                     <div class="card">
                         <h3>@Loc["Page.Apps.Title"]</h3>
@@ -244,6 +252,9 @@
     private (string Text, bool IsError)? status;
     private bool busy;
 
+    // Bulk-import mode: the right pane shows the ImportPanel instead of the selected application.
+    private bool importing;
+
     private ProjectInfo? SelectedApp => apps?.FirstOrDefault(a => a.Id == selectedAppId);
 
     protected override async Task OnInitializedAsync()
@@ -268,8 +279,22 @@
     private async Task ReloadAppsAsync() =>
         apps = await ProjectService.ListAsync(tenantId);
 
+    private void StartImport()
+    {
+        importing = true;
+        status = null;
+    }
+
+    private async Task OnImportedAsync(string message)
+    {
+        importing = false;
+        status = (message, false);
+        await ReloadAppsAsync();
+    }
+
     private async Task SelectAppAsync(Guid appId)
     {
+        importing = false;
         selectedAppId = appId;
         UiState.SelectedProjectId = appId;
         confirmDelete = false;
