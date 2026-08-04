@@ -18,6 +18,10 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- The built-in default environment set for new applications is now **Development / Test / Production** —
+  the rarely used "Preview" environment was removed. Existing applications keep whatever environments they
+  have (remove a leftover Preview per application in its Environments tab; deleting an environment removes
+  its secret values and revokes its tokens). Tenants with a customized default set are unaffected.
 - Client-token deployment snippet: the PowerShell block now prints the CURRENT machine-wide variable value
   (`GetEnvironmentVariable`) before overwriting it, so the operator sees what is being replaced and can
   note it for a rollback. The token note field's placeholder now suggests recording the computer name the

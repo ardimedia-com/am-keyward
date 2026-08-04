@@ -28,10 +28,10 @@ public class DomainTests
     }
 
     [TestMethod, TestCategory("Domain")]
-    public void EnvironmentName_default_set_is_dev_test_preview_prod()
+    public void EnvironmentName_default_set_is_dev_test_prod()
     {
         CollectionAssert.AreEqual(
-            new[] { "Development", "Test", "Preview", "Production" },
+            new[] { "Development", "Test", "Production" },
             EnvironmentName.DefaultSet.Select(e => e.Value).ToArray());
     }
 

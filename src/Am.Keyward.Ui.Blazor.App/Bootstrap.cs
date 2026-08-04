@@ -28,7 +28,7 @@ public static class DevKek
     }
 }
 
-/// <summary>A fixed demo tenant + project (Development/Test/Preview/Production) so the reference UI has a target.</summary>
+/// <summary>A fixed demo tenant + project (Development/Test/Production) so the reference UI has a target.</summary>
 public static class Demo
 {
     public static readonly Guid TenantId = Guid.Parse("11111111-1111-1111-1111-111111111111");

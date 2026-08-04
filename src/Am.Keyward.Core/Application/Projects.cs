@@ -18,7 +18,7 @@ public sealed record DefaultEnvironmentInfo(Guid Id, string Name);
 
 /// <summary>
 /// The tenant's default environment set — what every NEW application starts with. No rows means the tenant
-/// uses the built-in set (Development/Test/Preview/Production); "Customize" copies it into editable rows,
+/// uses the built-in set (Development/Test/Production); "Customize" copies it into editable rows,
 /// and deleting all rows returns to the built-in set. Existing applications are never touched. Listing is
 /// open to tenant members; mutations require the tenant-admin role.
 /// </summary>

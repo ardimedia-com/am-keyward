@@ -89,7 +89,7 @@ public sealed class TenantDefaultEnvironment
     public void Rename(EnvironmentName name) => Name = name;
 }
 
-/// <summary>A first-class environment within a project (Development/Test/Preview/Production, configurable).</summary>
+/// <summary>A first-class environment within a project (Development/Test/Production, configurable).</summary>
 public sealed class RuntimeEnvironment
 {
     public Guid Id { get; private set; }

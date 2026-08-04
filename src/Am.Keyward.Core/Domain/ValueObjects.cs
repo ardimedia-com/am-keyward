@@ -70,7 +70,7 @@ public sealed partial record SecretKey
     private static partial Regex KeyPattern();
 }
 
-/// <summary>A runtime-environment name (e.g. Development/Test/Preview/Production); unique per project.</summary>
+/// <summary>A runtime-environment name (e.g. Development/Test/Production); unique per project.</summary>
 public sealed record EnvironmentName
 {
     public string Value { get; }
@@ -91,12 +91,11 @@ public sealed record EnvironmentName
 
     public static EnvironmentName Development { get; } = new("Development");
     public static EnvironmentName Test { get; } = new("Test");
-    public static EnvironmentName Preview { get; } = new("Preview");
     public static EnvironmentName Production { get; } = new("Production");
 
     /// <summary>The default environment set a new project starts with; customizable per project.</summary>
     public static IReadOnlyList<EnvironmentName> DefaultSet { get; } =
-        [Development, Test, Preview, Production];
+        [Development, Test, Production];
 }
 
 /// <summary>What an <see cref="Access.AccessGrant"/> targets: a whole vault, a project, or one environment.</summary>
