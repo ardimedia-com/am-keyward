@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- Application Data tab: on narrow viewports the per-environment value table collapsed onto itself (current
+  value, "set new value" input and the new "Last read" column overlapping). The table now keeps a minimum
+  width and scrolls horizontally inside its pane instead.
+
 ## [0.9.0-preview] - 2026-08-04
 
 ### Added
