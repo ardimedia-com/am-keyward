@@ -122,7 +122,13 @@ the app whenever the DB is swapped. The in-app safety-net (`DatabaseMigration` s
 |---|---|---|
 | `ConnectionStrings:Keyward` | — | SQL Server connection (runtime login) |
 | `Keyward:BreakGlass` | `SinkFilePath`, `ValidityMinutes` | Out-of-band break-glass trail + grant window |
+| `Keyward:TokenAccess` | `Enabled`, `FlushIntervalSeconds`, `RetentionDays`, `SilenceAlertDays` | Token access statistics + access-pattern alerts |
+| `Keyward:Monitoring` | `Enabled`, `CheckIntervalSeconds`, `TimeZone` | Heartbeat monitoring (dead-man's switch); `TimeZone` (Windows or IANA id, default UTC) governs the watch windows |
 | `DatabaseMigration` | `Enabled`, `CheckIntervalSeconds` | Runtime migration safety-net |
+
+Heartbeat monitoring assumes a **single running instance** (like the mail jobs — a second instance would
+evaluate and mail twice), and it can only alarm while the host itself runs: watch the host's `/health`
+endpoint with an external check to cover the watcher.
 
 The KEK itself is supplied by the host's KEK provider (a key file outside the DB in the reference shell;
 Key Vault / HSM in production) — never via `appsettings`.

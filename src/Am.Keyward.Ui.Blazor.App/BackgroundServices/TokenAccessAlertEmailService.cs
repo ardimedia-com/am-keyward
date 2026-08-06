@@ -12,13 +12,16 @@ using Microsoft.Extensions.Localization;
 namespace Am.Keyward.Ui.Blazor.App.BackgroundServices;
 
 /// <summary>
-/// E-mails administrators about token access-pattern alerts (a token used from a never-seen IP, or active
-/// again after a long silence) that the statistics flush derived. Recipients are users who opted in on
-/// their profile AND administer the token's tenant (tenant admins, or system admins) — the same recipient
-/// model as <see cref="TokenExpiryEmailService"/>. One mail per recipient and run, listing that tenant's
-/// fresh alerts; an alert is marked e-mailed only after at least one mail went out, and only alerts from
-/// the last <see cref="MailableWindow"/> are considered so an installation without opted-in admins does
-/// not accumulate an unbounded backlog (older alerts stay visible in the statistics tab regardless).
+/// E-mails administrators about token alerts: the access-pattern kinds the statistics flush derives (a
+/// token used from a never-seen IP, or active again after a long silence) and the heartbeat-monitoring
+/// kinds the monitor evaluator derives (a monitored token silent past its deadline, or recovered). The two
+/// categories go to separate opt-ins (<c>NotifyTokenAccessAlerts</c> vs <c>NotifyMonitoring</c> — different
+/// audience and frequency) as separate mails, but share the recipient model (opted in AND administering
+/// the token's tenant: tenant admins, or system admins — same as <see cref="TokenExpiryEmailService"/>).
+/// One mail per recipient, category and run, listing that tenant's fresh alerts; an alert is marked
+/// e-mailed only after at least one mail went out, and only alerts from the last
+/// <see cref="MailableWindow"/> are considered so an installation without opted-in admins does not
+/// accumulate an unbounded backlog (older alerts stay visible in the statistics tab regardless).
 /// Best-effort: failures are logged, never crash the host.
 /// </summary>
 public sealed class TokenAccessAlertEmailService(
@@ -79,35 +82,45 @@ public sealed class TokenAccessAlertEmailService(
             return;
         }
 
+        // Two mail categories with separate opt-ins and texts; each is grouped per tenant below.
+        (List<TokenAccessAlert> Alerts, bool Monitoring)[] categories =
+        [
+            (due.Where(a => a.Kind is TokenAccessAlertKind.NewIpAddress or TokenAccessAlertKind.ResumedAfterSilence).ToList(), false),
+            (due.Where(a => a.Kind is TokenAccessAlertKind.HeartbeatMissed or TokenAccessAlertKind.HeartbeatRecovered).ToList(), true),
+        ];
+
         // Per-tenant isolation AND per-tenant persistence — one failing tenant must neither skip the rest
         // nor lose the already-sent tenants' dedupe marks (the marks live on this context's tracked rows).
-        foreach (var tenantGroup in due.GroupBy(a => a.TenantId))
+        foreach (var (alerts, monitoring) in categories)
         {
-            var group = tenantGroup.ToList();
-            try
+            foreach (var tenantGroup in alerts.GroupBy(a => a.TenantId))
             {
-                if (await NotifyTenantAsync(tenantGroup.Key, group, ct).ConfigureAwait(false))
+                var group = tenantGroup.ToList();
+                try
                 {
-                    foreach (var alert in group)
+                    if (await NotifyTenantAsync(tenantGroup.Key, group, monitoring, ct).ConfigureAwait(false))
                     {
-                        alert.MarkEmailed(now);
-                    }
+                        foreach (var alert in group)
+                        {
+                            alert.MarkEmailed(now);
+                        }
 
-                    await db.SaveChangesAsync(ct).ConfigureAwait(false);
+                        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+                    }
                 }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Token access-alert notification failed for tenant {TenantId}; continuing with the next tenant.", tenantGroup.Key);
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Token access-alert notification failed for tenant {TenantId}; continuing with the next tenant.", tenantGroup.Key);
+                }
             }
         }
     }
 
-    private async Task<bool> NotifyTenantAsync(Guid tenantId, IReadOnlyList<TokenAccessAlert> alerts, CancellationToken ct)
+    private async Task<bool> NotifyTenantAsync(Guid tenantId, IReadOnlyList<TokenAccessAlert> alerts, bool monitoring, CancellationToken ct)
     {
         // Per-tenant scope so the tenant-filtered tables (projects, environments) resolve; the alert/token
         // discovery above only touched installation-global tables.
@@ -124,7 +137,8 @@ public sealed class TokenAccessAlertEmailService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
         var recipients = await db.Users
-            .Where(u => u.NotifyTokenAccessAlerts && u.Issuer == null && (u.IsSystemAdmin || adminUserIds.Contains(u.Id)))
+            .Where(u => (monitoring ? u.NotifyMonitoring : u.NotifyTokenAccessAlerts)
+                && u.Issuer == null && (u.IsSystemAdmin || adminUserIds.Contains(u.Id)))
             .ToListAsync(ct)
             .ConfigureAwait(false);
         if (recipients.Count == 0)
@@ -163,11 +177,18 @@ public sealed class TokenAccessAlertEmailService(
             CultureInfo.CurrentUICulture = ResolveNotificationCulture();
             try
             {
+                var prefix = monitoring ? "Email.Monitor" : "Email.TokenAccess";
                 var lines = alerts
                     .Select(a =>
                     {
                         var token = tokens.GetValueOrDefault(a.TokenId);
-                        var key = a.Kind == TokenAccessAlertKind.NewIpAddress ? "Email.TokenAccess.Line.NewIp" : "Email.TokenAccess.Line.Resumed";
+                        var key = a.Kind switch
+                        {
+                            TokenAccessAlertKind.NewIpAddress => "Email.TokenAccess.Line.NewIp",
+                            TokenAccessAlertKind.ResumedAfterSilence => "Email.TokenAccess.Line.Resumed",
+                            TokenAccessAlertKind.HeartbeatMissed => "Email.Monitor.Line.Missed",
+                            _ => "Email.Monitor.Line.Recovered",
+                        };
                         return loc[
                             key,
                             token?.Name ?? "?",
@@ -178,19 +199,19 @@ public sealed class TokenAccessAlertEmailService(
                     })
                     .ToList();
 
-                return (loc["Email.TokenAccess.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
+                return (loc[prefix + ".Subject", uiOptions.ProductName].Value, new BrandedEmailContent
                 {
                     Brand = uiOptions.ProductName,
-                    Title = loc["Email.TokenAccess.Title"].Value,
+                    Title = loc[prefix + ".Title"].Value,
                     Paragraphs =
                     [
-                        loc["Email.TokenAccess.Intro"].Value,
+                        loc[prefix + ".Intro"].Value,
                         .. lines,
-                        loc["Email.TokenAccess.Outro"].Value,
+                        loc[prefix + ".Outro"].Value,
                     ],
-                    ButtonText = tokensUrl is null ? null : loc["Email.TokenAccess.Button"].Value,
+                    ButtonText = tokensUrl is null ? null : loc[prefix + ".Button"].Value,
                     ActionUrl = tokensUrl,
-                    FooterNote = loc["Email.TokenAccess.Footer"].Value,
+                    FooterNote = loc[prefix + ".Footer"].Value,
                 });
             }
             finally

@@ -213,6 +213,14 @@ section (`Enabled`, `FlushIntervalSeconds`, `RetentionDays`, `SilenceAlertDays`)
 [docs/software-client-api.md](docs/software-client-api.md). Behind a proxy, configure forwarded-headers
 middleware so the recorded IP is the client's, not the proxy's.
 
+Building on that signal, **heartbeat monitoring** (a dead-man's switch per app token) alarms on the
+failure an application cannot report itself: a scheduled task that never starts sends no error mail — it
+just goes silent. Enable a monitor on the application's «Monitoring» tab (maximum silence, weekday/time
+watch window so a Mo–Fr job doesn't false-alarm over the weekend, optional all-clear mail, snooze);
+consumers that load their configuration through Keyward need no change at all, long-running services ping
+`GET /ping` (`KeywardSecretsClient.PingAsync`). Configure via `Keyward:Monitoring` (`Enabled`,
+`CheckIntervalSeconds`, `TimeZone` for the watch windows).
+
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 
 The consumer side of the software-client API is one line in the deployed application's `Program.cs` — no

@@ -103,7 +103,7 @@ public static class ServiceCollectionExtensions
         // Token access statistics: in-memory recording on the hot path, batched persistence + rule-based
         // access-pattern alerts (new IP / resumed after silence) in the flush service, a read service for
         // the per-application statistics tab. Configure via the "Keyward:TokenAccess" section (optional).
-        services.AddOptions<Statistics.TokenAccessOptions>();
+        services.AddOptions<Statistics.TokenAccessOptions>().BindConfiguration(Statistics.TokenAccessOptions.SectionName);
         services.AddSingleton<Statistics.TokenAccessAccumulator>();
         services.AddSingleton<ITokenAccessRecorder>(sp => sp.GetRequiredService<Statistics.TokenAccessAccumulator>());
         services.AddScoped<ITokenAccessStatisticsService, Statistics.TokenAccessStatisticsService>();
@@ -126,6 +126,13 @@ public static class ServiceCollectionExtensions
         // token expiry) publishing a snapshot for the host's health endpoint to read cheaply.
         services.AddSingleton<Monitoring.OpsHealthSnapshot>();
         services.AddHostedService<Monitoring.OpsMonitorBackgroundService>();
+
+        // Heartbeat monitoring (dead-man's switch): per-token silence monitors, evaluated periodically —
+        // the access-pattern rules above fire when an access happens, a missing heartbeat needs a poller.
+        // Configure via the "Keyward:Monitoring" section (optional; TimeZone governs the watch windows).
+        services.AddOptions<Monitoring.MonitoringOptions>().BindConfiguration(Monitoring.MonitoringOptions.SectionName);
+        services.AddScoped<ITokenAccessMonitorService, Monitoring.TokenAccessMonitorService>();
+        services.AddHostedService<Monitoring.TokenAccessMonitorBackgroundService>();
 
         return services;
     }

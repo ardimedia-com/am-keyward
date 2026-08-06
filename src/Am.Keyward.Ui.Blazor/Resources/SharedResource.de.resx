@@ -729,4 +729,45 @@
   <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} neue Applikation(en), {1} neue Schlüssel; {2} existieren bereits und werden übersprungen.</value></data>
   <data name="Import.Preview.Empty" xml:space="preserve"><value>Nichts zu importieren — alles aus der Eingabe existiert bereits.</value></data>
   <data name="Import.Msg.Done" xml:space="preserve"><value>Import abgeschlossen: {0} Applikation(en) und {1} Schlüssel angelegt, {2} übersprungen (bereits vorhanden).</value></data>
+  <data name="App.Tab.Monitoring" xml:space="preserve"><value>Überwachung</value></data>
+  <data name="Monitor.Title" xml:space="preserve"><value>Heartbeat-Überwachung</value></data>
+  <data name="Monitor.Desc" xml:space="preserve"><value>Ein Monitor pro App-Token: bleibt der Token länger still als erlaubt, wird Alarm ausgelöst (Dead-Man's-Switch). Token auswählen, um ihn zu konfigurieren.</value></data>
+  <data name="Monitor.UsageNote" xml:space="preserve"><value>Ein Konsument, der beim Start seine Secrets liest, hinterlässt mit jedem Lauf einen Heartbeat — ein geplanter Task, der nicht mehr startet, wird still, und genau diese Stille löst den Alarm aus. Alarm-Mails sind pro Administrator im Profil zuschaltbar. Das Überwachungsfenster wird in der auf dem Server konfigurierten Monitoring-Zeitzone ausgewertet.</value></data>
+  <data name="Monitor.Empty" xml:space="preserve"><value>Diese Applikation hat noch keine App-Tokens — die Überwachung hängt am Token.</value></data>
+  <data name="Monitor.Edit.Title" xml:space="preserve"><value>Überwachung für «{0}»</value></data>
+  <data name="Monitor.Edit.Desc" xml:space="preserve"><value>Speichern aktiviert den Monitor mit diesen Einstellungen.</value></data>
+  <data name="Monitor.MaxSilence.Label" xml:space="preserve"><value>Maximale Stille (gezählt innerhalb des Überwachungsfensters)</value></data>
+  <data name="Monitor.Unit.Minutes" xml:space="preserve"><value>Minuten</value></data>
+  <data name="Monitor.Unit.Hours" xml:space="preserve"><value>Stunden</value></data>
+  <data name="Monitor.Unit.Days" xml:space="preserve"><value>Tage</value></data>
+  <data name="Monitor.Window.Days" xml:space="preserve"><value>Überwachen an diesen Tagen</value></data>
+  <data name="Monitor.Window.Hours" xml:space="preserve"><value>Überwachungszeiten (optional)</value></data>
+  <data name="Monitor.Window.Hint" xml:space="preserve"><value>Leer lassen, um ganztägig zu überwachen. Stille ausserhalb des Fensters zählt nicht zur Frist — ein Mo–Fr-Job schlägt am Wochenende keinen Alarm. Ein Ende vor dem Beginn geht über Mitternacht.</value></data>
+  <data name="Monitor.Recovery.Label" xml:space="preserve"><value>Entwarnungs-Mail senden, wenn der Heartbeat zurückkehrt</value></data>
+  <data name="Monitor.Enable" xml:space="preserve"><value>Aktivieren</value></data>
+  <data name="Monitor.Disable" xml:space="preserve"><value>Deaktivieren</value></data>
+  <data name="Monitor.Snooze.Label" xml:space="preserve"><value>Pausieren bis (UTC)</value></data>
+  <data name="Monitor.Snooze.Set" xml:space="preserve"><value>Pausieren</value></data>
+  <data name="Monitor.Snooze.Clear" xml:space="preserve"><value>Jetzt fortsetzen</value></data>
+  <data name="Monitor.State.Off" xml:space="preserve"><value>Nicht überwacht</value></data>
+  <data name="Monitor.State.Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Monitor.State.Down" xml:space="preserve"><value>Down</value></data>
+  <data name="Monitor.State.Snoozed" xml:space="preserve"><value>Pausiert</value></data>
+  <data name="Monitor.DownSince" xml:space="preserve"><value>down seit {0}</value></data>
+  <data name="Monitor.NextDeadline" xml:space="preserve"><value>nächste Frist {0}</value></data>
+  <data name="Monitor.Saved" xml:space="preserve"><value>Gespeichert.</value></data>
+  <data name="Monitor.Error.WindowIncomplete" xml:space="preserve"><value>Die Überwachungszeiten brauchen Beginn UND Ende (oder beide leer lassen).</value></data>
+  <data name="Stats.Alert.HeartbeatMissed" xml:space="preserve"><value>Heartbeat ausgeblieben</value></data>
+  <data name="Stats.Alert.HeartbeatMissed.Text" xml:space="preserve"><value>«{0}» ist über die Überwachungsfrist hinaus still geblieben.</value></data>
+  <data name="Stats.Alert.HeartbeatRecovered" xml:space="preserve"><value>Heartbeat zurück</value></data>
+  <data name="Stats.Alert.HeartbeatRecovered.Text" xml:space="preserve"><value>«{0}» sendet wieder einen Heartbeat.</value></data>
+  <data name="Profile.NotifyMonitoring.Label" xml:space="preserve"><value>Heartbeat-Überwachungs-Alarme per E-Mail (ein überwachter App-Token bleibt über seine Frist hinaus still oder kehrt zurück).</value></data>
+  <data name="Email.Monitor.Subject" xml:space="preserve"><value>{0}: Alarm der Heartbeat-Überwachung</value></data>
+  <data name="Email.Monitor.Title" xml:space="preserve"><value>Heartbeat-Überwachung</value></data>
+  <data name="Email.Monitor.Intro" xml:space="preserve"><value>Die Heartbeat-Überwachung hat folgende Zustandswechsel festgestellt:</value></data>
+  <data name="Email.Monitor.Line.Missed" xml:space="preserve"><value>DOWN — «{0}» ({1}, {2}) ist über die erlaubte maximale Stille hinaus still geblieben; festgestellt {4}.</value></data>
+  <data name="Email.Monitor.Line.Recovered" xml:space="preserve"><value>UP — «{0}» ({1}, {2}) sendet seit {4} wieder einen Heartbeat.</value></data>
+  <data name="Email.Monitor.Outro" xml:space="preserve"><value>Ein stiller Token bedeutet meist, dass sein Konsument nicht gelaufen ist — ein geplanter Task, der gar nicht startet, kann selbst keinen Fehler melden. Host und Task prüfen; Details stehen in den Tabs Überwachung und Statistik der Applikation.</value></data>
+  <data name="Email.Monitor.Button" xml:space="preserve"><value>Applikationen öffnen</value></data>
+  <data name="Email.Monitor.Footer" xml:space="preserve"><value>Sie erhalten diese Nachricht, weil in Ihrem Profil Benachrichtigungen der Heartbeat-Überwachung aktiviert sind.</value></data>
 </root>

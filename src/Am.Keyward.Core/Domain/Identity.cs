@@ -71,6 +71,13 @@ public sealed class AppUser
     /// </summary>
     public bool NotifyTokenAccessAlerts { get; private set; }
 
+    /// <summary>
+    /// Opt-in: this user wants e-mail notifications from heartbeat monitoring (a monitored token stayed
+    /// silent past its deadline, or recovered). Separate from <see cref="NotifyTokenAccessAlerts"/> —
+    /// different audience and frequency. Only honored for users who administer the token's tenant.
+    /// </summary>
+    public bool NotifyMonitoring { get; private set; }
+
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt, bool isSoftwareManager = false)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -98,6 +105,8 @@ public sealed class AppUser
     public void SetTokenExpiryNotification(bool enabled) => NotifyTokenExpiry = enabled;
 
     public void SetTokenAccessAlertNotification(bool enabled) => NotifyTokenAccessAlerts = enabled;
+
+    public void SetMonitoringNotification(bool enabled) => NotifyMonitoring = enabled;
 }
 
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>

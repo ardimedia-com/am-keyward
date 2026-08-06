@@ -41,6 +41,12 @@ public static class KeywardClientApi
             return value is null ? Results.NotFound() : Results.Ok(new SecretResponse(key, value));
         });
 
+        // Explicit heartbeat. Reaching this line means the token authenticated, and the authentication
+        // handler already recorded the access — a ping IS a token access, so it feeds the statistics and
+        // heartbeat monitoring without any extra machinery. For long-running services that read their
+        // secrets only at startup: ping periodically to keep the silence monitor fed.
+        group.MapGet("/ping", () => Results.NoContent());
+
         return endpoints;
     }
 

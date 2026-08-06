@@ -199,6 +199,10 @@
                             {
                                 <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ApplicationName="@(SelectedApp?.Name ?? "")" ActorUserId="@actorUserId" />
                             }
+                            else if (appTab == "monitoring")
+                            {
+                                <MonitoringPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId" />
+                            }
                             else if (appTab == "stats")
                             {
                                 <StatisticsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" />
@@ -233,6 +237,7 @@
         new("envs", Loc["App.Tab.Environments"], "layers"),
         new("data", Loc["App.Tab.Data"], "key"),
         new("tokens", Loc["App.Tab.Tokens"], "ticket"),
+        new("monitoring", Loc["App.Tab.Monitoring"], "activity"),
         new("stats", Loc["App.Tab.Statistics"], "chart-column"),
     ];
 

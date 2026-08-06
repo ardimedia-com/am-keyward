@@ -109,6 +109,39 @@ and environment** (last read at, source client-token vs in-process, total count)
 read" column in the application's Data tab — the direct answer to "is this secret still used?".
 Management views don't count as reads, and these rows are never retention-trimmed.
 
+## Heartbeat monitoring (dead-man's switch)
+
+The access statistics answer "is this token still in use?" after the fact; **heartbeat monitoring** turns
+the same signal into an active alarm for the failure an application cannot report itself: a scheduled task
+that never started sends no error mail — it just goes silent. A consumer that loads its configuration
+through Keyward leaves a heartbeat with every run (each process start reads its secrets), so per app token
+you can enable a monitor on the application's «Monitoring» tab:
+
+- **Maximum silence** — how long the token may stay without an access before the monitor goes **down**
+  (e.g. 26 h for a daily job with buffer). One value; build your grace into it.
+- **Watch window** — weekdays and optional daily hours during which silence counts. Outside the window the
+  clock pauses, so a Monday-to-Friday job does not false-alarm over its scheduled weekend. Window times
+  are wall clock in the app-wide `Keyward:Monitoring:TimeZone` (Windows or IANA id; default UTC) —
+  timestamps everywhere else stay UTC.
+- **All-clear** — optionally a recovery mail when the heartbeat returns.
+- **Pause until** — snooze for maintenance windows; the monitor reactivates by itself.
+
+Transitions (down/up) appear as alerts in the «Statistics» tab and are e-mailed to administrators who
+opted into monitoring notifications on their profile (a separate opt-in from the access-pattern alerts).
+Mails go out on transitions only — a lasting outage does not spam. Evaluation runs every
+`Keyward:Monitoring:CheckIntervalSeconds` (default 60, `Enabled` is the kill-switch); statistics
+persistence is batched, so silence thresholds under about two flush intervals are not meaningful.
+
+**Long-running services** read their secrets once at startup and would look silent for days. For those,
+`GET /ping` is an explicit heartbeat: it authenticates the token and does nothing else — reaching the
+endpoint records the access. `Am.Keyward.Client` exposes it as `KeywardSecretsClient.PingAsync()`; call it
+on a timer (e.g. every minute) and set the monitor's maximum silence accordingly. Note that pings count
+toward the token's request statistics like any other authenticated call.
+
+One boundary is systemic: if the Keyward host itself is down, nobody evaluates the monitors. Watch the
+host's `/health` endpoint with an external check (uptime monitor, PRTG, …) — that single probe covers the
+watcher of everything else.
+
 ## Security notes
 
 - Tokens carry no secret material at rest — only a SHA-256 hash and a non-secret lookup prefix are stored.

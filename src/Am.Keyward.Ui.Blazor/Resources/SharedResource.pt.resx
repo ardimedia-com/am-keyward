@@ -729,4 +729,45 @@
   <data name="Import.Preview.Summary" xml:space="preserve"><value>{0} nova(s) aplicação(ões), {1} nova(s) chave(s); {2} já existem e serão ignoradas.</value></data>
   <data name="Import.Preview.Empty" xml:space="preserve"><value>Nada a importar — tudo na entrada já existe.</value></data>
   <data name="Import.Msg.Done" xml:space="preserve"><value>Importação concluída: {0} aplicação(ões) e {1} chave(s) criadas, {2} ignoradas (já existiam).</value></data>
+  <data name="App.Tab.Monitoring" xml:space="preserve"><value>Monitorização</value></data>
+  <data name="Monitor.Title" xml:space="preserve"><value>Monitorização heartbeat</value></data>
+  <data name="Monitor.Desc" xml:space="preserve"><value>Um monitor por token da aplicação: se o token ficar em silêncio mais tempo do que o permitido, é gerado um alerta (dead-man's switch). Selecione um token para o configurar.</value></data>
+  <data name="Monitor.UsageNote" xml:space="preserve"><value>Um consumidor que lê os seus segredos no arranque deixa um heartbeat em cada execução — uma tarefa agendada que deixa de arrancar fica em silêncio, e é exatamente esse silêncio que dispara o alarme. Os e-mails de alerta ativam-se por administrador na página de perfil. A janela de monitorização é avaliada no fuso horário de monitorização configurado no servidor.</value></data>
+  <data name="Monitor.Empty" xml:space="preserve"><value>Esta aplicação ainda não tem tokens — a monitorização liga-se a um token.</value></data>
+  <data name="Monitor.Edit.Title" xml:space="preserve"><value>Monitorização de «{0}»</value></data>
+  <data name="Monitor.Edit.Desc" xml:space="preserve"><value>Guardar ativa o monitor com estas definições.</value></data>
+  <data name="Monitor.MaxSilence.Label" xml:space="preserve"><value>Silêncio máximo (contado dentro da janela de monitorização)</value></data>
+  <data name="Monitor.Unit.Minutes" xml:space="preserve"><value>minutos</value></data>
+  <data name="Monitor.Unit.Hours" xml:space="preserve"><value>horas</value></data>
+  <data name="Monitor.Unit.Days" xml:space="preserve"><value>dias</value></data>
+  <data name="Monitor.Window.Days" xml:space="preserve"><value>Monitorizar nestes dias</value></data>
+  <data name="Monitor.Window.Hours" xml:space="preserve"><value>Horário de monitorização (opcional)</value></data>
+  <data name="Monitor.Window.Hint" xml:space="preserve"><value>Deixe vazio para monitorizar o dia inteiro. O silêncio fora da janela não conta para o prazo — um trabalho de segunda a sexta não alarma ao fim de semana. Um fim antes do início atravessa a meia-noite.</value></data>
+  <data name="Monitor.Recovery.Label" xml:space="preserve"><value>Enviar um e-mail de fim de alarme quando o heartbeat regressar</value></data>
+  <data name="Monitor.Enable" xml:space="preserve"><value>Ativar</value></data>
+  <data name="Monitor.Disable" xml:space="preserve"><value>Desativar</value></data>
+  <data name="Monitor.Snooze.Label" xml:space="preserve"><value>Pausar até (UTC)</value></data>
+  <data name="Monitor.Snooze.Set" xml:space="preserve"><value>Pausar</value></data>
+  <data name="Monitor.Snooze.Clear" xml:space="preserve"><value>Retomar agora</value></data>
+  <data name="Monitor.State.Off" xml:space="preserve"><value>Não monitorizado</value></data>
+  <data name="Monitor.State.Up" xml:space="preserve"><value>Up</value></data>
+  <data name="Monitor.State.Down" xml:space="preserve"><value>Down</value></data>
+  <data name="Monitor.State.Snoozed" xml:space="preserve"><value>Pausado</value></data>
+  <data name="Monitor.DownSince" xml:space="preserve"><value>down desde {0}</value></data>
+  <data name="Monitor.NextDeadline" xml:space="preserve"><value>próximo prazo {0}</value></data>
+  <data name="Monitor.Saved" xml:space="preserve"><value>Guardado.</value></data>
+  <data name="Monitor.Error.WindowIncomplete" xml:space="preserve"><value>O horário de monitorização precisa de início E fim (ou deixe ambos vazios).</value></data>
+  <data name="Stats.Alert.HeartbeatMissed" xml:space="preserve"><value>Heartbeat em falta</value></data>
+  <data name="Stats.Alert.HeartbeatMissed.Text" xml:space="preserve"><value>«{0}» ficou em silêncio para além do prazo de monitorização.</value></data>
+  <data name="Stats.Alert.HeartbeatRecovered" xml:space="preserve"><value>Heartbeat recuperado</value></data>
+  <data name="Stats.Alert.HeartbeatRecovered.Text" xml:space="preserve"><value>«{0}» volta a enviar o seu heartbeat.</value></data>
+  <data name="Profile.NotifyMonitoring.Label" xml:space="preserve"><value>Enviar-me por e-mail os alertas da monitorização heartbeat (um token monitorizado em silêncio para além do prazo, ou recuperado).</value></data>
+  <data name="Email.Monitor.Subject" xml:space="preserve"><value>{0}: alerta da monitorização heartbeat</value></data>
+  <data name="Email.Monitor.Title" xml:space="preserve"><value>Monitorização heartbeat</value></data>
+  <data name="Email.Monitor.Intro" xml:space="preserve"><value>A monitorização heartbeat detetou as seguintes mudanças de estado:</value></data>
+  <data name="Email.Monitor.Line.Missed" xml:space="preserve"><value>DOWN — «{0}» ({1}, {2}) ficou em silêncio para além do máximo permitido; detetado {4}.</value></data>
+  <data name="Email.Monitor.Line.Recovered" xml:space="preserve"><value>UP — «{0}» ({1}, {2}) volta a enviar o seu heartbeat desde {4}.</value></data>
+  <data name="Email.Monitor.Outro" xml:space="preserve"><value>Um token em silêncio normalmente significa que o seu consumidor não correu — uma tarefa agendada que não arranca não consegue comunicar um erro por si própria. Verifique o host e a tarefa; os detalhes estão nos separadores Monitorização e Estatísticas da aplicação.</value></data>
+  <data name="Email.Monitor.Button" xml:space="preserve"><value>Abrir aplicações</value></data>
+  <data name="Email.Monitor.Footer" xml:space="preserve"><value>Recebe esta mensagem porque as notificações da monitorização heartbeat estão ativadas no seu perfil.</value></data>
 </root>

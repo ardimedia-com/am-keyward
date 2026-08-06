@@ -37,6 +37,18 @@ public sealed class KeywardSecretsClient(HttpClient httpClient)
         return secret?.Value;
     }
 
+    /// <summary>
+    /// Explicit heartbeat: authenticates the token without reading a secret, which counts as a token
+    /// access and feeds the server's statistics and heartbeat monitoring. Call it periodically from a
+    /// long-running service that reads its secrets only at startup; a per-run job that loads its
+    /// configuration through Keyward needs no extra ping.
+    /// </summary>
+    public async Task PingAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.GetAsync("ping", cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
     /// <summary>Builds the standalone <see cref="HttpClient"/> the configuration provider uses (it owns and disposes it).</summary>
     internal static HttpClient CreateHttpClient(KeywardSecretsOptions options, string token)
     {

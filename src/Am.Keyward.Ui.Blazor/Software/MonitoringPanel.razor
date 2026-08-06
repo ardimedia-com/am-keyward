@@ -1,0 +1,393 @@
+@namespace Am.Keyward.Ui.Blazor.Software
+@using System.Globalization
+@using Am.Keyward.Core.Domain.Software
+@inject ISoftwareClientTokenService TokenService
+@inject ISoftwareSecretService SecretService
+@inject ITokenAccessMonitorService MonitorService
+@inject IStringLocalizer<SharedResource> Loc
+
+@* Heartbeat monitoring for ONE application, rendered inside the Applications page's «Monitoring» tab.
+   Per client token a silence monitor (dead-man's switch): the token's secret reads are its heartbeat, and
+   when the in-window silence exceeds the allowed maximum, an alert row is written and the opt-in mail goes
+   out. The edit card opens ABOVE the list (UI convention); rows are grouped by the environments' display
+   order. All times shown are UTC, matching the statistics tab. *@
+@if (tokens is null || monitors is null || environments is null)
+{
+    <p class="muted">@Loc["Common.Loading"]</p>
+}
+else if (tokens.Count == 0)
+{
+    <div class="card">
+        <div class="empty-state">
+            <KeywardIcon Name="activity" Size="28" />
+            <p>@Loc["Monitor.Empty"]</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="notice" style="margin-bottom:.75rem;">@Loc["Monitor.UsageNote"]</div>
+
+    @if (SelectedToken is { } selected)
+    {
+        <div class="card" style="margin-bottom:.75rem;">
+            <h3 style="margin:0 0 .25rem; display:flex; align-items:center; gap:.5rem;">
+                <KeywardIcon Name="activity" Size="18" />@Loc["Monitor.Edit.Title", selected.Name]
+            </h3>
+            <p class="muted" style="margin:0 0 .75rem;">@Loc["Monitor.Edit.Desc"]</p>
+
+            <div class="field">
+                <label>@Loc["Monitor.MaxSilence.Label"]</label>
+                <div style="display:flex; gap:.5rem; align-items:center;">
+                    <input type="number" min="1" style="width:6rem;" @bind="silenceValue" />
+                    <select style="width:auto;" @bind="silenceUnit">
+                        <option value="m">@Loc["Monitor.Unit.Minutes"]</option>
+                        <option value="h">@Loc["Monitor.Unit.Hours"]</option>
+                        <option value="d">@Loc["Monitor.Unit.Days"]</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="field">
+                <label>@Loc["Monitor.Window.Days"]</label>
+                <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+                    @for (var i = 0; i < 7; i++)
+                    {
+                        var index = i;
+                        <label style="display:flex; gap:.3rem; align-items:center; font-weight:400; cursor:pointer;">
+                            <input type="checkbox" style="width:auto;" checked="@dayFlags[index]"
+                                   @onchange="e => dayFlags[index] = e.Value is true" />
+                            <span>@DayLabel(index)</span>
+                        </label>
+                    }
+                </div>
+            </div>
+
+            <div class="field">
+                <label>@Loc["Monitor.Window.Hours"]</label>
+                <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+                    <input type="time" style="width:auto;" @bind="windowStart" />
+                    <span class="muted">–</span>
+                    <input type="time" style="width:auto;" @bind="windowEnd" />
+                </div>
+                <p class="muted" style="margin:.25rem 0 0; font-size:.78rem;">@Loc["Monitor.Window.Hint"]</p>
+            </div>
+
+            <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer; margin:.25rem 0 .75rem;">
+                <input type="checkbox" style="width:auto; margin-top:.2rem;" @bind="notifyRecovery" />
+                <span>@Loc["Monitor.Recovery.Label"]</span>
+            </label>
+
+            <div class="row" style="gap:.5rem; flex-wrap:wrap;">
+                <button class="btn-sm" @onclick="SaveAsync" disabled="@busy">@Loc["Common.Save"]</button>
+                @if (MonitorOf(selected.Id) is { } existing)
+                {
+                    @if (existing.Enabled)
+                    {
+                        <button class="btn-ghost btn-sm" @onclick="() => SetEnabledAsync(false)" disabled="@busy">@Loc["Monitor.Disable"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn-ghost btn-sm" @onclick="() => SetEnabledAsync(true)" disabled="@busy">@Loc["Monitor.Enable"]</button>
+                    }
+                }
+                <button class="btn-ghost btn-sm" @onclick="CloseEditor" disabled="@busy">@Loc["Common.Cancel"]</button>
+            </div>
+
+            @if (MonitorOf(selected.Id) is { } snoozable)
+            {
+                <div class="field" style="margin-top:.75rem;">
+                    <label>@Loc["Monitor.Snooze.Label"]</label>
+                    <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+                        <input type="datetime-local" style="width:auto;" @bind="snoozeUntilUtc" />
+                        <button class="btn-ghost btn-sm" @onclick="SnoozeAsync" disabled="@busy">@Loc["Monitor.Snooze.Set"]</button>
+                        @if (snoozable.SnoozeUntil is not null)
+                        {
+                            <button class="btn-ghost btn-sm" @onclick="ClearSnoozeAsync" disabled="@busy">@Loc["Monitor.Snooze.Clear"]</button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="card list-card">
+        <div class="list-head">
+            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="activity" Size="18" />@Loc["Monitor.Title"]</h3>
+            <p class="muted" style="margin:.25rem 0 0;">@Loc["Monitor.Desc"]</p>
+        </div>
+        <div class="list-rows">
+            @foreach (var token in tokens.OrderBy(t => EnvironmentOrderOf(t.EnvironmentId)).ThenBy(t => t.Name))
+            {
+                var monitor = MonitorOf(token.Id);
+                <div class="list-row" @onclick="() => OpenEditor(token)">
+                    <KeywardIcon Name="ticket" Size="17" />
+                    <span class="list-row-name">@token.Name</span>
+                    <span class="badge">@EnvironmentNameOf(token.EnvironmentId)</span>
+                    @StateBadge(monitor)
+                    <span class="list-row-meta">
+                        <span class="muted" style="font-size:.78rem;">
+                            @(token.LastAccessAt is { } lastAccess
+                                ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                : Loc["Token.LastAccess.Never"])
+                            @if (monitor is { Enabled: true })
+                            {
+                                @if (monitor.State == TokenMonitorState.Down && monitor.LastStateChangeAt is { } downSince)
+                                {
+                                    <text> · </text>@Loc["Monitor.DownSince", downSince.UtcDateTime.ToString("u")]
+                                }
+                                else if (monitor.NextDeadline is { } deadline)
+                                {
+                                    <text> · </text>@Loc["Monitor.NextDeadline", deadline.UtcDateTime.ToString("u")]
+                                }
+                            }
+                        </span>
+                        <KeywardIcon Name="chevron-right" Size="16" />
+                    </span>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (status is not null)
+    {
+        <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")" style="margin-top:.75rem;">
+            @status.Value.Text
+        </div>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid TenantId { get; set; }
+    [Parameter, EditorRequired] public Guid ProjectId { get; set; }
+    [Parameter] public Guid? ActorUserId { get; set; }
+
+    private Guid loadedProjectId;
+
+    private IReadOnlyList<EnvironmentInfo>? environments;
+    private IReadOnlyList<SoftwareClientTokenInfo>? tokens;
+    private IReadOnlyList<TokenMonitorInfo>? monitors;
+
+    private Guid? selectedTokenId;
+    private int silenceValue = 26;
+    private string silenceUnit = "h";
+    private readonly bool[] dayFlags = [true, true, true, true, true, true, true];
+    private TimeOnly? windowStart;
+    private TimeOnly? windowEnd;
+    private bool notifyRecovery = true;
+    private DateTime? snoozeUntilUtc;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private SoftwareClientTokenInfo? SelectedToken =>
+        selectedTokenId is { } id ? tokens?.FirstOrDefault(t => t.Id == id) : null;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (ProjectId != loadedProjectId)
+        {
+            loadedProjectId = ProjectId;
+            selectedTokenId = null;
+            status = null;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
+        tokens = await TokenService.ListAsync(TenantId, ProjectId);
+        monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+    }
+
+    private TokenMonitorInfo? MonitorOf(Guid tokenId) => monitors?.FirstOrDefault(m => m.TokenId == tokenId);
+
+    private string EnvironmentNameOf(Guid environmentId) =>
+        environments?.FirstOrDefault(e => e.Id == environmentId)?.Name ?? "?";
+
+    // Position in the service-provided list, which is ordered by the environments' display order.
+    private int EnvironmentOrderOf(Guid environmentId)
+    {
+        var index = environments is null ? -1 : environments.ToList().FindIndex(e => e.Id == environmentId);
+        return index < 0 ? int.MaxValue : index;
+    }
+
+    // Monday-first (ISO) day labels from the current UI culture — no resource keys needed.
+    private static string DayLabel(int mondayBasedIndex)
+    {
+        var names = CultureInfo.CurrentUICulture.DateTimeFormat.AbbreviatedDayNames;
+        return names[((mondayBasedIndex + 1) % 7)];
+    }
+
+    private RenderFragment StateBadge(TokenMonitorInfo? monitor) => builder =>
+    {
+        var (css, key) = monitor switch
+        {
+            null => ("badge", "Monitor.State.Off"),
+            { Enabled: false } => ("badge", "Monitor.State.Off"),
+            { SnoozeUntil: { } until } when until > DateTimeOffset.UtcNow => ("badge badge-warning", "Monitor.State.Snoozed"),
+            { State: TokenMonitorState.Down } => ("badge badge-danger", "Monitor.State.Down"),
+            _ => ("badge badge-success", "Monitor.State.Up"),
+        };
+        builder.OpenElement(0, "span");
+        builder.AddAttribute(1, "class", css);
+        builder.AddContent(2, Loc[key].Value);
+        builder.CloseElement();
+    };
+
+    private void OpenEditor(SoftwareClientTokenInfo token)
+    {
+        selectedTokenId = token.Id;
+        status = null;
+
+        if (MonitorOf(token.Id) is { } monitor)
+        {
+            (silenceValue, silenceUnit) = monitor.MaxSilenceMinutes switch
+            {
+                var m when m % 1440 == 0 => (m / 1440, "d"),
+                var m when m % 60 == 0 => (m / 60, "h"),
+                var m => (m, "m"),
+            };
+            for (var i = 0; i < 7; i++)
+            {
+                dayFlags[i] = (monitor.WatchDaysMask & (1 << i)) != 0;
+            }
+
+            windowStart = monitor.WatchStart;
+            windowEnd = monitor.WatchEnd;
+            notifyRecovery = monitor.NotifyOnRecovery;
+        }
+        else
+        {
+            // Fresh defaults: a daily job with a 2 h buffer, watched every day, all-clear mail on.
+            silenceValue = 26;
+            silenceUnit = "h";
+            Array.Fill(dayFlags, true);
+            windowStart = null;
+            windowEnd = null;
+            notifyRecovery = true;
+        }
+
+        snoozeUntilUtc = null;
+    }
+
+    private void CloseEditor()
+    {
+        selectedTokenId = null;
+        status = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (busy || SelectedToken is not { } token)
+        {
+            return;
+        }
+
+        byte mask = 0;
+        for (var i = 0; i < 7; i++)
+        {
+            if (dayFlags[i]) { mask |= (byte)(1 << i); }
+        }
+
+        if (windowStart.HasValue != windowEnd.HasValue)
+        {
+            status = (Loc["Monitor.Error.WindowIncomplete"].Value, true);
+            return;
+        }
+
+        var minutes = silenceUnit switch { "d" => silenceValue * 1440, "h" => silenceValue * 60, _ => silenceValue };
+
+        busy = true;
+        try
+        {
+            await MonitorService.UpsertAsync(new UpsertTokenMonitorCommand(
+                TenantId, token.Id, minutes, mask, windowStart, windowEnd, notifyRecovery, ActorUserId));
+            monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+            status = (Loc["Monitor.Saved"].Value, false);
+        }
+        catch (Exception ex)
+        {
+            status = (ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SetEnabledAsync(bool enabled)
+    {
+        if (busy || SelectedToken is not { } token)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await MonitorService.SetEnabledAsync(TenantId, token.Id, enabled, ActorUserId);
+            monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+            status = (Loc["Monitor.Saved"].Value, false);
+        }
+        catch (Exception ex)
+        {
+            status = (ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task SnoozeAsync()
+    {
+        if (busy || SelectedToken is not { } token || snoozeUntilUtc is not { } until)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            // The input is labeled UTC, matching every timestamp this panel shows.
+            await MonitorService.SnoozeAsync(
+                TenantId, token.Id, new DateTimeOffset(DateTime.SpecifyKind(until, DateTimeKind.Utc)), ActorUserId);
+            monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+            status = (Loc["Monitor.Saved"].Value, false);
+        }
+        catch (Exception ex)
+        {
+            status = (ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    private async Task ClearSnoozeAsync()
+    {
+        if (busy || SelectedToken is not { } token)
+        {
+            return;
+        }
+
+        busy = true;
+        try
+        {
+            await MonitorService.SnoozeAsync(TenantId, token.Id, null, ActorUserId);
+            monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+            status = (Loc["Monitor.Saved"].Value, false);
+        }
+        catch (Exception ex)
+        {
+            status = (ex.Message, true);
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

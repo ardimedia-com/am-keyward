@@ -42,6 +42,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
     public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
     public DbSet<TokenAccessAlert> TokenAccessAlerts => Set<TokenAccessAlert>();
+    public DbSet<TokenAccessMonitor> TokenAccessMonitors => Set<TokenAccessMonitor>();
     public DbSet<SecretReadAccess> SecretReadAccesses => Set<SecretReadAccess>();
     public DbSet<Vault> Vaults => Set<Vault>();
     public DbSet<Folder> Folders => Set<Folder>();
@@ -249,6 +250,19 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => x.TenantId);
             // The mail job polls for not-yet-emailed alerts; the filtered index keeps that poll cheap.
             e.HasIndex(x => x.EmailedAt).HasFilter("[EmailedAt] IS NULL");
+            e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Heartbeat monitoring per token (dead-man's switch). Installation-global like the other
+        // statistics tables: the monitoring background service evaluates all monitors outside any tenant
+        // scope, and every read goes through the token's (tenant, project) in the monitor service.
+        model.Entity<TokenAccessMonitor>(e =>
+        {
+            e.ToTable("TokenAccessMonitors");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.State).HasConversion<string>().HasMaxLength(16);
+            e.HasIndex(x => x.TokenId).IsUnique(); // at most one monitor per token
+            e.HasIndex(x => x.TenantId);
             e.HasOne<SoftwareClientToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
         });
 

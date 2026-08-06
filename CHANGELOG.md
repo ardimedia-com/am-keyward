@@ -5,6 +5,32 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Heartbeat monitoring (dead-man's switch) per app token.** The failure an application cannot report
+  itself — a scheduled task that never starts sends no error mail, it just goes silent — now raises an
+  alarm: on the application's new «Monitoring» tab each app token can get a silence monitor (maximum
+  silence; weekday/time watch window evaluated in the app-wide `Keyward:Monitoring:TimeZone`, so a
+  Monday-to-Friday job does not false-alarm over its weekend pause; optional all-clear mail; snooze until
+  an instant, self-reactivating). A background evaluator (`Keyward:Monitoring`: `Enabled`,
+  `CheckIntervalSeconds`) measures the in-window silence since the token's last access and, on an up/down
+  transition, writes a `HeartbeatMissed`/`HeartbeatRecovered` alert — visible in the Statistics tab and
+  e-mailed on transitions only (no spam during a lasting outage) to administrators who enabled the new,
+  separate monitoring opt-in on their profile. Consumers that load their configuration through Keyward
+  need no change: every run's secret read is the heartbeat. New table `TokenAccessMonitors` and the
+  `NotifyMonitoring` user flag (migration `TokenAccessMonitoring`); localized in all six languages.
+- **Explicit heartbeat endpoint `GET /keyward/api/v1/ping`** (and `KeywardSecretsClient.PingAsync()`):
+  authenticates the app token and does nothing else — the authentication itself records the access, so a
+  long-running service that reads its secrets only at startup can keep its silence monitor fed with a
+  periodic one-liner. No new secret, no separate ping URL scheme; the existing Bearer token, rate limiter
+  and IP statistics apply.
+
+### Fixed
+
+- The documented `Keyward:TokenAccess` configuration section (`Enabled`, `FlushIntervalSeconds`,
+  `RetentionDays`, `SilenceAlertDays`) was never bound — the statistics flush always ran on its defaults
+  and the section had no effect. It is now bound; set values apply again.
+
 ### Changed
 
 - **Environments keep their set order everywhere — no more alphabetical re-sorting.** Environments now

@@ -70,6 +70,13 @@ public enum TokenAccessAlertKind
 
     /// <summary>The token was used again after a long silence (it looked retired, then something woke up).</summary>
     ResumedAfterSilence = 1,
+
+    /// <summary>A monitored token's heartbeat stayed out longer than allowed — the consumer looks dead
+    /// (<see cref="TokenAccessMonitor"/>, dead-man's switch).</summary>
+    HeartbeatMissed = 2,
+
+    /// <summary>A monitored token's heartbeat returned after a down transition (all-clear).</summary>
+    HeartbeatRecovered = 3,
 }
 
 /// <summary>

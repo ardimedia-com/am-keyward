@@ -260,10 +260,11 @@ app.MapPost("/account/logout", async (SignInManager<IdentityUser> signInManager)
     return Results.LocalRedirect("/");
 }).DisableAntiforgery();
 
-// Per-user notification preferences: e-mail when app tokens near expiry, and on token access alerts
-// (antiforgery-protected form post from the profile page; an unchecked checkbox posts no value).
+// Per-user notification preferences: e-mail when app tokens near expiry, on token access alerts, and from
+// heartbeat monitoring (antiforgery-protected form post from the profile page; an unchecked checkbox
+// posts no value).
 app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string? notify, [FromForm] string? notifyAccess,
-    UserManager<IdentityUser> users, KeywardDbContext db) =>
+    [FromForm] string? notifyMonitoring, UserManager<IdentityUser> users, KeywardDbContext db) =>
 {
     var identityId = users.GetUserId(ctx.User);
     if (identityId is null)
@@ -276,6 +277,7 @@ app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string
     {
         appUser.SetTokenExpiryNotification(notify == "true");
         appUser.SetTokenAccessAlertNotification(notifyAccess == "true");
+        appUser.SetMonitoringNotification(notifyMonitoring == "true");
         await db.SaveChangesAsync();
     }
 

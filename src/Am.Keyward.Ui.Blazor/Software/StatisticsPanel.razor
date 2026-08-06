@@ -106,7 +106,7 @@ else
                 {
                     <div class="list-row" style="cursor:default;">
                         <KeywardIcon Name="bell" Size="17" />
-                        <span class="badge badge-warning">@KindLabel(alert.Kind)</span>
+                        <span class="badge @(alert.Kind == TokenAccessAlertKind.HeartbeatRecovered ? "badge-success" : "badge-warning")">@KindLabel(alert.Kind)</span>
                         <span class="list-row-name" style="font-weight:400;">@AlertText(alert)</span>
                         <span class="list-row-meta">
                             <span class="muted" style="font-size:.78rem;">@alert.CreatedAt.UtcDateTime.ToString("u")</span>
@@ -190,11 +190,19 @@ else
         return Math.Max((int)(count * 100 / max), 12);
     }
 
-    private string KindLabel(TokenAccessAlertKind kind) =>
-        kind == TokenAccessAlertKind.NewIpAddress ? Loc["Stats.Alert.NewIp"] : Loc["Stats.Alert.Resumed"];
+    private string KindLabel(TokenAccessAlertKind kind) => kind switch
+    {
+        TokenAccessAlertKind.NewIpAddress => Loc["Stats.Alert.NewIp"].Value,
+        TokenAccessAlertKind.ResumedAfterSilence => Loc["Stats.Alert.Resumed"].Value,
+        TokenAccessAlertKind.HeartbeatMissed => Loc["Stats.Alert.HeartbeatMissed"].Value,
+        _ => Loc["Stats.Alert.HeartbeatRecovered"].Value,
+    };
 
-    private string AlertText(TokenAccessAlertInfo alert) =>
-        alert.Kind == TokenAccessAlertKind.NewIpAddress
-            ? Loc["Stats.Alert.NewIp.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"]
-            : Loc["Stats.Alert.Resumed.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"];
+    private string AlertText(TokenAccessAlertInfo alert) => alert.Kind switch
+    {
+        TokenAccessAlertKind.NewIpAddress => Loc["Stats.Alert.NewIp.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"].Value,
+        TokenAccessAlertKind.ResumedAfterSilence => Loc["Stats.Alert.Resumed.Text", TokenNameOf(alert.TokenId), alert.IpAddress ?? "?"].Value,
+        TokenAccessAlertKind.HeartbeatMissed => Loc["Stats.Alert.HeartbeatMissed.Text", TokenNameOf(alert.TokenId)].Value,
+        _ => Loc["Stats.Alert.HeartbeatRecovered.Text", TokenNameOf(alert.TokenId)].Value,
+    };
 }
