@@ -56,7 +56,11 @@ public sealed class Project
             throw new InvalidOperationException($"Environment '{name}' already exists in project '{Name}'.");
         }
 
-        var env = new RuntimeEnvironment(id, Id, TenantId, name, createdAt);
+        // Appended at the end of the display order: creation from a default set yields 0..n-1 in set
+        // order, a later manual add lands after the existing ones. Callers must have the environments
+        // loaded (the aggregate is the source of the next sort order).
+        var sortOrder = _environments.Count == 0 ? 0 : _environments.Max(e => e.SortOrder) + 1;
+        var env = new RuntimeEnvironment(id, Id, TenantId, name, sortOrder, createdAt);
         _environments.Add(env);
         return env;
     }
@@ -76,13 +80,19 @@ public sealed class TenantDefaultEnvironment
     public Guid TenantId { get; private set; }
 
     public EnvironmentName Name { get; private set; }
+
+    /// <summary>Display position within the tenant's set (0-based). Environments are ordered by this
+    /// everywhere in the UI — never alphabetically — so Development, Test, Production stay in that order.</summary>
+    public int SortOrder { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
-    public TenantDefaultEnvironment(Guid id, Guid tenantId, EnvironmentName name, DateTimeOffset createdAt)
+    public TenantDefaultEnvironment(Guid id, Guid tenantId, EnvironmentName name, int sortOrder, DateTimeOffset createdAt)
     {
         Id = id;
         TenantId = tenantId;
         Name = name;
+        SortOrder = sortOrder;
         CreatedAt = createdAt;
     }
 
@@ -99,16 +109,22 @@ public sealed class RuntimeEnvironment
     public Guid TenantId { get; private set; }
 
     public EnvironmentName Name { get; private set; }
+
+    /// <summary>Display position within the project (0-based). Environments are ordered by this
+    /// everywhere in the UI — never alphabetically — so Development, Test, Production stay in that order.</summary>
+    public int SortOrder { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     public void Rename(EnvironmentName name) => Name = name;
 
-    public RuntimeEnvironment(Guid id, Guid projectId, Guid tenantId, EnvironmentName name, DateTimeOffset createdAt)
+    public RuntimeEnvironment(Guid id, Guid projectId, Guid tenantId, EnvironmentName name, int sortOrder, DateTimeOffset createdAt)
     {
         Id = id;
         ProjectId = projectId;
         TenantId = tenantId;
         Name = name;
+        SortOrder = sortOrder;
         CreatedAt = createdAt;
     }
 }

@@ -29,7 +29,7 @@ public sealed class DefaultEnvironmentService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var rows = await db.TenantDefaultEnvironments.AsNoTracking()
             .Where(d => d.TenantId == tenantId)
-            .OrderBy(d => d.Name)
+            .OrderBy(d => d.SortOrder).ThenBy(d => d.Name)
             .ToListAsync(ct)
             .ConfigureAwait(false);
         return rows.Select(d => new DefaultEnvironmentInfo(d.Id, d.Name.Value)).ToList();
@@ -47,9 +47,9 @@ public sealed class DefaultEnvironmentService(
         }
 
         var now = clock.UtcNow;
-        foreach (var name in EnvironmentName.DefaultSet)
+        for (var i = 0; i < EnvironmentName.DefaultSet.Count; i++)
         {
-            var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, name, now);
+            var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, EnvironmentName.DefaultSet[i], i, now);
             db.TenantDefaultEnvironments.Add(row);
             await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
         }
@@ -66,7 +66,12 @@ public sealed class DefaultEnvironmentService(
         var environmentName = EnvironmentName.Create(name);
         await EnsureNameFreeAsync(db, tenantId, environmentName, exceptId: null, ct).ConfigureAwait(false);
 
-        var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, environmentName, clock.UtcNow);
+        // Appended at the end of the display order (see TenantDefaultEnvironment.SortOrder).
+        var maxSortOrder = await db.TenantDefaultEnvironments
+            .Where(d => d.TenantId == tenantId)
+            .MaxAsync(d => (int?)d.SortOrder, ct)
+            .ConfigureAwait(false) ?? -1;
+        var row = new TenantDefaultEnvironment(Guid.NewGuid(), tenantId, environmentName, maxSortOrder + 1, clock.UtcNow);
         db.TenantDefaultEnvironments.Add(row);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, row.Id, actorUserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);

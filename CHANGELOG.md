@@ -5,6 +5,16 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **Environments keep their set order everywhere — no more alphabetical re-sorting.** Environments now
+  carry a display position (`SortOrder`): creation from the default set preserves the set's order
+  (Development, Test, Production), a manually added environment appends at the end. Every list that
+  previously sorted environment names alphabetically (which put Production before Test) now follows that
+  order: the Environments and Data tabs, secret environment badges, the Statistics tab's token rows, and
+  the tenant's default-environment administration. Migration `EnvironmentSortOrder` backfills existing
+  rows (built-in names in canonical order, other names alphabetically after them).
+
 ## [0.9.1-preview] - 2026-08-04
 
 ### Fixed

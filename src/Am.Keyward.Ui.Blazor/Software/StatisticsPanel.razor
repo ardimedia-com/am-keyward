@@ -30,7 +30,7 @@ else
             <p class="muted" style="margin:.25rem 0 0;">@Loc["Stats.Requests.Desc"]</p>
         </div>
         <div class="list-rows">
-            @foreach (var token in tokens.OrderBy(t => EnvironmentNameOf(t.EnvironmentId)).ThenBy(t => t.Name))
+            @foreach (var token in tokens.OrderBy(t => EnvironmentOrderOf(t.EnvironmentId)).ThenBy(t => t.Name))
             {
                 var byDay = DailyFor(token.Id);
                 var total = byDay.Values.Sum();
@@ -153,6 +153,14 @@ else
 
     private string EnvironmentNameOf(Guid environmentId) =>
         environments?.FirstOrDefault(e => e.Id == environmentId)?.Name ?? "?";
+
+    // Position in the service-provided list, which is ordered by the environments' display order
+    // (Development, Test, Production — never alphabetical).
+    private int EnvironmentOrderOf(Guid environmentId)
+    {
+        var index = environments is null ? -1 : environments.ToList().FindIndex(e => e.Id == environmentId);
+        return index < 0 ? int.MaxValue : index;
+    }
 
     private string TokenNameOf(Guid tokenId) =>
         tokens?.FirstOrDefault(t => t.Id == tokenId)?.Name ?? "?";

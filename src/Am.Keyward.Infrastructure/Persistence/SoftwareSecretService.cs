@@ -37,7 +37,7 @@ public sealed class SoftwareSecretService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var environments = await db.RuntimeEnvironments.AsNoTracking()
             .Where(e => e.ProjectId == projectId)
-            .OrderBy(e => e.Name)
+            .OrderBy(e => e.SortOrder).ThenBy(e => e.Name)
             .ToListAsync(ct)
             .ConfigureAwait(false);
         return environments.Select(e => new EnvironmentInfo(e.Id, e.Name.Value)).ToList();
@@ -317,10 +317,12 @@ public sealed class SoftwareSecretService(
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        var envNames = await db.RuntimeEnvironments
+        var envs = await db.RuntimeEnvironments
             .Where(e => e.ProjectId == projectId)
-            .ToDictionaryAsync(e => e.Id, e => e.Name.Value, ct)
+            .ToListAsync(ct)
             .ConfigureAwait(false);
+        var envNames = envs.ToDictionary(e => e.Id, e => e.Name.Value);
+        var envOrder = envs.ToDictionary(e => e.Id, e => e.SortOrder);
 
         var secrets = await db.SoftwareSecrets
             .Where(s => s.ProjectId == projectId)
@@ -332,8 +334,9 @@ public sealed class SoftwareSecretService(
             .Select(s => new SoftwareSecretSummary(
                 s.Key.Value,
                 s.Values.Where(v => v.CurrentVersionId != null)
+                    .OrderBy(v => envOrder.GetValueOrDefault(v.EnvironmentId, int.MaxValue))
+                    .ThenBy(v => envNames.GetValueOrDefault(v.EnvironmentId, "?"))
                     .Select(v => envNames.GetValueOrDefault(v.EnvironmentId, "?"))
-                    .OrderBy(n => n)
                     .ToList()))
             .OrderBy(s => s.Key, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -368,7 +371,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         var values = new List<SecretEnvironmentValue>();
-        foreach (var environment in environments.OrderBy(e => e.Name.Value))
+        foreach (var environment in environments.OrderBy(e => e.SortOrder).ThenBy(e => e.Name.Value))
         {
             var read = readAccesses.FirstOrDefault(r => r.EnvironmentId == environment.Id);
             var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);

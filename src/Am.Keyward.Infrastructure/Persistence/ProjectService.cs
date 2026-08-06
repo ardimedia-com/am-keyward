@@ -61,9 +61,11 @@ public sealed class ProjectService(
         var project = new Project(Guid.NewGuid(), tenantId, OwnerType.Tenant, tenantId, trimmed, now);
 
         // The tenant's customized default set (Administration → Default environments); no rows = built-in.
+        // Ordered by the set's display order so the project's environments inherit it (AddEnvironment
+        // assigns 0..n-1 in iteration order).
         var customDefaults = await db.TenantDefaultEnvironments
             .Where(d => d.TenantId == tenantId)
-            .OrderBy(d => d.Name)
+            .OrderBy(d => d.SortOrder).ThenBy(d => d.Name)
             .Select(d => d.Name)
             .ToListAsync(ct)
             .ConfigureAwait(false);
