@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.10.0-preview] - 2026-08-06
+
 ### Added
 
 - **Heartbeat monitoring (dead-man's switch) per app token.** The failure an application cannot report
