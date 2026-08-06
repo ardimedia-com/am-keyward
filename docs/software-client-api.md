@@ -132,11 +132,40 @@ Mails go out on transitions only — a lasting outage does not spam. Evaluation 
 `Keyward:Monitoring:CheckIntervalSeconds` (default 60, `Enabled` is the kill-switch); statistics
 persistence is batched, so silence thresholds under about two flush intervals are not meaningful.
 
-**Long-running services** read their secrets once at startup and would look silent for days. For those,
-`GET /ping` is an explicit heartbeat: it authenticates the token and does nothing else — reaching the
-endpoint records the access. `Am.Keyward.Client` exposes it as `KeywardSecretsClient.PingAsync()`; call it
-on a timer (e.g. every minute) and set the monitor's maximum silence accordingly. Note that pings count
-toward the token's request statistics like any other authenticated call.
+### The explicit ping
+
+`GET /ping` authenticates the token and does nothing else — reaching the endpoint is what records the
+access. `Am.Keyward.Client` exposes it as `KeywardSecretsClient.PingAsync()`. Two situations call for it:
+
+- **A long-running service** reads its secrets once at startup and would look silent for days: ping on a
+  timer (e.g. every minute) and set the monitor's maximum silence accordingly.
+- **A scheduled job** pings at the **end of a successful run**. That says more than the implicit heartbeat
+  of its startup secret read, because it proves the run *completed* rather than merely started — a job that
+  starts and then dies goes down too.
+
+A job with no dependency-injection container builds the client directly; it owns its `HttpClient`, so
+dispose it:
+
+```csharp
+try
+{
+    using var keyward = KeywardSecretsClient.Create(o =>
+    {
+        o.ServiceUri = new Uri("https://keyward.example.com");
+        o.ApplicationName = "Contoso.Nightly.Sync";   // token from KEYWARD_CONTOSO_NIGHTLY_SYNC_TOKEN
+    });
+    await keyward.PingAsync();
+}
+catch (Exception ex)
+{
+    // Best-effort: monitoring must never fail the job it monitors.
+    logger.LogWarning(ex, "Keyward heartbeat failed.");
+}
+```
+
+Keep the call best-effort — a monitoring outage must not turn into a job failure. The missing ping is
+itself the signal, and it clears on the next successful run. Note that pings count toward the token's
+request statistics like any other authenticated call.
 
 One boundary is systemic: if the Keyward host itself is down, nobody evaluates the monitors. Watch the
 host's `/health` endpoint with an external check (uptime monitor, PRTG, …) — that single probe covers the

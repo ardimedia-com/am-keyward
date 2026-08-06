@@ -9,10 +9,45 @@ namespace Am.Keyward.Client;
 /// Typed HTTP client for the software-client read API. The <see cref="HttpClient"/> must carry the base
 /// address (installation root + API base path, slash-terminated) and the Bearer app token — register via
 /// <c>AddKeywardSecretsClient</c> (which configures both through <see cref="IHttpClientFactory"/>) for
-/// runtime reads; the configuration provider builds its own instance for the startup load.
+/// runtime reads; the configuration provider builds its own instance for the startup load. A host without
+/// a dependency-injection container (a scheduled task, a small console job) uses
+/// <see cref="Create(Action{KeywardSecretsOptions})"/> instead.
 /// </summary>
-public sealed class KeywardSecretsClient(HttpClient httpClient)
+public sealed class KeywardSecretsClient(HttpClient httpClient) : IDisposable
 {
+    // Non-null only for an instance built by Create(), which therefore owns and disposes it. An injected
+    // client belongs to IHttpClientFactory and must survive this object.
+    private HttpClient? ownedHttpClient;
+
+    /// <summary>
+    /// Builds a self-contained client from the same options and token conventions as
+    /// <c>AddKeywardSecretsClient</c>, without needing a service collection — for a scheduled task or
+    /// console job that has no host. The instance owns its <see cref="HttpClient"/>, so dispose it.
+    /// Throws when no token can be resolved (the environment variable is not set on this machine).
+    /// </summary>
+    public static KeywardSecretsClient Create(Action<KeywardSecretsOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = new KeywardSecretsOptions();
+        configure(options);
+
+        var token = options.ResolveToken();
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            var variable = options.ResolveTokenVariableName();
+            throw new InvalidOperationException(
+                variable is null
+                    ? "No Keyward app token: set KeywardSecretsOptions.Token, TokenEnvironmentVariableName or ApplicationName."
+                    : $"No Keyward app token: environment variable '{variable}' is not set.");
+        }
+
+        var http = CreateHttpClient(options, token);
+        return new KeywardSecretsClient(http) { ownedHttpClient = http };
+    }
+
+    public void Dispose() => ownedHttpClient?.Dispose();
+
     /// <summary>All current key/value pairs of the token's (project, environment) — the bulk read.</summary>
     public async Task<IReadOnlyDictionary<string, string?>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await httpClient.GetFromJsonAsync<Dictionary<string, string?>>("secrets", cancellationToken)
@@ -39,9 +74,10 @@ public sealed class KeywardSecretsClient(HttpClient httpClient)
 
     /// <summary>
     /// Explicit heartbeat: authenticates the token without reading a secret, which counts as a token
-    /// access and feeds the server's statistics and heartbeat monitoring. Call it periodically from a
-    /// long-running service that reads its secrets only at startup; a per-run job that loads its
-    /// configuration through Keyward needs no extra ping.
+    /// access and feeds the server's statistics and heartbeat monitoring. Two uses: a long-running service
+    /// that reads its secrets only at startup pings periodically, and a scheduled job pings at the END of a
+    /// successful run — which says more than the implicit heartbeat of its startup secret read, because it
+    /// proves the run completed rather than merely started.
     /// </summary>
     public async Task PingAsync(CancellationToken cancellationToken = default)
     {

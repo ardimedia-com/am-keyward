@@ -5,6 +5,21 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.10.1-preview] - 2026-08-06
+
+### Added
+
+- **`KeywardSecretsClient.Create(...)` — the client without a DI container.** Pinging from a scheduled task
+  or a small console job previously meant building a service collection just to reach
+  `AddKeywardSecretsClient`, or hand-assembling an `HttpClient` with the API base path and Bearer header.
+  The new static factory takes the same `KeywardSecretsOptions` (service URI, application name → token
+  environment variable) and returns a ready client that owns its `HttpClient` — so the documented
+  heartbeat is a `using` and one call. The client is now `IDisposable`; an injected `HttpClient` is left
+  untouched (it belongs to `IHttpClientFactory`), only a self-created one is disposed. A missing token
+  throws naming the exact environment variable it looked for.
+- Guidance for the second ping pattern: a **scheduled job pings at the END of a successful run**, which
+  proves the run completed rather than merely started (docs/software-client-api.md).
+
 ## [0.10.0-preview] - 2026-08-06
 
 ### Added

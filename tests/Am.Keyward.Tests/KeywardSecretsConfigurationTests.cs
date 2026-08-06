@@ -65,6 +65,50 @@ public class KeywardSecretsConfigurationTests
     }
 
     [TestMethod, TestCategory("Unit")]
+    public async Task Create_builds_a_standalone_client_whose_ping_hits_the_ping_endpoint()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        using var client = KeywardSecretsClient.Create(o =>
+        {
+            o.ServiceUri = new Uri("https://keyward.example.com");
+            o.Token = "test-token";
+            o.HttpMessageHandler = handler;
+        });
+        await client.PingAsync();
+
+        Assert.AreEqual("/keyward/api/v1/ping", handler.LastRequest.RequestUri!.AbsolutePath);
+        Assert.AreEqual(new AuthenticationHeaderValue("Bearer", "test-token"), handler.LastRequest.Headers.Authorization);
+    }
+
+    [TestMethod, TestCategory("Unit")]
+    public void Create_without_a_token_names_the_environment_variable_it_looked_for()
+    {
+        var ex = Assert.ThrowsExactly<InvalidOperationException>(() => KeywardSecretsClient.Create(o =>
+        {
+            o.ServiceUri = new Uri("https://keyward.example.com");
+            o.ApplicationName = "Keyward.Client.Test.Missing";
+        }));
+
+        StringAssert.Contains(ex.Message, "KEYWARD_KEYWARD_CLIENT_TEST_MISSING_TOKEN");
+    }
+
+    [TestMethod, TestCategory("Unit")]
+    public async Task Ping_surfaces_a_rejected_token_as_an_exception()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.Unauthorized));
+
+        using var client = KeywardSecretsClient.Create(o =>
+        {
+            o.ServiceUri = new Uri("https://keyward.example.com");
+            o.Token = "revoked";
+            o.HttpMessageHandler = handler;
+        });
+
+        await Assert.ThrowsExactlyAsync<HttpRequestException>(() => client.PingAsync());
+    }
+
+    [TestMethod, TestCategory("Unit")]
     public void A_ServiceUri_with_a_sub_path_keeps_it()
     {
         var handler = new StubHandler(_ => Json(new Dictionary<string, string>()));
