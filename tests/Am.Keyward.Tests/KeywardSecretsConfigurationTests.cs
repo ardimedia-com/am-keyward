@@ -109,6 +109,57 @@ public class KeywardSecretsConfigurationTests
     }
 
     [TestMethod, TestCategory("Unit")]
+    public async Task Heartbeat_does_nothing_when_no_service_uri_is_configured()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection([]).Build();
+
+        // The local-development case: monitoring is simply off, and that must not look like a failure.
+        Assert.IsFalse(await KeywardHeartbeat.SendAsync(configuration, "Contoso.Nightly.Sync"));
+    }
+
+    [TestMethod, TestCategory("Unit")]
+    public async Task Heartbeat_swallows_a_missing_token_instead_of_failing_the_job()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection([new(KeywardHeartbeat.ServiceUriConfigurationKey, "https://keyward.example.com")])
+            .Build();
+
+        // No KEYWARD_..._TOKEN on this machine: Create throws, the helper must absorb it.
+        Assert.IsFalse(await KeywardHeartbeat.SendAsync(configuration, "Keyward.Client.Test.NoTokenAnywhere"));
+    }
+
+    [TestMethod, TestCategory("Unit")]
+    public async Task Heartbeat_reports_success_when_the_ping_reached_the_server()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.NoContent));
+
+        var sent = await KeywardHeartbeat.SendAsync(o =>
+        {
+            o.ServiceUri = new Uri("https://keyward.example.com");
+            o.Token = "beat";
+            o.HttpMessageHandler = handler;
+        });
+
+        Assert.IsTrue(sent);
+        Assert.AreEqual("/keyward/api/v1/ping", handler.LastRequest.RequestUri!.AbsolutePath);
+    }
+
+    [TestMethod, TestCategory("Unit")]
+    public async Task Heartbeat_swallows_a_server_error_instead_of_failing_the_job()
+    {
+        var handler = new StubHandler(_ => new HttpResponseMessage(HttpStatusCode.ServiceUnavailable));
+
+        var sent = await KeywardHeartbeat.SendAsync(o =>
+        {
+            o.ServiceUri = new Uri("https://keyward.example.com");
+            o.Token = "beat";
+            o.HttpMessageHandler = handler;
+        });
+
+        Assert.IsFalse(sent, "a monitoring outage must be reported, not thrown");
+    }
+
+    [TestMethod, TestCategory("Unit")]
     public void A_ServiceUri_with_a_sub_path_keeps_it()
     {
         var handler = new StubHandler(_ => Json(new Dictionary<string, string>()));

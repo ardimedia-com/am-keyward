@@ -12,6 +12,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
     <!-- IHttpClientFactory registration for the typed runtime client (AddKeywardSecretsClient). -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
+    <!-- ILogger on the best-effort heartbeat helper (explicit, not relied upon transitively via Http). -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup>

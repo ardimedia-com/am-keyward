@@ -5,6 +5,19 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.11.0-preview] - 2026-08-06
+
+### Added
+
+- **`KeywardHeartbeat` — the scheduled-job heartbeat as one call.** Every consumer wiring up monitoring
+  was about to repeat the same twenty lines with the same three easy-to-get-wrong decisions: skip when no
+  service URI is configured, never throw, log instead. The helper owns them:
+  `await KeywardHeartbeat.SendAsync(configuration, "Contoso.Nightly.Sync", logger)` reads
+  `Keyward:ServiceUri`, pings, and returns whether the heartbeat landed — a missing token, an unreachable
+  server or a revoked token are reported as `false`, not thrown, because monitoring must never fail the
+  job it monitors. Overloads take an explicit `Uri?` or an `Action<KeywardSecretsOptions>` (explicit
+  token, custom timeout, proxy handler). Cancelling the caller's token still propagates.
+
 ## [0.10.1-preview] - 2026-08-06
 
 ### Added

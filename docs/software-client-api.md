@@ -143,29 +143,33 @@ access. `Am.Keyward.Client` exposes it as `KeywardSecretsClient.PingAsync()`. Tw
   of its startup secret read, because it proves the run *completed* rather than merely started — a job that
   starts and then dies goes down too.
 
-A job with no dependency-injection container builds the client directly; it owns its `HttpClient`, so
-dispose it:
+For a scheduled job, `KeywardHeartbeat` is the whole thing — no DI container, no `try`/`catch` of your own:
 
 ```csharp
-try
-{
-    using var keyward = KeywardSecretsClient.Create(o =>
-    {
-        o.ServiceUri = new Uri("https://keyward.example.com");
-        o.ApplicationName = "Contoso.Nightly.Sync";   // token from KEYWARD_CONTOSO_NIGHTLY_SYNC_TOKEN
-    });
-    await keyward.PingAsync();
-}
-catch (Exception ex)
-{
-    // Best-effort: monitoring must never fail the job it monitors.
-    logger.LogWarning(ex, "Keyward heartbeat failed.");
-}
+// Last statement of a run that completed. Reads Keyward:ServiceUri from configuration; the token comes
+// from KEYWARD_CONTOSO_NIGHTLY_SYNC_TOKEN on this machine.
+await KeywardHeartbeat.SendAsync(configuration, "Contoso.Nightly.Sync", logger);
 ```
 
-Keep the call best-effort — a monitoring outage must not turn into a job failure. The missing ping is
-itself the signal, and it clears on the next successful run. Note that pings count toward the token's
-request statistics like any other authenticated call.
+It is best-effort by contract and returns whether the heartbeat actually landed: an absent or empty
+`Keyward:ServiceUri` means monitoring is off for this environment (the usual local-development case), and
+a missing token, an unreachable server or a revoked token are logged and reported as `false` rather than
+thrown. A monitoring outage must never turn into a job failure — the missing ping is itself the signal,
+and it clears on the next successful run. Overloads take an explicit `Uri?` instead of `IConfiguration`,
+or an `Action<KeywardSecretsOptions>` for full control (explicit token, custom timeout, proxy handler).
+
+For anything beyond the heartbeat, build the client directly; it owns its `HttpClient`, so dispose it:
+
+```csharp
+using var keyward = KeywardSecretsClient.Create(o =>
+{
+    o.ServiceUri = new Uri("https://keyward.example.com");
+    o.ApplicationName = "Contoso.Nightly.Sync";
+});
+var connectionString = await keyward.GetAsync("ConnectionStrings:Main");
+```
+
+Note that pings count toward the token's request statistics like any other authenticated call.
 
 One boundary is systemic: if the Keyward host itself is down, nobody evaluates the monitors. Watch the
 host's `/health` endpoint with an external check (uptime monitor, PRTG, …) — that single probe covers the
