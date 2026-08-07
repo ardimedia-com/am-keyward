@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.11.2-preview] - 2026-08-07
+
 ### Fixed
 
 - **Environments are listed along the deployment pipeline again (Development, Test, Production).** The
