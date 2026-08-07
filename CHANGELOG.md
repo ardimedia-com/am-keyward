@@ -5,6 +5,21 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **Environments are listed along the deployment pipeline again (Development, Test, Production).** The
+  backfill in `20260806122206_EnvironmentSortOrder` matched **zero rows** and reported success: it tried to
+  escape the tenant-isolation RLS policy with `SystemBypass`, but that key is honoured only by the audit /
+  encrypted-version predicates — `fn_TenantAccessPredicate`, which guards RuntimeEnvironments and
+  TenantDefaultEnvironments, compares against `SESSION_CONTEXT('TenantId')`, which a migration connection
+  does not have. So every `SortOrder` stayed 0 and the display fell back to the tie-break by name, i.e. the
+  alphabet: Development, **Production**, Test.
+  `20260807125805_EnvironmentSortOrderBackfill` repeats it using the pattern that already works in
+  `20260721100701_VaultItemPublicId` — switch the security policy off for the backfill, then on again — and
+  only touches partitions whose SortOrder is still all-zero, so a deliberate order is left alone.
+  Independently of the data, the ordering now uses `EnvironmentOrder.CanonicalRank` as the tie-break below
+  `SortOrder` instead of the alphabet, so an all-zero state can never look wrong again.
+
 ## [0.11.1-preview] - 2026-08-07
 
 ### Fixed

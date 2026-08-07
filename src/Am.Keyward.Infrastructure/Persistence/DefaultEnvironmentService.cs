@@ -29,10 +29,17 @@ public sealed class DefaultEnvironmentService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var rows = await db.TenantDefaultEnvironments.AsNoTracking()
             .Where(d => d.TenantId == tenantId)
-            .OrderBy(d => d.SortOrder).ThenBy(d => d.Name)
             .ToListAsync(ct)
             .ConfigureAwait(false);
-        return rows.Select(d => new DefaultEnvironmentInfo(d.Id, d.Name.Value)).ToList();
+
+        // Ordered in memory (a handful of rows): SortOrder first, then the canonical Development/Test/
+        // Production rank rather than the alphabet — see EnvironmentOrder for why the tie is the normal case.
+        return rows
+            .OrderBy(d => d.SortOrder)
+            .ThenBy(d => EnvironmentOrder.CanonicalRank(d.Name.Value))
+            .ThenBy(d => d.Name.Value, StringComparer.OrdinalIgnoreCase)
+            .Select(d => new DefaultEnvironmentInfo(d.Id, d.Name.Value))
+            .ToList();
     }
 
     public async Task CustomizeAsync(Guid tenantId, Guid? actorUserId, CancellationToken ct = default)

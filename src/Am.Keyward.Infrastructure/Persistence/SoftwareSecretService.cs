@@ -322,7 +322,9 @@ public sealed class SoftwareSecretService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
         var envNames = envs.ToDictionary(e => e.Id, e => e.Name.Value);
-        var envOrder = envs.ToDictionary(e => e.Id, e => e.SortOrder);
+        // (SortOrder, canonical rank) so an all-zero SortOrder still yields Development/Test/Production
+        // rather than the alphabet — see EnvironmentOrder.
+        var envOrder = envs.ToDictionary(e => e.Id, e => (e.SortOrder, EnvironmentOrder.CanonicalRank(e.Name.Value)));
 
         var secrets = await db.SoftwareSecrets
             .Where(s => s.ProjectId == projectId)
@@ -334,7 +336,7 @@ public sealed class SoftwareSecretService(
             .Select(s => new SoftwareSecretSummary(
                 s.Key.Value,
                 s.Values.Where(v => v.CurrentVersionId != null)
-                    .OrderBy(v => envOrder.GetValueOrDefault(v.EnvironmentId, int.MaxValue))
+                    .OrderBy(v => envOrder.GetValueOrDefault(v.EnvironmentId, (int.MaxValue, int.MaxValue)))
                     .ThenBy(v => envNames.GetValueOrDefault(v.EnvironmentId, "?"))
                     .Select(v => envNames.GetValueOrDefault(v.EnvironmentId, "?"))
                     .ToList()))
@@ -371,7 +373,10 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         var values = new List<SecretEnvironmentValue>();
-        foreach (var environment in environments.OrderBy(e => e.SortOrder).ThenBy(e => e.Name.Value))
+        foreach (var environment in environments
+            .OrderBy(e => e.SortOrder)
+            .ThenBy(e => EnvironmentOrder.CanonicalRank(e.Name.Value))
+            .ThenBy(e => e.Name.Value, StringComparer.OrdinalIgnoreCase))
         {
             var read = readAccesses.FirstOrDefault(r => r.EnvironmentId == environment.Id);
             var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
