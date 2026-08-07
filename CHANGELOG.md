@@ -5,6 +5,34 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **An embedded Keyward now delivers its alerts instead of discarding them.** Heartbeat monitoring and the
+  access-pattern rules ship with `AddKeyward`, but everything that turned a recorded alert into a
+  notification — the poller, the mail port `IAccountEmailSender`, the branded content type and the two
+  sender implementations — lived in the standalone shell `Am.Keyward.Ui.Blazor.App`. A host that embeds
+  Keyward therefore detected an outage, wrote the alert row, flipped the monitor to `Down` in the UI, and
+  then dropped the alarm without a trace: no mail, no message, and nothing in the log beyond the state
+  change. A dead man's switch that cannot reach anyone is worse than none, because it looks healthy.
+
+  Found in `bvd.li.toolbox`: a scheduled job stopped running, the monitor went `Down` after its 26-hour
+  window exactly as designed, and the administrator was never told.
+
+  The poller now ships with detection as `TokenAccessAlertNotificationService` in
+  `Am.Keyward.Infrastructure`, and rendering plus transport sit behind the new `IKeywardAlertPresenter`
+  port in `Am.Keyward.Core`. The split follows the layering: recipients, display names and the dedupe mark
+  are database work, while resolving which mailbox belongs to a user needs the host's identity, which the
+  infrastructure layer neither has nor should acquire. `IAccountEmailSender` and `BrandedEmailContent` moved
+  to `Am.Keyward.Ui.Blazor`, next to `IKeywardNotifier`, which follows the same port-plus-host-override
+  idiom. The standalone shell keeps its behaviour through `BrandedMailAlertPresenter`.
+
+  **When no presenter is registered the poller now logs one loud error** naming the port and the number of
+  waiting alerts, and leaves them pending, so the next silent-monitoring installation reports itself.
+
+  **BREAKING for hosts that embed Keyward:** register an `IKeywardAlertPresenter` — without one, alerts are
+  collected but not delivered (and now say so).
+
+
 ## [0.11.2-preview] - 2026-08-07
 
 ### Fixed

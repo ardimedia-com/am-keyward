@@ -134,6 +134,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITokenAccessMonitorService, Monitoring.TokenAccessMonitorService>();
         services.AddHostedService<Monitoring.TokenAccessMonitorBackgroundService>();
 
+        // Delivery of what the two rule sets above detect. It ships HERE, with detection, on purpose: while
+        // this poller lived in the standalone shell an embedded Keyward recorded alerts and then dropped
+        // them without a trace. Rendering and transport stay with the host behind IKeywardAlertPresenter —
+        // register one, or this service says so loudly rather than discarding alerts.
+        services.AddHostedService<Monitoring.TokenAccessAlertNotificationService>();
+
         return services;
     }
 }
