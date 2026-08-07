@@ -133,6 +133,7 @@
   <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Sì, elimina</value></data>
   <data name="Vault.Import.Title" xml:space="preserve"><value>Importa accessi</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Carica un'esportazione di password del browser (CSV di Microsoft Edge / Chrome: name, url, username, password, note). Ogni riga diventa un elemento Accesso in questa cassaforte.</value></data>
+  <data name="Vault.Import.Drop" xml:space="preserve"><value>Trascina qui il file CSV o fai clic per selezionarlo</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Cartelle</value></data>
   <data name="Vault.Folders.Desc" xml:space="preserve"><value>Le cartelle raggruppano le voci di una cassaforte e possono contenere sottocartelle. Eliminando una cartella il contenuto resta — voci e sottocartelle salgono nella cartella superiore.</value></data>
   <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Eliminare questa cartella? Le sue voci e sottocartelle salgono nella cartella superiore.</value></data>

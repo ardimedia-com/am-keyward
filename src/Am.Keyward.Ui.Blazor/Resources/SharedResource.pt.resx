@@ -133,6 +133,7 @@
   <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Sim, eliminar</value></data>
   <data name="Vault.Import.Title" xml:space="preserve"><value>Importar inícios de sessão</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Carregue uma exportação de palavras-passe do navegador (CSV do Microsoft Edge / Chrome: name, url, username, password, note). Cada linha torna-se um item de Início de sessão neste cofre.</value></data>
+  <data name="Vault.Import.Drop" xml:space="preserve"><value>Arraste o ficheiro CSV para aqui ou clique para escolher</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Pastas</value></data>
   <data name="Vault.Folders.Desc" xml:space="preserve"><value>As pastas agrupam as entradas de um cofre e podem conter subpastas. Ao eliminar uma pasta o conteúdo mantém-se — entradas e subpastas sobem para a pasta superior.</value></data>
   <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Eliminar esta pasta? As suas entradas e subpastas sobem para a pasta superior.</value></data>

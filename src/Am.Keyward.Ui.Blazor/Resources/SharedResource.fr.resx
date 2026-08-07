@@ -133,6 +133,7 @@
   <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Oui, supprimer</value></data>
   <data name="Vault.Import.Title" xml:space="preserve"><value>Importer des identifiants</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Téléversez un export de mots de passe de navigateur (CSV Microsoft Edge / Chrome : name, url, username, password, note). Chaque ligne devient un élément Identifiant dans ce coffre.</value></data>
+  <data name="Vault.Import.Drop" xml:space="preserve"><value>Déposez le fichier CSV ici ou cliquez pour le choisir</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Dossiers</value></data>
   <data name="Vault.Folders.Desc" xml:space="preserve"><value>Les dossiers regroupent les entrées d'un coffre et peuvent contenir des sous-dossiers. La suppression d'un dossier conserve son contenu — entrées et sous-dossiers remontent dans le dossier parent.</value></data>
   <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Supprimer ce dossier ? Ses entrées et sous-dossiers remontent dans le dossier parent.</value></data>

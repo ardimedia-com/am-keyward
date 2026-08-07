@@ -133,6 +133,7 @@
   <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Ja, löschen</value></data>
   <data name="Vault.Import.Title" xml:space="preserve"><value>Logins importieren</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Lade einen Browser-Passwortexport hoch (Microsoft Edge / Chrome CSV: name, url, username, password, note). Jede Zeile wird zu einem Login-Eintrag in diesem Tresor.</value></data>
+  <data name="Vault.Import.Drop" xml:space="preserve"><value>CSV-Datei hierher ziehen oder klicken zum Auswählen</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Ordner</value></data>
   <data name="Vault.Folders.Desc" xml:space="preserve"><value>Ordner gruppieren die Einträge eines Tresors und können Unterordner enthalten. Beim Löschen eines Ordners bleiben Inhalte erhalten — Einträge und Unterordner wandern in den übergeordneten Ordner.</value></data>
   <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Diesen Ordner löschen? Seine Einträge und Unterordner wandern in den übergeordneten Ordner.</value></data>

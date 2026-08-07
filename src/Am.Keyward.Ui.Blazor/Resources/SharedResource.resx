@@ -133,6 +133,7 @@
   <data name="Vault.ConfirmDeleteYes" xml:space="preserve"><value>Yes, delete</value></data>
   <data name="Vault.Import.Title" xml:space="preserve"><value>Import logins</value></data>
   <data name="Vault.Import.Desc" xml:space="preserve"><value>Upload a browser password export (Microsoft Edge / Chrome CSV: name, url, username, password, note). Each row becomes a Login item in this vault.</value></data>
+  <data name="Vault.Import.Drop" xml:space="preserve"><value>Drop the CSV file here or click to choose</value></data>
   <data name="Vault.Folders.Title" xml:space="preserve"><value>Folders</value></data>
   <data name="Vault.Folders.Desc" xml:space="preserve"><value>Folders group the items of a vault and can contain subfolders. Deleting a folder keeps its contents — items and subfolders move up to the parent folder.</value></data>
   <data name="Vault.Folders.ConfirmDelete" xml:space="preserve"><value>Delete this folder? Its items and subfolders move up to the parent folder.</value></data>

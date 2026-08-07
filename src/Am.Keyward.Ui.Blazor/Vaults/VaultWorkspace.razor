@@ -344,7 +344,22 @@ else
                     <summary><KeywardIcon Name="upload" /> @Loc["Vault.Import.Title"]</summary>
                     <div class="section-body">
                         <p class="muted">@Loc["Vault.Import.Desc"]</p>
-                        <InputFile OnChange="OnImportFileAsync" accept=".csv" disabled="@busy" />
+                        @* A bare <InputFile> renders the BROWSER's own control — «Choose File / No file
+                           chosen» in the browser's language, unstyleable, and no hint that a file can be
+                           dropped. The real input is stretched transparently over the zone instead, so a
+                           click AND a drop both hit it natively — no JavaScript. It stays a real, focusable
+                           form control (transparent, never display:none), so the accessibility semantics
+                           are unchanged.
+                           This is deliberately Keyward's OWN control rather than am.ui's AmFileDrop: this
+                           package ships to nuget.org, and pulling in an am-private UI library would make it
+                           unrestorable for anyone outside. *@
+                        <label class="kw-file-drop">
+                            <InputFile class="kw-file-drop-input" OnChange="OnImportFileAsync"
+                                       accept=".csv" disabled="@busy"
+                                       aria-label="@Loc["Vault.Import.Drop"]" title="" />
+                            <KeywardIcon Name="upload" />
+                            <span>@Loc["Vault.Import.Drop"]</span>
+                        </label>
                     </div>
                 </details>
 

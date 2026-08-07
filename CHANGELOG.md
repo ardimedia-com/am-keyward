@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **The vault CSV import gets a real drop zone instead of the browser's file button.** A bare `<InputFile>`
+  renders the browser's own «Choose File / No file chosen» — in the browser's language, unstyleable, and
+  with no hint that a file can be dropped. The input is now stretched transparently across a labelled zone,
+  so a click AND a drop both hit it natively, with no JavaScript; it stays a real, focusable form control
+  (transparent, never `display:none`), so its accessibility semantics are unchanged. The label is localized
+  (`Vault.Import.Drop`, all six languages) and the zone uses Keyward's own tokens.
+  Deliberately Keyward's OWN control rather than the shared `AmFileDrop` from am.ui: this package ships to
+  nuget.org, and an am-private UI dependency would make it unrestorable for anyone outside.
+
 ### Fixed
 
 - **An embedded Keyward now delivers its alerts instead of discarding them.** Heartbeat monitoring and the
