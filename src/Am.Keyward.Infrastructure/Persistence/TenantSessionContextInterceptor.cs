@@ -16,46 +16,29 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// tenant-less maintenance sweeps that must read across every tenant, otherwise <c>0</c> (full isolation).
 /// The bypass is honored solely by the FILTER predicates of the audit / encrypted-version tables, never the
 /// BLOCK predicates, so it can never enable a cross-tenant write.
+/// <para>
+/// A null tenant/user is expressed by LEAVING THE KEY UNSET, never by writing NULL — see
+/// <see cref="SessionContextCommand"/> for why (SQL Server bug KB4089324, error 15665).
+/// </para>
 /// </summary>
 public sealed class TenantSessionContextInterceptor(ICurrentTenant tenant, ICurrentUser user, SystemReadScope systemRead) : DbConnectionInterceptor
 {
-    private const string SetSessionContextSql =
-        "EXEC sp_set_session_context @key = N'TenantId', @value = @tenant, @read_only = 1;" +
-        "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;" +
-        "EXEC sp_set_session_context @key = N'SystemBypass', @value = @bypass;";
-
     public override void ConnectionOpened(DbConnection connection, ConnectionEndEventData eventData)
     {
-        using var command = CreateCommand(connection);
-        command.ExecuteNonQuery();
+        using var command = connection.CreateCommand();
+        if (SessionContextCommand.TryPrepare(command, tenant.TenantId, user.UserId, systemRead.Enabled))
+        {
+            command.ExecuteNonQuery();
+        }
     }
 
     public override async Task ConnectionOpenedAsync(
         DbConnection connection, ConnectionEndEventData eventData, CancellationToken cancellationToken = default)
     {
-        await using var command = CreateCommand(connection);
-        await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-    }
-
-    private DbCommand CreateCommand(DbConnection connection)
-    {
-        var command = connection.CreateCommand();
-        command.CommandText = SetSessionContextSql;
-        AddParameter(command, "@tenant", tenant.TenantId);
-        AddParameter(command, "@user", user.UserId);
-
-        var bypass = command.CreateParameter();
-        bypass.ParameterName = "@bypass";
-        bypass.Value = systemRead.Enabled ? 1 : 0;
-        command.Parameters.Add(bypass);
-        return command;
-    }
-
-    private static void AddParameter(DbCommand command, string name, Guid? value)
-    {
-        var parameter = command.CreateParameter();
-        parameter.ParameterName = name;
-        parameter.Value = (object?)value ?? DBNull.Value;
-        command.Parameters.Add(parameter);
+        await using var command = connection.CreateCommand();
+        if (SessionContextCommand.TryPrepare(command, tenant.TenantId, user.UserId, systemRead.Enabled))
+        {
+            await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 }

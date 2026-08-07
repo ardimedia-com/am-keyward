@@ -5,6 +5,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- SessionContextCommand is an implementation detail, but its NULL-omission behaviour guards against a
+         production outage (KB4089324) and must be covered by tests without widening the public API. -->
+    <InternalsVisibleTo Include="Am.Keyward.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>

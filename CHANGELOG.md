@@ -5,6 +5,27 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **A tenant-less session no longer poisons its pooled SQL connection (production outage 2026-08-07).**
+  `TenantSessionContextInterceptor` wrote `TenantId` and `UserId` on every opened connection, and wrote
+  them as **NULL** whenever no tenant/user was in scope — which is the normal state for the background
+  monitors, the software-client token API and anything else that never reaches the host edge. On a SQL
+  Server without the KB4089324 fix the memory of such a NULL write is never reclaimed, so the connection's
+  session context creeps toward its 1 MB budget until *every* statement on it fails with error 15665
+  («The value was not set for key 'TenantId' because the total size of keys and values in the session
+  context would exceed the 1 MB limit»). Because the damage sits on the **pooled** connection, a tenant-less
+  background tick poisoned it for whichever user request drew it next.
+  A null value is now expressed by **omitting the key** — `SESSION_CONTEXT()` returns NULL for an unset key
+  anyway, so the row-level-security predicates are unchanged, and where nothing is in scope the connection
+  open costs no round-trip at all. Both call sites share the new `SessionContextCommand`; the audit chain
+  interceptor carried the same statement and the same defect.
+  Field data: after a deploy restart at 22:26, a 60-second tenant-less timer filled the budget in
+  **6 h 56 min** — the first failure at 05:22:36, then 2559 of them. Recycling the app pool clears it but
+  only buys the same window again, so this is the actual fix. Affected builds are SQL Server 2017 &lt; CU6
+  and 2016 SP1 &lt; CU8 — note that the RTM-GDR branch (14.0.2xxx) is security-only and therefore never
+  receives the fix, which is why one server broke while others did not.
+
 ## [0.11.0-preview] - 2026-08-06
 
 ### Added

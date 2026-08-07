@@ -25,9 +25,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
 
     // Mirrors TenantSessionContextInterceptor: opening the connection ourselves bypasses EF's
     // ConnectionOpened interceptor, so we must set the row-level-security session context here too.
-    private const string SetSessionContextSql =
-        "EXEC sp_set_session_context @key = N'TenantId', @value = @tenant, @read_only = 1;" +
-        "EXEC sp_set_session_context @key = N'UserId', @value = @user, @read_only = 1;";
+    // The statement itself is built by SessionContextCommand, which both call sites share.
 
     // Per-context save state: this scoped interceptor instance is shared by all factory-created contexts
     // of the scope, and two of them may save concurrently. The table entry lives only from
@@ -152,10 +150,12 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
     private async Task SetSessionContextAsync(DbConnection connection, CancellationToken ct)
     {
         await using var command = connection.CreateCommand();
-        command.CommandText = SetSessionContextSql;
-        AddParameter(command, "@tenant", tenant.TenantId);
-        AddParameter(command, "@user", user.UserId);
-        await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+
+        // systemBypass: null — this interceptor drives that key itself via SetBypassAsync around its head read.
+        if (SessionContextCommand.TryPrepare(command, tenant.TenantId, user.UserId, systemBypass: null))
+        {
+            await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
     }
 
     private static async Task<(long Sequence, string PreviousHash)> ReadHeadAsync(DbConnection connection, Guid? tenantId, CancellationToken ct)
