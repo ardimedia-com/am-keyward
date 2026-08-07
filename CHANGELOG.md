@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.11.1-preview] - 2026-08-07
+
 ### Fixed
 
 - **A tenant-less session no longer poisons its pooled SQL connection (production outage 2026-08-07).**
