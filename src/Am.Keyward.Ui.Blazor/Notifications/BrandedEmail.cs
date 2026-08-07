@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 
-namespace Am.Keyward.Ui.Blazor.App.Identity;
+namespace Am.Keyward.Ui.Blazor;
 
 /// <summary>
 /// The content of a branded account e-mail, described once and rendered to both the HTML card

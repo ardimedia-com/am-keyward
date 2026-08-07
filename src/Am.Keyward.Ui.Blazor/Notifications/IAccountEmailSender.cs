@@ -1,4 +1,4 @@
-namespace Am.Keyward.Ui.Blazor.App.Identity;
+namespace Am.Keyward.Ui.Blazor;
 
 /// <summary>
 /// Delivers account e-mails (currently the password-reset link). Delivery is host-specific infrastructure,
