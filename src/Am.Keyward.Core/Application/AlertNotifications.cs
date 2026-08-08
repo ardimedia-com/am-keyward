@@ -19,6 +19,14 @@ public sealed record KeywardTokenAlertLine(
     string? IpAddress,
     DateTimeOffset CreatedAt);
 
+/// <summary>One token nearing expiry, with project and environment already resolved.</summary>
+public sealed record KeywardTokenExpiryLine(
+    string TokenName,
+    string ProjectName,
+    string EnvironmentName,
+    int DaysLeft,
+    DateTimeOffset ExpiresAt);
+
 /// <summary>
 /// Delivers administrative alerts to the administrators who opted into them. Two categories exist and are
 /// delivered separately because they have different audiences and frequencies: heartbeat monitoring
@@ -50,5 +58,16 @@ public interface IKeywardAlertPresenter
         bool monitoring,
         IReadOnlyList<KeywardAlertRecipient> recipients,
         IReadOnlyList<KeywardTokenAlertLine> lines,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Delivers one tenant's tokens that are nearing expiry, on the notice schedule. Returns how many
+    /// recipients were reached; the caller records the notice only on a non-zero result, so a notice is not
+    /// lost while nobody has opted in yet.
+    /// </summary>
+    Task<int> NotifyTokenExpiryAsync(
+        Guid tenantId,
+        IReadOnlyList<KeywardAlertRecipient> recipients,
+        IReadOnlyList<KeywardTokenExpiryLine> lines,
         CancellationToken ct = default);
 }

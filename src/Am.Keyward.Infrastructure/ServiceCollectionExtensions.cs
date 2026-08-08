@@ -1,4 +1,4 @@
-using Am.Keyward.Core.Abstractions;
+﻿using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
 using Am.Keyward.Infrastructure.Auth;
 using Am.Keyward.Infrastructure.Crypto;
@@ -139,6 +139,7 @@ public static class ServiceCollectionExtensions
         // them without a trace. Rendering and transport stay with the host behind IKeywardAlertPresenter —
         // register one, or this service says so loudly rather than discarding alerts.
         services.AddHostedService<Monitoring.TokenAccessAlertNotificationService>();
+        services.AddHostedService<Monitoring.TokenExpiryNotificationService>();
 
         return services;
     }

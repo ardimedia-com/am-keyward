@@ -43,6 +43,12 @@ All notable changes to this project are documented here, following
   **BREAKING for hosts that embed Keyward:** register an `IKeywardAlertPresenter` — without one, alerts are
   collected but not delivered (and now say so).
 
+- **Token-expiry notices reach an embedded Keyward too.** `TokenExpiryEmailService` had the same blind spot
+  as the alert poller and moved the same way: the schedule, recipients and the notice mark now live in
+  `TokenExpiryNotificationService` in `Am.Keyward.Infrastructure` (registered by `AddKeyward`), the wording
+  and delivery go through `IKeywardAlertPresenter.NotifyTokenExpiryAsync`. Without a presenter an embedded
+  host let its app tokens run out unannounced; now it logs one loud error and keeps the notices pending.
+
 
 ## [0.11.2-preview] - 2026-08-07
 

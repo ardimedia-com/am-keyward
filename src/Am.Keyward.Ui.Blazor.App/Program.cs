@@ -1,4 +1,4 @@
-using Am.Keyward.Api;
+﻿using Am.Keyward.Api;
 using Am.Keyward.AspNetCore;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
@@ -172,7 +172,6 @@ builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.Da
 
 // E-mails administrators (who opted in on their profile) about app tokens nearing expiry:
 // 30/20/10 days ahead, then daily from 9 days (TokenExpiryNoticePolicy).
-builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.TokenExpiryEmailService>();
 
 // Renders and mails the alerts that AddKeyward's notification poller collects — access-pattern alerts from
 // the statistics flush (a token used from a never-seen IP, active again after a long silence) and the

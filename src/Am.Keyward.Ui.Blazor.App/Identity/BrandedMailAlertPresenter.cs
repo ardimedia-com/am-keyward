@@ -33,7 +33,22 @@ public sealed class BrandedMailAlertPresenter(
         CancellationToken ct = default)
     {
         var (subject, content) = BuildContent(monitoring, lines);
+        return await SendAsync(recipients, subject, content, ct).ConfigureAwait(false);
+    }
 
+    public async Task<int> NotifyTokenExpiryAsync(
+        Guid tenantId,
+        IReadOnlyList<KeywardAlertRecipient> recipients,
+        IReadOnlyList<KeywardTokenExpiryLine> lines,
+        CancellationToken ct = default)
+    {
+        var (subject, content) = BuildExpiryContent(lines);
+        return await SendAsync(recipients, subject, content, ct).ConfigureAwait(false);
+    }
+
+    private async Task<int> SendAsync(
+        IReadOnlyList<KeywardAlertRecipient> recipients, string subject, BrandedEmailContent content, CancellationToken ct)
+    {
         var sent = 0;
         foreach (var recipient in recipients)
         {
@@ -55,6 +70,49 @@ public sealed class BrandedMailAlertPresenter(
         }
 
         return sent;
+    }
+
+    private (string Subject, BrandedEmailContent Content) BuildExpiryContent(IReadOnlyList<KeywardTokenExpiryLine> due)
+    {
+        // With a configured public base URL the mail carries a button to the Applications page (its
+        // «Client-Tokens» tab holds the tokens); without one it stays a plain notification.
+        var tokensUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
+            ? null
+            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.Applications;
+
+        var previous = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = ResolveNotificationCulture();
+        try
+        {
+            var lines = due
+                .Select(x => loc[
+                    "Email.TokenExpiry.Line",
+                    x.TokenName,
+                    x.ProjectName,
+                    x.EnvironmentName,
+                    x.DaysLeft,
+                    x.ExpiresAt.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)].Value)
+                .ToList();
+
+            return (loc["Email.TokenExpiry.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
+            {
+                Brand = uiOptions.ProductName,
+                Title = loc["Email.TokenExpiry.Title"].Value,
+                Paragraphs =
+                [
+                    loc["Email.TokenExpiry.Intro"].Value,
+                    .. lines,
+                    loc["Email.TokenExpiry.Outro"].Value,
+                ],
+                ButtonText = tokensUrl is null ? null : loc["Email.TokenExpiry.Button"].Value,
+                ActionUrl = tokensUrl,
+                FooterNote = loc["Email.TokenExpiry.Footer"].Value,
+            });
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
     }
 
     private (string Subject, BrandedEmailContent Content) BuildContent(bool monitoring, IReadOnlyList<KeywardTokenAlertLine> alerts)
