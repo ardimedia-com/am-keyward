@@ -219,7 +219,9 @@ just goes silent. Enable a monitor on the application's «Monitoring» tab (maxi
 watch window so a Mo–Fr job doesn't false-alarm over the weekend, optional all-clear mail, snooze);
 consumers that load their configuration through Keyward need no change at all, long-running services ping
 `GET /ping` (`KeywardSecretsClient.PingAsync`). Configure via `Keyward:Monitoring` (`Enabled`,
-`CheckIntervalSeconds`, `TimeZone` for the watch windows).
+`CheckIntervalSeconds`, `TimeZone`). `TimeZone` is the installation's zone — it governs the watch windows,
+the statistics day buckets and the timestamps in notification mails; unset it defaults to the server's
+local zone. Timestamps are stored in UTC and shown in the viewer's own local time zone in the UI.
 
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 

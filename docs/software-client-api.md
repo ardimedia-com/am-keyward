@@ -94,7 +94,8 @@ days before a token expires, then daily from 9 days; a background watcher additi
 
 Every authenticated read is counted in memory and persisted batched (default every 60 s, section
 `Keyward:TokenAccess`), so the server can answer "is this token still in use?" without a database write on
-the hot path. Per token it records the **last access (time + client IP)**, **requests per UTC day**, and
+the hot path. Per token it records the **last access (time + client IP)**, **requests per day** (calendar
+days in the installation's `Keyward:Monitoring:TimeZone`, server-local when unset), and
 the **set of IPs it has been seen from** — shown in the app-tokens list and the application's «Statistics»
 tab, and trimmed after the retention window (default 90 days). Two rule-based alerts derive from it: a
 token used from a **never-seen IP**, and a token **active again after 30+ days of silence**; both appear
@@ -121,8 +122,9 @@ you can enable a monitor on the application's «Monitoring» tab:
   (e.g. 26 h for a daily job with buffer). One value; build your grace into it.
 - **Watch window** — weekdays and optional daily hours during which silence counts. Outside the window the
   clock pauses, so a Monday-to-Friday job does not false-alarm over its scheduled weekend. Window times
-  are wall clock in the app-wide `Keyward:Monitoring:TimeZone` (Windows or IANA id; default UTC) —
-  timestamps everywhere else stay UTC.
+  are wall clock in the app-wide `Keyward:Monitoring:TimeZone` (Windows or IANA id; the server's local
+  zone when unset) — that same zone also buckets the statistics days and stamps the notification mails.
+  Timestamps are always STORED in UTC; the UI renders them in the viewer's own local time zone.
 - **All-clear** — optionally a recovery mail when the heartbeat returns.
 - **Pause until** — snooze for maintenance windows; the monitor reactivates by itself.
 

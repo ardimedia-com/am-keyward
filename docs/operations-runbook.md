@@ -123,7 +123,7 @@ the app whenever the DB is swapped. The in-app safety-net (`DatabaseMigration` s
 | `ConnectionStrings:Keyward` | — | SQL Server connection (runtime login) |
 | `Keyward:BreakGlass` | `SinkFilePath`, `ValidityMinutes` | Out-of-band break-glass trail + grant window |
 | `Keyward:TokenAccess` | `Enabled`, `FlushIntervalSeconds`, `RetentionDays`, `SilenceAlertDays` | Token access statistics + access-pattern alerts |
-| `Keyward:Monitoring` | `Enabled`, `CheckIntervalSeconds`, `TimeZone` | Heartbeat monitoring (dead-man's switch); `TimeZone` (Windows or IANA id, default UTC) governs the watch windows |
+| `Keyward:Monitoring` | `Enabled`, `CheckIntervalSeconds`, `TimeZone` | Heartbeat monitoring (dead-man's switch); `TimeZone` (Windows or IANA id, the server's local zone when unset) is the installation's zone: watch windows, statistics day buckets and notification-mail timestamps |
 | `DatabaseMigration` | `Enabled`, `CheckIntervalSeconds` | Runtime migration safety-net |
 
 Heartbeat monitoring assumes a **single running instance** (like the mail jobs — a second instance would

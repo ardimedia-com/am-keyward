@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.11.4-preview] - 2026-08-08
+
+### Added
+
+- **Monitoring rows show how much time remains — or how long a token is overdue.** Next to "next deadline"
+  the remaining time appears as a compact duration ("in 2 h 10 min"); a token that is down (or past its
+  deadline) shows how long it has been overdue ("overdue by 45 min"). The durations refresh once a minute.
+
 ### Changed
 
 - **Timestamps now display in the viewer's local time zone instead of raw UTC.** Every timestamp the UI
@@ -21,12 +29,6 @@ All notable changes to this project are documented here, following
   days — so a "day" in the chart is a day as the operators experience it. When no zone is configured,
   the fallback is now the **server's local time zone** instead of UTC (this also applies to the watch
   windows). Existing daily rows keep their UTC-day keys; only new counts use the new boundary.
-
-### Added
-
-- **Monitoring rows show how much time remains — or how long a token is overdue.** Next to "next deadline"
-  the remaining time appears as a compact duration ("in 2 h 10 min"); a token that is down (or past its
-  deadline) shows how long it has been overdue ("overdue by 45 min"). The durations refresh once a minute.
 
 ## [0.11.3-preview] - 2026-08-08
 
