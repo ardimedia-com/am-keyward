@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.11.3-preview] - 2026-08-08
+
 ### Changed
 
 - **The vault CSV import gets a real drop zone instead of the browser's file button.** A bare `<InputFile>`
