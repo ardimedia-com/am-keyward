@@ -4,6 +4,8 @@
 @inject ISoftwareSecretService SecretService
 @inject ITokenAccessStatisticsService StatsService
 @inject IStringLocalizer<SharedResource> Loc
+@inject BrowserTimeService Time
+@implements IDisposable
 
 @* Access statistics for ONE application, rendered inside the Applications page's «Statistics» tab. Three
    sections: per-token daily request bars (trailing @ChartDays days), the IPs each token has been seen
@@ -41,7 +43,7 @@ else
                     <span class="list-row-meta">
                         <span class="muted" style="font-size:.78rem;">
                             @(token.LastAccessAt is { } lastAccess
-                                ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                ? Loc["Token.LastAccess.Value", Time.Format(lastAccess, "yyyy-MM-dd HH:mm:ss")]
                                 : Loc["Token.LastAccess.Never"])
                             @if (token.LastAccessIp is { Length: > 0 } lastIp) { <text> · </text> <code>@lastIp</code> }
                         </span>
@@ -81,7 +83,7 @@ else
                         <span class="badge">@TokenNameOf(ip.TokenId)</span>
                         <span class="list-row-meta">
                             <span class="muted" style="font-size:.78rem;">
-                                @Loc["Stats.Ips.Seen", ip.FirstSeenAt.UtcDateTime.ToString("u"), ip.LastSeenAt.UtcDateTime.ToString("u")]
+                                @Loc["Stats.Ips.Seen", Time.Format(ip.FirstSeenAt, "yyyy-MM-dd HH:mm:ss"), Time.Format(ip.LastSeenAt, "yyyy-MM-dd HH:mm:ss")]
                             </span>
                         </span>
                     </div>
@@ -109,7 +111,7 @@ else
                         <span class="badge @(alert.Kind == TokenAccessAlertKind.HeartbeatRecovered ? "badge-success" : "badge-warning")">@KindLabel(alert.Kind)</span>
                         <span class="list-row-name" style="font-weight:400;">@AlertText(alert)</span>
                         <span class="list-row-meta">
-                            <span class="muted" style="font-size:.78rem;">@alert.CreatedAt.UtcDateTime.ToString("u")</span>
+                            <span class="muted" style="font-size:.78rem;"><LocalTime Utc="alert.CreatedAt" /></span>
                         </span>
                     </div>
                 }
@@ -132,6 +134,13 @@ else
     private IReadOnlyList<TokenDailyAccessInfo>? daily;
     private IReadOnlyList<TokenAccessIpInfo>? ips;
     private IReadOnlyList<TokenAccessAlertInfo>? alerts;
+
+    // Timestamps inside localized strings can't use <LocalTime/> — refresh once the browser zone resolves.
+    protected override void OnInitialized() => Time.Changed += OnTimeZoneResolved;
+
+    private void OnTimeZoneResolved() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Time.Changed -= OnTimeZoneResolved;
 
     protected override async Task OnParametersSetAsync()
     {

@@ -5,6 +5,8 @@
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
+@inject BrowserTimeService Time
+@implements IDisposable
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -81,7 +83,7 @@
                             <KeywardIcon Name="lock" Size="17" />
                             <span class="list-row-name">@TargetLabel(g)</span>
                             <span class="list-row-meta">
-                                <span class="muted">@g.RequesterName · @g.Reason · @g.RequestedAt.UtcDateTime.ToString("u")</span>
+                                <span class="muted">@g.RequesterName · @g.Reason · <LocalTime Utc="g.RequestedAt" /></span>
                                 @if (g.RequesterUserId == actorUserId)
                                 {
                                     @* Dual control: the domain rejects self-approval — show why instead of a dead button. *@
@@ -124,7 +126,7 @@
                                 <span class="badge @StatusBadgeClass(g.Status)">@Loc[$"BreakGlassStatus.{g.Status}"]</span>
                                 @if (IsConsumable(g))
                                 {
-                                    <span class="muted">@Loc["BreakGlass.ValidUntil", g.ExpiresAt.UtcDateTime.ToString("u")]</span>
+                                    <span class="muted">@Loc["BreakGlass.ValidUntil", Time.Format(g.ExpiresAt, "yyyy-MM-dd HH:mm:ss")]</span>
                                     <button class="btn-sm" @onclick="() => ConsumeAsync(g.Id)" disabled="@busy" title="@Loc["BreakGlass.Consume.Hint"]">@Loc["BreakGlass.Consume"]</button>
                                 }
                             </span>
@@ -162,8 +164,14 @@
     private IReadOnlyList<BreakGlassGrantInfo> NonPending =>
         grants.Where(g => g.Status != BreakGlassStatus.Pending).ToList();
 
+    // Timestamps inside localized strings can't use <LocalTime/> — refresh once the browser zone resolves.
+    private void OnTimeZoneResolved() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Time.Changed -= OnTimeZoneResolved;
+
     protected override async Task OnInitializedAsync()
     {
+        Time.Changed += OnTimeZoneResolved;
         actorUserId = CurrentUser.UserId;
         tenantId = Workspace.TenantId;
         if (actorUserId is null)

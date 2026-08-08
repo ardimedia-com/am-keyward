@@ -747,7 +747,7 @@
   <data name="Monitor.Recovery.Label" xml:space="preserve"><value>Entwarnungs-Mail senden, wenn der Heartbeat zurückkehrt</value></data>
   <data name="Monitor.Enable" xml:space="preserve"><value>Aktivieren</value></data>
   <data name="Monitor.Disable" xml:space="preserve"><value>Deaktivieren</value></data>
-  <data name="Monitor.Snooze.Label" xml:space="preserve"><value>Pausieren bis (UTC)</value></data>
+  <data name="Monitor.Snooze.Label" xml:space="preserve"><value>Pausieren bis</value></data>
   <data name="Monitor.Snooze.Set" xml:space="preserve"><value>Pausieren</value></data>
   <data name="Monitor.Snooze.Clear" xml:space="preserve"><value>Jetzt fortsetzen</value></data>
   <data name="Monitor.State.Off" xml:space="preserve"><value>Nicht überwacht</value></data>
@@ -756,6 +756,8 @@
   <data name="Monitor.State.Snoozed" xml:space="preserve"><value>Pausiert</value></data>
   <data name="Monitor.DownSince" xml:space="preserve"><value>down seit {0}</value></data>
   <data name="Monitor.NextDeadline" xml:space="preserve"><value>nächste Frist {0}</value></data>
+  <data name="Monitor.Rel.In" xml:space="preserve"><value>in {0}</value></data>
+  <data name="Monitor.Rel.Overdue" xml:space="preserve"><value>überfällig seit {0}</value></data>
   <data name="Monitor.Saved" xml:space="preserve"><value>Gespeichert.</value></data>
   <data name="Monitor.Error.WindowIncomplete" xml:space="preserve"><value>Die Überwachungszeiten brauchen Beginn UND Ende (oder beide leer lassen).</value></data>
   <data name="Stats.Alert.HeartbeatMissed" xml:space="preserve"><value>Heartbeat ausgeblieben</value></data>

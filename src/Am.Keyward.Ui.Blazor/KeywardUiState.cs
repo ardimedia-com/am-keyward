@@ -74,6 +74,8 @@ public static class KeywardUiServiceCollectionExtensions
         configure?.Invoke(options);
         services.AddSingleton(options);
         services.AddScoped<KeywardUiState>();
+        // Store UTC, display local: per-circuit browser time zone for rendering timestamps (see LocalTime).
+        services.AddScoped<BrowserTimeService>();
 
         // Transient-notification port. The built-in toast host (KeywardToastState + DefaultKeywardNotifier)
         // is the STANDALONE default; a host with its own toasts (e.g. BlazorBlueprint's BbToast) overrides

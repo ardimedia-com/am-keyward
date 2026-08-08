@@ -4,6 +4,8 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject BrowserTimeService Time
+@implements IDisposable
 
 @* Client tokens for ONE application, rendered inside the Applications page's «Client-Tokens» tab. ONE ROW
    PER ENVIRONMENT: the model auto-creates a pending token slot per environment, so the natural unit is the
@@ -57,7 +59,7 @@ else
                             {
                                 <span class="muted" style="font-size:.78rem;" title="@Loc["Token.LastAccess"]">
                                     @(token.LastAccessAt is { } lastAccess
-                                        ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                        ? Loc["Token.LastAccess.Value", Time.Format(lastAccess, "yyyy-MM-dd HH:mm:ss")]
                                         : Loc["Token.LastAccess.Never"])
                                 </span>
                             }
@@ -120,18 +122,18 @@ else
                             </div>
                             <div class="detail-field">
                                 <label>@Loc["Token.Created"]</label>
-                                <div class="detail-value"><span class="grow">@token.CreatedAt.UtcDateTime.ToString("u")</span></div>
+                                <div class="detail-value"><span class="grow"><LocalTime Utc="token.CreatedAt" /></span></div>
                             </div>
                             <div class="detail-field">
                                 <label>@Loc["Token.Expires"]</label>
-                                <div class="detail-value"><span class="grow">@(token.ExpiresAt?.UtcDateTime.ToString("u") ?? "—")</span></div>
+                                <div class="detail-value"><span class="grow"><LocalTime Utc="token.ExpiresAt" /></span></div>
                             </div>
                             <div class="detail-field">
                                 <label>@Loc["Token.LastAccess"]</label>
                                 <div class="detail-value"><span class="grow">
                                     @if (token.LastAccessAt is { } lastAccessAt)
                                     {
-                                        @lastAccessAt.UtcDateTime.ToString("u")
+                                        <LocalTime Utc="lastAccessAt" />
                                         @if (token.LastAccessIp is { Length: > 0 } ip) { <text> · </text> <code>@ip</code> }
                                     }
                                     else { <text>—</text> }
@@ -241,6 +243,13 @@ else
 
     private SoftwareClientTokenInfo? TokenFor(Guid environmentId) =>
         tokens?.Where(t => t.EnvironmentId == environmentId).OrderByDescending(t => t.HasSecret).FirstOrDefault();
+
+    // Timestamps inside localized strings can't use <LocalTime/> — refresh once the browser zone resolves.
+    protected override void OnInitialized() => Time.Changed += OnTimeZoneResolved;
+
+    private void OnTimeZoneResolved() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Time.Changed -= OnTimeZoneResolved;
 
     protected override async Task OnParametersSetAsync()
     {

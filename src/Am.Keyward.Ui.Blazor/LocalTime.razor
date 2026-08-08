@@ -1,0 +1,30 @@
+@implements IDisposable
+@inject BrowserTimeService Time
+
+@* Renders a UTC timestamp in the viewer's local time zone (store UTC, display local). The underlying
+   UTC instant stays inspectable via the title tooltip. Re-renders itself once the browser zone resolves. *@
+@if (Utc is { } value)
+{
+    <span title="@($"{value.UtcDateTime:yyyy-MM-dd HH:mm:ss} UTC")">@Time.Format(value, Format)</span>
+}
+else
+{
+    @Null
+}
+
+@code {
+    /// <summary>The timestamp to display (null renders <see cref="Null"/>).</summary>
+    [Parameter, EditorRequired] public DateTimeOffset? Utc { get; set; }
+
+    /// <summary>.NET date/time format string applied after conversion to the browser's local time.</summary>
+    [Parameter] public string Format { get; set; } = "yyyy-MM-dd HH:mm:ss";
+
+    /// <summary>Text shown when <see cref="Utc"/> is null.</summary>
+    [Parameter] public string Null { get; set; } = "—";
+
+    protected override void OnInitialized() => Time.Changed += OnTimeZoneResolved;
+
+    private void OnTimeZoneResolved() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Time.Changed -= OnTimeZoneResolved;
+}

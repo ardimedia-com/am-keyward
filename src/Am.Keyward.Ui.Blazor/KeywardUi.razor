@@ -1,3 +1,7 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject BrowserTimeService Time
+
 @* Style scope for the embedded Keyward UI. Wrap a Keyward page's content in <KeywardUi>...</KeywardUi>;
    the styling lives in KeywardUi.razor.css and — because it is component-scoped CSS in this RCL — is
    bundled automatically into the host app's {Assembly}.styles.css. A host therefore needs NO extra <link>:
@@ -15,4 +19,44 @@
 
     /// <summary>Fills the host's content area: header + search stay fixed, tree/content scroll internally.</summary>
     [Parameter] public bool Fill { get; set; }
+
+    private IJSObjectReference? module;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Detect the browser time zone (once per circuit) so UTC timestamps render in local time.
+        // Retry on every render until it resolves: a single attempt on the first interactive render can
+        // miss if JS interop isn't ready yet, which would otherwise leave every timestamp stuck in UTC
+        // for the whole session.
+        if (Time.IsReady)
+        {
+            return;
+        }
+        try
+        {
+            module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/KeywardUi.razor.js");
+            var ianaId = await module.InvokeAsync<string?>("getTimeZoneName");
+            var offsetMinutes = await module.InvokeAsync<int>("getTimeZoneOffsetMinutes");
+            Time.SetTimeZone(ianaId, offsetMinutes);
+        }
+        catch
+        {
+            // JS not available yet (prerender) or circuit tearing down — timestamps stay UTC until a later render.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone — nothing to release.
+            }
+        }
+    }
 }

@@ -5,12 +5,14 @@
 @inject ISoftwareSecretService SecretService
 @inject ITokenAccessMonitorService MonitorService
 @inject IStringLocalizer<SharedResource> Loc
+@inject BrowserTimeService Time
+@implements IDisposable
 
 @* Heartbeat monitoring for ONE application, rendered inside the Applications page's «Monitoring» tab.
    Per client token a silence monitor (dead-man's switch): the token's secret reads are its heartbeat, and
    when the in-window silence exceeds the allowed maximum, an alert row is written and the opt-in mail goes
    out. The edit card opens ABOVE the list (UI convention); rows are grouped by the environments' display
-   order. All times shown are UTC, matching the statistics tab. *@
+   order. Times are shown in the viewer's local time zone (stored UTC), matching the statistics tab. *@
 @if (tokens is null || monitors is null || environments is null)
 {
     <p class="muted">@Loc["Common.Loading"]</p>
@@ -99,7 +101,7 @@ else
                 <div class="field" style="margin-top:.75rem;">
                     <label>@Loc["Monitor.Snooze.Label"]</label>
                     <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-                        <input type="datetime-local" style="width:auto;" @bind="snoozeUntilUtc" />
+                        <input type="datetime-local" style="width:auto;" @bind="snoozeUntilLocal" />
                         <button class="btn-ghost btn-sm" @onclick="SnoozeAsync" disabled="@busy">@Loc["Monitor.Snooze.Set"]</button>
                         @if (snoozable.SnoozeUntil is not null)
                         {
@@ -128,17 +130,21 @@ else
                     <span class="list-row-meta">
                         <span class="muted" style="font-size:.78rem;">
                             @(token.LastAccessAt is { } lastAccess
-                                ? Loc["Token.LastAccess.Value", lastAccess.UtcDateTime.ToString("u")]
+                                ? Loc["Token.LastAccess.Value", Time.Format(lastAccess, TimeFormat)]
                                 : Loc["Token.LastAccess.Never"])
                             @if (monitor is { Enabled: true })
                             {
                                 @if (monitor.State == TokenMonitorState.Down && monitor.LastStateChangeAt is { } downSince)
                                 {
-                                    <text> · </text>@Loc["Monitor.DownSince", downSince.UtcDateTime.ToString("u")]
+                                    <text> · </text>@Loc["Monitor.DownSince", Time.Format(downSince, TimeFormat)]
+                                    <text> (</text>@Loc["Monitor.Rel.Overdue", FormatDuration(DateTimeOffset.UtcNow - downSince)]<text>)</text>
                                 }
                                 else if (monitor.NextDeadline is { } deadline)
                                 {
-                                    <text> · </text>@Loc["Monitor.NextDeadline", deadline.UtcDateTime.ToString("u")]
+                                    <text> · </text>@Loc["Monitor.NextDeadline", Time.Format(deadline, TimeFormat)]
+                                    <text> (</text>@(deadline > DateTimeOffset.UtcNow
+                                        ? Loc["Monitor.Rel.In", FormatDuration(deadline - DateTimeOffset.UtcNow)]
+                                        : Loc["Monitor.Rel.Overdue", FormatDuration(DateTimeOffset.UtcNow - deadline)])<text>)</text>
                                 }
                             }
                         </span>
@@ -162,7 +168,10 @@ else
     [Parameter, EditorRequired] public Guid ProjectId { get; set; }
     [Parameter] public Guid? ActorUserId { get; set; }
 
+    private const string TimeFormat = "yyyy-MM-dd HH:mm:ss";
+
     private Guid loadedProjectId;
+    private System.Threading.Timer? relativeTimeTicker;
 
     private IReadOnlyList<EnvironmentInfo>? environments;
     private IReadOnlyList<SoftwareClientTokenInfo>? tokens;
@@ -175,13 +184,48 @@ else
     private TimeOnly? windowStart;
     private TimeOnly? windowEnd;
     private bool notifyRecovery = true;
-    private DateTime? snoozeUntilUtc;
+    private DateTime? snoozeUntilLocal;
 
     private (string Text, bool IsError)? status;
     private bool busy;
 
     private SoftwareClientTokenInfo? SelectedToken =>
         selectedTokenId is { } id ? tokens?.FirstOrDefault(t => t.Id == id) : null;
+
+    protected override void OnInitialized()
+    {
+        Time.Changed += OnTimeZoneResolved;
+        // The relative durations ("in 2 h" / "overdue by 45 min") go stale — refresh once a minute.
+        relativeTimeTicker = new System.Threading.Timer(
+            _ => _ = InvokeAsync(StateHasChanged), null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+    }
+
+    private void OnTimeZoneResolved() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Time.Changed -= OnTimeZoneResolved;
+        relativeTimeTicker?.Dispose();
+    }
+
+    // Compact, language-neutral duration (units min/h/d), for the relative hints next to the deadlines.
+    private static string FormatDuration(TimeSpan span)
+    {
+        span = span.Duration();
+        if (span.TotalMinutes < 1)
+        {
+            return "< 1 min";
+        }
+        if (span.TotalHours < 1)
+        {
+            return $"{(int)span.TotalMinutes} min";
+        }
+        if (span.TotalDays < 1)
+        {
+            return span.Minutes == 0 ? $"{(int)span.TotalHours} h" : $"{(int)span.TotalHours} h {span.Minutes} min";
+        }
+        return span.Hours == 0 ? $"{(int)span.TotalDays} d" : $"{(int)span.TotalDays} d {span.Hours} h";
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -269,7 +313,7 @@ else
             notifyRecovery = true;
         }
 
-        snoozeUntilUtc = null;
+        snoozeUntilLocal = null;
     }
 
     private void CloseEditor()
@@ -343,7 +387,7 @@ else
 
     private async Task SnoozeAsync()
     {
-        if (busy || SelectedToken is not { } token || snoozeUntilUtc is not { } until)
+        if (busy || SelectedToken is not { } token || snoozeUntilLocal is not { } until)
         {
             return;
         }
@@ -351,9 +395,9 @@ else
         busy = true;
         try
         {
-            // The input is labeled UTC, matching every timestamp this panel shows.
-            await MonitorService.SnoozeAsync(
-                TenantId, token.Id, new DateTimeOffset(DateTime.SpecifyKind(until, DateTimeKind.Utc)), ActorUserId);
+            // The datetime-local input is interpreted in the viewer's time zone, matching every
+            // timestamp this panel shows (store UTC, display local).
+            await MonitorService.SnoozeAsync(TenantId, token.Id, Time.ToUtc(until), ActorUserId);
             monitors = await MonitorService.ListAsync(TenantId, ProjectId);
             status = (Loc["Monitor.Saved"].Value, false);
         }

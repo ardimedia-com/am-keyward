@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **Timestamps now display in the viewer's local time zone instead of raw UTC.** Every timestamp the UI
+  shows (token last access, created/expires, secret last read, monitoring deadlines, statistics, alerts,
+  break-glass validity) was rendered as UTC with a trailing `Z`. The browser's time zone is now detected
+  once per circuit (IANA id via JS interop, DST-correct, with a fixed-offset fallback) and all timestamps
+  are converted at the UI edge — storage stays UTC. The underlying UTC instant remains visible as a
+  tooltip. The monitoring snooze ("pause until") input is likewise entered in local time now, and its
+  label drops the "(UTC)" hint. Embedding hosts get this automatically via `AddKeywardUi` — no wiring.
+
+### Added
+
+- **Monitoring rows show how much time remains — or how long a token is overdue.** Next to "next deadline"
+  the remaining time appears as a compact duration ("in 2 h 10 min"); a token that is down (or past its
+  deadline) shows how long it has been overdue ("overdue by 45 min"). The durations refresh once a minute.
+
 ## [0.11.3-preview] - 2026-08-08
 
 ### Changed
