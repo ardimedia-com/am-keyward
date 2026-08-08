@@ -1,9 +1,11 @@
 using System.Globalization;
 using Am.Keyward.Core.Application;
 using Am.Keyward.Core.Domain.Software;
+using Am.Keyward.Infrastructure.Monitoring;
 using Am.Keyward.Ui.Blazor;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Ui.Blazor.App.Identity;
 
@@ -23,8 +25,20 @@ public sealed class BrandedMailAlertPresenter(
     IAccountEmailSender sender,
     IStringLocalizer<SharedResource> loc,
     KeywardUiOptions uiOptions,
+    IOptions<MonitoringOptions> monitoringOptions,
     ILogger<BrandedMailAlertPresenter> logger) : IKeywardAlertPresenter
 {
+    // Mails are rendered by a background job — no browser to detect a viewer zone from — so timestamps
+    // use the installation's time zone (Keyward:Monitoring:TimeZone, server-local by default), with the
+    // UTC offset appended to keep the instant unambiguous.
+    private string FormatTimestamp(DateTimeOffset value) =>
+        TimeZoneInfo.ConvertTime(value, monitoringOptions.Value.ResolveTimeZone(logger))
+            .ToString("yyyy-MM-dd HH:mm zzz", CultureInfo.InvariantCulture);
+
+    private string FormatDate(DateTimeOffset value) =>
+        TimeZoneInfo.ConvertTime(value, monitoringOptions.Value.ResolveTimeZone(logger))
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
     public async Task<int> NotifyTokenAlertsAsync(
         Guid tenantId,
         bool monitoring,
@@ -91,7 +105,7 @@ public sealed class BrandedMailAlertPresenter(
                     x.ProjectName,
                     x.EnvironmentName,
                     x.DaysLeft,
-                    x.ExpiresAt.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)].Value)
+                    FormatDate(x.ExpiresAt)].Value)
                 .ToList();
 
             return (loc["Email.TokenExpiry.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
@@ -144,7 +158,7 @@ public sealed class BrandedMailAlertPresenter(
                         a.ProjectName,
                         a.EnvironmentName,
                         a.IpAddress ?? "?",
-                        a.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm 'UTC'", CultureInfo.InvariantCulture)].Value;
+                        FormatTimestamp(a.CreatedAt)].Value;
                 })
                 .ToList();
 

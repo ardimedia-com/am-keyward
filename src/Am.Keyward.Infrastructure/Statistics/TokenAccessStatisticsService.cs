@@ -1,7 +1,9 @@
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
+using Am.Keyward.Infrastructure.Monitoring;
 using Am.Keyward.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Infrastructure.Statistics;
 
@@ -10,13 +12,21 @@ namespace Am.Keyward.Infrastructure.Statistics;
 /// flush service), so every query goes through the application's token set — which IS tenant-checked: the
 /// requested tenant must match the server-authoritative scope, exactly like the token service.
 /// </summary>
-public sealed class TokenAccessStatisticsService(IDbContextFactory<KeywardDbContext> dbFactory, ICurrentTenant tenant, IClock clock) : ITokenAccessStatisticsService
+public sealed class TokenAccessStatisticsService(
+    IDbContextFactory<KeywardDbContext> dbFactory,
+    ICurrentTenant tenant,
+    IClock clock,
+    IOptions<MonitoringOptions> monitoringOptions) : ITokenAccessStatisticsService
 {
+    // Day buckets are keyed by the installation's time zone (see TokenAccessAccumulator).
+    public DateOnly CurrentStatisticsDay =>
+        DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(clock.UtcNow, monitoringOptions.Value.ResolveTimeZone()).DateTime);
+
     public async Task<IReadOnlyList<TokenDailyAccessInfo>> ListDailyAsync(Guid tenantId, Guid projectId, int days, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        var since = DateOnly.FromDateTime(clock.UtcNow.UtcDateTime).AddDays(-Math.Max(days, 1) + 1);
+        var since = CurrentStatisticsDay.AddDays(-Math.Max(days, 1) + 1);
         var tokenIds = TokenIds(db, tenantId, projectId);
         return await db.TokenDailyAccesses.AsNoTracking()
             .Where(d => tokenIds.Contains(d.TokenId) && d.Date >= since)

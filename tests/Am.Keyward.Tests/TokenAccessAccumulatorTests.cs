@@ -1,5 +1,7 @@
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Infrastructure.Monitoring;
 using Am.Keyward.Infrastructure.Statistics;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Tests;
 
@@ -16,11 +18,16 @@ public class TokenAccessAccumulatorTests
         public DateTimeOffset UtcNow { get; set; } = new(2026, 7, 30, 12, 0, 0, TimeSpan.Zero);
     }
 
+    // Day buckets follow the installation's time zone; pin it to UTC so the boundary assertions are
+    // deterministic regardless of the machine running the tests.
+    private static TokenAccessAccumulator CreateAccumulator(IClock clock) =>
+        new(clock, Options.Create(new MonitoringOptions { TimeZone = "UTC" }));
+
     [TestMethod, TestCategory("Unit")]
     public void Aggregates_counts_ips_and_last_access_per_token()
     {
         var clock = new MutableClock();
-        var accumulator = new TokenAccessAccumulator(clock);
+        var accumulator = CreateAccumulator(clock);
         var tokenA = Guid.NewGuid();
         var tokenB = Guid.NewGuid();
 
@@ -49,7 +56,7 @@ public class TokenAccessAccumulatorTests
     public void Counts_split_on_the_utc_day_boundary()
     {
         var clock = new MutableClock { UtcNow = new DateTimeOffset(2026, 7, 30, 23, 59, 0, TimeSpan.Zero) };
-        var accumulator = new TokenAccessAccumulator(clock);
+        var accumulator = CreateAccumulator(clock);
         var token = Guid.NewGuid();
 
         accumulator.Record(token, "10.0.0.1");
@@ -64,7 +71,7 @@ public class TokenAccessAccumulatorTests
     [TestMethod, TestCategory("Unit")]
     public void Drain_resets_the_batch_and_an_empty_batch_is_empty()
     {
-        var accumulator = new TokenAccessAccumulator(new MutableClock());
+        var accumulator = CreateAccumulator(new MutableClock());
         accumulator.Record(Guid.NewGuid(), "10.0.0.1");
 
         Assert.AreEqual(1, accumulator.Drain().Count);
@@ -74,7 +81,7 @@ public class TokenAccessAccumulatorTests
     [TestMethod, TestCategory("Unit")]
     public void Ip_is_normalized_and_garbage_is_dropped()
     {
-        var accumulator = new TokenAccessAccumulator(new MutableClock());
+        var accumulator = CreateAccumulator(new MutableClock());
         var token = Guid.NewGuid();
 
         accumulator.Record(token, "  10.0.0.1  ");            // trimmed
@@ -90,7 +97,7 @@ public class TokenAccessAccumulatorTests
     [TestMethod, TestCategory("Unit")]
     public void Ip_matching_is_case_insensitive_for_ipv6_literals()
     {
-        var accumulator = new TokenAccessAccumulator(new MutableClock());
+        var accumulator = CreateAccumulator(new MutableClock());
         var token = Guid.NewGuid();
 
         accumulator.Record(token, "2001:db8::AB");

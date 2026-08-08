@@ -25,6 +25,12 @@ public sealed record TokenAccessAlertInfo(Guid TokenId, TokenAccessAlertKind Kin
 /// <summary>Read side for the per-application statistics UI. Scoped to one (tenant, application).</summary>
 public interface ITokenAccessStatisticsService
 {
+    /// <summary>
+    /// Today's date in the zone the daily counters are bucketed by (the installation's time zone) —
+    /// the chart axis must end on this day, not on the viewer's or UTC's notion of "today".
+    /// </summary>
+    DateOnly CurrentStatisticsDay { get; }
+
     /// <summary>Daily request counters of the application's tokens for the trailing <paramref name="days"/> days.</summary>
     Task<IReadOnlyList<TokenDailyAccessInfo>> ListDailyAsync(Guid tenantId, Guid projectId, int days, CancellationToken ct = default);
 

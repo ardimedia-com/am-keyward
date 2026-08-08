@@ -647,7 +647,7 @@
   <data name="Token.LastAccess.Never" xml:space="preserve"><value>nie verwendet</value></data>
   <data name="Stats.Empty" xml:space="preserve"><value>Noch keine Tokens — Statistiken erscheinen, sobald die Tokens der Applikation verwendet werden.</value></data>
   <data name="Stats.Requests.Title" xml:space="preserve"><value>Zugriffe pro Tag (letzte {0} Tage)</value></data>
-  <data name="Stats.Requests.Desc" xml:space="preserve"><value>Wie oft jeder Token seine Secrets gelesen hat, aggregiert pro UTC-Tag. Die Zähler aktualisieren sich innert etwa einer Minute nach einem Zugriff.</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>Wie oft jeder Token seine Secrets gelesen hat, aggregiert pro Tag in der Server-Zeitzone. Die Zähler aktualisieren sich innert etwa einer Minute nach einem Zugriff.</value></data>
   <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} Zugriff(e)</value></data>
   <data name="Stats.Ips.Title" xml:space="preserve"><value>Gesehene IP-Adressen</value></data>
   <data name="Stats.Ips.Desc" xml:space="preserve"><value>Die Client-IPs, von denen jeder Token verwendet wurde (aus Sicht des Servers; hinter einem Proxy braucht es Forwarded-Headers). Einträge verfallen mit dem Aufbewahrungsfenster.</value></data>

@@ -14,6 +14,13 @@ All notable changes to this project are documented here, following
   are converted at the UI edge — storage stays UTC. The underlying UTC instant remains visible as a
   tooltip. The monitoring snooze ("pause until") input is likewise entered in local time now, and its
   label drops the "(UTC)" hint. Embedding hosts get this automatically via `AddKeywardUi` — no wiring.
+- **The monitoring time zone is now the installation's time zone, and background output follows it.**
+  `Keyward:Monitoring:TimeZone` no longer governs only the watch windows: alert/expiry notification
+  mails render their timestamps in that zone (with the UTC offset appended instead of the former
+  "UTC" label), and the statistics daily counters are bucketed by its calendar days instead of UTC
+  days — so a "day" in the chart is a day as the operators experience it. When no zone is configured,
+  the fallback is now the **server's local time zone** instead of UTC (this also applies to the watch
+  windows). Existing daily rows keep their UTC-day keys; only new counts use the new boundary.
 
 ### Added
 

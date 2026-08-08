@@ -25,6 +25,7 @@ public sealed class TokenAccessFlushService(
     IServiceScopeFactory scopeFactory,
     IClock clock,
     IOptions<TokenAccessOptions> options,
+    IOptions<Monitoring.MonitoringOptions> monitoringOptions,
     ILogger<TokenAccessFlushService> logger) : BackgroundService
 {
     private static readonly TimeSpan MinFlushInterval = TimeSpan.FromSeconds(5);
@@ -204,7 +205,8 @@ public sealed class TokenAccessFlushService(
     {
         var retention = TimeSpan.FromDays(Math.Max(options.Value.RetentionDays, 1));
         var cutoff = now - retention;
-        var cutoffDay = DateOnly.FromDateTime(cutoff.UtcDateTime);
+        // Day rows are keyed by the installation's time zone (see TokenAccessAccumulator) — trim in the same zone.
+        var cutoffDay = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(cutoff, monitoringOptions.Value.ResolveTimeZone()).DateTime);
 
         var days = await db.TokenDailyAccesses.Where(d => d.Date < cutoffDay).ExecuteDeleteAsync(ct).ConfigureAwait(false);
         var ips = await db.TokenAccessIps.Where(i => i.LastSeenAt < cutoff).ExecuteDeleteAsync(ct).ConfigureAwait(false);

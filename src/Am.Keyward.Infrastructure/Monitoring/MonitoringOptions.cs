@@ -17,19 +17,24 @@ public sealed class MonitoringOptions
     public int CheckIntervalSeconds { get; set; } = 60;
 
     /// <summary>
-    /// The time zone in which every monitor's watch window (weekdays, start/end times) is evaluated —
-    /// one app-wide zone, deliberately not a per-monitor field. Windows or IANA id (e.g.
-    /// "W. Europe Standard Time" or "Europe/Zurich"); empty = UTC. Timestamps stay UTC everywhere;
-    /// only the wall-clock window interpretation uses this zone.
+    /// The installation's time zone — one app-wide zone, deliberately not a per-monitor field. It governs
+    /// every server-side wall-clock interpretation: the monitors' watch windows (weekdays, start/end
+    /// times), the statistics per-day aggregation buckets, and the timestamps rendered into notification
+    /// e-mails (which have no browser to detect a viewer zone from). Windows or IANA id (e.g.
+    /// "W. Europe Standard Time" or "Europe/Zurich"); empty = the server's local time zone.
+    /// Timestamps are still STORED in UTC everywhere; this zone only shapes wall-clock interpretation.
     /// </summary>
     public string? TimeZone { get; set; }
 
-    /// <summary>Resolves <see cref="TimeZone"/>, falling back to UTC (logged by the caller once).</summary>
+    /// <summary>
+    /// Resolves <see cref="TimeZone"/>, falling back to the server's local time zone (logged by the
+    /// caller once when a configured zone is unknown).
+    /// </summary>
     public TimeZoneInfo ResolveTimeZone(ILogger? logger = null)
     {
         if (string.IsNullOrWhiteSpace(TimeZone))
         {
-            return TimeZoneInfo.Utc;
+            return TimeZoneInfo.Local;
         }
 
         try
@@ -39,9 +44,9 @@ public sealed class MonitoringOptions
         catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
         {
             logger?.LogWarning(
-                "Monitoring time zone '{TimeZone}' is unknown on this host — watch windows are evaluated in UTC instead.",
+                "Monitoring time zone '{TimeZone}' is unknown on this host — falling back to the server's local time zone.",
                 TimeZone);
-            return TimeZoneInfo.Utc;
+            return TimeZoneInfo.Local;
         }
     }
 }

@@ -129,7 +129,8 @@ public static class ServiceCollectionExtensions
 
         // Heartbeat monitoring (dead-man's switch): per-token silence monitors, evaluated periodically —
         // the access-pattern rules above fire when an access happens, a missing heartbeat needs a poller.
-        // Configure via the "Keyward:Monitoring" section (optional; TimeZone governs the watch windows).
+        // Configure via the "Keyward:Monitoring" section (optional; TimeZone is the installation's zone —
+        // watch windows, statistics day buckets and mail timestamps; server-local when unset).
         services.AddOptions<Monitoring.MonitoringOptions>().BindConfiguration(Monitoring.MonitoringOptions.SectionName);
         services.AddScoped<ITokenAccessMonitorService, Monitoring.TokenAccessMonitorService>();
         services.AddHostedService<Monitoring.TokenAccessMonitorBackgroundService>();

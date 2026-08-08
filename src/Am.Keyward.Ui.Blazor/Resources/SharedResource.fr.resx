@@ -647,7 +647,7 @@
   <data name="Token.LastAccess.Never" xml:space="preserve"><value>jamais utilisé</value></data>
   <data name="Stats.Empty" xml:space="preserve"><value>Pas encore de jetons — les statistiques apparaissent dès que les jetons de l'application sont utilisés.</value></data>
   <data name="Stats.Requests.Title" xml:space="preserve"><value>Requêtes par jour (derniers {0} jours)</value></data>
-  <data name="Stats.Requests.Desc" xml:space="preserve"><value>La fréquence à laquelle chaque jeton a lu ses secrets, agrégée par jour UTC. Les compteurs se mettent à jour environ une minute après un accès.</value></data>
+  <data name="Stats.Requests.Desc" xml:space="preserve"><value>La fréquence à laquelle chaque jeton a lu ses secrets, agrégée par jour dans le fuseau horaire du serveur. Les compteurs se mettent à jour environ une minute après un accès.</value></data>
   <data name="Stats.Requests.Total" xml:space="preserve"><value>{0} requête(s)</value></data>
   <data name="Stats.Ips.Title" xml:space="preserve"><value>Adresses IP observées</value></data>
   <data name="Stats.Ips.Desc" xml:space="preserve"><value>Les IP clientes depuis lesquelles chaque jeton a été utilisé (vues par le serveur ; derrière un proxy, les en-têtes « forwarded » sont nécessaires). Les entrées expirent avec la fenêtre de rétention.</value></data>

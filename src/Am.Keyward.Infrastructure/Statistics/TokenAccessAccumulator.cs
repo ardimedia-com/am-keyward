@@ -1,5 +1,7 @@
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
+using Am.Keyward.Infrastructure.Monitoring;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Infrastructure.Statistics;
 
@@ -7,14 +9,17 @@ namespace Am.Keyward.Infrastructure.Statistics;
 /// The in-memory half of token access statistics: <see cref="Record"/> is called on every authenticated
 /// software-client request and only mutates a dictionary under a lock — no I/O, no exceptions escaping —
 /// so the secret-read hot path never pays for statistics. <see cref="Drain"/> hands the accumulated batch
-/// to the flush service and starts a fresh one. Singleton.
+/// to the flush service and starts a fresh one. Singleton. Day buckets are keyed by the installation's
+/// time zone (<see cref="MonitoringOptions.TimeZone"/>, server-local by default), so a day in the chart
+/// is a calendar day as the operators experience it.
 /// </summary>
-public sealed class TokenAccessAccumulator(IClock clock) : ITokenAccessRecorder
+public sealed class TokenAccessAccumulator(IClock clock, IOptions<MonitoringOptions> monitoringOptions) : ITokenAccessRecorder
 {
     /// <summary>IPs longer than this are ignored (an IPv6 literal fits comfortably; anything longer is garbage).</summary>
     private const int MaxIpLength = 64;
 
     private readonly Lock gate = new();
+    private readonly TimeZoneInfo zone = monitoringOptions.Value.ResolveTimeZone();
     private Dictionary<Guid, PendingTokenAccess> pending = [];
 
     public void Record(Guid tokenId, string? ipAddress)
@@ -28,7 +33,7 @@ public sealed class TokenAccessAccumulator(IClock clock) : ITokenAccessRecorder
                 pending[tokenId] = access = new PendingTokenAccess(now);
             }
 
-            access.Register(now, ip);
+            access.Register(now, ip, zone);
         }
     }
 
@@ -74,9 +79,9 @@ public sealed class PendingTokenAccess(DateTimeOffset firstAccessAt)
 
     public IReadOnlyDictionary<string, DateTimeOffset> IpLastSeen => ipLastSeen;
 
-    public void Register(DateTimeOffset now, string? ip)
+    public void Register(DateTimeOffset now, string? ip, TimeZoneInfo zone)
     {
-        var day = DateOnly.FromDateTime(now.UtcDateTime);
+        var day = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
         countsByDay[day] = countsByDay.GetValueOrDefault(day) + 1;
         LastAccessAt = now;
         if (ip is not null)

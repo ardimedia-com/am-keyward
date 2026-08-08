@@ -134,6 +134,7 @@ else
     private IReadOnlyList<TokenDailyAccessInfo>? daily;
     private IReadOnlyList<TokenAccessIpInfo>? ips;
     private IReadOnlyList<TokenAccessAlertInfo>? alerts;
+    private DateOnly statisticsToday;
 
     // Timestamps inside localized strings can't use <LocalTime/> — refresh once the browser zone resolves.
     protected override void OnInitialized() => Time.Changed += OnTimeZoneResolved;
@@ -155,6 +156,7 @@ else
     {
         environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
         tokens = await TokenService.ListAsync(TenantId, ProjectId);
+        statisticsToday = StatsService.CurrentStatisticsDay;
         daily = await StatsService.ListDailyAsync(TenantId, ProjectId, LoadDays);
         ips = await StatsService.ListIpsAsync(TenantId, ProjectId);
         alerts = await StatsService.ListAlertsAsync(TenantId, ProjectId);
@@ -177,10 +179,11 @@ else
     private Dictionary<DateOnly, long> DailyFor(Guid tokenId) =>
         daily!.Where(d => d.TokenId == tokenId).ToDictionary(d => d.Date, d => d.RequestCount);
 
-    // Fixed day slots (oldest → today, UTC) so every token's bars align on the same axis.
-    private static IEnumerable<DateOnly> ChartWindow()
+    // Fixed day slots (oldest → today, in the installation's statistics zone — the zone the buckets are
+    // keyed by) so every token's bars align on the same axis.
+    private IEnumerable<DateOnly> ChartWindow()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = statisticsToday;
         for (var i = ChartDays - 1; i >= 0; i--)
         {
             yield return today.AddDays(-i);
