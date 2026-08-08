@@ -161,8 +161,10 @@ public sealed class TokenAccessAlertNotificationService(
             .Select(m => m.UserId)
             .ToListAsync(ct)
             .ConfigureAwait(false);
+        // A host with its own subscription model gets every administrator and decides itself who to tell;
+        // otherwise Keyward's per-user opt-ins select the audience. See IKeywardAlertPresenter.
         var recipients = await db.Users
-            .Where(u => (monitoring ? u.NotifyMonitoring : u.NotifyTokenAccessAlerts)
+            .Where(u => (presenter.OwnsRecipientSelection || (monitoring ? u.NotifyMonitoring : u.NotifyTokenAccessAlerts))
                 && u.Issuer == null && (u.IsSystemAdmin || adminUserIds.Contains(u.Id)))
             .Select(u => new KeywardAlertRecipient(u.Id, u.ExternalId))
             .ToListAsync(ct)

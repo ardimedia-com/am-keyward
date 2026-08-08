@@ -43,6 +43,12 @@ All notable changes to this project are documented here, following
   **BREAKING for hosts that embed Keyward:** register an `IKeywardAlertPresenter` — without one, alerts are
   collected but not delivered (and now say so).
 
+- **A host with its own subscription model now owns the audience.** `IKeywardAlertPresenter.OwnsRecipientSelection`
+  (default `false`, so the standalone shell is unchanged) makes Keyward skip its per-user opt-ins and pass
+  every administrator of the tenant. Without it the two opt-ins stack: a user who subscribed in the host
+  still hears nothing, because a second switch — on a Keyward profile page they never visit, defaulting to
+  off — silently filters the recipients away before the presenter is ever called.
+
 - **Token-expiry notices reach an embedded Keyward too.** `TokenExpiryEmailService` had the same blind spot
   as the alert poller and moved the same way: the schedule, recipients and the notice mark now live in
   `TokenExpiryNotificationService` in `Am.Keyward.Infrastructure` (registered by `AddKeyward`), the wording

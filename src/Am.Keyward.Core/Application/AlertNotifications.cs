@@ -47,6 +47,19 @@ public sealed record KeywardTokenExpiryLine(
 public interface IKeywardAlertPresenter
 {
     /// <summary>
+    /// Whether the HOST decides who hears about an alert. Default <c>false</c>: Keyward filters by its own
+    /// per-user opt-ins (the notification switches on the Keyward profile), which is right for the
+    /// standalone shell where that profile is the only place to configure them.
+    /// <para>
+    /// A host with its own subscription model should return <c>true</c>. Keyward then passes every
+    /// administrator of the tenant and applies no opt-in of its own, so notifications are configured in ONE
+    /// place — the host's. Otherwise the two opt-ins stack: a user subscribed in the host still hears
+    /// nothing because a second switch, in a settings page they never visit, defaults to off.
+    /// </para>
+    /// </summary>
+    bool OwnsRecipientSelection => false;
+
+    /// <summary>
     /// Delivers one tenant's fresh alerts of one category to the given recipients. Returns how many
     /// recipients were actually reached; the caller marks the alerts as notified only on a non-zero result,
     /// so a host that is temporarily unable to deliver keeps them pending instead of losing them.
