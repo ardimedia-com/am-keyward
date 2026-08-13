@@ -45,6 +45,11 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IKeywardAccessPolicy, TenantAuthorizationService>();
         services.AddScoped<ITenantMembership, TenantMembershipService>();
+
+        // The host-identity binding (just-in-time AppUser + tenant membership from the host's own access
+        // model). It runs on the host's AUTHENTICATION path, so it deliberately needs no tenant scope: the
+        // Users and TenantMemberships tables are installation-global.
+        services.AddScoped<IKeywardIdentityBinder, KeywardIdentityBinder>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();

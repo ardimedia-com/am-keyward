@@ -73,14 +73,14 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 });
 
 // Per-circuit scope: the reusable Keyward user handler establishes the current user from the circuit's auth
-// state; the demo tenant handler pins the (demo-only) tenant — sign-in identifies the user, not the tenant yet.
+// state — sign-in identifies the user, not the tenant.
 builder.Services.AddKeywardBlazorUserScope();
-builder.Services.AddScoped<CircuitHandler, DemoTenantCircuitHandler>();
 
-// The workspace context the embedded Keyward UI pages (RCL) read for their tenant. The reference shell
-// points it at the demo tenant; a real host supplies its own selection. AddKeywardUi registers the RCL's
-// own circuit-scoped UI state (e.g. the application picked on the Applications page).
-builder.Services.AddScoped<Am.Keyward.Ui.Blazor.IKeywardWorkspaceContext, DemoWorkspaceContext>();
+// The shell is a SINGLE-ORGANIZATION host (one demo tenant), so it takes the packaged single-tenant glue
+// instead of hand-writing it: this registers the workspace context the embedded UI pages read AND the
+// circuit handler that pins the tenant. The HTTP/SSR half is app.UseKeywardSingleTenant below. A
+// multi-tenant host does not use this — it implements IKeywardWorkspaceContext from its own selection.
+builder.Services.AddKeywardSingleTenant(Demo.TenantId);
 // The product name users see (browser tab, sidebar brand, texts) and the public base URL for absolute
 // links in notification e-mails — the host names its installation.
 builder.Services.AddKeywardUi(o =>
@@ -231,6 +231,11 @@ app.UseAntiforgery();
 // Establish the server-authoritative current user from the authenticated principal for this request (HTTP
 // path; the Blazor circuit path is covered by AddKeywardBlazorUserScope's circuit handler).
 app.UseKeywardCurrentUser();
+
+// Single-organization host: pin the tenant on the HTTP/SSR path too. The circuit handler from
+// AddKeywardSingleTenant only covers the interactive path, and a PRERENDERING Keyward page calls a Keyward
+// service before the circuit exists — without this it would hit an unset ambient tenant.
+app.UseKeywardSingleTenant(Demo.TenantId);
 
 app.UseRateLimiter();
 

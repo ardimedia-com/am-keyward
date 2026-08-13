@@ -5,6 +5,42 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Packaged hosting glue for a single-organization host.** Embedding Keyward in an application whose users
+  all belong to ONE fixed tenant required about 400 lines of hand-written host code, and two of our hosts had
+  written the same thing twice. Those pieces now ship with the libraries:
+  - `AddKeywardSingleTenant(tenantId)` / `UseKeywardSingleTenant(tenantId)` (`Am.Keyward.AspNetCore`) —
+    registers the fixed-tenant `IKeywardWorkspaceContext` and pins the tenant scope on BOTH paths (the Blazor
+    circuit and the HTTP/SSR request). Getting only one of the two is the classic cause of "Tenant scope
+    mismatch" on a prerendering page.
+  - `IKeywardIdentityBinder` (`Am.Keyward.Core`, implemented in `Am.Keyward.Infrastructure`, registered by
+    `AddKeyward`) — just-in-time `AppUser` creation keyed by the host's own user id, app-lock serialized, with
+    flag and tenant-membership reconciliation (including REMOVING a membership when the host withdrew vault
+    access). A host now only translates its own access model into a `KeywardIdentityBinding`
+    (`IsSystemAdmin` / `IsSoftwareManager` / `IsTenantMember`).
+  - `KeywardClaimsBinding.ApplyAsync(...)` (`Am.Keyward.AspNetCore`) — runs the binder from a
+    `UserClaimsPrincipalFactory`, stamps `KeywardClaims`, and treats a Keyward outage as non-fatal, because
+    throwing on the authentication path would break every page of the HOST for every user.
+  - `KeywardSingleTenantSeeder.EnsureSeededAsync(...)` (`Am.Keyward.Infrastructure`) — the insert-only startup
+    seed of the fixed tenant and, optionally, the host's own machine-secrets application with the default
+    environment set.
+  - `DpapiKekFile` / `DpapiKekEscrow` (`Am.Keyward.Infrastructure`) — the recommended Windows key custody:
+    a DPAPI-protected KEK file outside the database, plus the `--keyward-export-kek` /
+    `--keyward-import-kek` console commands that lift the key out of its machine binding under a passphrase
+    (PBKDF2-SHA256 → AES-256-GCM). The helper takes the directory from the host and hardcodes no path.
+
+### Changed
+
+- **BREAKING:** `IKeywardWorkspaceContext` moved from `Am.Keyward.Ui.Blazor` to
+  `Am.Keyward.Core.Abstractions`. It is a host-integration contract, like `ICurrentTenant` /
+  `ITenantScopeSetter` next to which it now lives, and hosting glue must be able to see it without depending
+  on the UI package. Hosts that implement it change one `using`; single-organization hosts should drop their
+  implementation entirely and call `AddKeywardSingleTenant` instead. `Am.Keyward.Ui.Blazor` still consumes it,
+  so the UI pages are unaffected.
+- The reference shell now uses the packaged glue itself (`DemoWorkspaceContext` and
+  `DemoTenantCircuitHandler` are gone), so the embedding path in `README.md` and the shell no longer diverge.
+
 ## [0.11.4-preview] - 2026-08-08
 
 ### Added

@@ -98,6 +98,10 @@ crypto, audit, vaults, tokens, break-glass and monitoring:
 
 ```csharp
 // The KEK comes from your provider (Azure Key Vault / HSM / a protected file) — NEVER from the DB/appsettings.
+// On Windows, DpapiKekFile is the packaged recommended custody: a DPAPI-protected file in a directory YOU
+// choose (outside the database and outside any folder a deploy replaces), created on first run:
+//   var (kek, kekId, created) = DpapiKekFile.LoadOrCreate(@"C:\ProgramData\<Company>\<App>\keyward");
+// `created` is your cue to log the "back it up offline" warning once — see the escrow note below.
 var keywardConn = builder.Configuration.GetConnectionString("Keyward")!;
 var (kek, kekId) = LoadKekFromYourProvider();
 builder.Services.AddKeyward(keywardConn, kek, kekId);
@@ -106,8 +110,15 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // own IKekProvider, or a KeyRingKekProvider holding the current + prior versions during a KEK rotation:
 // builder.Services.AddKeyward(keywardConn, sp => new KeyRingKekProvider(currentKekId, keksByVersion));
 
-// Tell the embedded UI which tenant to operate in (from your own selection logic), and register the UI's
-// own services (circuit-scoped state + localization for the Keyward strings, six languages built in).
+// Tell the embedded UI which tenant to operate in. A SINGLE-ORGANIZATION host takes the packaged glue —
+// one call registers the fixed-tenant IKeywardWorkspaceContext AND the circuit handler that pins the tenant
+// scope (pair it with app.UseKeywardSingleTenant below for the HTTP/SSR path). A MULTI-TENANT host instead
+// implements IKeywardWorkspaceContext (Am.Keyward.Core.Abstractions) from its own selection and calls
+// ITenantScopeSetter.SetTenant itself.
+builder.Services.AddKeywardSingleTenant(myTenantId);
+
+// Register the UI's own services (circuit-scoped state + localization for the Keyward strings, six
+// languages built in).
 // ProductName is what your users see (browser tab, brand, texts, e-mails); default "AM KEYWARD".
 // PublicBaseUrl (optional) enables absolute links in notification e-mails sent by background jobs.
 // NotificationLanguage (optional) sets the language for those background e-mails (account e-mails
@@ -117,7 +128,6 @@ builder.Services.AddKeyward(keywardConn, kek, kekId);
 // APPLICATION (application "Bvd.Li.Toolbox" -> KEYWARD_BVD_LI_TOOLBOX_TOKEN), so two applications on one
 // host never collide; set TokenEnvironmentVariableName only if every application here reads one fixed
 // variable. ClientApiBasePath is the path you mapped MapKeywardClientApi at.
-builder.Services.AddScoped<IKeywardWorkspaceContext, MyWorkspaceContext>();
 builder.Services.AddKeywardUi(o =>
 {
     o.ProductName = "Contoso Secrets";
@@ -147,17 +157,45 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();                            // MUST come after auth — tokens bind to the signed-in user
 app.UseKeywardCurrentUser();                     // middleware: current user per HTTP request
+app.UseKeywardSingleTenant(myTenantId);          // single-organization host: pin the tenant on the HTTP path
 ```
 
-- **`KeywardClaims.UserId` must be a GUID that exists in Keyward's `Users` table (`AppUser`).** Keyward does
-  not create these rows for you: on first sign-in, create the `Tenant`, the `AppUser` and a
-  `TenantMembership` (role `TenantAdmin` for managers) through `KeywardDbContext` — see the reference
-  shell's `KeywardUserClaimsPrincipalFactory` (JIT `AppUser` + membership, first user becomes system admin)
-  and `Demo.EnsureSeededAsync` (tenant seed). Without these rows the pages render empty and read-only.
-- **Tenant selection stays yours** (it is app-specific): register a `CircuitHandler` that calls
-  `ITenantScopeSetter.SetTenant(...)` in `OnCircuitOpenedAsync` with the same tenant your
-  `IKeywardWorkspaceContext` returns — see the reference shell's 15-line `DemoTenantCircuitHandler`. If the
-  circuit scope is missing, every page fails with *"Tenant scope mismatch"*.
+**Creating those Keyward records is done for you.** `IKeywardIdentityBinder` (registered by `AddKeyward`)
+finds or just-in-time creates the `AppUser` for your user id, keeps its flags in sync and reconciles the
+tenant membership — including *removing* it when you withdraw vault access. All you decide is what the user
+may be, from your own access model. In ASP.NET Core that is a claims factory plus one call:
+
+```csharp
+public sealed class MyKeywardClaimsFactory(
+    UserManager<MyUser> users, RoleManager<IdentityRole> roles, IOptions<IdentityOptions> options,
+    IKeywardIdentityBinder binder, ILogger<MyKeywardClaimsFactory> logger)
+    : UserClaimsPrincipalFactory<MyUser, IdentityRole>(users, roles, options)
+{
+    protected override async Task<ClaimsIdentity> GenerateClaimsAsync(MyUser user)
+    {
+        var identity = await base.GenerateClaimsAsync(user);   // your role claims
+        var isAdmin = identity.HasClaim(Options.ClaimsIdentity.RoleClaimType, "Admin");
+
+        await KeywardClaimsBinding.ApplyAsync(
+            identity, binder, user.Id, user.UserName ?? user.Id, myTenantId,
+            isAdmin ? KeywardIdentityBinding.Administrator : KeywardIdentityBinding.Member,
+            logger);
+
+        return identity;   // Keyward unavailable? The user still signs in, only Keyward pages are dead.
+    }
+}
+```
+
+- **`KeywardClaims.UserId` must be a GUID that exists in Keyward's `Users` table (`AppUser`).** Use
+  `IKeywardIdentityBinder` (above) — it creates the `AppUser` and the `TenantMembership` for you. The
+  `Tenant` itself is seeded once at startup: `KeywardSingleTenantSeeder.EnsureSeededAsync(...)` covers the
+  fixed tenant and, optionally, your own machine-secrets application. Without these rows the pages render
+  empty and read-only.
+- **Tenant selection stays yours** where it is app-specific: a multi-tenant host registers a `CircuitHandler`
+  that calls `ITenantScopeSetter.SetTenant(...)` in `OnCircuitOpenedAsync` with the same tenant its
+  `IKeywardWorkspaceContext` returns, and pins the same tenant per HTTP request. A single-organization host
+  gets both from `AddKeywardSingleTenant` + `UseKeywardSingleTenant`. If either scope is missing, pages fail
+  with *"Tenant scope mismatch"* — the HTTP one bites first, on a prerendering page.
 - **Symptom check:** a Keyward page stuck at "Loading…" for a signed-in user means the circuit has no
   Keyward user — verify `AddKeywardBlazorUserScope()` is registered and the principal carries a valid-GUID
   `KeywardClaims.UserId`.
