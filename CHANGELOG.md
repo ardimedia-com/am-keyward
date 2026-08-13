@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.12.0-preview] - 2026-08-13
+
 ### Added
 
 - **Packaged hosting glue for a single-organization host.** Embedding Keyward in an application whose users
