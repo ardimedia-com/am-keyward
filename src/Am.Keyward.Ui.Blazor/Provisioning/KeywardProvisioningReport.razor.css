@@ -1,8 +1,16 @@
-/* Styled against the --kw-* token contract, like the rest of the package, so a host themes it by redefining
-   those variables. Scoped CSS: it cannot leak into the host's own markup, and the host needs no <link>. */
+/* This component is dropped onto a HOST page, OUTSIDE the .keyward-ui shell — that is its whole purpose: it
+   has to render where Keyward is switched off and none of the package's UI is wired. The --kw-* design tokens
+   are defined on .keyward-ui (scoped CSS of the KeywardUi component), so they do NOT reach here, and any
+   hardcoded fallback would be a bet on the host's theme. It lost that bet once: light-mode fallbacks made the
+   report unreadable on a dark host.
+
+   So this stylesheet takes no colour from anywhere. It INHERITS the host's text colour and derives every
+   surface, border and muted tone from `currentColor`, which is correct in light and dark by construction.
+   Status hues (green / amber / red) are used only as a low-alpha tint on backgrounds and borders and on the
+   icons, never as body text — a fixed text hue is exactly what stops being readable when the theme flips. */
 
 .kwp {
-    color: var(--kw-fg, #111);
+    color: inherit;
 }
 
 .kwp-head h1 {
@@ -10,29 +18,30 @@
     font-size: 1.5rem;
     font-weight: 600;
     letter-spacing: -0.01em;
+    color: inherit;
 }
 
 .kwp-head p {
     margin: 0.4rem 0 0;
     font-size: 0.85rem;
-    color: var(--kw-muted-fg, #6b7280);
+    color: color-mix(in oklch, currentColor 65%, transparent);
 }
 
 .kwp-version {
     margin-left: 0.6rem;
     padding: 0.1rem 0.5rem;
-    border: 1px solid var(--kw-border, #e5e7eb);
+    border: 1px solid color-mix(in oklch, currentColor 20%, transparent);
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 500;
-    color: var(--kw-muted-fg, #6b7280);
+    color: color-mix(in oklch, currentColor 65%, transparent);
     white-space: nowrap;
 }
 
 .kwp-loading {
     margin-top: 1.5rem;
     font-size: 0.85rem;
-    color: var(--kw-muted-fg, #6b7280);
+    color: color-mix(in oklch, currentColor 65%, transparent);
 }
 
 .kwp-banner {
@@ -41,7 +50,7 @@
     align-items: flex-start;
     margin-top: 1.5rem;
     padding: 0.9rem 1.1rem;
-    border: 1px solid var(--kw-border, #e5e7eb);
+    border: 1px solid color-mix(in oklch, currentColor 20%, transparent);
     border-radius: 0.75rem;
 }
 
@@ -51,16 +60,21 @@
         margin: 0.25rem 0 0;
         font-size: 0.82rem;
         line-height: 1.5;
-        color: var(--kw-muted-fg, #6b7280);
+        color: color-mix(in oklch, currentColor 70%, transparent);
     }
 
 .kwp-banner-icon { flex-shrink: 0; margin-top: 0.1rem; }
 
-.kwp-banner-ok { background: color-mix(in oklch, #16a34a 8%, transparent); border-color: color-mix(in oklch, #16a34a 35%, transparent); }
-.kwp-banner-warn { background: color-mix(in oklch, #d97706 8%, transparent); border-color: color-mix(in oklch, #d97706 35%, transparent); }
-.kwp-banner-error { background: color-mix(in oklch, #dc2626 8%, transparent); border-color: color-mix(in oklch, #dc2626 35%, transparent); }
+/* Tint only — the text stays currentColor, so the banner reads in either theme. */
+.kwp-banner-ok { background: color-mix(in oklch, #16a34a 10%, transparent); border-color: color-mix(in oklch, #16a34a 40%, transparent); }
+.kwp-banner-ok .kwp-banner-icon { color: #22c55e; }
+.kwp-banner-warn { background: color-mix(in oklch, #d97706 10%, transparent); border-color: color-mix(in oklch, #d97706 40%, transparent); }
+.kwp-banner-warn .kwp-banner-icon { color: #f59e0b; }
+.kwp-banner-error { background: color-mix(in oklch, #dc2626 10%, transparent); border-color: color-mix(in oklch, #dc2626 40%, transparent); }
+.kwp-banner-error .kwp-banner-icon { color: #ef4444; }
 /* Calm and neutral — «off on purpose» is not a defect. */
 .kwp-banner-info { background: color-mix(in oklch, currentColor 5%, transparent); }
+.kwp-banner-info .kwp-banner-icon { color: color-mix(in oklch, currentColor 60%, transparent); }
 
 .kwp-checks {
     display: flex;
@@ -74,12 +88,13 @@
     gap: 0.7rem;
     align-items: flex-start;
     padding: 0.8rem 1rem;
-    border: 1px solid var(--kw-border, #e5e7eb);
+    border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
     border-radius: 0.65rem;
-    background: var(--kw-card, transparent);
+    background: color-mix(in oklch, currentColor 3%, transparent);
 }
 
-.kwp-check-missing { border-color: color-mix(in oklch, #dc2626 30%, var(--kw-border, #e5e7eb)); }
+.kwp-check-warning { border-color: color-mix(in oklch, #d97706 40%, transparent); }
+.kwp-check-missing { border-color: color-mix(in oklch, #dc2626 40%, transparent); }
 
 /* The step number, so an operator can refer to "point 3". */
 .kwp-check-no {
@@ -93,8 +108,15 @@
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 700;
-    background: color-mix(in oklch, currentColor 8%, transparent);
+    background: color-mix(in oklch, currentColor 12%, transparent);
+    color: inherit;
 }
+
+.kwp-check-icon { flex-shrink: 0; margin-top: 0.05rem; }
+
+.kwp-check-ok .kwp-check-icon { color: #22c55e; }
+.kwp-check-warning .kwp-check-icon { color: #f59e0b; }
+.kwp-check-missing .kwp-check-icon { color: #ef4444; }
 
 .kwp-check-body {
     display: flex;
@@ -105,15 +127,20 @@
 
 .kwp-check-title { font-weight: 600; font-size: 0.88rem; }
 
-.kwp-check-detail { font-size: 0.8rem; line-height: 1.45; color: var(--kw-muted-fg, #6b7280); }
+.kwp-check-detail { font-size: 0.8rem; line-height: 1.45; color: color-mix(in oklch, currentColor 70%, transparent); }
 
 /* Always-visible "what this point needs" line — the answer to "how do I make it green?". */
 .kwp-check-req { font-size: 0.78rem; line-height: 1.45; }
 
-.kwp-check-loc { font-size: 0.78rem; line-height: 1.45; color: var(--kw-muted-fg, #6b7280); }
+.kwp-check-loc { font-size: 0.78rem; line-height: 1.45; color: color-mix(in oklch, currentColor 65%, transparent); }
 
-/* The provider's own message on a failed probe — verbatim, because that is what an operator needs. */
-.kwp-check-error { font-size: 0.78rem; line-height: 1.45; color: #b91c1c; }
+/* The provider's own message on a failed probe — verbatim, because that is what an operator needs. Mixed
+   with currentColor so it stays legible on a dark surface instead of sitting at a fixed dark red. */
+.kwp-check-error {
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: color-mix(in oklch, #ef4444 70%, currentColor);
+}
 
 /* The concrete technical value(s), so they do not hide in the prose. */
 .kwp-check-tech {
@@ -123,11 +150,12 @@
     overflow-x: auto;
     white-space: nowrap;
     padding: 0.2rem 0.5rem;
-    border: 1px solid var(--kw-border, #e5e7eb);
+    border: 1px solid color-mix(in oklch, currentColor 18%, transparent);
     border-radius: 0.35rem;
-    background: color-mix(in oklch, currentColor 8%, transparent);
+    background: color-mix(in oklch, currentColor 10%, transparent);
     font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
     font-size: 0.76rem;
+    color: inherit;
 }
 
 .kwp-check-fix {

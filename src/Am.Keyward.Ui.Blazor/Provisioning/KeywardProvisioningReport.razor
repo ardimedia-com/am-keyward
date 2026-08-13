@@ -73,6 +73,7 @@
                 KeywardCheck check = this.checks[i];
                 <div class="kwp-check kwp-check-@check.State.ToString().ToLowerInvariant()">
                     <span class="kwp-check-no">@(i + 1)</span>
+                    <span class="kwp-check-icon"><KeywardIcon Name="@IconFor(check.State)" Size="18" /></span>
                     <div class="kwp-check-body">
                         <span class="kwp-check-title">@this.TitleOf(check)</span>
 
@@ -145,6 +146,13 @@
 
     // Loaded in OnInitializedAsync so the result is there on the first paint (also when prerendered).
     protected override async Task OnInitializedAsync() => this.checks = await Status.RunAsync();
+
+    /// <summary>The state at a glance — the border tint alone is too quiet, and unusable for a colour-blind reader.</summary>
+    private static string IconFor(KeywardCheckState state) => state switch
+    {
+        KeywardCheckState.Ok => "check",
+        _ => "alert",
+    };
 
     private string TitleOf(KeywardCheck check) => check.Id switch
     {

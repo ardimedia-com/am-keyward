@@ -5,6 +5,23 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.13.2-preview] - 2026-08-13
+
+### Fixed
+
+- **The provisioning report was unreadable on a dark host.** Its stylesheet fell back to light-mode literals
+  (`#111` text, `#e5e7eb` borders) whenever the `--kw-*` tokens were undefined — and they always are here: the
+  tokens live on `.keyward-ui`, which is scoped CSS of the `KeywardUi` component, while this report renders
+  **outside** that shell by design (it must work where none of the Keyward UI is wired). On a dark host the
+  result was near-black text on a near-black surface. The stylesheet now takes no colour from anywhere: it
+  inherits the host's text colour and derives every surface, border and muted tone from `currentColor`, so it
+  is correct in light and dark by construction. Status hues remain, but only as a low-alpha tint on
+  backgrounds/borders and on the icons — never as body text, which is precisely what stopped being readable
+  when the theme flipped.
+- **Two banner icons silently rendered nothing.** `KeywardIcon` had no `alert` and no `info` path, so the
+  report asked for icons that did not exist. Both are added, and each check row now carries its state icon
+  again — the border tint alone was too quiet, and unusable for a colour-blind reader.
+
 ## [0.13.1-preview] - 2026-08-13
 
 ### Fixed
