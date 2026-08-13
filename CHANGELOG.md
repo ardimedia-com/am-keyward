@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.13.0-preview] - 2026-08-13
+
 ### Added
 
 - **Provisioning diagnostics are now part of the package.** Both embedding hosts had grown their own copy of
