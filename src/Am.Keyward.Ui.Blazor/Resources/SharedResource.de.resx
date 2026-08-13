@@ -773,4 +773,193 @@
   <data name="Email.Monitor.Outro" xml:space="preserve"><value>Ein stiller Token bedeutet meist, dass sein Konsument nicht gelaufen ist — ein geplanter Task, der gar nicht startet, kann selbst keinen Fehler melden. Host und Task prüfen; Details stehen in den Tabs Überwachung und Statistik der Applikation.</value></data>
   <data name="Email.Monitor.Button" xml:space="preserve"><value>Applikationen öffnen</value></data>
   <data name="Email.Monitor.Footer" xml:space="preserve"><value>Sie erhalten diese Nachricht, weil in Ihrem Profil Benachrichtigungen der Heartbeat-Überwachung aktiviert sind.</value></data>
+  <data name="Provisioning.Title" xml:space="preserve">
+    <value>AM KEYWARD — Status</value>
+  </data>
+  <data name="Provisioning.Environment" xml:space="preserve">
+    <value>Umgebung {0} — hier ist Keyward {1}.</value>
+  </data>
+  <data name="Provisioning.Loading" xml:space="preserve">
+    <value>Status wird geprüft …</value>
+  </data>
+  <data name="Provisioning.Expectation.Optional" xml:space="preserve">
+    <value>freigestellt</value>
+  </data>
+  <data name="Provisioning.Expectation.ExpectedOff" xml:space="preserve">
+    <value>bewusst aus</value>
+  </data>
+  <data name="Provisioning.Expectation.Required" xml:space="preserve">
+    <value>erforderlich</value>
+  </data>
+  <data name="Provisioning.Expectation.Why.Optional" xml:space="preserve">
+    <value>In Development ist Keyward optional: an zum Entwickeln der Oberfläche oder aus, beides ist in Ordnung. Hier wird nichts als Mangel gemeldet.</value>
+  </data>
+  <data name="Provisioning.Expectation.Why.ExpectedOff" xml:space="preserve">
+    <value>In dieser Umgebung ist Keyward bewusst aus — es wird hier nichts provisioniert erwartet.</value>
+  </data>
+  <data name="Provisioning.Expectation.Why.Required" xml:space="preserve">
+    <value>In dieser Umgebung muss Keyward aktiv und provisioniert sein — hier liegen die Zugangsdaten wirklich. Ein «aus» ist ein zu schliessender Mangel.</value>
+  </data>
+  <data name="Provisioning.Banner.OffRequired.Title" xml:space="preserve">
+    <value>Keyward muss in «{0}» aktiv sein — ist es aber nicht.</value>
+  </data>
+  <data name="Provisioning.Banner.OffRequired.Text" xml:space="preserve">
+    <value>Die Punkte unten zeigen, was zu provisionieren ist.</value>
+  </data>
+  <data name="Provisioning.Banner.Off.Title" xml:space="preserve">
+    <value>Keyward ist in «{0}» aus — {1}.</value>
+  </data>
+  <data name="Provisioning.Banner.Ok.Title" xml:space="preserve">
+    <value>Keyward ist einsatzbereit.</value>
+  </data>
+  <data name="Provisioning.Banner.Ok.Text" xml:space="preserve">
+    <value>Alle Voraussetzungen sind erfüllt.</value>
+  </data>
+  <data name="Provisioning.Banner.Incomplete.Title" xml:space="preserve">
+    <value>Keyward ist eingeschaltet, aber {0} von {1} Punkten sind noch offen.</value>
+  </data>
+  <data name="Provisioning.Banner.Incomplete.Text" xml:space="preserve">
+    <value>Die Einrichtung ist nicht komplett — die Punkte unten der Reihe nach abarbeiten.</value>
+  </data>
+  <data name="Provisioning.Label.Requirement" xml:space="preserve">
+    <value>Erforderlich:</value>
+  </data>
+  <data name="Provisioning.Label.Location" xml:space="preserve">
+    <value>Ort:</value>
+  </data>
+  <data name="Provisioning.Label.Todo" xml:space="preserve">
+    <value>Zu tun:</value>
+  </data>
+  <data name="Provisioning.Check.FeatureSwitch.Title" xml:space="preserve">
+    <value>Feature-Schalter «Keyward:Enabled»</value>
+  </data>
+  <data name="Provisioning.Check.FeatureSwitch.Requirement" xml:space="preserve">
+    <value>«Keyward:Enabled» = true in der Konfiguration dieser Umgebung. Erst einschalten, wenn die übrigen Punkte erfüllt sind.</value>
+  </data>
+  <data name="Provisioning.Check.FeatureSwitch.Location" xml:space="preserve">
+    <value>{0} → Keyward:Enabled</value>
+  </data>
+  <data name="Provisioning.Check.KekFile.Title" xml:space="preserve">
+    <value>Schlüsseldatei (KEK)</value>
+  </data>
+  <data name="Provisioning.Check.KekFile.Requirement" xml:space="preserve">
+    <value>Wird NICHT von Hand bereitgestellt — die Schlüsseldatei entsteht beim ersten Start automatisch. Deine einzige Aufgabe ist, sie danach offline zu sichern.</value>
+  </data>
+  <data name="Provisioning.Check.KekFile.Location" xml:space="preserve">
+    <value>Keine Datei — entsteht beim Start automatisch; nur die Offline-Sicherung ist deine Aufgabe.</value>
+  </data>
+  <data name="Provisioning.Check.ConnectionString.Title" xml:space="preserve">
+    <value>Connection-String «{0}»</value>
+  </data>
+  <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve">
+    <value>Die EINZIGE Voraussetzung, die von Hand kommt: ein Connection-String auf den Datenbankserver dieser Umgebung. Ohne ihn startet Keyward nicht. Lokal Integrated Security; ausserhalb von Development der rechtearme Login.</value>
+  </data>
+  <data name="Provisioning.Check.ConnectionString.Location" xml:space="preserve">
+    <value>{0} → ConnectionStrings:{1}</value>
+  </data>
+  <data name="Provisioning.Check.DatabaseReachable.Title" xml:space="preserve">
+    <value>Datenbank erreichbar</value>
+  </data>
+  <data name="Provisioning.Check.DatabaseReachable.Requirement" xml:space="preserve">
+    <value>Der Login aus dem Connection-String muss die Datenbank öffnen können.</value>
+  </data>
+  <data name="Provisioning.Check.DatabaseReachable.Location" xml:space="preserve">
+    <value>Ergibt sich aus dem Connection-String</value>
+  </data>
+  <data name="Provisioning.Check.Schema.Title" xml:space="preserve">
+    <value>Schema «amkeyward» migriert</value>
+  </data>
+  <data name="Provisioning.Check.Schema.Requirement" xml:space="preserve">
+    <value>Das Schema «amkeyward» samt Tabellen. Migriert beim App-Start automatisch über eine privilegierte Verbindung.</value>
+  </data>
+  <data name="Provisioning.Check.Schema.Location" xml:space="preserve">
+    <value>DB-Schema amkeyward</value>
+  </data>
+  <data name="Provisioning.Check.Tenant.Title" xml:space="preserve">
+    <value>Mandant angelegt</value>
+  </data>
+  <data name="Provisioning.Check.Tenant.Requirement" xml:space="preserve">
+    <value>Der Mandant dieser Anwendung. Wird beim App-Start automatisch angelegt (geseedet).</value>
+  </data>
+  <data name="Provisioning.Check.Tenant.Location" xml:space="preserve">
+    <value>DB-Tabelle amkeyward.Tenants</value>
+  </data>
+  <data name="Provisioning.Outcome.Ok" xml:space="preserve">
+    <value>Vorhanden.</value>
+  </data>
+  <data name="Provisioning.Outcome.FeatureOffAcceptable" xml:space="preserve">
+    <value>Ausgeschaltet — Keyward ist hier vollständig ruhiggestellt: keine Dienste, keine Datenbankzugriffe, keine Routen.</value>
+  </data>
+  <data name="Provisioning.Outcome.FeatureOffRequired" xml:space="preserve">
+    <value>Ausgeschaltet, obwohl diese Umgebung Keyward benötigt.</value>
+  </data>
+  <data name="Provisioning.Outcome.KekMissing" xml:space="preserve">
+    <value>Noch nicht vorhanden.</value>
+  </data>
+  <data name="Provisioning.Outcome.KekNotFileBased" xml:space="preserve">
+    <value>Es ist ein externer Schlüsselanbieter konfiguriert — es gibt keine Schlüsseldatei zu prüfen.</value>
+  </data>
+  <data name="Provisioning.Outcome.ConnectionMissing" xml:space="preserve">
+    <value>Nicht hinterlegt.</value>
+  </data>
+  <data name="Provisioning.Outcome.ConnectionUnreadable" xml:space="preserve">
+    <value>Hinterlegt, aber nicht lesbar.</value>
+  </data>
+  <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
+    <value>Hinterlegt, aber mit Integrated Security.</value>
+  </data>
+  <data name="Provisioning.Outcome.DatabaseUnreachable" xml:space="preserve">
+    <value>Die Verbindung ist fehlgeschlagen.</value>
+  </data>
+  <data name="Provisioning.Outcome.SchemaMissing" xml:space="preserve">
+    <value>Das Schema «amkeyward» existiert in dieser Datenbank nicht.</value>
+  </data>
+  <data name="Provisioning.Outcome.SchemaNoMigrations" xml:space="preserve">
+    <value>Das Schema ist vorhanden, aber es wurde keine Migration angewendet.</value>
+  </data>
+  <data name="Provisioning.Outcome.SchemaUnreadable" xml:space="preserve">
+    <value>Der Migrationsstand ist nicht lesbar.</value>
+  </data>
+  <data name="Provisioning.Outcome.TenantMissing" xml:space="preserve">
+    <value>Der Mandant wurde noch nicht angelegt.</value>
+  </data>
+  <data name="Provisioning.Outcome.TenantUnreadable" xml:space="preserve">
+    <value>Der Mandanten-Eintrag ist nicht prüfbar.</value>
+  </data>
+  <data name="Provisioning.Outcome.NotProbed" xml:space="preserve">
+    <value>Nicht geprüft — eine vorherige Voraussetzung fehlt.</value>
+  </data>
+  <data name="Provisioning.Fix.FeatureOffRequired" xml:space="preserve">
+    <value>Diese Umgebung über die Anleitung provisionieren und «Keyward:Enabled» auf true setzen.</value>
+  </data>
+  <data name="Provisioning.Fix.KekMissing" xml:space="preserve">
+    <value>Wird beim nächsten Start automatisch erzeugt. Danach OFFLINE sichern — sie ist maschinengebunden und nicht wiederherstellbar.</value>
+  </data>
+  <data name="Provisioning.Fix.ConnectionMissing" xml:space="preserve">
+    <value>Den Connection-String auf den Datenbankserver dieser Umgebung ergänzen. Das Passwort als Deployment-Secret injizieren — niemals committen.</value>
+  </data>
+  <data name="Provisioning.Fix.ConnectionUnreadable" xml:space="preserve">
+    <value>Syntax des Connection-Strings prüfen.</value>
+  </data>
+  <data name="Provisioning.Fix.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
+    <value>Ausserhalb von Development den dedizierten, rechtearmen Login verwenden — Integrated Security ist nur lokal vorgesehen.</value>
+  </data>
+  <data name="Provisioning.Fix.DatabaseUnreachable" xml:space="preserve">
+    <value>Login, Passwort und Netzwerkzugang prüfen.</value>
+  </data>
+  <data name="Provisioning.Fix.SchemaMissing" xml:space="preserve">
+    <value>Es wird beim App-Start über eine privilegierte Verbindung angelegt. Diese Verbindung und ihre DDL-Rechte prüfen.</value>
+  </data>
+  <data name="Provisioning.Fix.SchemaNoMigrations" xml:space="preserve">
+    <value>Die Anwendung neu starten — die Migration läuft beim Start.</value>
+  </data>
+  <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve">
+    <value>Rechte des Logins auf das Schema «amkeyward» prüfen.</value>
+  </data>
+  <data name="Provisioning.Fix.TenantMissing" xml:space="preserve">
+    <value>Wird beim App-Start geseedet — neu starten und das Log auf Fehler prüfen.</value>
+  </data>
+  <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve">
+    <value>Rechte des Logins prüfen (der Seed läuft beim App-Start).</value>
+  </data>
 </root>

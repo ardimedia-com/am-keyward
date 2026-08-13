@@ -5,6 +5,32 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Provisioning diagnostics are now part of the package.** Both embedding hosts had grown their own copy of
+  the same ~600 lines — "is Keyward actually set up in THIS environment, and if not, what exactly is
+  missing?". It now ships here:
+  - `KeywardProvisioningStatusService` (`Am.Keyward.Infrastructure`, behind the `IKeywardProvisioningStatus`
+    port in Core) runs the six checks — feature switch, key file, connection string, database reachable,
+    schema migrated, tenant seeded — reading configuration and SQL **directly**. That is deliberate: it must
+    work in an environment where `AddKeyward` was never called, because explaining a dormant install is
+    exactly its job. It never surfaces a secret: a connection string is reduced to server / database / login.
+  - It carries **no prose**. A check reports an id and an outcome, and
+    `KeywardProvisioningReport` (`Am.Keyward.Ui.Blazor`) turns those into sentences in the viewer's language
+    — banner, numbered check list, requirement, location, fix hint. English and German ship; other languages
+    fall back to English until translated.
+  - `KeywardProvisioningStartupCheck` logs the remaining gaps once, shortly after boot and off the boot path,
+    so a half-configured environment shows up in the operator's log without anyone opening a page.
+  - `AddKeywardProvisioningStatus(environment, configure, addStartupCheck)` registers it. The host supplies
+    only what is genuinely its own: its master switch, its tenant, its key directory, its connection-string
+    key and its per-environment policy.
+  - The **host prose stays with the host**: `KeywardProvisioningReport` takes `RecoverySection` and
+    `ActivationGuide` fragments, because how an installation is backed up and how ITS environments are
+    provisioned differ per deployment and must not be frozen into a shared library.
+- **`KeywardMachineSecrets`** (`Am.Keyward.Infrastructure`) — the in-process reader a host uses for its OWN
+  machine credentials, Keyward-first with configuration fallback. The counterpart to `Am.Keyward.Client` for
+  an embedding host: no token, no HTTP hop. Register with `AddKeywardMachineSecrets(applicationName)`.
+
 ## [0.12.0-preview] - 2026-08-13
 
 ### Added

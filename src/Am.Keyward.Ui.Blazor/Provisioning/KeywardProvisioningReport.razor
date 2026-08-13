@@ -1,0 +1,177 @@
+@inject IKeywardProvisioningStatus Status
+@inject IStringLocalizer<SharedResource> Loc
+
+@* The reusable half of a host's Keyward status page: the verdict banner and the numbered check list, in the
+   viewer's language. What is NOT here is deliberate — the operator prose around it (how THIS installation is
+   backed up, which script creates ITS login, what its environments mean) differs per host, so a host renders
+   its own sections around this component through the optional fragments below.
+
+   The component resolves every sentence from the check's id + outcome, never from prose the service produced,
+   which is what lets the same diagnostics speak German here and English elsewhere. *@
+
+<div class="kwp">
+
+    <header class="kwp-head">
+        <h1>@Loc["Provisioning.Title"]</h1>
+        <p>
+            @Loc["Provisioning.Environment", Status.EnvironmentName, this.ExpectationLabel]
+            <span class="kwp-version">Keyward @Am.Keyward.Core.Support.KeywardVersion.Current</span>
+        </p>
+    </header>
+
+    @if (this.checks is null)
+    {
+        <p class="kwp-loading">@Loc["Provisioning.Loading"]</p>
+    }
+    else
+    {
+        @* Expectation-aware: «off» is only alarming where Keyward MUST run. *@
+        @if (this.Dormant && Status.Expectation == KeywardExpectation.Required)
+        {
+            <div class="kwp-banner kwp-banner-error">
+                <span class="kwp-banner-icon"><KeywardIcon Name="alert" /></span>
+                <div>
+                    <strong>@Loc["Provisioning.Banner.OffRequired.Title", Status.EnvironmentName]</strong>
+                    <p>@this.ExpectationWhy @Loc["Provisioning.Banner.OffRequired.Text"]</p>
+                </div>
+            </div>
+        }
+        else if (this.Dormant)
+        {
+            <div class="kwp-banner kwp-banner-info">
+                <span class="kwp-banner-icon"><KeywardIcon Name="info" /></span>
+                <div>
+                    <strong>@Loc["Provisioning.Banner.Off.Title", Status.EnvironmentName, this.ExpectationLabel]</strong>
+                    <p>@this.ExpectationWhy</p>
+                </div>
+            </div>
+        }
+        else if (this.checks.AllOk())
+        {
+            <div class="kwp-banner kwp-banner-ok">
+                <span class="kwp-banner-icon"><KeywardIcon Name="check" /></span>
+                <div>
+                    <strong>@Loc["Provisioning.Banner.Ok.Title"]</strong>
+                    <p>@Loc["Provisioning.Banner.Ok.Text"]</p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="kwp-banner kwp-banner-warn">
+                <span class="kwp-banner-icon"><KeywardIcon Name="alert" /></span>
+                <div>
+                    <strong>@Loc["Provisioning.Banner.Incomplete.Title", this.OpenCount, this.checks.Count]</strong>
+                    <p>@Loc["Provisioning.Banner.Incomplete.Text"]</p>
+                </div>
+            </div>
+        }
+
+        <div class="kwp-checks">
+            @for (int i = 0; i < this.checks.Count; i++)
+            {
+                KeywardCheck check = this.checks[i];
+                <div class="kwp-check kwp-check-@check.State.ToString().ToLowerInvariant()">
+                    <span class="kwp-check-no">@(i + 1)</span>
+                    <div class="kwp-check-body">
+                        <span class="kwp-check-title">@this.TitleOf(check)</span>
+
+                        @* Always shown — what this point needs to be green, also on the green ones. *@
+                        <span class="kwp-check-req">@Loc["Provisioning.Label.Requirement"] @this.RequirementOf(check)</span>
+                        <span class="kwp-check-loc">@Loc["Provisioning.Label.Location"] @this.LocationOf(check)</span>
+
+                        <span class="kwp-check-detail">@Loc[$"Provisioning.Outcome.{check.Outcome}"]</span>
+
+                        @if (check.Error is { Length: > 0 } error)
+                        {
+                            <span class="kwp-check-error">@error</span>
+                        }
+                        @if (check.Technical is { Length: > 0 } technical)
+                        {
+                            <code class="kwp-check-tech">@technical</code>
+                        }
+                        @if (this.FixOf(check) is { Length: > 0 } fix)
+                        {
+                            <span class="kwp-check-fix">@Loc["Provisioning.Label.Todo"] @fix</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Host sections. Recovery is shown where a key exists or will exist; the guide where the environment
+           is heading to "running" — the two conditions a host would otherwise have to reproduce itself. *@
+        @if (this.ShowRecovery && this.RecoverySection is not null)
+        {
+            @this.RecoverySection
+        }
+        @if (this.ShowActivationGuide && this.ActivationGuide is not null)
+        {
+            @this.ActivationGuide
+        }
+        @this.ChildContent
+    }
+
+</div>
+
+@code {
+    /// <summary>Host prose about backing up and restoring THIS installation's key; shown only where a key exists or will.</summary>
+    [Parameter] public RenderFragment? RecoverySection { get; set; }
+
+    /// <summary>Host prose on how to provision THIS environment; shown while it is not yet fully running.</summary>
+    [Parameter] public RenderFragment? ActivationGuide { get; set; }
+
+    /// <summary>Anything else the host wants below the checks.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IReadOnlyList<KeywardCheck>? checks;
+
+    private int OpenCount => this.checks?.Count(c => c.State != KeywardCheckState.Ok) ?? 0;
+
+    private bool Dormant => !Status.Enabled;
+
+    private bool AllOk => this.checks is { } c && c.AllOk();
+
+    /// <summary>A key only exists where Keyward runs, or is still to be provisioned — elsewhere the section is noise.</summary>
+    public bool ShowRecovery => Status.Enabled || Status.Expectation == KeywardExpectation.Required;
+
+    /// <summary>The guide is for environments heading to "running": required ones, or an enabled-but-incomplete one.</summary>
+    public bool ShowActivationGuide =>
+        !(Status.Enabled && this.AllOk) && (Status.Expectation == KeywardExpectation.Required || Status.Enabled);
+
+    private string ExpectationLabel => Loc[$"Provisioning.Expectation.{Status.Expectation}"];
+
+    private string ExpectationWhy => Loc[$"Provisioning.Expectation.Why.{Status.Expectation}"];
+
+    // Loaded in OnInitializedAsync so the result is there on the first paint (also when prerendered).
+    protected override async Task OnInitializedAsync() => this.checks = await Status.RunAsync();
+
+    private string TitleOf(KeywardCheck check) => check.Id switch
+    {
+        KeywardCheckId.ConnectionString => Loc["Provisioning.Check.ConnectionString.Title", Status.ConnectionStringName],
+        _ => Loc[$"Provisioning.Check.{check.Id}.Title"],
+    };
+
+    private string RequirementOf(KeywardCheck check) => Loc[$"Provisioning.Check.{check.Id}.Requirement"];
+
+    /// <summary>Where the change for this point is made — the settings file and key, or "happens at startup".</summary>
+    private string LocationOf(KeywardCheck check) => check.Id switch
+    {
+        KeywardCheckId.FeatureSwitch => Loc["Provisioning.Check.FeatureSwitch.Location", Status.SettingsFile],
+        KeywardCheckId.ConnectionString => Loc["Provisioning.Check.ConnectionString.Location", Status.SettingsFile, Status.ConnectionStringName],
+        _ => Loc[$"Provisioning.Check.{check.Id}.Location"],
+    };
+
+    /// <summary>The fix hint, where one applies — resource keys exist only for outcomes that need doing.</summary>
+    private string? FixOf(KeywardCheck check)
+    {
+        if (check.State == KeywardCheckState.Ok || check.Outcome == KeywardCheckOutcome.NotProbed)
+        {
+            return null;
+        }
+
+        string key = $"Provisioning.Fix.{check.Outcome}";
+        LocalizedString text = Loc[key];
+        return text.ResourceNotFound ? null : text.Value;
+    }
+}

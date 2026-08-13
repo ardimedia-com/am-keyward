@@ -1,0 +1,138 @@
+/* Styled against the --kw-* token contract, like the rest of the package, so a host themes it by redefining
+   those variables. Scoped CSS: it cannot leak into the host's own markup, and the host needs no <link>. */
+
+.kwp {
+    color: var(--kw-fg, #111);
+}
+
+.kwp-head h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.kwp-head p {
+    margin: 0.4rem 0 0;
+    font-size: 0.85rem;
+    color: var(--kw-muted-fg, #6b7280);
+}
+
+.kwp-version {
+    margin-left: 0.6rem;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid var(--kw-border, #e5e7eb);
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--kw-muted-fg, #6b7280);
+    white-space: nowrap;
+}
+
+.kwp-loading {
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--kw-muted-fg, #6b7280);
+}
+
+.kwp-banner {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    margin-top: 1.5rem;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--kw-border, #e5e7eb);
+    border-radius: 0.75rem;
+}
+
+    .kwp-banner strong { font-size: 0.9rem; }
+
+    .kwp-banner p {
+        margin: 0.25rem 0 0;
+        font-size: 0.82rem;
+        line-height: 1.5;
+        color: var(--kw-muted-fg, #6b7280);
+    }
+
+.kwp-banner-icon { flex-shrink: 0; margin-top: 0.1rem; }
+
+.kwp-banner-ok { background: color-mix(in oklch, #16a34a 8%, transparent); border-color: color-mix(in oklch, #16a34a 35%, transparent); }
+.kwp-banner-warn { background: color-mix(in oklch, #d97706 8%, transparent); border-color: color-mix(in oklch, #d97706 35%, transparent); }
+.kwp-banner-error { background: color-mix(in oklch, #dc2626 8%, transparent); border-color: color-mix(in oklch, #dc2626 35%, transparent); }
+/* Calm and neutral — «off on purpose» is not a defect. */
+.kwp-banner-info { background: color-mix(in oklch, currentColor 5%, transparent); }
+
+.kwp-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+}
+
+.kwp-check {
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--kw-border, #e5e7eb);
+    border-radius: 0.65rem;
+    background: var(--kw-card, transparent);
+}
+
+.kwp-check-missing { border-color: color-mix(in oklch, #dc2626 30%, var(--kw-border, #e5e7eb)); }
+
+/* The step number, so an operator can refer to "point 3". */
+.kwp-check-no {
+    flex-shrink: 0;
+    width: 1.4rem;
+    height: 1.4rem;
+    margin-top: 0.05rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: color-mix(in oklch, currentColor 8%, transparent);
+}
+
+.kwp-check-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.kwp-check-title { font-weight: 600; font-size: 0.88rem; }
+
+.kwp-check-detail { font-size: 0.8rem; line-height: 1.45; color: var(--kw-muted-fg, #6b7280); }
+
+/* Always-visible "what this point needs" line — the answer to "how do I make it green?". */
+.kwp-check-req { font-size: 0.78rem; line-height: 1.45; }
+
+.kwp-check-loc { font-size: 0.78rem; line-height: 1.45; color: var(--kw-muted-fg, #6b7280); }
+
+/* The provider's own message on a failed probe — verbatim, because that is what an operator needs. */
+.kwp-check-error { font-size: 0.78rem; line-height: 1.45; color: #b91c1c; }
+
+/* The concrete technical value(s), so they do not hide in the prose. */
+.kwp-check-tech {
+    align-self: flex-start;
+    margin-top: 0.15rem;
+    max-width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--kw-border, #e5e7eb);
+    border-radius: 0.35rem;
+    background: color-mix(in oklch, currentColor 8%, transparent);
+    font-family: ui-monospace, "Cascadia Code", Consolas, monospace;
+    font-size: 0.76rem;
+}
+
+.kwp-check-fix {
+    margin-top: 0.1rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    font-weight: 500;
+}
