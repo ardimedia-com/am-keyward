@@ -20,6 +20,12 @@
     <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
   </ItemGroup>
 
+  <!-- HtmlRenderer (Microsoft.AspNetCore.Components.Web.HtmlRendering) lives in the ASP.NET Core shared
+       framework; the provisioning-report render test needs it. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
   <!-- Test DB config (localhost default; CI overrides ConnectionStrings__Keyward) and the login-setup script
        the assembly bootstrap runs to provision the least-privilege amkeyward_app login for the RLS test. -->
   <ItemGroup>

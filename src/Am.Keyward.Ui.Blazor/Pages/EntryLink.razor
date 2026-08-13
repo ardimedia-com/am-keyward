@@ -5,6 +5,7 @@
 @inject ICurrentUser CurrentUser
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
+@inject KeywardUiOptions KeywardOptions
 
 @* Resolves a shareable deep link (/amkeyward/e/{base62 public id}) to a vault item and forwards to the right
    vault page with the item opened. An unknown / inaccessible / malformed link falls back to the vault list —

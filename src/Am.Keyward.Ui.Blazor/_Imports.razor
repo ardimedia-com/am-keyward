@@ -15,5 +15,7 @@
 @using Am.Keyward.Ui.Blazor
 @using Am.Keyward.Ui.Blazor.Pages
 @using Am.Keyward.Ui.Blazor.Vaults
-@* The host-configured product name, available in every component (browser tab, brand, texts). *@
-@inject KeywardUiOptions KeywardOptions
+@* NOTE: KeywardUiOptions is deliberately NOT injected here. A package-wide @inject applies to EVERY
+   component, including those that must work in a host where AddKeywardUi was never called — the provisioning
+   report is exactly that case, and a missing registration surfaces only at render time. Components that need
+   the options inject them themselves. *@

@@ -5,6 +5,20 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.13.1-preview] - 2026-08-13
+
+### Fixed
+
+- **The provisioning report crashed in exactly the environment it exists for.** `_Imports.razor` injected
+  `KeywardUiOptions` package-wide, so EVERY component required it — including
+  `KeywardProvisioningReport`, which is designed to render in a host that never called `AddKeywardUi`
+  (Keyward switched off). Opening the host's status page there failed with *"Cannot provide a value for
+  property 'KeywardOptions'"*: the page meant to explain a dormant installation was the one thing that did
+  not work while it was dormant. The package-wide inject is gone; the nine components that actually use the
+  options now inject them themselves. A regression test asserts that every `[Inject]` on the report resolves
+  from a container holding only `AddKeywardProvisioningStatus` — Blazor injects at RENDER time, so this class
+  of defect never shows up as a build error.
+
 ## [0.13.0-preview] - 2026-08-13
 
 ### Added

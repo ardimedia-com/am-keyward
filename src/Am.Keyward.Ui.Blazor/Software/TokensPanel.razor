@@ -6,6 +6,7 @@
 @inject NavigationManager Nav
 @inject BrowserTimeService Time
 @implements IDisposable
+@inject KeywardUiOptions KeywardOptions
 
 @* Client tokens for ONE application, rendered inside the Applications page's «Client-Tokens» tab. ONE ROW
    PER ENVIRONMENT: the model auto-creates a pending token slot per environment, so the natural unit is the
