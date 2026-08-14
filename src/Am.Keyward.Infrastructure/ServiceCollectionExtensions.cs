@@ -63,8 +63,14 @@ public static class ServiceCollectionExtensions
         // from the factory — in Blazor Server the DI scope is the whole circuit, and concurrent component
         // lifecycles sharing one scoped context raced ("a second operation was started on this context").
         services.AddDbContextFactory<KeywardDbContext>((sp, options) =>
+            // EnableRetryOnFailure: without it EF uses the NON-retrying SqlServerExecutionStrategy, and a
+            // seconds-long network blip (a SQL host's nightly maintenance window is the recurring one) fails
+            // the operation outright — observed 13.08.2026 04:58 on svrsql05, «Physical connection is not
+            // usable», straight out of this context. Consumers that open their own transaction must run it
+            // inside Database.CreateExecutionStrategy().ExecuteAsync(...), which a retrying strategy requires.
             options.UseSqlServer(connectionString, sql =>
-                    sql.MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
+                    sql.EnableRetryOnFailure(maxRetryCount: 6, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null)
+                        .MigrationsHistoryTable("__EFMigrationsHistory", KeywardDbContext.Schema))
                 .AddInterceptors(
                     sp.GetRequiredService<TenantSessionContextInterceptor>(),
                     sp.GetRequiredService<AuditChainInterceptor>(),

@@ -5,6 +5,18 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **A seconds-long database outage failed the operation instead of being ridden out.** `KeywardDbContext`
+  was registered without `EnableRetryOnFailure`, so EF used the non-retrying `SqlServerExecutionStrategy`:
+  a transport-level blip during a SQL host's nightly maintenance window (observed 2026-08-13 04:58,
+  "Physical connection is not usable") propagated straight out of the context. The registration now enables
+  retries (6 attempts, 30 s cap). Consequently the two places that open their own transaction — the identity
+  binder's find-or-create user and the app's just-in-time claims-factory user — run inside
+  `CreateExecutionStrategy().ExecuteAsync(...)` and clear the change tracker per attempt, because a retrying
+  strategy refuses a transaction it did not open and a reused context would otherwise insert the failed
+  attempt's row a second time.
+
 ## [0.13.2-preview] - 2026-08-13
 
 ### Fixed

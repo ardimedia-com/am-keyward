@@ -77,28 +77,37 @@ public sealed class KeywardUserClaimsPrincipalFactory(
         // "first account becomes the System Admin" decision and the insert are atomic: two simultaneous
         // first-time sign-ins can neither both become admin nor create duplicate rows for the same user.
         // The filtered unique index on ExternalId is the database backstop if the lock is ever unavailable.
-        await using var tx = await db.Database.BeginTransactionAsync();
-        await db.Database.ExecuteSqlRawAsync(
-            "EXEC sp_getapplock @Resource = N'Keyward_UserInit', @LockMode = 'Exclusive', @LockOwner = 'Transaction';");
-
-        // Re-check inside the lock — another concurrent sign-in for this user may have created it.
-        existing = await FindLocalUserAsync(user.Id);
-        if (existing is not null)
+        // The connection retries (EnableRetryOnFailure), and a retrying strategy refuses a transaction it did
+        // not open — so the whole just-in-time creation is the retried unit.
+        return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
+            // A retry re-runs this block on the SAME context: whatever the failed attempt tracked has to go,
+            // or the row it added would be inserted a second time.
+            db.ChangeTracker.Clear();
+
+            await using var tx = await db.Database.BeginTransactionAsync();
+            await db.Database.ExecuteSqlRawAsync(
+                "EXEC sp_getapplock @Resource = N'Keyward_UserInit', @LockMode = 'Exclusive', @LockOwner = 'Transaction';");
+
+            // Re-check inside the lock — another concurrent sign-in for this user may have created it.
+            AppUser? concurrent = await FindLocalUserAsync(user.Id);
+            if (concurrent is not null)
+            {
+                await tx.CommitAsync();
+                return concurrent;
+            }
+
+            var isFirstUser = !await db.Users.AnyAsync();
+            var appUser = new AppUser(
+                Guid.NewGuid(), issuer: null, externalId: user.Id,
+                displayName: user.UserName ?? user.Email ?? user.Id,
+                isSystemAdmin: isFirstUser, createdAt: clock.UtcNow);
+
+            db.Users.Add(appUser);
+            await db.SaveChangesAsync();
             await tx.CommitAsync();
-            return existing;
-        }
-
-        var isFirstUser = !await db.Users.AnyAsync();
-        var appUser = new AppUser(
-            Guid.NewGuid(), issuer: null, externalId: user.Id,
-            displayName: user.UserName ?? user.Email ?? user.Id,
-            isSystemAdmin: isFirstUser, createdAt: clock.UtcNow);
-
-        db.Users.Add(appUser);
-        await db.SaveChangesAsync();
-        await tx.CommitAsync();
-        return appUser;
+            return appUser;
+        });
     }
 
     private Task<AppUser?> FindLocalUserAsync(string externalId) =>

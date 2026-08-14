@@ -68,31 +68,41 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
             return existing;
         }
 
-        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        await db.Database.ExecuteSqlRawAsync(
-            "EXEC sp_getapplock @Resource = N'Keyward_UserInit', @LockMode = 'Exclusive', @LockOwner = 'Transaction';",
-            cancellationToken).ConfigureAwait(false);
-
-        existing = await this.FindAsync(externalId, cancellationToken).ConfigureAwait(false);
-        if (existing is not null)
+        // The connection retries (EnableRetryOnFailure), and a retrying strategy refuses a transaction it did
+        // not open — the find-or-create below has to be the retried unit anyway, since a half-run attempt must
+        // not leave a half-created user behind.
+        return await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
+            // A retry re-runs this block on the SAME context: whatever the failed attempt tracked has to go,
+            // or the row it added would be inserted a second time.
+            db.ChangeTracker.Clear();
+
+            await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            await db.Database.ExecuteSqlRawAsync(
+                "EXEC sp_getapplock @Resource = N'Keyward_UserInit', @LockMode = 'Exclusive', @LockOwner = 'Transaction';",
+                cancellationToken).ConfigureAwait(false);
+
+            AppUser? concurrent = await this.FindAsync(externalId, cancellationToken).ConfigureAwait(false);
+            if (concurrent is not null)
+            {
+                await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                return concurrent;
+            }
+
+            AppUser created = new(
+                Guid.NewGuid(),
+                issuer: null,
+                externalId: externalId,
+                displayName: string.IsNullOrWhiteSpace(displayName) ? externalId : displayName,
+                isSystemAdmin: binding.IsSystemAdmin,
+                createdAt: clock.UtcNow,
+                isSoftwareManager: binding.IsSoftwareManager || binding.IsSystemAdmin);
+
+            db.Users.Add(created);
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-            return existing;
-        }
-
-        AppUser created = new(
-            Guid.NewGuid(),
-            issuer: null,
-            externalId: externalId,
-            displayName: string.IsNullOrWhiteSpace(displayName) ? externalId : displayName,
-            isSystemAdmin: binding.IsSystemAdmin,
-            createdAt: clock.UtcNow,
-            isSoftwareManager: binding.IsSoftwareManager || binding.IsSystemAdmin);
-
-        db.Users.Add(created);
-        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
-        return created;
+            return created;
+        }).ConfigureAwait(false);
     }
 
     /// <summary>
