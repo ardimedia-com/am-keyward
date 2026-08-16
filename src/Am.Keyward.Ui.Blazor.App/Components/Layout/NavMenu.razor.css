@@ -1,14 +1,43 @@
 .nav-brand {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
     padding: 1.1rem 1.25rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .nav-brand a {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: var(--sidebar-brand);
     font-weight: 650;
     font-size: 1.05rem;
     letter-spacing: .03em;
     text-decoration: none;
+}
+
+/* Sidebar collapse toggle (the layout owns the state; this is only how the button looks). */
+.nav-collapse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--sidebar-muted);
+    cursor: pointer;
+}
+
+.nav-collapse:hover {
+    background: var(--sidebar-active-bg);
+    color: var(--sidebar-active-fg);
 }
 
 .nav-links {

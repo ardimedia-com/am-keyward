@@ -23,6 +23,10 @@ All notable changes to this project are documented here, following
   header; collapsed it keeps the icons (so the selection can still be changed) and gives the width back to
   the detail pane. The choice is remembered in the browser, so it survives a reload, and it applies to every
   page that has such a pane.
+- **The standalone shell's sidebar collapses the same way** — a toggle in the brand row turns it into an
+  icon rail (every section keeps its icon and a tooltip), remembered in the browser. Its own preference,
+  separate from the list pane's: wanting the shell narrow and the list wide is a perfectly normal
+  combination. On phones, where the sidebar is already a full-width strip, the toggle is hidden.
 
 ### Changed
 

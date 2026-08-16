@@ -1,5 +1,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 
+@* The brand row doubles as the sidebar's collapse control: in the icon rail everything but the logo mark
+   and this button is hidden (see MainLayout.razor.css), so the same button always brings the labels back. *@
 <div class="nav-brand">
     <a href="">
         <svg width="22" height="22" viewBox="0 0 64 64" aria-hidden="true" style="vertical-align:-4px; margin-right:.4rem;">
@@ -10,12 +12,17 @@
                 <rect x="35" y="38" width="8" height="4.5" rx="1.5" />
                 <rect x="35" y="46" width="5.5" height="4.5" rx="1.5" />
             </g>
-        </svg>@KeywardOptions.ProductName
+        </svg><span class="brand-name">@KeywardOptions.ProductName</span>
     </a>
+    <button type="button" class="nav-collapse" @onclick="OnToggle"
+            title="@ToggleLabel" aria-label="@ToggleLabel"
+            aria-expanded="@((!Collapsed).ToString().ToLowerInvariant())">
+        <KeywardIcon Name="@(Collapsed ? "panel-left-open" : "panel-left-close")" Size="16" />
+    </button>
 </div>
 
 <nav class="nav-links">
-    <NavLink class="nav-link" href="" Match="NavLinkMatch.All"><KeywardIcon Name="house" /><span>@Loc["Nav.Home"]</span></NavLink>
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All" title="@Loc["Nav.Home"]"><KeywardIcon Name="house" /><span>@Loc["Nav.Home"]</span></NavLink>
     @* The Keyward section links (grouped, with icons) come from the RCL so routes aren't hardcoded here. *@
     <KeywardNav />
     @* Administration — shell-specific composition, so it lives here, not in the RCL. Groups are visible
@@ -25,11 +32,20 @@
         <div class="nav-group-label">@Loc["Nav.Group.Admin"]</div>
     </AuthorizeView>
     <AuthorizeView Policy="Keyward.SystemAdmin">
-        <NavLink class="nav-link" href="account/admin/users"><KeywardIcon Name="shield" /><span>@Loc["Nav.AdminUsers"]</span></NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.BreakGlass"><KeywardIcon Name="shield" /><span>@Loc["Nav.BreakGlass"]</span></NavLink>
+        <NavLink class="nav-link" href="account/admin/users" title="@Loc["Nav.AdminUsers"]"><KeywardIcon Name="shield" /><span>@Loc["Nav.AdminUsers"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.BreakGlass" title="@Loc["Nav.BreakGlass"]"><KeywardIcon Name="shield" /><span>@Loc["Nav.BreakGlass"]</span></NavLink>
     </AuthorizeView>
     <AuthorizeView>
-        <NavLink class="nav-link" href="@KeywardRoutes.Groups"><KeywardIcon Name="users-round" /><span>@Loc["Nav.Groups"]</span></NavLink>
-        <NavLink class="nav-link" href="@KeywardRoutes.DefaultEnvironments"><KeywardIcon Name="layers" /><span>@Loc["Nav.DefaultEnvs"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.Groups" title="@Loc["Nav.Groups"]"><KeywardIcon Name="users-round" /><span>@Loc["Nav.Groups"]</span></NavLink>
+        <NavLink class="nav-link" href="@KeywardRoutes.DefaultEnvironments" title="@Loc["Nav.DefaultEnvs"]"><KeywardIcon Name="layers" /><span>@Loc["Nav.DefaultEnvs"]</span></NavLink>
     </AuthorizeView>
 </nav>
+
+@code {
+    /// <summary>Whether the sidebar renders as an icon rail (the layout owns the state and the class).</summary>
+    [Parameter] public bool Collapsed { get; set; }
+
+    [Parameter] public EventCallback OnToggle { get; set; }
+
+    private string ToggleLabel => Collapsed ? Loc["Common.Pane.Expand"] : Loc["Common.Pane.Collapse"];
+}

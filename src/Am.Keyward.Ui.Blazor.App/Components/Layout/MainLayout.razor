@@ -1,8 +1,13 @@
 @inherits LayoutComponentBase
+@inject IJSRuntime JS
 
+@* The sidebar collapses to an icon rail (toggle in the brand row), so a wide page — an application's data
+   table — gets the width back while every section stays one click away. Remembered in the browser; the
+   same preference key the embedded list panes use is deliberately NOT shared, because this is a different
+   surface: a user may well want the shell narrow and the list wide, or the other way round. *@
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
+    <div class="sidebar @(navCollapsed ? "collapsed" : "")">
+        <NavMenu Collapsed="navCollapsed" OnToggle="ToggleNavAsync" />
     </div>
 
     <main>
@@ -18,3 +23,50 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private const string StorageKey = "am-keyward.sidebar-collapsed";
+
+    private bool navCollapsed;
+    private bool navCollapsedRead;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Read the remembered state once the circuit can reach the browser. localStorage.getItem is invoked
+        // directly (no module needed) and wrapped: storage can be blocked, and a lost preference must never
+        // take the layout down.
+        if (navCollapsedRead)
+        {
+            return;
+        }
+
+        try
+        {
+            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            navCollapsedRead = true;
+            if (stored == "1")
+            {
+                navCollapsed = true;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // Prerender or a torn-down circuit — retried on the next render.
+        }
+    }
+
+    private async Task ToggleNavAsync()
+    {
+        navCollapsed = !navCollapsed;
+        navCollapsedRead = true;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, navCollapsed ? "1" : "0");
+        }
+        catch
+        {
+            // Storage unavailable — the sidebar still collapses for this session.
+        }
+    }
+}

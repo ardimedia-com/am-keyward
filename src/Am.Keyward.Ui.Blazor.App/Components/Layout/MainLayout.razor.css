@@ -15,6 +15,40 @@
     color: var(--sidebar-fg);
 }
 
+/* Collapsed = icon rail: labels and group captions go, the icons (and their title tooltips) stay, so every
+   section is still one click away. The rules reach into NavMenu's markup, hence ::deep. */
+.sidebar.collapsed {
+    width: 3.4rem;
+    overflow: hidden;
+}
+
+.sidebar.collapsed ::deep .nav-brand {
+    padding: .9rem .5rem;
+    text-align: center;
+}
+
+.sidebar.collapsed ::deep .brand-name,
+.sidebar.collapsed ::deep .nav-group-label,
+.sidebar.collapsed ::deep .nav-link span {
+    display: none;
+}
+
+.sidebar.collapsed ::deep .nav-brand svg { margin-right: 0; }
+
+.sidebar.collapsed ::deep .nav-links { padding: .75rem .25rem; }
+
+.sidebar.collapsed ::deep .nav-link {
+    justify-content: center;
+    gap: 0;
+    padding: .5rem 0;
+}
+
+/* The toggle's own look lives with the component that renders it (NavMenu.razor.css); only its
+   collapsed-state placement is the layout's business. */
+.sidebar.collapsed ::deep .nav-brand a { display: none; }
+
+.sidebar.collapsed ::deep .nav-collapse { margin: 0 auto; }
+
 main {
     flex: 1;
     min-width: 0;
@@ -41,9 +75,15 @@ main {
 }
 
 @media (max-width: 720px) {
-    /* Small screens: back to normal document flow (one page scroll, nav on top). */
+    /* Small screens: back to normal document flow (one page scroll, nav on top) — a rail makes no sense
+       when the nav is already a full-width strip above the content, so a remembered collapse is ignored. */
     .page { flex-direction: column; height: auto; overflow: visible; }
-    .sidebar { width: 100%; }
+    .sidebar, .sidebar.collapsed { width: 100%; overflow: visible; }
+    .sidebar.collapsed ::deep .brand-name,
+    .sidebar.collapsed ::deep .nav-group-label,
+    .sidebar.collapsed ::deep .nav-link span { display: revert; }
+    .sidebar.collapsed ::deep .nav-link { justify-content: flex-start; gap: .55rem; padding: .5rem .75rem; }
+    ::deep .nav-collapse { display: none; }
     .content { padding: 1.25rem; overflow-y: visible; }
     .content:has(> .keyward-ui.kw-fill) { overflow: visible; display: block; }
 }
