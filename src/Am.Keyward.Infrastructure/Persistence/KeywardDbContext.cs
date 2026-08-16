@@ -4,6 +4,7 @@ using Am.Keyward.Core.Domain.Access;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.Human;
 using Am.Keyward.Core.Domain.Identity;
+using Am.Keyward.Core.Domain.KeyCustody;
 using Am.Keyward.Core.Domain.Software;
 using Am.Keyward.Core.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<BreakGlassGrant> BreakGlassGrants => Set<BreakGlassGrant>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<AuditSubject> AuditSubjects => Set<AuditSubject>();
+    public DbSet<KekCanary> KekCanaries => Set<KekCanary>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -420,6 +422,23 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
                 v => v == null ? null : JsonSerializer.Serialize(v, json),
                 s => s == null ? null : JsonSerializer.Deserialize<EncryptedValue>(s, json));
             e.HasIndex(x => x.SubjectReference);
+        });
+
+        // Key-ownership canary: ONE row for the whole database, so — like the token and audit-subject
+        // tables — it has deliberately no tenant query filter and is NOT in the row-level-security policy.
+        // It must be readable by every installation regardless of the active tenant, which is the point:
+        // it is what an installation checks BEFORE it knows whether it may touch this data at all. It holds
+        // a publicly known plaintext's ciphertext, so exempting it discloses nothing.
+        model.Entity<KekCanary>(e =>
+        {
+            e.ToTable("KekCanary");
+            e.HasKey(x => x.Id);
+            // Never generated: the fixed singleton key is what makes a concurrent second insert collide
+            // instead of silently creating a second canary.
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.KekId).HasMaxLength(128).IsRequired();
+            e.Property(x => x.Wrapped).IsRequired();
+            e.Property(x => x.CreatedBy).HasMaxLength(256).IsRequired();
         });
     }
 }

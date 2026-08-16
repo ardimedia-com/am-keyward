@@ -177,12 +177,11 @@ public static class DpapiKekEscrow
     }
 
     /// <summary>
-    /// A short, non-secret identifier of a KEK (SHA-256, first 8 hex chars) so an operator can confirm that
-    /// the key imported onto the new server is the very key that was exported from the old one, without ever
-    /// comparing key material by eye.
+    /// A short, non-secret identifier of a KEK so an operator can confirm that the key imported onto the new
+    /// server is the very key that was exported from the old one, without ever comparing key material by eye.
+    /// The same value qualifies a KEK id, so what the console prints here is what appears in the database.
     /// </summary>
-    public static string Fingerprint(byte[] kek) =>
-        Convert.ToHexString(SHA256.HashData(kek))[..8].ToLowerInvariant();
+    public static string Fingerprint(byte[] kek) => KekFingerprint.Of(kek);
 
     private static byte[] DeriveKey(string passphrase, byte[] salt) =>
         Rfc2898DeriveBytes.Pbkdf2(

@@ -93,6 +93,17 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
         services.AddScoped<IKekIntegrityVerifier, DbKekIntegrityVerifier>();
 
+        // Key OWNERSHIP: does the key this process holds actually open this database's data? Verified once
+        // at host start against a known plaintext stored in the database (the canary), because no metadata
+        // can answer it — the stored KekId names the key's format, and machine/path comparisons test a
+        // recipe rather than the fact. The verdict gates the crypto path, so a mismatch stops at zero damage
+        // instead of accumulating values the owning installation cannot read. Bind
+        // KeywardKeyIntegrityOptions ("Keyward:KeyIntegrity") in the host to change what a conflict does.
+        services.AddOptions<KeywardKeyIntegrityOptions>();
+        services.AddSingleton<KeywardKeyIntegrityState>();
+        services.AddScoped<KekCanaryService>();
+        services.AddHostedService<KekIntegrityStartupCheck>();
+
         // The software-secrets service serves both the management path (by environment name) and the
         // software-client read path (by environment id); expose the one scoped instance via both ports.
         services.AddScoped<SoftwareSecretService>();

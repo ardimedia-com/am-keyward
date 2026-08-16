@@ -33,8 +33,13 @@ public static class DpapiKekFile
     /// <summary>Length of the generated key: AES-256.</summary>
     private const int KekSize = 32;
 
-    /// <summary>Identifier (incl. format version) of a KEK produced by this helper.</summary>
-    public const string KekId = "dpapi-file:v1";
+    /// <summary>
+    /// Identifier of the FORMAT a KEK produced by this helper has. On its own it does not identify the KEY —
+    /// two different keys of this format share it — so <see cref="LoadOrCreate"/> returns it qualified with
+    /// the key's fingerprint (<see cref="KekFingerprint.Qualify"/>). Rows written before that qualification
+    /// existed carry the bare value; <see cref="StaticKekProvider"/> still accepts those.
+    /// </summary>
+    public const string FormatId = "dpapi-file:v1";
 
     /// <summary>File name of the KEK inside the host's directory.</summary>
     public const string FileName = "kek.bin";
@@ -59,12 +64,12 @@ public static class DpapiKekFile
         {
             byte[] key = ProtectedData.Unprotect(File.ReadAllBytes(path), optionalEntropy: null, DataProtectionScope.LocalMachine);
             return key.Length == KekSize
-                ? (key, KekId, Created: false)
+                ? (key, KekFingerprint.Qualify(FormatId, key), Created: false)
                 : throw new InvalidOperationException($"The KEK at '{path}' is malformed ({key.Length} bytes, expected {KekSize}).");
         }
 
         byte[] fresh = RandomNumberGenerator.GetBytes(KekSize);
         File.WriteAllBytes(path, ProtectedData.Protect(fresh, optionalEntropy: null, DataProtectionScope.LocalMachine));
-        return (fresh, KekId, Created: true);
+        return (fresh, KekFingerprint.Qualify(FormatId, fresh), Created: true);
     }
 }

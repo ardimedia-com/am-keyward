@@ -20,11 +20,20 @@ public sealed class EnvelopeSecretBackend : ISecretBackend
     private const string WrapAlgName = "AES-256-GCM";
 
     private readonly IKekProvider _kek;
+    private readonly KeywardKeyIntegrityState _keyIntegrity;
 
-    public EnvelopeSecretBackend(IKekProvider kek) => _kek = kek;
+    public EnvelopeSecretBackend(IKekProvider kek, KeywardKeyIntegrityState keyIntegrity)
+    {
+        _kek = kek;
+        _keyIntegrity = keyIntegrity;
+    }
 
     public async ValueTask<EncryptedValue> ProtectAsync(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> aad, CancellationToken ct = default)
     {
+        // The single choke point for both directions: when the startup canary proved this key does not own
+        // the database, writing is what compounds the damage and reading would fail anyway.
+        _keyIntegrity.ThrowIfBlocked();
+
         var dek = RandomNumberGenerator.GetBytes(DekSize);
         try
         {
@@ -48,6 +57,7 @@ public sealed class EnvelopeSecretBackend : ISecretBackend
     public async ValueTask<byte[]> UnprotectAsync(EncryptedValue value, ReadOnlyMemory<byte> aad, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(value);
+        _keyIntegrity.ThrowIfBlocked();
         // Pin the tag length to the constant we wrote with — never trust the stored (DB-writable) tag length.
         // A tamperer could otherwise shorten the tag to weaken forgery resistance.
         if (value.AuthTag.Length != TagSize)

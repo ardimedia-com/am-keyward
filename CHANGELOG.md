@@ -7,6 +7,19 @@ All notable changes to this project are documented here, following
 
 ### Added
 
+- **A key-ownership check at startup — the database now proves which KEK owns it.** One row per database
+  (`amkeyward.KekCanary`) holds a known plaintext wrapped under the key of whichever installation created it;
+  every later start unwraps it and compares. That answers the question directly, where every previous signal
+  was a stand-in: the stored `KekId` named the key's *format*, and comparing machine names or key paths tests
+  a recipe rather than the fact — a key file silently regenerated at the very same path on the very same
+  machine (a rebuilt server, a wiped ProgramData, a deleted file) satisfies every such rule and still opens
+  nothing. Caught now, at startup, instead of at the first read as a bare `CryptographicException`: a second
+  installation writing the same database under a different key, a regenerated key, and a database restored
+  without its key store. On a confirmed conflict the crypto path refuses to encrypt or decrypt, because
+  continuing to write is the one action that makes the split grow; `Keyward:KeyIntegrity:OnConflict=Warn`
+  overrides that for a deliberate migration window. A database that is merely unreachable at startup leaves
+  the verdict unknown and blocks nothing — that is an availability problem, not a key-custody one.
+
 - **A rotation date and a note per secret value.** Every (application, key, environment) triple can now carry
   a date by which its value should be replaced, plus a free-text note describing how a new one is obtained
   (which portal, which command, whom to ask). Both are editable in the «Daten» tab, in a panel that opens
@@ -29,6 +42,16 @@ All notable changes to this project are documented here, following
   combination. On phones, where the sidebar is already a full-width strip, the toggle is hidden.
 
 ### Changed
+
+- **A KEK id now identifies the key, not just its format** (`dpapi-file:v1:a1b2c3d4`). It was the constant
+  `dpapi-file:v1`, so `IKekProvider.CanResolve` answered "yes" to a foreign key of the same format — which
+  meant `DbKekIntegrityVerifier`, whose whole job is to find envelopes the current provider cannot open,
+  could never detect the most likely mismatch, and the failure surfaced later as an unexplained
+  authentication-tag error. The fingerprint is the same non-secret value the escrow already prints, so what
+  an operator wrote down at export now appears in the database. Ids written before this carry the bare
+  format and stay resolvable — refusing them would declare every existing row unreadable on the day the
+  package is updated; the canary above is what closes that gap. `DpapiKekFile.KekId` is accordingly now
+  `DpapiKekFile.FormatId`, since it never identified a key.
 
 - **The selected application is named above its tab bar, inside the same frame.** Title and tabs now read as
   one unit instead of the title floating in the page; the duplicate heading inside the «Applikation» tab is

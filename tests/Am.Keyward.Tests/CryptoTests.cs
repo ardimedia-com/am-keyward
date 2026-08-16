@@ -1,14 +1,20 @@
 using System.Security.Cryptography;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Infrastructure.Crypto;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Tests;
 
 [TestClass]
 public class CryptoTests
 {
-    private static EnvelopeSecretBackend NewBackend() =>
-        new(new StaticKekProvider(RandomNumberGenerator.GetBytes(32), "test-kek:v1"));
+    private static EnvelopeSecretBackend NewBackend(KeywardKeyIntegrityState? keyIntegrity = null) =>
+        new(new StaticKekProvider(RandomNumberGenerator.GetBytes(32), "test-kek:v1"),
+            keyIntegrity ?? NewKeyIntegrityState());
+
+    private static KeywardKeyIntegrityState NewKeyIntegrityState(
+        KekConflictBehaviour onConflict = KekConflictBehaviour.Disable) =>
+        new(Options.Create(new KeywardKeyIntegrityOptions { OnConflict = onConflict }));
 
     private static byte[] SoftwareAad(Guid tenant, Guid project, Guid env, Guid secret, Guid version) =>
         Aad.ForSoftwareSecretVersion(tenant, project, env, secret, version, algVersion: 1);
@@ -95,5 +101,78 @@ public class CryptoTests
 
         var otherBackend = NewBackend(); // different random KEK + same id semantics but different key
         await Assert.ThrowsAsync<CryptographicException>(async () => await otherBackend.UnprotectAsync(encrypted, aad));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public void Kek_id_distinguishes_two_keys_of_the_same_format()
+    {
+        var first = KekFingerprint.Qualify(DpapiKekFile.FormatId, RandomNumberGenerator.GetBytes(32));
+        var second = KekFingerprint.Qualify(DpapiKekFile.FormatId, RandomNumberGenerator.GetBytes(32));
+
+        Assert.AreNotEqual(first, second, "the fingerprint is what makes a stored id identify the KEY, not just its format");
+        StringAssert.StartsWith(first, DpapiKekFile.FormatId + ":");
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public void Foreign_key_of_the_same_format_is_not_resolvable()
+    {
+        var mine = RandomNumberGenerator.GetBytes(32);
+        var theirs = RandomNumberGenerator.GetBytes(32);
+        var provider = new StaticKekProvider(mine, KekFingerprint.Qualify(DpapiKekFile.FormatId, mine));
+
+        // Before the fingerprint existed both ids were "dpapi-file:v1" and this returned true — which is why
+        // a second installation's rows looked resolvable and only failed later, as a raw crypto error.
+        Assert.IsFalse(provider.CanResolve(KekFingerprint.Qualify(DpapiKekFile.FormatId, theirs)));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public void Rows_written_before_the_fingerprint_stay_resolvable()
+    {
+        var kek = RandomNumberGenerator.GetBytes(32);
+        var provider = new StaticKekProvider(kek, KekFingerprint.Qualify(DpapiKekFile.FormatId, kek));
+
+        // Refusing these would declare every pre-existing row unreadable the moment the package is updated.
+        Assert.IsTrue(provider.CanResolve(DpapiKekFile.FormatId));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public async Task A_confirmed_key_conflict_stops_encryption_and_decryption()
+    {
+        var state = NewKeyIntegrityState();
+        var backend = NewBackend(state);
+        var aad = SoftwareAad(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var encrypted = await backend.ProtectAsync("x"u8.ToArray(), aad);
+
+        state.Record(KekIntegrityStatus.Conflict, "another installation owns this database");
+
+        await Assert.ThrowsAsync<KeywardKeyMismatchException>(async () => await backend.ProtectAsync("y"u8.ToArray(), aad));
+        await Assert.ThrowsAsync<KeywardKeyMismatchException>(async () => await backend.UnprotectAsync(encrypted, aad));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public async Task An_unknown_verdict_does_not_block()
+    {
+        var state = NewKeyIntegrityState();
+        var backend = NewBackend(state);
+        var aad = SoftwareAad(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+
+        // A database that was unreachable at startup is an availability problem, not a key-custody one.
+        state.Record(KekIntegrityStatus.Unknown, "database unreachable");
+
+        var encrypted = await backend.ProtectAsync("x"u8.ToArray(), aad);
+        CollectionAssert.AreEqual("x"u8.ToArray(), await backend.UnprotectAsync(encrypted, aad));
+    }
+
+    [TestMethod, TestCategory("Crypto")]
+    public async Task Warn_lets_a_conflicting_installation_continue()
+    {
+        var state = NewKeyIntegrityState(KekConflictBehaviour.Warn);
+        var backend = NewBackend(state);
+        var aad = SoftwareAad(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+
+        state.Record(KekIntegrityStatus.Conflict, "deliberate migration window");
+
+        var encrypted = await backend.ProtectAsync("x"u8.ToArray(), aad);
+        CollectionAssert.AreEqual("x"u8.ToArray(), await backend.UnprotectAsync(encrypted, aad));
     }
 }

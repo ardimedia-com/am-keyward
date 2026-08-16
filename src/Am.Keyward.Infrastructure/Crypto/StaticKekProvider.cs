@@ -37,7 +37,13 @@ public sealed class StaticKekProvider : IKekProvider
         KekId = kekId;
     }
 
-    public bool CanResolve(string kekId) => string.Equals(kekId, KekId, StringComparison.Ordinal);
+    /// <summary>
+    /// Resolvable when the stored id is this key's id, or its pre-fingerprint form (see
+    /// <see cref="KekFingerprint.IsUnqualifiedFormOf"/> for why the legacy form is accepted).
+    /// </summary>
+    public bool CanResolve(string kekId) =>
+        string.Equals(kekId, KekId, StringComparison.Ordinal)
+        || KekFingerprint.IsUnqualifiedFormOf(kekId, KekId);
 
     public ValueTask<byte[]> WrapAsync(byte[] dek, CancellationToken ct = default)
     {
@@ -61,7 +67,7 @@ public sealed class StaticKekProvider : IKekProvider
     public ValueTask<byte[]> UnwrapAsync(byte[] wrappedDek, string kekId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(wrappedDek);
-        if (!string.Equals(kekId, KekId, StringComparison.Ordinal))
+        if (!CanResolve(kekId))
         {
             throw new InvalidOperationException($"KEK id mismatch (have '{KekId}', value needs '{kekId}').");
         }
