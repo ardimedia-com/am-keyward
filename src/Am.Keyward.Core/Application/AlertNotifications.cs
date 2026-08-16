@@ -28,6 +28,20 @@ public sealed record KeywardTokenExpiryLine(
     DateTimeOffset ExpiresAt);
 
 /// <summary>
+/// One software-secret value nearing its rotation date, with application and environment already resolved.
+/// <paramref name="Note"/> is the value's rotation note (empty when none) — it carries the "how do I get a
+/// new one" instruction into the notice, which is the moment somebody actually needs it. The SECRET ITSELF
+/// is never part of this record; a notification channel is not a place for secret material.
+/// </summary>
+public sealed record KeywardSecretExpiryLine(
+    string SecretKey,
+    string ProjectName,
+    string EnvironmentName,
+    int DaysLeft,
+    DateTimeOffset ExpiresAt,
+    string Note);
+
+/// <summary>
 /// Delivers administrative alerts to the administrators who opted into them. Two categories exist and are
 /// delivered separately because they have different audiences and frequencies: heartbeat monitoring
 /// (a monitored token silent past its deadline, or recovered) and access patterns (a token used from a
@@ -82,5 +96,17 @@ public interface IKeywardAlertPresenter
         Guid tenantId,
         IReadOnlyList<KeywardAlertRecipient> recipients,
         IReadOnlyList<KeywardTokenExpiryLine> lines,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Delivers one tenant's software-secret values that are nearing their rotation date, on the same notice
+    /// schedule as tokens. Returns how many recipients were reached; the caller records the notice only on a
+    /// non-zero result. Note that a secret-value expiry is ADVISORY — reads keep working — so the message
+    /// should read as "rotate this", not as "this stopped working".
+    /// </summary>
+    Task<int> NotifySecretExpiryAsync(
+        Guid tenantId,
+        IReadOnlyList<KeywardAlertRecipient> recipients,
+        IReadOnlyList<KeywardSecretExpiryLine> lines,
         CancellationToken ct = default);
 }

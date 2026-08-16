@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 namespace Am.Keyward.Infrastructure.Monitoring;
 
 /// <summary>
-/// Finds app tokens nearing expiry on the <see cref="TokenExpiryNoticePolicy"/> schedule (30/20/10 days
+/// Finds app tokens nearing expiry on the <see cref="ExpiryNoticePolicy"/> schedule (30/20/10 days
 /// ahead, then daily from 9 days) and hands them to <see cref="IKeywardAlertPresenter"/> for rendering and
 /// delivery. Recipients are users who opted in on their profile AND administer the token's tenant (tenant
 /// admins, or system admins).
@@ -68,15 +68,15 @@ public sealed class TokenExpiryNotificationService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
-        var horizon = now.AddDays(TokenExpiryNoticePolicy.WindowDays + 1);
+        var horizon = now.AddDays(ExpiryNoticePolicy.WindowDays + 1);
         var candidates = await db.SoftwareClientTokens
             .Where(t => t.RevokedAt == null && t.TokenHash != "" && t.ExpiresAt != null && t.ExpiresAt > now && t.ExpiresAt <= horizon)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
         var due = candidates
-            .Select(t => (Token: t, DaysLeft: TokenExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt!.Value)))
-            .Where(x => TokenExpiryNoticePolicy.IsDue(x.DaysLeft, x.Token.LastExpiryNoticeDaysLeft))
+            .Select(t => (Token: t, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt!.Value)))
+            .Where(x => ExpiryNoticePolicy.IsDue(x.DaysLeft, x.Token.LastExpiryNoticeDaysLeft))
             .ToList();
         if (due.Count == 0)
         {
@@ -151,7 +151,7 @@ public sealed class TokenExpiryNotificationService(
         // A host with its own subscription model gets every administrator and decides itself who to tell;
         // otherwise Keyward's per-user opt-in selects the audience. See IKeywardAlertPresenter.
         var recipients = await db.Users
-            .Where(u => (presenter.OwnsRecipientSelection || u.NotifyTokenExpiry)
+            .Where(u => (presenter.OwnsRecipientSelection || u.NotifyExpiry)
                 && u.Issuer == null && (u.IsSystemAdmin || adminUserIds.Contains(u.Id)))
             .Select(u => new KeywardAlertRecipient(u.Id, u.ExternalId))
             .ToListAsync(ct)

@@ -31,8 +31,7 @@ else
 
     <div class="workspace">
         @* ---------- Left: vault tree with nested folders ---------- *@
-        <aside class="ws-tree">
-            <div class="ws-tree-title">@(Team ? Loc["Vault.List.TitleTeam"] : Loc["Vault.List.TitlePersonal"])</div>
+        <KeywardTreePane Title="@(Team ? Loc["Vault.List.TitleTeam"] : Loc["Vault.List.TitlePersonal"])">
 
             @if (vaults.Count > 8)
             {
@@ -42,6 +41,7 @@ else
             @foreach (var v in FilteredVaults)
             {
                 <button class="tree-node @(v.Id == selectedVaultId && treeSel == "vault" ? "active" : "") @(dragOverKey == v.Id.ToString() ? "drag-over" : "")"
+                        title="@v.Name"
                         @onclick="() => SelectVaultAsync(v.Id)"
                         @ondragover:preventDefault="true" @ondragenter="() => dragOverKey = v.Id.ToString()" @ondragleave="() => dragOverKey = null"
                         @ondrop="() => DropOnVaultAsync(v.Id)">
@@ -70,7 +70,7 @@ else
                 <input @bind="newVaultName" @bind:event="oninput" placeholder="@(Team ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" aria-label="@(Team ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" />
                 <button class="btn-sm" @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))" title="@Loc["Vault.Create"]"><KeywardIcon Name="plus" /></button>
             </div>
-        </aside>
+        </KeywardTreePane>
 
         @* ---------- Right: search results / explanation / areas / item list / item detail ---------- *@
         <section class="ws-main">
@@ -146,6 +146,11 @@ else
                    add form right) / «Tresor-Einstellungen» (the work areas). Bar + content render as ONE
                    bordered tab area (KeywardTabBar's ChildContent mode). ---------- *@
                 <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)">
+                <TitleContent>
+                    <KeywardIcon Name="@(SelectedFolder is not null ? "folder" : Team ? "users" : "lock")" Size="18" />
+                    <span class="kw-tab-area-name">@ContentTitle</span>
+                </TitleContent>
+                <ChildContent>
 
                 @if (vaultTab == "entries")
                 {
@@ -381,6 +386,7 @@ else
                 }
 
                 }
+                </ChildContent>
                 </KeywardTabBar>
             }
 
@@ -515,7 +521,9 @@ else
     {
         <div class="card list-card">
             <div class="list-head">
-                <h3 style="margin:0;">@ContentTitle</h3>
+                @* The vault/folder itself is named by the tab area's title row — this card only says what
+                   the list holds. *@
+                <h3 style="margin:0;">@Loc["Vault.Items.Title"]</h3>
                 @if (DirectItemCount > 5)
                 {
                     <input @bind="itemFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Items.Filter"])" aria-label="@(Loc["Vault.Items.Filter"])" style="max-width:18rem; margin:.5rem 0 0;" />

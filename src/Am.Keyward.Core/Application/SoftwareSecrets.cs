@@ -39,6 +39,11 @@ public sealed record EnvironmentInfo(Guid Id, string Name);
 /// One environment's current value for a secret (Value is null when that environment has none), plus its
 /// read statistics: when software last read it (null = never), via which source ("InProcess" | "Client",
 /// the <see cref="SecretReadSource"/> name), and how many reads in total. Management views don't count.
+/// <para>
+/// <paramref name="ExpiresAt"/> and <paramref name="Note"/> are the rotation metadata: when this value is
+/// due for renewal (advisory — it never blocks a read) and how a new one is obtained. Both can be set for an
+/// environment that has no value yet.
+/// </para>
 /// </summary>
 public sealed record SecretEnvironmentValue(
     string Environment,
@@ -46,7 +51,9 @@ public sealed record SecretEnvironmentValue(
     string? Value,
     DateTimeOffset? LastReadAt = null,
     string? LastReadVia = null,
-    long ReadCount = 0);
+    long ReadCount = 0,
+    DateTimeOffset? ExpiresAt = null,
+    string Note = "");
 
 /// <summary>A secret with its current value in every project environment (for the management view).</summary>
 public sealed record SoftwareSecretDetail(string Key, IReadOnlyList<SecretEnvironmentValue> Environments);
@@ -91,6 +98,22 @@ public interface ISoftwareSecretService
 
     /// <summary>Deletes a secret (its values in all environments) by key.</summary>
     Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets the rotation metadata of ONE (secret, environment) pair: the advisory expiry date (null clears
+    /// it) and the note describing how a new value is obtained (null/empty clears it). Works for an
+    /// environment that holds no value yet — the note is most useful before the first value exists. Never
+    /// touches the stored value, and an expired value stays readable by design.
+    /// </summary>
+    Task SetValueRotationAsync(
+        Guid tenantId,
+        Guid projectId,
+        string key,
+        string environment,
+        DateTimeOffset? expiresAt,
+        string? note,
+        Guid? actorUserId,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Creates a secret KEY with no value in any environment yet (import / prepare-first workflows —

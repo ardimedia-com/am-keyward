@@ -86,6 +86,53 @@ public class DomainTests
     }
 
     [TestMethod, TestCategory("Domain")]
+    public void SecretValue_carries_rotation_metadata_without_a_value()
+    {
+        var secret = new SoftwareSecret(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SecretKey.Create("AiEngine:ApiKey"), null, DateTimeOffset.UnixEpoch);
+        var envId = Guid.NewGuid();
+        var due = new DateTimeOffset(2026, 9, 30, 23, 59, 59, TimeSpan.Zero);
+
+        // The note is most useful BEFORE a value exists, so an empty value row must be creatable.
+        var value = secret.EnsureValue(Guid.NewGuid(), envId);
+        value.SetRotationMetadata(due, "  Azure portal, app registration  ");
+
+        Assert.HasCount(1, secret.Values);
+        Assert.IsNull(value.CurrentVersionId, "rotation metadata must not fabricate a value");
+        Assert.AreEqual(due, value.ExpiresAt);
+        Assert.AreEqual("Azure portal, app registration", value.Note, "the note is trimmed");
+
+        // Setting the value later reuses that very row instead of creating a second one.
+        secret.SetValue(Guid.NewGuid(), envId, Guid.NewGuid(), Sample(), DateTimeOffset.UnixEpoch);
+        Assert.HasCount(1, secret.Values);
+        Assert.AreEqual(due, secret.Values[0].ExpiresAt, "storing a value keeps the rotation metadata");
+    }
+
+    [TestMethod, TestCategory("Domain")]
+    public void SecretValue_restarts_the_notice_schedule_on_a_new_value_or_date()
+    {
+        var secret = new SoftwareSecret(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), SecretKey.Create("k"), null, DateTimeOffset.UnixEpoch);
+        var envId = Guid.NewGuid();
+        var value = secret.SetValue(Guid.NewGuid(), envId, Guid.NewGuid(), Sample(), DateTimeOffset.UnixEpoch);
+        value.SetRotationMetadata(new DateTimeOffset(2026, 9, 30, 23, 59, 59, TimeSpan.Zero), null);
+
+        value.MarkExpiryNoticeSent(10);
+        Assert.AreEqual(10, value.LastExpiryNoticeDaysLeft);
+
+        // Moving the date out must not leave a "10 days left" mark that silences the new window.
+        value.SetRotationMetadata(new DateTimeOffset(2027, 3, 1, 23, 59, 59, TimeSpan.Zero), null);
+        Assert.IsNull(value.LastExpiryNoticeDaysLeft);
+
+        value.MarkExpiryNoticeSent(20);
+        secret.SetValue(value.Id, envId, Guid.NewGuid(), Sample(), DateTimeOffset.UnixEpoch);
+        Assert.IsNull(value.LastExpiryNoticeDaysLeft, "a rotated value gets a fresh notification schedule");
+
+        // Re-setting the SAME date is not a change and keeps the dedupe state.
+        value.MarkExpiryNoticeSent(5);
+        value.SetRotationMetadata(new DateTimeOffset(2027, 3, 1, 23, 59, 59, TimeSpan.Zero), "note");
+        Assert.AreEqual(5, value.LastExpiryNoticeDaysLeft);
+    }
+
+    [TestMethod, TestCategory("Domain")]
     public void AccessGrant_preserves_scope_and_changes_permission()
     {
         var scope = new GrantScope(GrantScopeKind.Environment, Guid.NewGuid());

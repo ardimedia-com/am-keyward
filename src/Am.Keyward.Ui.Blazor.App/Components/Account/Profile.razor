@@ -32,7 +32,7 @@
                 <form action="account/profile/notify" method="post" style="margin-top:1rem;">
                     <AntiforgeryToken />
                     <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer;">
-                        <input type="checkbox" name="notify" value="true" checked="@notifyTokenExpiry" style="width:auto; margin-top:.2rem;" />
+                        <input type="checkbox" name="notify" value="true" checked="@notifyExpiry" style="width:auto; margin-top:.2rem;" />
                         <span>@Loc["Profile.Notify.Label"]</span>
                     </label>
                     <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer; margin-top:.4rem;">
@@ -64,7 +64,7 @@
     [SupplyParameterFromQuery(Name = "saved")] private string? Saved { get; set; }
 
     private bool isAdmin;
-    private bool notifyTokenExpiry;
+    private bool notifyExpiry;
     private bool notifyTokenAccessAlerts;
     private bool notifyMonitoring;
 
@@ -80,7 +80,7 @@
             .FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == identityId);
         if (appUser is null) return;
 
-        notifyTokenExpiry = appUser.NotifyTokenExpiry;
+        notifyExpiry = appUser.NotifyExpiry;
         notifyTokenAccessAlerts = appUser.NotifyTokenAccessAlerts;
         notifyMonitoring = appUser.NotifyMonitoring;
         isAdmin = appUser.IsSystemAdmin

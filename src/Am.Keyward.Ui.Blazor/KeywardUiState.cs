@@ -13,6 +13,20 @@ namespace Am.Keyward.Ui.Blazor;
 public sealed class KeywardUiState
 {
     public Guid? SelectedProjectId { get; set; }
+
+    /// <summary>
+    /// Whether the master-detail tree pane (<see cref="KeywardTreePane"/>) is collapsed to its icon rail.
+    /// One flag for every page that has such a pane, so the choice carries across Applications / vaults /
+    /// groups instead of being re-made per page. Persisted in the browser's localStorage — this field is the
+    /// circuit's copy, hydrated once per circuit (see <see cref="TreePaneHydrated"/>).
+    /// </summary>
+    public bool TreePaneCollapsed { get; set; }
+
+    /// <summary>
+    /// Whether <see cref="TreePaneCollapsed"/> has already been read back from localStorage in this circuit.
+    /// Without it every page navigation would re-read and briefly render the pane expanded again.
+    /// </summary>
+    public bool TreePaneHydrated { get; set; }
 }
 
 /// <summary>

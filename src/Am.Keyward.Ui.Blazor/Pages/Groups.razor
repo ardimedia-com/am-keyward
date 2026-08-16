@@ -25,12 +25,11 @@
     {
         <div class="workspace">
             @* ---------- Left: group tree + create ---------- *@
-            <aside class="ws-tree">
-                <div class="ws-tree-title">@Loc["Page.Groups.Title"]</div>
+            <KeywardTreePane Title="@Loc["Page.Groups.Title"]">
 
                 @foreach (var g in groups)
                 {
-                    <button class="tree-node @(g.Id == selectedGroupId ? "active" : "")" @onclick="() => SelectGroupAsync(g.Id)">
+                    <button class="tree-node @(g.Id == selectedGroupId ? "active" : "")" title="@g.Name" @onclick="() => SelectGroupAsync(g.Id)">
                         <KeywardIcon Name="users-round" /><span class="tree-label">@g.Name</span>
                         <span class="tree-count">@g.MemberCount</span>
                     </button>
@@ -48,7 +47,7 @@
                         <button class="btn-sm" @onclick="CreateGroupAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newGroupName))" title="@Loc["Groups.Create"]"><KeywardIcon Name="plus" /></button>
                     </div>
                 }
-            </aside>
+            </KeywardTreePane>
 
             @* ---------- Right: explanation / areas + member list ---------- *@
             <section class="ws-main">

@@ -113,6 +113,8 @@
   <data name="Common.Rename" xml:space="preserve"><value>Umbenennen</value></data>
   <data name="Common.Reveal" xml:space="preserve"><value>Anzeigen</value></data>
   <data name="Common.Hide" xml:space="preserve"><value>Verbergen</value></data>
+  <data name="Common.Pane.Collapse" xml:space="preserve"><value>Liste einklappen</value></data>
+  <data name="Common.Pane.Expand" xml:space="preserve"><value>Liste ausklappen</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Ja</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Notiz</value></data>
@@ -181,6 +183,17 @@
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Aktueller Wert</value></data>
   <data name="Secret.LastRead" xml:space="preserve"><value>Zuletzt gelesen</value></data>
   <data name="Secret.NeverRead" xml:space="preserve"><value>Nie gelesen</value></data>
+  <data name="Secret.Rotation.Column" xml:space="preserve"><value>Erneuerung</value></data>
+  <data name="Secret.Rotation.Edit" xml:space="preserve"><value>Ablaufdatum und Notiz festlegen</value></data>
+  <data name="Secret.Rotation.ExpiresAt" xml:space="preserve"><value>Erneuern bis</value></data>
+  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Notiz - wie erhält man einen neuen Wert?</value></data>
+  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>z.B. Azure-Portal, App-Registrierung, Zertifikate &amp; Geheimnisse</value></data>
+  <data name="Secret.Rotation.None" xml:space="preserve"><value>Kein Datum</value></data>
+  <data name="Secret.Rotation.NoteOnly" xml:space="preserve"><value>Nur Notiz</value></data>
+  <data name="Secret.Rotation.DaysLeft" xml:space="preserve"><value>in {0} Tag(en) ({1})</value></data>
+  <data name="Secret.Rotation.Overdue" xml:space="preserve"><value>überfällig seit {0}</value></data>
+  <data name="Secret.Rotation.Advisory" xml:space="preserve"><value>Das Datum ist nur eine Erinnerung - der Wert bleibt danach weiterhin lesbar.</value></data>
+  <data name="Secret.Rotation.Msg.Saved" xml:space="preserve"><value>Erneuerungsdaten für «{0}» in {1} gespeichert.</value></data>
   <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
   <data name="Secret.ReadSource.Client" xml:space="preserve"><value>Client-Token</value></data>
   <data name="Secret.ReadCount" xml:space="preserve"><value>{0} Lesezugriffe insgesamt</value></data>
@@ -620,7 +633,7 @@
   <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Standard-Umgebung hinzugefügt.</value></data>
   <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Eintrag entfernt — es gilt wieder das eingebaute Standard-Set.</value></data>
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>Der Schlüssel «{0}» existiert bereits. Wähle ihn links in der Liste und setze seine Werte dort pro Umgebung — es wurde nichts überschrieben.</value></data>
-  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-Mail erhalten, wenn App-Tokens bald ablaufen (30/20/10 Tage vorher, ab 9 Tagen täglich).</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-Mail erhalten, wenn App-Tokens oder Secret-Werte bald ablaufen (30/20/10 Tage vorher, ab 9 Tagen täglich).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Benachrichtigungs-Einstellung gespeichert.</value></data>
   <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} Passwort zurücksetzen</value></data>
   <data name="Email.Reset.Title" xml:space="preserve"><value>Passwort zurücksetzen</value></data>
@@ -641,6 +654,14 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotiere einen Token auf der App-Tokens-Seite; der neue Wert wird genau einmal angezeigt.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>App-Tokens öffnen</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil App-Token-Ablauf-Benachrichtigungen aktiviert hast.</value></data>
+  <data name="Email.SecretExpiry.Subject" xml:space="preserve"><value>{0}: Secret-Werte zur Erneuerung fällig</value></data>
+  <data name="Email.SecretExpiry.Title" xml:space="preserve"><value>Secret-Werte zur Erneuerung fällig</value></data>
+  <data name="Email.SecretExpiry.Intro" xml:space="preserve"><value>Die folgenden Secret-Werte nähern sich dem Termin, den jemand für ihre Erneuerung gesetzt hat. Sie funktionieren weiterhin - es liest sie niemand weniger - sollten aber ersetzt werden:</value></data>
+  <data name="Email.SecretExpiry.Line" xml:space="preserve"><value>«{0}» ({1} / {2}) - fällig in {3} Tag(en), am {4}.</value></data>
+  <data name="Email.SecretExpiry.LineNote" xml:space="preserve"><value>Notiz: {0}</value></data>
+  <data name="Email.SecretExpiry.Outro" xml:space="preserve"><value>Den neuen Wert im Tab «Daten» der Applikation setzen; der bisherige bleibt als Version erhalten.</value></data>
+  <data name="Email.SecretExpiry.Button" xml:space="preserve"><value>Applikationen öffnen</value></data>
+  <data name="Email.SecretExpiry.Footer" xml:space="preserve"><value>Du erhältst diese E-Mail, weil du in deinem Profil Ablauf-Benachrichtigungen aktiviert hast.</value></data>
   <data name="App.Tab.Statistics" xml:space="preserve"><value>Statistik</value></data>
   <data name="Token.LastAccess" xml:space="preserve"><value>Letzter Zugriff</value></data>
   <data name="Token.LastAccess.Value" xml:space="preserve"><value>zuletzt {0}</value></data>

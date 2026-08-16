@@ -59,10 +59,12 @@ public sealed class AppUser
     public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>
-    /// Opt-in: this user wants e-mail notifications about app tokens nearing expiry (30/20/10 days ahead,
-    /// then daily from 9 days). Only honored for users who administer the token's tenant.
+    /// Opt-in: this user wants e-mail notifications about credentials nearing expiry — app tokens AND
+    /// software-secret values that carry a rotation date — on the shared
+    /// <see cref="Application.ExpiryNoticePolicy"/> schedule (30/20/10 days ahead, then daily from 9 days).
+    /// Only honored for users who administer the owning tenant.
     /// </summary>
-    public bool NotifyTokenExpiry { get; private set; }
+    public bool NotifyExpiry { get; private set; }
 
     /// <summary>
     /// Opt-in: this user wants e-mail notifications about token access-pattern alerts (a token used from a
@@ -102,7 +104,7 @@ public sealed class AppUser
 
     public void RevokeSoftwareManager() => IsSoftwareManager = false;
 
-    public void SetTokenExpiryNotification(bool enabled) => NotifyTokenExpiry = enabled;
+    public void SetExpiryNotification(bool enabled) => NotifyExpiry = enabled;
 
     public void SetTokenAccessAlertNotification(bool enabled) => NotifyTokenAccessAlerts = enabled;
 

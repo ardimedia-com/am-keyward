@@ -380,16 +380,20 @@ public sealed class SoftwareSecretService(
         {
             var read = readAccesses.FirstOrDefault(r => r.EnvironmentId == environment.Id);
             var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
+            // A value row can exist WITHOUT a version — it then carries only the rotation metadata (see
+            // SoftwareSecret.EnsureValue), so the date/note are read from it either way.
             if (value?.CurrentVersionId is null)
             {
                 values.Add(new SecretEnvironmentValue(
-                    environment.Name.Value, false, null, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0));
+                    environment.Name.Value, false, null, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0,
+                    value?.ExpiresAt, value?.Note ?? ""));
                 continue;
             }
 
             var plaintext = await DecryptCurrentAsync(tenantId, projectId, environment.Id, secret.Id, value, ct).ConfigureAwait(false);
             values.Add(new SecretEnvironmentValue(
-                environment.Name.Value, true, plaintext, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0));
+                environment.Name.Value, true, plaintext, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0,
+                value.ExpiresAt, value.Note));
         }
 
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, currentUser.UserId), ct).ConfigureAwait(false);
@@ -488,6 +492,52 @@ public sealed class SoftwareSecretService(
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return true;
+    }
+
+    public async Task SetValueRotationAsync(
+        Guid tenantId,
+        Guid projectId,
+        string key,
+        string environment,
+        DateTimeOffset? expiresAt,
+        string? note,
+        Guid? actorUserId,
+        CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
+        await EnsureAuthorizedAsync(projectId, Permission.Write, ct).ConfigureAwait(false);
+
+        var secretKey = SecretKey.Create(key);
+        var runtimeEnvironment = await ResolveEnvironmentAsync(db, projectId, environment, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Environment '{environment}' does not exist in this application.");
+
+        var secret = await db.SoftwareSecrets
+            .Include(s => s.Values)
+            .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Secret '{key}' does not exist in this application.");
+
+        // Deliberately creates the value row when the environment has none yet: the rotation note is most
+        // valuable BEFORE a value exists ("this is where you get it"). The row stays value-less, which every
+        // reader already treats as "no value".
+        var existingValue = secret.Values.FirstOrDefault(v => v.EnvironmentId == runtimeEnvironment.Id);
+        var value = secret.EnsureValue(Guid.NewGuid(), runtimeEnvironment.Id);
+        value.SetRotationMetadata(expiresAt, note);
+
+        // Keys are app-assigned Guids, so EF's graph heuristic (IsKeySet) would mark this new child of a
+        // tracked aggregate as Modified -> a 0-row UPDATE. Mark it Added explicitly (same as StoreAsync).
+        if (existingValue is null)
+        {
+            db.SecretValues.Add(value);
+        }
+
+        await audit.AppendAsync(
+            db,
+            new AuditRequest(tenantId, AuditAction.Update, "SecretValueRotation", value.Id, actorUserId ?? currentUser.UserId),
+            ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
     /// <summary>

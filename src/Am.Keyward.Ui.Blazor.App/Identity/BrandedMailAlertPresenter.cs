@@ -60,6 +60,16 @@ public sealed class BrandedMailAlertPresenter(
         return await SendAsync(recipients, subject, content, ct).ConfigureAwait(false);
     }
 
+    public async Task<int> NotifySecretExpiryAsync(
+        Guid tenantId,
+        IReadOnlyList<KeywardAlertRecipient> recipients,
+        IReadOnlyList<KeywardSecretExpiryLine> lines,
+        CancellationToken ct = default)
+    {
+        var (subject, content) = BuildSecretExpiryContent(lines);
+        return await SendAsync(recipients, subject, content, ct).ConfigureAwait(false);
+    }
+
     private async Task<int> SendAsync(
         IReadOnlyList<KeywardAlertRecipient> recipients, string subject, BrandedEmailContent content, CancellationToken ct)
     {
@@ -121,6 +131,52 @@ public sealed class BrandedMailAlertPresenter(
                 ButtonText = tokensUrl is null ? null : loc["Email.TokenExpiry.Button"].Value,
                 ActionUrl = tokensUrl,
                 FooterNote = loc["Email.TokenExpiry.Footer"].Value,
+            });
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
+    private (string Subject, BrandedEmailContent Content) BuildSecretExpiryContent(IReadOnlyList<KeywardSecretExpiryLine> due)
+    {
+        var dataUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
+            ? null
+            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.Applications;
+
+        var previous = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = ResolveNotificationCulture();
+        try
+        {
+            // The rotation note is appended as its own line only where one exists — it is what turns the
+            // notice into something actionable ("this is where a new value comes from").
+            var lines = due
+                .SelectMany(x => string.IsNullOrWhiteSpace(x.Note)
+                    ? (string[])
+                    [
+                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatDate(x.ExpiresAt)].Value,
+                    ]
+                    :
+                    [
+                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatDate(x.ExpiresAt)].Value,
+                        loc["Email.SecretExpiry.LineNote", x.Note].Value,
+                    ])
+                .ToList();
+
+            return (loc["Email.SecretExpiry.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
+            {
+                Brand = uiOptions.ProductName,
+                Title = loc["Email.SecretExpiry.Title"].Value,
+                Paragraphs =
+                [
+                    loc["Email.SecretExpiry.Intro"].Value,
+                    .. lines,
+                    loc["Email.SecretExpiry.Outro"].Value,
+                ],
+                ButtonText = dataUrl is null ? null : loc["Email.SecretExpiry.Button"].Value,
+                ActionUrl = dataUrl,
+                FooterNote = loc["Email.SecretExpiry.Footer"].Value,
             });
         }
         finally

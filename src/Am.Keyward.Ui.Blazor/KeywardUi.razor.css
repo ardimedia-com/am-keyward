@@ -216,6 +216,27 @@
 .keyward-ui ::deep tr:last-child td { border-bottom: none; }
 .keyward-ui ::deep .row-actions { display: flex; gap: .4rem; }
 
+/* Rotation editor (secret value: expiry date + note), revealed under its environment row. Full-width inside
+   the table so the note gets room, visually attached to the row it belongs to. */
+.keyward-ui ::deep tr.kw-rotation-row > td { background: var(--kw-muted); padding: .75rem; }
+.keyward-ui ::deep .kw-rotation-editor {
+    display: grid;
+    grid-template-columns: 12rem minmax(0, 1fr);
+    gap: .5rem .9rem;
+    align-items: start;
+}
+.keyward-ui ::deep .kw-rotation-editor > .wide { grid-column: 1 / -1; }
+.keyward-ui ::deep .kw-rotation-editor > .field { margin-bottom: 0; }
+.keyward-ui ::deep .kw-rotation-editor textarea { resize: vertical; font-size: .85rem; }
+@media (max-width: 48rem) {
+    .keyward-ui ::deep .kw-rotation-editor { grid-template-columns: 1fr; }
+}
+
+/* Rotation state chips — quiet until the value actually needs attention. */
+.keyward-ui ::deep .kw-rot-ok { color: var(--kw-muted-text); }
+.keyward-ui ::deep .kw-rot-due { color: var(--kw-warning, #b45309); font-weight: 600; }
+.keyward-ui ::deep .kw-rot-overdue { color: var(--kw-danger); font-weight: 600; }
+
 /* Badges */
 .keyward-ui ::deep .badge {
     display: inline-flex;
@@ -258,15 +279,21 @@
     transform: translateY(-50%);
 }
 
-/* Master-detail workspace: tree pane left, content right; stacks on narrow screens */
+/* Master-detail workspace: tree pane left, content right; stacks on narrow screens.
+   The collapsed pane (KeywardTreePane's rail) narrows the column via :has(), so the pane owns its own
+   state and no page has to mirror a class onto the grid. */
 .keyward-ui ::deep .workspace {
     display: grid;
-    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-columns: var(--kw-tree-width, 300px) minmax(0, 1fr);
     gap: 1rem;
     align-items: start;
 }
+.keyward-ui ::deep .workspace:has(.ws-tree.collapsed) {
+    grid-template-columns: var(--kw-tree-rail, 3.1rem) minmax(0, 1fr);
+}
 @media (max-width: 860px) {
-    .keyward-ui ::deep .workspace { grid-template-columns: 1fr; }
+    .keyward-ui ::deep .workspace,
+    .keyward-ui ::deep .workspace:has(.ws-tree.collapsed) { grid-template-columns: 1fr; }
 }
 
 /* Two-pane master-detail INSIDE a tab (Daten: key list + values; used by SecretsPanel). List left, detail
@@ -345,6 +372,55 @@
     color: var(--kw-muted-text);
     padding: .25rem .5rem .5rem;
     user-select: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Pane header: title + collapse toggle on one line (the title is dropped in the rail). */
+.keyward-ui ::deep .ws-tree-head {
+    display: flex;
+    align-items: flex-start;
+    gap: .25rem;
+}
+.keyward-ui ::deep .ws-tree-head .ws-tree-title { flex: 1 1 auto; min-width: 0; }
+/* Two-class selector on purpose: the general `::deep button` rule paints every button as a filled primary
+   button and out-specifies a bare `.tree-toggle` (same trick as .kw-tabs .kw-tab). */
+.keyward-ui ::deep button.tree-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--kw-muted-text);
+    box-shadow: none;
+    cursor: pointer;
+}
+.keyward-ui ::deep button.tree-toggle:hover { background: var(--kw-muted); color: var(--kw-text); border: none; }
+
+/* Collapsed = icon rail: everything but the node icons and the toggle is hidden, so the detail pane gets
+   the width back while the selected item stays switchable. Tree nodes keep their title attribute as the
+   tooltip (the pages set it). */
+.keyward-ui ::deep .ws-tree.collapsed {
+    padding: .6rem .3rem;
+    overflow-x: hidden;
+}
+.keyward-ui ::deep .ws-tree.collapsed .ws-tree-head { justify-content: center; margin-bottom: .35rem; }
+.keyward-ui ::deep .ws-tree.collapsed .tree-label,
+.keyward-ui ::deep .ws-tree.collapsed .tree-count,
+.keyward-ui ::deep .ws-tree.collapsed .tree-create,
+.keyward-ui ::deep .ws-tree.collapsed .tree-children,
+.keyward-ui ::deep .ws-tree.collapsed input,
+.keyward-ui ::deep .ws-tree.collapsed p { display: none; }
+.keyward-ui ::deep .ws-tree.collapsed button.tree-node {
+    justify-content: center;
+    gap: 0;
+    padding: .45rem 0;
 }
 .keyward-ui ::deep button.tree-node {
     display: flex;

@@ -10,7 +10,8 @@ optional **standalone reference app**.
 It covers two halves equally:
 
 - **Software credentials** — machine/integration secrets (API keys, connection strings), scoped per
-  project & environment, fetched by your software via an API.
+  project & environment, fetched by your software via an API. Each value can carry a rotation date and a
+  note on how a new one is obtained; the date is advisory (reads keep working) and raises advance notices.
 - **Human vaults** — personal & team password vaults, shared to groups or individuals.
 
 ## What it is / is not

@@ -39,6 +39,36 @@
     margin-bottom: 0;
 }
 
+/* Title row above the tabs — same frame, so the subject and its tabs read as ONE unit. Separated from the
+   bar by a hairline rather than a second border/background. */
+.kw-tab-area-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    min-width: 0;
+    padding: .15rem .25rem .55rem;
+    margin-bottom: .5rem;
+    border-bottom: 1px solid var(--kw-border, #e4e7ec);
+    color: var(--kw-text, #1a2233);
+    font-size: 1.02rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+/* A secondary fact next to the title (counts) stays quiet and never pushes the name out. */
+.kw-tab-area-title .kw-tab-area-subtitle {
+    color: var(--kw-muted-text, #667085);
+    font-size: .82rem;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.kw-tab-area-title .kw-tab-area-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .kw-tab-area-content {
     padding: 1rem;
 }

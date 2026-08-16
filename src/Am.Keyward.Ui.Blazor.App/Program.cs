@@ -171,7 +171,7 @@ builder.Services.Configure<DatabaseMigrationOptions>(builder.Configuration.GetSe
 builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.DatabaseMigrationBackgroundService>();
 
 // E-mails administrators (who opted in on their profile) about app tokens nearing expiry:
-// 30/20/10 days ahead, then daily from 9 days (TokenExpiryNoticePolicy).
+// 30/20/10 days ahead, then daily from 9 days (ExpiryNoticePolicy).
 
 // Renders and mails the alerts that AddKeyward's notification poller collects — access-pattern alerts from
 // the statistics flush (a token used from a never-seen IP, active again after a long silence) and the
@@ -282,7 +282,7 @@ app.MapPost("/account/profile/notify", async (HttpContext ctx, [FromForm] string
     var appUser = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == identityId);
     if (appUser is not null)
     {
-        appUser.SetTokenExpiryNotification(notify == "true");
+        appUser.SetExpiryNotification(notify == "true");
         appUser.SetTokenAccessAlertNotification(notifyAccess == "true");
         appUser.SetMonitoringNotification(notifyMonitoring == "true");
         await db.SaveChangesAsync();

@@ -113,6 +113,8 @@
   <data name="Common.Rename" xml:space="preserve"><value>Cambiar nombre</value></data>
   <data name="Common.Reveal" xml:space="preserve"><value>Mostrar</value></data>
   <data name="Common.Hide" xml:space="preserve"><value>Ocultar</value></data>
+  <data name="Common.Pane.Collapse" xml:space="preserve"><value>Contraer la lista</value></data>
+  <data name="Common.Pane.Expand" xml:space="preserve"><value>Expandir la lista</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Sí</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Nombre</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Nota</value></data>
@@ -181,6 +183,17 @@
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Valor actual</value></data>
   <data name="Secret.LastRead" xml:space="preserve"><value>Última lectura</value></data>
   <data name="Secret.NeverRead" xml:space="preserve"><value>Nunca leída</value></data>
+  <data name="Secret.Rotation.Column" xml:space="preserve"><value>Renovación</value></data>
+  <data name="Secret.Rotation.Edit" xml:space="preserve"><value>Definir fecha de renovación y nota</value></data>
+  <data name="Secret.Rotation.ExpiresAt" xml:space="preserve"><value>Renovar antes del</value></data>
+  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Nota: ¿cómo se obtiene un valor nuevo?</value></data>
+  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>p. ej. portal de Azure, registro de aplicaciones, certificados y secretos</value></data>
+  <data name="Secret.Rotation.None" xml:space="preserve"><value>Sin fecha</value></data>
+  <data name="Secret.Rotation.NoteOnly" xml:space="preserve"><value>Solo nota</value></data>
+  <data name="Secret.Rotation.DaysLeft" xml:space="preserve"><value>en {0} día(s) ({1})</value></data>
+  <data name="Secret.Rotation.Overdue" xml:space="preserve"><value>vencido desde el {0}</value></data>
+  <data name="Secret.Rotation.Advisory" xml:space="preserve"><value>La fecha es solo un recordatorio: el valor se sigue pudiendo leer después.</value></data>
+  <data name="Secret.Rotation.Msg.Saved" xml:space="preserve"><value>Datos de renovación de «{0}» en {1} guardados.</value></data>
   <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
   <data name="Secret.ReadSource.Client" xml:space="preserve"><value>token de cliente</value></data>
   <data name="Secret.ReadCount" xml:space="preserve"><value>{0} lecturas en total</value></data>
@@ -620,7 +633,7 @@
   <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Entorno predeterminado añadido.</value></data>
   <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Entrada eliminada — vuelve a regir el conjunto integrado.</value></data>
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>La clave «{0}» ya existe. Selecciónala en la lista de la izquierda y define allí sus valores por entorno — no se sobrescribió nada.</value></data>
-  <data name="Profile.Notify.Label" xml:space="preserve"><value>Recibir un correo cuando los tokens de app estén por expirar (30/20/10 días antes, luego a diario desde 9 días).</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>Enviarme un correo cuando los tokens de aplicación o los valores secretos estén a punto de vencer (30/20/10 días antes y, a partir de 9 días, a diario).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Preferencia de notificación guardada.</value></data>
   <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} restablecimiento de contraseña</value></data>
   <data name="Email.Reset.Title" xml:space="preserve"><value>Restablece tu contraseña</value></data>
@@ -641,6 +654,14 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rota un token en la página de tokens de app; el nuevo valor se muestra una sola vez.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Abrir los tokens de app</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>Recibes este correo porque activaste las notificaciones de expiración de tokens de app en tu perfil.</value></data>
+  <data name="Email.SecretExpiry.Subject" xml:space="preserve"><value>{0}: valores secretos pendientes de renovación</value></data>
+  <data name="Email.SecretExpiry.Title" xml:space="preserve"><value>Valores secretos pendientes de renovación</value></data>
+  <data name="Email.SecretExpiry.Intro" xml:space="preserve"><value>Los siguientes valores secretos se acercan a la fecha de renovación fijada para ellos. Siguen funcionando - nada deja de leerlos -, pero conviene sustituirlos:</value></data>
+  <data name="Email.SecretExpiry.Line" xml:space="preserve"><value>«{0}» ({1} / {2}): vence en {3} día(s), el {4}.</value></data>
+  <data name="Email.SecretExpiry.LineNote" xml:space="preserve"><value>Nota: {0}</value></data>
+  <data name="Email.SecretExpiry.Outro" xml:space="preserve"><value>Define el nuevo valor en la pestaña de datos de la aplicación; el anterior se conserva como versión.</value></data>
+  <data name="Email.SecretExpiry.Button" xml:space="preserve"><value>Abrir aplicaciones</value></data>
+  <data name="Email.SecretExpiry.Footer" xml:space="preserve"><value>Recibes este mensaje porque activaste las notificaciones de vencimiento en tu perfil.</value></data>
   <data name="App.Tab.Statistics" xml:space="preserve"><value>Estadísticas</value></data>
   <data name="Token.LastAccess" xml:space="preserve"><value>Último acceso</value></data>
   <data name="Token.LastAccess.Value" xml:space="preserve"><value>usado {0}</value></data>
@@ -773,4 +794,67 @@
   <data name="Email.Monitor.Outro" xml:space="preserve"><value>Un token en silencio suele significar que su consumidor no se ejecutó — una tarea programada que no arranca no puede notificar un error por sí misma. Revisa el host y la tarea; los detalles están en las pestañas Supervisión y Estadísticas de la aplicación.</value></data>
   <data name="Email.Monitor.Button" xml:space="preserve"><value>Abrir aplicaciones</value></data>
   <data name="Email.Monitor.Footer" xml:space="preserve"><value>Recibes este mensaje porque en tu perfil están activadas las notificaciones de la supervisión heartbeat.</value></data>
+  <data name="Provisioning.Title" xml:space="preserve"><value>AM KEYWARD — estado</value></data>
+  <data name="Provisioning.Environment" xml:space="preserve"><value>Entorno {0} — aquí Keyward está {1}.</value></data>
+  <data name="Provisioning.Loading" xml:space="preserve"><value>Comprobando el estado …</value></data>
+  <data name="Provisioning.Expectation.Optional" xml:space="preserve"><value>opcional</value></data>
+  <data name="Provisioning.Expectation.ExpectedOff" xml:space="preserve"><value>desactivado a propósito</value></data>
+  <data name="Provisioning.Expectation.Required" xml:space="preserve"><value>obligatorio</value></data>
+  <data name="Provisioning.Expectation.Why.Optional" xml:space="preserve"><value>En Development Keyward es opcional: activado para trabajar en la interfaz o desactivado, ambas cosas están bien. Aquí no se informa de ninguna carencia.</value></data>
+  <data name="Provisioning.Expectation.Why.ExpectedOff" xml:space="preserve"><value>En este entorno Keyward está desactivado a propósito, así que no se espera aprovisionar nada aquí.</value></data>
+  <data name="Provisioning.Expectation.Why.Required" xml:space="preserve"><value>En este entorno Keyward debe estar activo y aprovisionado: aquí residen realmente las credenciales. Un «desactivado» es una carencia que hay que resolver.</value></data>
+  <data name="Provisioning.Banner.OffRequired.Title" xml:space="preserve"><value>Keyward debe estar activo en «{0}», pero no lo está.</value></data>
+  <data name="Provisioning.Banner.OffRequired.Text" xml:space="preserve"><value>Los puntos siguientes muestran qué hay que aprovisionar.</value></data>
+  <data name="Provisioning.Banner.Off.Title" xml:space="preserve"><value>Keyward está desactivado en «{0}» — {1}.</value></data>
+  <data name="Provisioning.Banner.Ok.Title" xml:space="preserve"><value>Keyward está listo.</value></data>
+  <data name="Provisioning.Banner.Ok.Text" xml:space="preserve"><value>Se cumplen todos los requisitos.</value></data>
+  <data name="Provisioning.Banner.Incomplete.Title" xml:space="preserve"><value>Keyward está activado, pero quedan {0} de {1} puntos pendientes.</value></data>
+  <data name="Provisioning.Banner.Incomplete.Text" xml:space="preserve"><value>La configuración no está completa: repasa los puntos siguientes en orden.</value></data>
+  <data name="Provisioning.Label.Requirement" xml:space="preserve"><value>Requisito:</value></data>
+  <data name="Provisioning.Label.Location" xml:space="preserve"><value>Dónde:</value></data>
+  <data name="Provisioning.Label.Todo" xml:space="preserve"><value>Por hacer:</value></data>
+  <data name="Provisioning.Check.FeatureSwitch.Title" xml:space="preserve"><value>Interruptor de función «Keyward:Enabled»</value></data>
+  <data name="Provisioning.Check.FeatureSwitch.Requirement" xml:space="preserve"><value>«Keyward:Enabled» = true en la configuración de este entorno. Actívalo solo cuando se cumplan los demás puntos.</value></data>
+  <data name="Provisioning.Check.FeatureSwitch.Location" xml:space="preserve"><value>{0} → Keyward:Enabled</value></data>
+  <data name="Provisioning.Check.KekFile.Title" xml:space="preserve"><value>Archivo de clave (KEK)</value></data>
+  <data name="Provisioning.Check.KekFile.Requirement" xml:space="preserve"><value>No se proporciona a mano: el archivo de clave se crea automáticamente en el primer arranque. Tu única tarea es respaldarlo después sin conexión.</value></data>
+  <data name="Provisioning.Check.KekFile.Location" xml:space="preserve"><value>Ningún archivo que editar: se crea al arrancar; solo la copia de seguridad sin conexión es cosa tuya.</value></data>
+  <data name="Provisioning.Check.ConnectionString.Title" xml:space="preserve"><value>Cadena de conexión «{0}»</value></data>
+  <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve"><value>El único requisito que se aporta a mano: una cadena de conexión al servidor de base de datos de este entorno. Sin ella Keyward no arranca. Integrated Security en local; fuera de Development, el inicio de sesión con privilegios mínimos.</value></data>
+  <data name="Provisioning.Check.ConnectionString.Location" xml:space="preserve"><value>{0} → ConnectionStrings:{1}</value></data>
+  <data name="Provisioning.Check.DatabaseReachable.Title" xml:space="preserve"><value>Base de datos accesible</value></data>
+  <data name="Provisioning.Check.DatabaseReachable.Requirement" xml:space="preserve"><value>El inicio de sesión de la cadena de conexión debe poder abrir la base de datos.</value></data>
+  <data name="Provisioning.Check.DatabaseReachable.Location" xml:space="preserve"><value>Se deduce de la cadena de conexión</value></data>
+  <data name="Provisioning.Check.Schema.Title" xml:space="preserve"><value>Esquema «amkeyward» migrado</value></data>
+  <data name="Provisioning.Check.Schema.Requirement" xml:space="preserve"><value>El esquema «amkeyward» y sus tablas. Se migran automáticamente al arrancar la aplicación mediante una conexión con privilegios.</value></data>
+  <data name="Provisioning.Check.Schema.Location" xml:space="preserve"><value>Esquema de base de datos amkeyward</value></data>
+  <data name="Provisioning.Check.Tenant.Title" xml:space="preserve"><value>Inquilino creado</value></data>
+  <data name="Provisioning.Check.Tenant.Requirement" xml:space="preserve"><value>El inquilino de esta aplicación. Se crea automáticamente al arrancar (seed).</value></data>
+  <data name="Provisioning.Check.Tenant.Location" xml:space="preserve"><value>Tabla de base de datos amkeyward.Tenants</value></data>
+  <data name="Provisioning.Outcome.Ok" xml:space="preserve"><value>Disponible.</value></data>
+  <data name="Provisioning.Outcome.FeatureOffAcceptable" xml:space="preserve"><value>Desactivado: aquí Keyward está totalmente inactivo, sin servicios, sin accesos a la base de datos y sin rutas.</value></data>
+  <data name="Provisioning.Outcome.FeatureOffRequired" xml:space="preserve"><value>Desactivado, aunque este entorno necesita Keyward.</value></data>
+  <data name="Provisioning.Outcome.KekMissing" xml:space="preserve"><value>Todavía no existe.</value></data>
+  <data name="Provisioning.Outcome.KekNotFileBased" xml:space="preserve"><value>Hay configurado un proveedor de claves externo: no hay ningún archivo de clave que comprobar.</value></data>
+  <data name="Provisioning.Outcome.ConnectionMissing" xml:space="preserve"><value>No configurada.</value></data>
+  <data name="Provisioning.Outcome.ConnectionUnreadable" xml:space="preserve"><value>Configurada, pero no legible.</value></data>
+  <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve"><value>Configurada, pero con Integrated Security.</value></data>
+  <data name="Provisioning.Outcome.DatabaseUnreachable" xml:space="preserve"><value>La conexión ha fallado.</value></data>
+  <data name="Provisioning.Outcome.SchemaMissing" xml:space="preserve"><value>El esquema «amkeyward» no existe en esta base de datos.</value></data>
+  <data name="Provisioning.Outcome.SchemaNoMigrations" xml:space="preserve"><value>El esquema existe, pero no se ha aplicado ninguna migración.</value></data>
+  <data name="Provisioning.Outcome.SchemaUnreadable" xml:space="preserve"><value>No se ha podido leer el estado de las migraciones.</value></data>
+  <data name="Provisioning.Outcome.TenantMissing" xml:space="preserve"><value>El inquilino aún no se ha creado.</value></data>
+  <data name="Provisioning.Outcome.TenantUnreadable" xml:space="preserve"><value>No se ha podido leer el registro del inquilino.</value></data>
+  <data name="Provisioning.Outcome.NotProbed" xml:space="preserve"><value>Sin comprobar: falta un requisito anterior.</value></data>
+  <data name="Provisioning.Fix.FeatureOffRequired" xml:space="preserve"><value>Aprovisiona este entorno siguiendo la guía y luego pon «Keyward:Enabled» en true.</value></data>
+  <data name="Provisioning.Fix.KekMissing" xml:space="preserve"><value>Se crea automáticamente en el próximo arranque. Después respáldalo SIN CONEXIÓN: está ligado a la máquina y no se puede recuperar.</value></data>
+  <data name="Provisioning.Fix.ConnectionMissing" xml:space="preserve"><value>Añade la cadena de conexión al servidor de base de datos de este entorno. Inyecta la contraseña como secreto de despliegue; nunca la subas al repositorio.</value></data>
+  <data name="Provisioning.Fix.ConnectionUnreadable" xml:space="preserve"><value>Revisa la sintaxis de la cadena de conexión.</value></data>
+  <data name="Provisioning.Fix.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve"><value>Fuera de Development usa el inicio de sesión dedicado con privilegios mínimos: Integrated Security solo está previsto para el desarrollo local.</value></data>
+  <data name="Provisioning.Fix.DatabaseUnreachable" xml:space="preserve"><value>Comprueba el inicio de sesión, la contraseña y el acceso a la red.</value></data>
+  <data name="Provisioning.Fix.SchemaMissing" xml:space="preserve"><value>Se crea al arrancar la aplicación mediante una conexión con privilegios. Comprueba esa conexión y sus permisos DDL.</value></data>
+  <data name="Provisioning.Fix.SchemaNoMigrations" xml:space="preserve"><value>Reinicia la aplicación: la migración se ejecuta al arrancar.</value></data>
+  <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión sobre el esquema «amkeyward».</value></data>
+  <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Se crea (seed) al arrancar la aplicación: reinicia y revisa el registro en busca de errores.</value></data>
+  <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión (el seed se ejecuta al arrancar la aplicación).</value></data>
 </root>

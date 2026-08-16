@@ -1,0 +1,98 @@
+@namespace Am.Keyward.Ui.Blazor
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject KeywardUiState UiState
+@inject IStringLocalizer<SharedResource> Loc
+
+@* The left pane of a master-detail page (applications, vaults, groups): a titled tree that can be collapsed
+   to an icon RAIL, so a wide detail pane gets the horizontal space back without losing the ability to switch
+   the selected item. The rail is pure CSS (KeywardUi.razor.css hides labels/counts/inputs on .collapsed) —
+   the pages hand in their normal tree markup and need to know nothing about the collapsed state, except that
+   a tree node SHOULD carry a title attribute so the rail keeps a tooltip.
+
+   The state lives on the circuit-scoped KeywardUiState (shared by every page with such a pane) and is
+   persisted in localStorage, so it survives a reload. .workspace picks the column width up via :has(). *@
+<aside class="ws-tree @(UiState.TreePaneCollapsed ? "collapsed" : "")">
+    <div class="ws-tree-head">
+        @if (!UiState.TreePaneCollapsed)
+        {
+            <div class="ws-tree-title">@Title</div>
+        }
+        <button type="button" class="tree-toggle" @onclick="ToggleAsync"
+                title="@ToggleLabel" aria-label="@ToggleLabel" aria-expanded="@((!UiState.TreePaneCollapsed).ToString().ToLowerInvariant())">
+            <KeywardIcon Name="@(UiState.TreePaneCollapsed ? "panel-left-open" : "panel-left-close")" Size="16" />
+        </button>
+    </div>
+
+    @ChildContent
+</aside>
+
+@code {
+    private const string StorageKey = "am-keyward.tree-pane-collapsed";
+
+    /// <summary>Pane heading (hidden in the rail, where only the toggle remains).</summary>
+    [Parameter, EditorRequired] public string? Title { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private IJSObjectReference? module;
+
+    private string ToggleLabel => UiState.TreePaneCollapsed ? Loc["Common.Pane.Expand"] : Loc["Common.Pane.Collapse"];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Hydrate ONCE per circuit: the first pane that renders reads the stored preference, every later
+        // page reuses the circuit's copy (no flash of an expanded pane on each navigation).
+        if (UiState.TreePaneHydrated)
+        {
+            return;
+        }
+
+        try
+        {
+            var stored = await (await ModuleAsync()).InvokeAsync<bool>("readFlag", StorageKey);
+            UiState.TreePaneHydrated = true;
+            if (stored != UiState.TreePaneCollapsed)
+            {
+                UiState.TreePaneCollapsed = stored;
+                StateHasChanged();
+            }
+        }
+        catch
+        {
+            // JS not available yet (prerender) or circuit tearing down — retried on the next render.
+        }
+    }
+
+    private async Task ToggleAsync()
+    {
+        UiState.TreePaneCollapsed = !UiState.TreePaneCollapsed;
+        UiState.TreePaneHydrated = true;
+        try
+        {
+            await (await ModuleAsync()).InvokeVoidAsync("writeFlag", StorageKey, UiState.TreePaneCollapsed);
+        }
+        catch
+        {
+            // Preference could not be stored — the pane still toggles for this session.
+        }
+    }
+
+    private async ValueTask<IJSObjectReference> ModuleAsync() =>
+        module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/KeywardUi.razor.js");
+
+    public async ValueTask DisposeAsync()
+    {
+        if (module is not null)
+        {
+            try
+            {
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit already gone — nothing to release.
+            }
+        }
+    }
+}

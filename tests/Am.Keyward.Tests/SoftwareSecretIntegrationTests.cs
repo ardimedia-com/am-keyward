@@ -136,6 +136,75 @@ public class SoftwareSecretIntegrationTests
     }
 
     [TestMethod, TestCategory("Integration")]
+    public async Task Rotation_metadata_survives_a_value_being_set_and_never_blocks_a_read()
+    {
+        var services = new ServiceCollection();
+        services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
+        await using var provider = services.BuildServiceProvider();
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            if (!await db.Database.CanConnectAsync())
+            {
+                Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+                return;
+            }
+
+            db.Tenants.Add(new Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
+            var project = new Project(projectId, tenantId, OwnerType.Tenant, tenantId, "rotation", DateTimeOffset.UtcNow);
+            project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Production, DateTimeOffset.UtcNow);
+            db.Projects.Add(project);
+            await db.SaveChangesAsync();
+        }
+
+        // A key with NO value anywhere: the date and note must still attach (that is the point of them).
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            Assert.IsTrue(await svc.CreateSecretAsync(tenantId, projectId, "AiEngine:ApiKey", null));
+            await svc.SetValueRotationAsync(
+                tenantId, projectId, "AiEngine:ApiKey", "Production",
+                DateTimeOffset.UtcNow.AddDays(-1), "Console, API keys, create new", null);
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            var detail = await svc.GetSecretAsync(tenantId, projectId, "AiEngine:ApiKey");
+            var production = detail!.Environments.Single(e => e.Environment == "Production");
+            Assert.IsFalse(production.HasValue, "rotation metadata must not fabricate a value");
+            Assert.IsNotNull(production.ExpiresAt);
+            Assert.AreEqual("Console, API keys, create new", production.Note);
+
+            // Now store a value — with an ALREADY EXPIRED date — and read it back: expiry is advisory, so a
+            // deployed application keeps working past the date.
+            await svc.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, "Production", "AiEngine:ApiKey", "sk-live", null));
+        }
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            Assert.AreEqual("sk-live", await svc.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, "Production", "AiEngine:ApiKey", null)));
+
+            var detail = await svc.GetSecretAsync(tenantId, projectId, "AiEngine:ApiKey");
+            var production = detail!.Environments.Single(e => e.Environment == "Production");
+            Assert.IsTrue(production.HasValue);
+            Assert.AreEqual("Console, API keys, create new", production.Note, "storing a value keeps the rotation metadata");
+
+            // Clearing works through the same call.
+            await svc.SetValueRotationAsync(tenantId, projectId, "AiEngine:ApiKey", "Production", null, null, null);
+            var cleared = (await svc.GetSecretAsync(tenantId, projectId, "AiEngine:ApiKey"))!
+                .Environments.Single(e => e.Environment == "Production");
+            Assert.IsNull(cleared.ExpiresAt);
+            Assert.AreEqual("", cleared.Note);
+        }
+    }
+
+    [TestMethod, TestCategory("Integration")]
     public async Task Rename_keeps_every_environment_value_readable_under_the_new_key()
     {
         var services = new ServiceCollection();

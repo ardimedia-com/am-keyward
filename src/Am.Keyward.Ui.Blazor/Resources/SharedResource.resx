@@ -113,6 +113,8 @@
   <data name="Common.Rename" xml:space="preserve"><value>Rename</value></data>
   <data name="Common.Reveal" xml:space="preserve"><value>Reveal</value></data>
   <data name="Common.Hide" xml:space="preserve"><value>Hide</value></data>
+  <data name="Common.Pane.Collapse" xml:space="preserve"><value>Collapse list</value></data>
+  <data name="Common.Pane.Expand" xml:space="preserve"><value>Expand list</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
@@ -181,6 +183,17 @@
   <data name="Secret.CurrentValue" xml:space="preserve"><value>Current value</value></data>
   <data name="Secret.LastRead" xml:space="preserve"><value>Last read</value></data>
   <data name="Secret.NeverRead" xml:space="preserve"><value>Never read</value></data>
+  <data name="Secret.Rotation.Column" xml:space="preserve"><value>Rotation</value></data>
+  <data name="Secret.Rotation.Edit" xml:space="preserve"><value>Set rotation date and note</value></data>
+  <data name="Secret.Rotation.ExpiresAt" xml:space="preserve"><value>Rotate by</value></data>
+  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Note - how is a new value obtained?</value></data>
+  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>e.g. Azure portal, app registration, certificates &amp; secrets</value></data>
+  <data name="Secret.Rotation.None" xml:space="preserve"><value>No date</value></data>
+  <data name="Secret.Rotation.NoteOnly" xml:space="preserve"><value>Note only</value></data>
+  <data name="Secret.Rotation.DaysLeft" xml:space="preserve"><value>in {0} day(s) ({1})</value></data>
+  <data name="Secret.Rotation.Overdue" xml:space="preserve"><value>overdue since {0}</value></data>
+  <data name="Secret.Rotation.Advisory" xml:space="preserve"><value>The date is a reminder only - reading the value keeps working after it passes.</value></data>
+  <data name="Secret.Rotation.Msg.Saved" xml:space="preserve"><value>Rotation data for &quot;{0}&quot; in {1} saved.</value></data>
   <data name="Secret.ReadSource.InProcess" xml:space="preserve"><value>in-process</value></data>
   <data name="Secret.ReadSource.Client" xml:space="preserve"><value>client token</value></data>
   <data name="Secret.ReadCount" xml:space="preserve"><value>{0} read(s) in total</value></data>
@@ -620,7 +633,7 @@
   <data name="DefaultEnvs.Msg.Added" xml:space="preserve"><value>Default environment added.</value></data>
   <data name="DefaultEnvs.Msg.BackToBuiltIn" xml:space="preserve"><value>Entry removed — the built-in default set applies again.</value></data>
   <data name="Secret.Msg.DuplicateKey" xml:space="preserve"><value>The key “{0}” already exists. Select it in the list on the left and set its values per environment there — nothing was overwritten.</value></data>
-  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-mail me when app tokens are about to expire (30/20/10 days ahead, then daily from 9 days).</value></data>
+  <data name="Profile.Notify.Label" xml:space="preserve"><value>E-mail me when app tokens or secret values are about to expire (30/20/10 days ahead, then daily from 9 days).</value></data>
   <data name="Profile.Notify.Saved" xml:space="preserve"><value>Notification setting saved.</value></data>
   <data name="Email.Reset.Subject" xml:space="preserve"><value>{0} password reset</value></data>
   <data name="Email.Reset.Title" xml:space="preserve"><value>Reset your password</value></data>
@@ -641,6 +654,14 @@
   <data name="Email.TokenExpiry.Outro" xml:space="preserve"><value>Rotate a token on the app-tokens page; the new value is shown exactly once.</value></data>
   <data name="Email.TokenExpiry.Button" xml:space="preserve"><value>Open app tokens</value></data>
   <data name="Email.TokenExpiry.Footer" xml:space="preserve"><value>You receive this because you enabled app-token expiry notifications in your profile.</value></data>
+  <data name="Email.SecretExpiry.Subject" xml:space="preserve"><value>{0}: secret values due for rotation</value></data>
+  <data name="Email.SecretExpiry.Title" xml:space="preserve"><value>Secret values due for rotation</value></data>
+  <data name="Email.SecretExpiry.Intro" xml:space="preserve"><value>The following secret values are approaching the rotation date somebody set for them. They keep working - nothing stops reading them - but they should be replaced:</value></data>
+  <data name="Email.SecretExpiry.Line" xml:space="preserve"><value>&quot;{0}&quot; ({1} / {2}) - due in {3} day(s), on {4}.</value></data>
+  <data name="Email.SecretExpiry.LineNote" xml:space="preserve"><value>Note: {0}</value></data>
+  <data name="Email.SecretExpiry.Outro" xml:space="preserve"><value>Set the new value on the application's data tab; the previous one is kept as a version.</value></data>
+  <data name="Email.SecretExpiry.Button" xml:space="preserve"><value>Open applications</value></data>
+  <data name="Email.SecretExpiry.Footer" xml:space="preserve"><value>You receive this because you enabled expiry notifications in your profile.</value></data>
   <data name="App.Tab.Statistics" xml:space="preserve"><value>Statistics</value></data>
   <data name="Token.LastAccess" xml:space="preserve"><value>Last access</value></data>
   <data name="Token.LastAccess.Value" xml:space="preserve"><value>used {0}</value></data>

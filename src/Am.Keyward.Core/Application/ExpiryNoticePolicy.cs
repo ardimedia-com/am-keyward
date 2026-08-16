@@ -5,7 +5,7 @@ namespace Am.Keyward.Core.Application;
 /// then DAILY from 9 days down to the last day. Pure policy so the host's mail job and the tests share the
 /// exact same rules; the per-token dedupe state is <c>SoftwareClientToken.LastExpiryNoticeDaysLeft</c>.
 /// </summary>
-public static class TokenExpiryNoticePolicy
+public static class ExpiryNoticePolicy
 {
     /// <summary>How far ahead the schedule starts (used to pre-filter candidate tokens).</summary>
     public const int WindowDays = 30;

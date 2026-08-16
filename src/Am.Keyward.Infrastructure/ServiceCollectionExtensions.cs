@@ -152,6 +152,8 @@ public static class ServiceCollectionExtensions
         // register one, or this service says so loudly rather than discarding alerts.
         services.AddHostedService<Monitoring.TokenAccessAlertNotificationService>();
         services.AddHostedService<Monitoring.TokenExpiryNotificationService>();
+        // Same schedule, other subject: software-secret values that carry a rotation date.
+        services.AddHostedService<Monitoring.SecretExpiryNotificationService>();
 
         return services;
     }

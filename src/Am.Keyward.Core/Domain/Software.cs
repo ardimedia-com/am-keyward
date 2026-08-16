@@ -172,17 +172,29 @@ public sealed class SoftwareSecret
     /// <summary>Sets (or adds a new version of) this secret's value for a given environment.</summary>
     public SecretValue SetValue(Guid valueId, Guid environmentId, Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
     {
-        var existing = _values.FirstOrDefault(v => v.EnvironmentId == environmentId);
-        if (existing is null)
-        {
-            var created = new SecretValue(valueId, TenantId, Id, environmentId);
-            created.AddVersion(versionId, encrypted, at);
-            _values.Add(created);
-            return created;
-        }
-
+        var existing = EnsureValue(valueId, environmentId);
         existing.AddVersion(versionId, encrypted, at);
         return existing;
+    }
+
+    /// <summary>
+    /// Returns this secret's value row for an environment, creating an EMPTY one (no version yet) if there
+    /// is none. That empty row is what carries the rotation metadata — expiry date and note — before a value
+    /// has ever been set, which is exactly when the note ("how do I obtain this value?") is most useful.
+    /// Everything reading a value already treats "no current version" as "no value", so an empty row is
+    /// indistinguishable from an absent one for readers.
+    /// </summary>
+    public SecretValue EnsureValue(Guid valueId, Guid environmentId)
+    {
+        var existing = _values.FirstOrDefault(v => v.EnvironmentId == environmentId);
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        var created = new SecretValue(valueId, TenantId, Id, environmentId);
+        _values.Add(created);
+        return created;
     }
 }
 
@@ -201,6 +213,27 @@ public sealed class SecretValue
     public Guid? CurrentVersionId { get; private set; }
     public IReadOnlyList<SecretVersion> Versions => _versions;
 
+    /// <summary>
+    /// When this value is due for rotation (null = no date set). Unlike an app token's expiry this is purely
+    /// ADVISORY: it never blocks a read. A forgotten renewal must not take a deployed application down — it
+    /// raises a notice on the <see cref="Application.ExpiryNoticePolicy"/> schedule instead.
+    /// </summary>
+    public DateTimeOffset? ExpiresAt { get; private set; }
+
+    /// <summary>
+    /// Free-text rotation note for this value — typically how a new one is obtained (which portal, which
+    /// command, who to ask). Empty when unset. It travels into the expiry notice, because that is the moment
+    /// somebody needs it.
+    /// </summary>
+    public string Note { get; private set; } = string.Empty;
+
+    /// <summary>
+    /// Days-left bucket of the last expiry notice sent for the CURRENT value (dedupe state, mirrors
+    /// <see cref="SoftwareClientToken.LastExpiryNoticeDaysLeft"/>). Reset whenever a new version is stored or
+    /// the date changes — a fresh value gets a fresh notification schedule.
+    /// </summary>
+    public int? LastExpiryNoticeDaysLeft { get; private set; }
+
     public SecretValue(Guid id, Guid tenantId, Guid softwareSecretId, Guid environmentId)
     {
         Id = id;
@@ -214,8 +247,29 @@ public sealed class SecretValue
         var version = new SecretVersion(versionId, TenantId, Id, _versions.Count + 1, encrypted, at);
         _versions.Add(version);
         CurrentVersionId = version.Id;
+        // A new value is a completed rotation: the notices already sent applied to the value it replaced.
+        LastExpiryNoticeDaysLeft = null;
         return version;
     }
+
+    /// <summary>
+    /// Sets the rotation metadata (expiry date and note; either may be null/empty to clear it). Changing the
+    /// date restarts the notice schedule, so moving an expiry further out cannot leave a stale "10 days left"
+    /// mark that suppresses the notices for the new window.
+    /// </summary>
+    public void SetRotationMetadata(DateTimeOffset? expiresAt, string? note)
+    {
+        if (expiresAt != ExpiresAt)
+        {
+            LastExpiryNoticeDaysLeft = null;
+        }
+
+        ExpiresAt = expiresAt;
+        Note = note?.Trim() ?? string.Empty;
+    }
+
+    /// <summary>Records that an expiry notice was sent for this days-left bucket (dedupe).</summary>
+    public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
 
     /// <summary>Resolves the current version via the pointer (never by max timestamp).</summary>
     public SecretVersion Current =>

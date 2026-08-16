@@ -177,8 +177,12 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
         {
             e.ToTable("SecretValues");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Note).HasMaxLength(1024).IsRequired();
             e.HasIndex(x => new { x.SoftwareSecretId, x.EnvironmentId }).IsUnique(); // one value per (secret, environment)
             e.HasIndex(x => x.TenantId);
+            // The expiry-notice poller scans installation-wide for dated values; without this it would table-scan
+            // SecretValues every hour. Filtered, because only a minority of values ever carries a date.
+            e.HasIndex(x => x.ExpiresAt).HasFilter("[ExpiresAt] IS NOT NULL");
             e.HasMany(x => x.Versions).WithOne().HasForeignKey(x => x.SecretValueId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.Versions).UsePropertyAccessMode(PropertyAccessMode.Field);
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);

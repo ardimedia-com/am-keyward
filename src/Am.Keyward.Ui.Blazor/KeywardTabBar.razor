@@ -37,7 +37,15 @@
 else
 {
     <div class="kw-tab-area">
-        <div class="kw-tab-area-bar">@bar</div>
+        <div class="kw-tab-area-bar">
+            @* The subject of the tabs (e.g. the selected application) belongs INSIDE the framed area, above
+               the bar: title and tabs then read as one unit instead of the title floating in the page. *@
+            @if (TitleContent is not null)
+            {
+                <div class="kw-tab-area-title">@TitleContent</div>
+            }
+            @bar
+        </div>
         <div class="kw-tab-area-content">@ChildContent</div>
     </div>
 }
@@ -55,6 +63,12 @@ else
     /// bare bar renders (legacy layout).
     /// </summary>
     [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// What the tabs are ABOUT (the selected application / vault), rendered above the bar inside the same
+    /// frame. Only used in tab-area mode (<see cref="ChildContent"/> set); ignored for a bare bar.
+    /// </summary>
+    [Parameter] public RenderFragment? TitleContent { get; set; }
 
     private async Task SelectAsync(string key)
     {

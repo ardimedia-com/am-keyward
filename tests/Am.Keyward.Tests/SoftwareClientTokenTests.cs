@@ -56,7 +56,7 @@ public class SoftwareClientTokenGeneratorTests
 }
 
 [TestClass]
-public class TokenExpiryNoticePolicyTests
+public class ExpiryNoticePolicyTests
 {
     [TestMethod, TestCategory("Auth")]
     public void Schedule_is_30_20_10_then_daily_from_9()
@@ -64,44 +64,44 @@ public class TokenExpiryNoticePolicyTests
         // First notice per bucket (nothing sent yet).
         foreach (var dueDay in new[] { 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 })
         {
-            Assert.IsTrue(TokenExpiryNoticePolicy.IsDue(dueDay, null), $"day {dueDay} must be due");
+            Assert.IsTrue(ExpiryNoticePolicy.IsDue(dueDay, null), $"day {dueDay} must be due");
         }
 
         // Between the coarse buckets nothing fires.
         foreach (var quietDay in new[] { 31, 29, 25, 21, 19, 15, 11 })
         {
-            Assert.IsFalse(TokenExpiryNoticePolicy.IsDue(quietDay, null), $"day {quietDay} must be quiet");
+            Assert.IsFalse(ExpiryNoticePolicy.IsDue(quietDay, null), $"day {quietDay} must be quiet");
         }
 
         // Expired (or expiring within the current day math) sends nothing.
-        Assert.IsFalse(TokenExpiryNoticePolicy.IsDue(0, null));
-        Assert.IsFalse(TokenExpiryNoticePolicy.IsDue(-3, null));
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(0, null));
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(-3, null));
     }
 
     [TestMethod, TestCategory("Auth")]
     public void Notices_are_deduplicated_and_monotonic()
     {
         // 30 announced → 30 stays quiet on the next (e.g. hourly) run, 20 fires later.
-        Assert.IsFalse(TokenExpiryNoticePolicy.IsDue(30, 30));
-        Assert.IsTrue(TokenExpiryNoticePolicy.IsDue(20, 30));
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(30, 30));
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(20, 30));
 
         // Daily phase: each new day fires once.
-        Assert.IsTrue(TokenExpiryNoticePolicy.IsDue(9, 10));
-        Assert.IsFalse(TokenExpiryNoticePolicy.IsDue(9, 9));
-        Assert.IsTrue(TokenExpiryNoticePolicy.IsDue(8, 9));
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(9, 10));
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(9, 9));
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(8, 9));
 
         // A skipped window (service was down) still fires the nearest due bucket once.
-        Assert.IsTrue(TokenExpiryNoticePolicy.IsDue(7, 20));
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(7, 20));
     }
 
     [TestMethod, TestCategory("Auth")]
     public void DaysLeft_rounds_up_so_today_counts_as_one()
     {
         var now = new DateTimeOffset(2026, 7, 7, 12, 0, 0, TimeSpan.Zero);
-        Assert.AreEqual(1, TokenExpiryNoticePolicy.DaysLeft(now, now.AddHours(6)));
-        Assert.AreEqual(1, TokenExpiryNoticePolicy.DaysLeft(now, now.AddDays(1)));
-        Assert.AreEqual(2, TokenExpiryNoticePolicy.DaysLeft(now, now.AddDays(1).AddMinutes(1)));
-        Assert.AreEqual(30, TokenExpiryNoticePolicy.DaysLeft(now, now.AddDays(30)));
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddHours(6)));
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1)));
+        Assert.AreEqual(2, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1).AddMinutes(1)));
+        Assert.AreEqual(30, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(30)));
     }
 }
 

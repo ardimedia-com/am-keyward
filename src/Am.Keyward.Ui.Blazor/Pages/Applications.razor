@@ -37,12 +37,11 @@
     {
         <div class="workspace">
             @* ---------- Left: the applications + create ---------- *@
-            <aside class="ws-tree">
-                <div class="ws-tree-title">@Loc["Page.Apps.Title"]</div>
+            <KeywardTreePane Title="@Loc["Page.Apps.Title"]">
 
                 @foreach (var a in apps)
                 {
-                    <button class="tree-node @(a.Id == selectedAppId ? "active" : "")" @onclick="() => SelectAppAsync(a.Id)">
+                    <button class="tree-node @(a.Id == selectedAppId ? "active" : "")" title="@a.Name" @onclick="() => SelectAppAsync(a.Id)">
                         <KeywardIcon Name="package" /><span class="tree-label">@a.Name</span>
                         <span class="tree-count">@a.SecretCount</span>
                     </button>
@@ -59,11 +58,11 @@
                         <input @bind="newAppName" @bind:event="oninput" placeholder="@(Loc["App.New.Placeholder"])" aria-label="@(Loc["App.New.Placeholder"])" />
                         <button class="btn-sm" @onclick="CreateAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newAppName))" title="@Loc["App.Create"]"><KeywardIcon Name="plus" /></button>
                     </div>
-                    <button class="tree-node @(importing ? "active" : "")" @onclick="StartImport">
+                    <button class="tree-node @(importing ? "active" : "")" title="@Loc["Import.Open"]" @onclick="StartImport">
                         <KeywardIcon Name="upload" /><span class="tree-label">@Loc["Import.Open"]</span>
                     </button>
                 }
-            </aside>
+            </KeywardTreePane>
 
             @* ---------- Right: the selected application's tabs ---------- *@
             <section class="ws-main">
@@ -160,11 +159,17 @@
                     if (canManage)
                     {
                         <KeywardTabBar Tabs="@AppTabs" Active="@appTab" ActiveChanged="@(t => appTab = t)">
+                            <TitleContent>
+                                <KeywardIcon Name="package" Size="18" />
+                                <span class="kw-tab-area-name">@selected.Name</span>
+                                <span class="kw-tab-area-subtitle">@Loc["App.Info.Counts", selected.SecretCount, selected.TokenCount]</span>
+                            </TitleContent>
+                            <ChildContent>
                             @if (appTab == "application")
                             {
+                                @* No name heading here — the tab area's title row above the bar already
+                                   names the application (and carries the counts). *@
                                 <div class="card">
-                                    <h3 style="margin-top:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="package" Size="18" />@selected.Name</h3>
-                                    <p class="muted">@Loc["App.Info.Counts", selected.SecretCount, selected.TokenCount]</p>
                                     <div class="section-body" style="padding:0;">
                                         <p class="muted">@Loc["App.Settings.Desc"]</p>
                                         <div class="row">
@@ -208,6 +213,7 @@
                             {
                                 <StatisticsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" />
                             }
+                            </ChildContent>
                         </KeywardTabBar>
                     }
                     else

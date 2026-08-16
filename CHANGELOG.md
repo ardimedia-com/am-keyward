@@ -5,8 +5,42 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **A rotation date and a note per secret value.** Every (application, key, environment) triple can now carry
+  a date by which its value should be replaced, plus a free-text note describing how a new one is obtained
+  (which portal, which command, whom to ask). Both are editable in the «Daten» tab, in a panel that opens
+  under the environment's row; the row itself shows a quiet chip that turns amber inside the notice window
+  and red once overdue. The date is **advisory on purpose**: unlike an app token's expiry it never blocks a
+  read, because a forgotten rotation must not take a deployed application down. Setting a new value, or
+  moving the date, restarts the notice schedule. Both fields can be set for an environment that holds no
+  value yet — which is exactly when "this is where you get it" is worth writing down.
+- **Advance notices for those dates**, on the same schedule as app tokens (30/20/10 days ahead, then daily
+  from 9 days). `SecretExpiryNotificationService` ships with `AddKeyward`, so an embedded AM KEYWARD gets
+  them too; the note travels into the message, because that is the moment somebody needs it. The standalone
+  shell renders a branded mail, and the reference embedding host raises its own notification event.
+- **The list pane collapses to an icon rail.** The applications / vaults / groups list has a toggle in its
+  header; collapsed it keeps the icons (so the selection can still be changed) and gives the width back to
+  the detail pane. The choice is remembered in the browser, so it survives a reload, and it applies to every
+  page that has such a pane.
+
 ### Changed
 
+- **The selected application is named above its tab bar, inside the same frame.** Title and tabs now read as
+  one unit instead of the title floating in the page; the duplicate heading inside the «Applikation» tab is
+  gone. The vault workspace shows the vault (and folder) the same way.
+- **The list pane is wider** — 300 px instead of 250 px, so longer application names stop being truncated.
+- **BREAKING:** `IKeywardAlertPresenter` gained `NotifySecretExpiryAsync`. A host that implements the port
+  must add it (see `BrandedMailAlertPresenter` for a mail implementation). Chosen over a silently-defaulting
+  member on purpose: a default returning 0 would let a host swallow the notices without noticing.
+- **BREAKING:** `TokenExpiryNoticePolicy` is now `ExpiryNoticePolicy` — the same schedule drives both app
+  tokens and secret values, so the name no longer says "token".
+- **BREAKING:** `AppUser.NotifyTokenExpiry` / `SetTokenExpiryNotification` are now `NotifyExpiry` /
+  `SetExpiryNotification`, and the column is renamed in place: the one opt-in covers app tokens **and**
+  secret values, and existing choices are preserved by the rename.
+- **Every UI string exists in all six languages again.** The Spanish, French, Italian and Portuguese
+  resources had fallen 63 keys behind (the whole provisioning-report block, which therefore rendered in
+  English); they are complete and placeholder-checked against the base resource.
 - **The two-login setup is documented as optional hardening, not a prerequisite — the claim behind it was
   wrong.** `docs/database-logins.md`, `README.md` and `SECURITY.md` stated that `db_owner` and `sysadmin`
   bypass row-level security, and derived from that a hard requirement for a separate least-privilege runtime
