@@ -8,6 +8,12 @@ namespace Am.Keyward.Tests;
 [TestClass]
 public class CryptoTests
 {
+    /// <summary>
+    /// The format segment of a KEK id, as <c>DpapiKekFile</c> emits it. Spelled out rather than referenced,
+    /// because that type is Windows-only while these tests are about the id mechanism and run anywhere.
+    /// </summary>
+    private const string FormatId = "dpapi-file:v1";
+
     private static EnvelopeSecretBackend NewBackend(KeywardKeyIntegrityState? keyIntegrity = null) =>
         new(new StaticKekProvider(RandomNumberGenerator.GetBytes(32), "test-kek:v1"),
             keyIntegrity ?? NewKeyIntegrityState());
@@ -106,11 +112,11 @@ public class CryptoTests
     [TestMethod, TestCategory("Crypto")]
     public void Kek_id_distinguishes_two_keys_of_the_same_format()
     {
-        var first = KekFingerprint.Qualify(DpapiKekFile.FormatId, RandomNumberGenerator.GetBytes(32));
-        var second = KekFingerprint.Qualify(DpapiKekFile.FormatId, RandomNumberGenerator.GetBytes(32));
+        var first = KekFingerprint.Qualify(FormatId, RandomNumberGenerator.GetBytes(32));
+        var second = KekFingerprint.Qualify(FormatId, RandomNumberGenerator.GetBytes(32));
 
         Assert.AreNotEqual(first, second, "the fingerprint is what makes a stored id identify the KEY, not just its format");
-        StringAssert.StartsWith(first, DpapiKekFile.FormatId + ":");
+        StringAssert.StartsWith(first, FormatId + ":");
     }
 
     [TestMethod, TestCategory("Crypto")]
@@ -118,21 +124,21 @@ public class CryptoTests
     {
         var mine = RandomNumberGenerator.GetBytes(32);
         var theirs = RandomNumberGenerator.GetBytes(32);
-        var provider = new StaticKekProvider(mine, KekFingerprint.Qualify(DpapiKekFile.FormatId, mine));
+        var provider = new StaticKekProvider(mine, KekFingerprint.Qualify(FormatId, mine));
 
         // Before the fingerprint existed both ids were "dpapi-file:v1" and this returned true — which is why
         // a second installation's rows looked resolvable and only failed later, as a raw crypto error.
-        Assert.IsFalse(provider.CanResolve(KekFingerprint.Qualify(DpapiKekFile.FormatId, theirs)));
+        Assert.IsFalse(provider.CanResolve(KekFingerprint.Qualify(FormatId, theirs)));
     }
 
     [TestMethod, TestCategory("Crypto")]
     public void Rows_written_before_the_fingerprint_stay_resolvable()
     {
         var kek = RandomNumberGenerator.GetBytes(32);
-        var provider = new StaticKekProvider(kek, KekFingerprint.Qualify(DpapiKekFile.FormatId, kek));
+        var provider = new StaticKekProvider(kek, KekFingerprint.Qualify(FormatId, kek));
 
         // Refusing these would declare every pre-existing row unreadable the moment the package is updated.
-        Assert.IsTrue(provider.CanResolve(DpapiKekFile.FormatId));
+        Assert.IsTrue(provider.CanResolve(FormatId));
     }
 
     [TestMethod, TestCategory("Crypto")]

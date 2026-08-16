@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.14.0-preview] - 2026-08-16
+
 ### Added
 
 - **A key-ownership check at startup — the database now proves which KEK owns it.** One row per database
