@@ -102,6 +102,8 @@ public static class ServiceCollectionExtensions
         services.AddOptions<KeywardKeyIntegrityOptions>();
         services.AddSingleton<KeywardKeyIntegrityState>();
         services.AddScoped<KekCanaryService>();
+        // Who else runs against this database — the canary says a key does not fit, the registry says whose.
+        services.AddScoped<KeywardInstallationRegistry>();
         services.AddHostedService<KekIntegrityStartupCheck>();
 
         // The software-secrets service serves both the management path (by environment name) and the

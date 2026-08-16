@@ -54,6 +54,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<AuditSubject> AuditSubjects => Set<AuditSubject>();
     public DbSet<KekCanary> KekCanaries => Set<KekCanary>();
+    public DbSet<KeywardInstallation> Installations => Set<KeywardInstallation>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -439,6 +440,24 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.KekId).HasMaxLength(128).IsRequired();
             e.Property(x => x.Wrapped).IsRequired();
             e.Property(x => x.CreatedBy).HasMaxLength(256).IsRequired();
+        });
+
+        // Who else runs against this database. Installation-global for the same reason as the canary: an
+        // installation compares itself against the others BEFORE any tenant is in scope. Diagnostic only.
+        model.Entity<KeywardInstallation>(e =>
+        {
+            e.ToTable("Installations");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.InstallationKey).HasMaxLength(512).IsRequired();
+            e.Property(x => x.MachineName).HasMaxLength(128).IsRequired();
+            e.Property(x => x.EnvironmentName).HasMaxLength(64).IsRequired();
+            e.Property(x => x.ApplicationName).HasMaxLength(256).IsRequired();
+            e.Property(x => x.KekId).HasMaxLength(128).IsRequired();
+            e.Property(x => x.KeyCustodyLocation).HasMaxLength(512);
+            e.Property(x => x.SchemaVersion).HasMaxLength(256);
+            // Unique so a redeploy of the same installation updates its row instead of adding one — and so
+            // two simultaneous starts of it collide rather than both inserting.
+            e.HasIndex(x => x.InstallationKey).IsUnique();
         });
     }
 }

@@ -19,6 +19,17 @@ All notable changes to this project are documented here, following
   continuing to write is the one action that makes the split grow; `Keyward:KeyIntegrity:OnConflict=Warn`
   overrides that for a deliberate migration window. A database that is merely unreachable at startup leaves
   the verdict unknown and blocks nothing — that is an availability problem, not a key-custody one.
+- **An installation registry, so a key conflict comes with names.** Every installation records itself in
+  `amkeyward.Installations` on each start — machine, environment, application, key id, key location, the last
+  migration it applied — and reads the others. The canary answers *does my key own this data*; this answers
+  *who else is here*, which is the difference between "something is wrong" and "the preview install on
+  svrwww05 runs under key `9f8e7d6c`". It also flags two other things worth knowing about a shared database:
+  installations on one machine holding the same key at **different locations** (it works until one of them is
+  rotated), and installations on **different schema versions** (which deployment migrated the shared
+  database). Purely diagnostic — a row that has not been seen for 30 days ages out of the comparison, and a
+  registry that cannot be written never affects the verdict. A host may publish its key directory via
+  `Keyward:KeyIntegrity:KeyCustodyLocation`, and read the list through `KeywardInstallationRegistry` to show
+  it on its own status page.
 
 - **A rotation date and a note per secret value.** Every (application, key, environment) triple can now carry
   a date by which its value should be replaced, plus a free-text note describing how a new one is obtained

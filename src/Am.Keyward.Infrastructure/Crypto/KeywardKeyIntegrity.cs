@@ -39,6 +39,20 @@ public sealed class KeywardKeyIntegrityOptions
     /// makes the cause visible immediately.
     /// </summary>
     public KekConflictBehaviour OnConflict { get; set; } = KekConflictBehaviour.Disable;
+
+    /// <summary>
+    /// Where this host keeps its key, published into the installation registry for diagnosis only — the
+    /// library never reads a path. Worth setting where two installations may share a database: seeing that
+    /// both name the same directory is what turns "they happen to agree" into "they are configured to".
+    /// </summary>
+    public string? KeyCustodyLocation { get; set; }
+
+    /// <summary>
+    /// How long an installation counts as still running after its last start. A deployment that was
+    /// decommissioned must stop raising questions, so its row ages out of the comparison instead of being
+    /// deleted (the history stays readable on the status page).
+    /// </summary>
+    public int PeerStaleAfterDays { get; set; } = 30;
 }
 
 /// <summary>

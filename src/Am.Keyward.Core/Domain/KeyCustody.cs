@@ -49,3 +49,85 @@ public sealed class KekCanary
     public static KekCanary Create(string kekId, byte[] wrapped, DateTimeOffset createdAt, string createdBy) =>
         new(SingletonId, kekId, wrapped, createdAt, createdBy);
 }
+
+/// <summary>
+/// One row per installation that has started against this database, refreshed on every start.
+///
+/// <para>The canary answers <i>does my key own this data</i> with yes or no. This answers <i>who else is
+/// here</i> — which machine, which environment, which key, which schema version — so a conflict comes with
+/// names instead of leaving an operator to guess which of two deployments is the odd one out. It also makes
+/// the legitimate case visible and boring: a preview beside a production install, both on the same key, is
+/// exactly what a shared database is supposed to look like.</para>
+///
+/// <para>Diagnostic by nature: nothing depends on these rows being complete or current, and a stale row from
+/// a decommissioned install ages out of the comparison rather than raising an alarm forever.</para>
+/// </summary>
+public sealed class KeywardInstallation
+{
+    public Guid Id { get; private set; }
+
+    /// <summary>
+    /// What makes an installation distinct: machine, environment and application. Two deployments on one
+    /// server differ by environment, the same deployment on two servers by machine — and a redeploy of the
+    /// same install must update its row rather than add one, which is why this is a unique natural key.
+    /// </summary>
+    public string InstallationKey { get; private set; }
+
+    public string MachineName { get; private set; }
+    public string EnvironmentName { get; private set; }
+    public string ApplicationName { get; private set; }
+
+    /// <summary>
+    /// The key id this installation runs with. Since ids carry the key's fingerprint, two rows that differ
+    /// here are two installations writing the same database under different keys — the condition the canary
+    /// blocks, named.
+    /// </summary>
+    public string KekId { get; private set; }
+
+    /// <summary>Where the host keeps its key, when it chose to publish that. Diagnostic only — the library never reads a path.</summary>
+    public string? KeyCustodyLocation { get; private set; }
+
+    /// <summary>The last migration this installation had applied — so a preview running ahead of production is visible.</summary>
+    public string? SchemaVersion { get; private set; }
+
+    public DateTimeOffset FirstSeenAt { get; private set; }
+    public DateTimeOffset LastSeenAt { get; private set; }
+
+    public KeywardInstallation(
+        Guid id,
+        string installationKey,
+        string machineName,
+        string environmentName,
+        string applicationName,
+        string kekId,
+        string? keyCustodyLocation,
+        string? schemaVersion,
+        DateTimeOffset firstSeenAt,
+        DateTimeOffset lastSeenAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(installationKey);
+
+        Id = id;
+        InstallationKey = installationKey;
+        MachineName = machineName ?? string.Empty;
+        EnvironmentName = environmentName ?? string.Empty;
+        ApplicationName = applicationName ?? string.Empty;
+        KekId = kekId ?? string.Empty;
+        KeyCustodyLocation = keyCustodyLocation;
+        SchemaVersion = schemaVersion;
+        FirstSeenAt = firstSeenAt;
+        LastSeenAt = lastSeenAt;
+    }
+
+    public static string KeyFor(string machineName, string environmentName, string applicationName) =>
+        $"{machineName}|{environmentName}|{applicationName}";
+
+    /// <summary>Refreshes the mutable half on a restart; identity and first sighting stay put.</summary>
+    public void Seen(string kekId, string? keyCustodyLocation, string? schemaVersion, DateTimeOffset at)
+    {
+        KekId = kekId ?? string.Empty;
+        KeyCustodyLocation = keyCustodyLocation;
+        SchemaVersion = schemaVersion;
+        LastSeenAt = at;
+    }
+}
