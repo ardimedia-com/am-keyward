@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <!-- ConfigurationProvider base + builder extensions. -->
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.11" />
     <!-- IHttpClientFactory registration for the typed runtime client (AddKeywardSecretsClient). -->
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.10" />
     <!-- ILogger on the best-effort heartbeat helper (explicit, not relied upon transitively via Http). -->
