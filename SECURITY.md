@@ -32,9 +32,11 @@ deployment, including:
 - **KEK custody** — the key-encryption-key is **never** stored in the database. Keep it in a separate
   store (e.g. Azure Key Vault / HSM / a protected key file) and **verify your KEK restore works** —
   **KEK loss = total, unrecoverable data loss**.
-- Database security and a least-privilege runtime login — use the two-login setup (`amkeyward_app` for
-  runtime, `amkeyward_migrator` for migrations) so the runtime cannot bypass tenant row-level security.
-  See [docs/database-logins.md](docs/database-logins.md).
+- Database security. Tenant row-level security is enforced against **every** principal, including
+  `db_owner`, so it does not depend on your choice of login. A least-privilege runtime login
+  (`amkeyward_app` for runtime, `amkeyward_migrator` for migrations) additionally withholds the right to
+  *disable* the policy or change the schema — recommended hardening where it is practical. See
+  [docs/database-logins.md](docs/database-logins.md).
 - Network exposure, rate limiting, TLS, and general hardening.
 - Backups of the database and the KEK store (on separate schedules/locations), the correct **restore
   order** (KEK store before database), and a **rehearsed KEK restore drill** — see the

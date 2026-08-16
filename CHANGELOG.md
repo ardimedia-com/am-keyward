@@ -5,6 +5,19 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **The two-login setup is documented as optional hardening, not a prerequisite — the claim behind it was
+  wrong.** `docs/database-logins.md`, `README.md` and `SECURITY.md` stated that `db_owner` and `sysadmin`
+  bypass row-level security, and derived from that a hard requirement for a separate least-privilege runtime
+  login. SQL Server does the opposite: a security policy's filter predicates apply to every principal —
+  `dbo`, the table owner, `db_owner`, `sysadmin` — unless the predicate function exempts them, and AM
+  KEYWARD's predicates do not. Tenant and personal-vault isolation therefore hold on a privileged connection
+  as well. The docs now say precisely what the split *does* buy (the runtime cannot disable or drop the
+  policy, and cannot change the schema) and when that is worth its operational cost — relevant above all for
+  hosts that **embed** AM KEYWARD in their own database, where the split otherwise adds a password to create,
+  deploy, rotate and recover for that one property.
+
 ### Fixed
 
 - **A seconds-long database outage failed the operation instead of being ridden out.** `KeywardDbContext`

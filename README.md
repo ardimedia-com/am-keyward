@@ -335,13 +335,14 @@ flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). T
     app) — see the reference shell's `DatabaseMigrationBackgroundService` and the `DatabaseMigration`
     config section (`Enabled`, `CheckIntervalSeconds`);
   - or apply them out-of-band in your deploy step (`dotnet ef database update`).
-- **Two database logins (production).** Migrate with an elevated DDL login and run with a **least-privilege
-  login that is an RLS subject** (not `db_owner`/`sysadmin`, which would bypass row-level security). Note
-  this **excludes the startup-`MigrateAsync` option in production**: the app runs on `amkeyward_app` (which
-  cannot DDL and must not be `db_owner`, or RLS is silently off), so apply migrations out-of-band with the
-  migrator login and give `AddKeyward` only the runtime connection string; startup-migrate is for
-  development, where one Integrated-Security login plays both roles. Run `db/setup-logins.sql` once after
-  the first migration. See [docs/database-logins.md](docs/database-logins.md).
+- **Two database logins — optional hardening, not a prerequisite.** Tenant row-level security is enforced
+  against every principal, `db_owner` included, so a single privileged connection gets the same isolation;
+  the split only withholds the right to *disable* the policy or alter the schema. Adopt it where it is
+  cheap (a dedicated AM KEYWARD database), skip it where AM KEYWARD is embedded in a host's own database
+  and a password would have to be created, deployed and rotated for that one property. If you adopt it,
+  apply migrations out-of-band with the migrator login (the runtime login cannot DDL) and give `AddKeyward`
+  only the runtime connection string; run `db/setup-logins.sql` once after the first migration. See
+  [docs/database-logins.md](docs/database-logins.md).
 
 ## UI design principle — match BlazorBlueprint
 

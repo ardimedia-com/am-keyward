@@ -1,12 +1,14 @@
 # Database logins
 
-AM KEYWARD uses two database principals with different privileges, so the application that serves
-secrets never holds the rights needed to alter the schema or to switch off tenant isolation.
+AM KEYWARD can use two database principals with different privileges, so the application that serves
+secrets never holds the rights needed to alter the schema or to switch the isolation policy off. This is
+**hardening, not a prerequisite** — see "What the split does and does not buy" below before you decide
+whether the operational cost is worth it in your deployment.
 
-| Login | Purpose | Privileges | Row-level security |
+| Login | Purpose | Privileges | Effect on the isolation policy |
 |---|---|---|---|
-| `amkeyward_migrator` | Applies schema migrations (DDL: tables, indexes, the RLS policy) | `db_owner` on `amkeyward` | Bypassed (db_owner) — correct for the trusted migration step |
-| `amkeyward_app` | Runtime access used by the application to read and write secrets | `SELECT/INSERT/UPDATE/DELETE` on the `amkeyward` schema only — **not** `db_owner` | Enforced — cannot read or write another tenant's rows |
+| `amkeyward_migrator` | Applies schema migrations (DDL: tables, indexes, the RLS policy) | `db_owner` on `amkeyward` | May create, alter, disable or drop it — that is the point of the trusted migration step |
+| `amkeyward_app` | Runtime access used by the application to read and write secrets | `SELECT/INSERT/UPDATE/DELETE` on the `amkeyward` schema only — **not** `db_owner` | May not touch it; the policy filters its queries |
 
 ## Why two logins
 
@@ -16,15 +18,34 @@ Tenant isolation is defended in two independent layers:
 2. SQL Server **row-level security** enforces the same boundary inside the database, using the
    `SESSION_CONTEXT('TenantId')` value the application sets on each connection.
 
-Layer 2 only protects you if the runtime login cannot bypass it. Members of `db_owner` (and `sysadmin`)
-bypass RLS, so the runtime must use a login that is **not** one of those — that is `amkeyward_app`. The
-migrator needs full DDL rights (it creates the RLS policy itself), so it is `db_owner`; it is used only
-for migrations, never to serve requests.
+### What the split does and does not buy
+
+Layer 2 protects you **regardless of which login the runtime uses**. SQL Server applies a security
+policy's filter predicates to *every* principal — `dbo`, the table owner, `db_owner` and `sysadmin`
+included — unless the predicate function itself exempts them (e.g. `OR IS_MEMBER('db_owner') = 1`), and
+AM KEYWARD's predicates do not. A privileged runtime connection therefore gets the **same** tenant and
+personal-vault isolation as `amkeyward_app`. See
+[Row-Level Security](https://learn.microsoft.com/en-us/sql/relational-databases/security/row-level-security):
+*"If a dbo user, a member of the db_owner role, or the table owner queries a table that has a security
+policy defined and enabled, the rows are filtered or blocked as defined by the security policy."*
+
+What the least-privilege runtime login adds is narrower, and worth stating precisely: that connection
+cannot **disable or drop** the policy, and cannot change the schema. It raises the bar for an attacker who
+has gained the ability to run arbitrary SQL through the application but has not compromised the process
+itself. Note that the stored data is encrypted under the KEK, so disabling the policy yields ciphertext,
+and an attacker who owns the process holds the KEK anyway.
+
+So: adopt the split where it is cheap — a dedicated AM KEYWARD database with its own logins, a deployment
+that already manages secrets. Skip it where it would cost a password to create, deploy, rotate and recover
+for that one benefit, for example when AM KEYWARD is **embedded** in a host's own database and the host
+already connects with an integrated-security principal. Both configurations enforce tenant isolation; only
+this one property differs, and the choice belongs to the operator rather than to this document.
 
 ## Creating the logins
 
-Run [`db/setup-logins.sql`](../db/setup-logins.sql) once as a sysadmin, after the `amkeyward` database
-exists and has been migrated. Replace the placeholder passwords first. The script is idempotent.
+Only needed if you adopt the split. Run [`db/setup-logins.sql`](../db/setup-logins.sql) once as a sysadmin,
+after the `amkeyward` database exists and has been migrated. Replace the placeholder passwords first. The
+script is idempotent.
 
 ```
 sqlcmd -S localhost -E -i db/setup-logins.sql
