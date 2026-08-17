@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.14.1-preview] - 2026-08-17
+
+### Changed
+
+- **The last places that framed the least-privilege runtime login as what makes tenant isolation work are
+  corrected** — the README threat model, the docs index and the operations runbook. Row-level security holds
+  against whatever login the runtime uses; the login withholds the right to *disable* the policy. The runbook
+  also names where that login's password belongs: per installation, in a site-local secrets file, and **not** in
+  a machine-wide environment variable with a generic name — every application on the box inherits one of those,
+  which is how an embedding host came to write into a neighbour's Keyward database.
+
 ### Fixed
 
 - **The provisioning page reported a deliberate posture as an open point.** Integrated Security outside
