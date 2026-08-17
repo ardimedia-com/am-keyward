@@ -9,7 +9,8 @@ the implementation).
 - [Operations & KEK/DR runbook](operations-runbook.md) — key custody, backup/restore order, KEK rotation
   and compromise response, monitoring/health endpoints, break-glass, GDPR erasure.
 - [Software-client API](software-client-api.md) — how a deployed app fetches its secrets with a token.
-- [Database logins](database-logins.md) — the least-privilege runtime login vs. the migration login.
+- [Database logins](database-logins.md) — the optional least-privilege runtime login: what the split does and
+  does not buy, and when it is worth its operational cost.
 
 ## Planned sections
 

@@ -45,9 +45,11 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 - **Database compromise alone** — a stolen DB backup yields only ciphertext; the KEK lives outside the
   database, so without the KEK store the envelopes cannot be decrypted.
 - **Cross-tenant / cross-user leakage** — defense-in-depth: a composite application query filter, a
-  server-authoritative active tenant, **SQL Server row-level security** via `SESSION_CONTEXT`, and a
-  least-privilege runtime login that is itself an RLS subject. Exercised by an adversarial isolation test
-  gate.
+  server-authoritative active tenant, and **SQL Server row-level security** via `SESSION_CONTEXT`. The RLS
+  layer holds **whatever login the runtime uses** — a security policy's filter predicates apply to every
+  principal, `db_owner` included, unless the predicate exempts them, and ours do not. A least-privilege
+  runtime login is therefore optional hardening (it withholds the right to *disable* the policy), not what
+  makes the isolation work. Exercised by an adversarial isolation test gate.
 - **Ciphertext replay across slots** — AEAD AAD binds every ciphertext to its exact tenant / owner /
   project / environment / item / version, so a Dev/old ciphertext cannot be moved into a Prod/current row.
 - **Audit tampering** — a per-tenant hash chain, single-writer/serializable append, with an out-of-band

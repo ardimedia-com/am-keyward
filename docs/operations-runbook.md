@@ -14,7 +14,7 @@ database, and KEK loss is total, unrecoverable data loss.** Everything below fol
 | Application database (`amkeyward` schema) | Ciphertext envelopes, wrapped DEKs, audit chain, grants | SQL Server you control |
 | **KEK store** | The key-encryption-key(s) that wrap every DEK | **Outside** the database (Key Vault / HSM / protected key file) |
 | Break-glass trail | Append-only non-repudiation log | **Outside** the database, on storage the DB admin cannot rewrite |
-| Database logins | Runtime (least-privilege) + migration (DDL) | Secret store / CI, never in source |
+| Database logins | Migration (DDL), plus an optional least-privilege runtime login | Per installation (a site-local secrets file), never in source — and not a machine-wide variable with a generic name, which every app on the box inherits |
 
 ## Encryption model (what you are protecting)
 
