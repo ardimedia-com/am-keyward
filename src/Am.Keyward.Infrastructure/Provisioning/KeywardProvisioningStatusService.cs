@@ -185,10 +185,15 @@ public sealed class KeywardProvisioningStatusService(
                 : string.IsNullOrEmpty(builder.UserID) ? "(no user)" : builder.UserID;
             string technical = $"{builder.DataSource} / {builder.InitialCatalog} · {login}";
 
-            // Integrated Security is the sanctioned local setup; only outside Development is the dedicated
-            // least-privilege login expected (it is what makes row-level security bite).
+            // Integrated Security outside Development is REPORTED, not faulted. It used to be a Warning on the
+            // premise that only a least-privilege login makes row-level security bite — which is wrong: SQL
+            // Server applies a security policy's filter predicates to every principal, db_owner included, so
+            // tenant and vault isolation hold either way. A dedicated login withholds one narrower thing (the
+            // right to DISABLE the policy or alter the schema), which is worthwhile hardening but a posture the
+            // operator chooses, not a gap to close. A status page may only flag what somebody must do; listing
+            // a deliberate, documented choice as an open point is how a page stops being read at all.
             return builder.IntegratedSecurity && !isDevelopment
-                ? new KeywardCheck(KeywardCheckId.ConnectionString, KeywardCheckState.Warning,
+                ? new KeywardCheck(KeywardCheckId.ConnectionString, KeywardCheckState.Ok,
                     KeywardCheckOutcome.ConnectionIntegratedSecurityOutsideDevelopment, technical)
                 : new KeywardCheck(KeywardCheckId.ConnectionString, KeywardCheckState.Ok, KeywardCheckOutcome.Ok, technical);
         }

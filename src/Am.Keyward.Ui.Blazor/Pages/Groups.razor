@@ -17,7 +17,11 @@
         <p>@Loc["Page.Groups.Desc"]</p>
     </div>
 
-    @if (groups is null)
+    @if (noAccount)
+    {
+        <KeywardNoAccount />
+    }
+    else if (groups is null)
     {
         <p class="muted">@Loc["Common.Loading"]</p>
     }
@@ -180,6 +184,11 @@
 </KeywardUi>
 
 @code {
+    // Set when the signed-in visitor has no Keyward profile (ICurrentUser.UserId is null). Without it the
+    // early return below would leave the loading placeholder up for good, which reads as "slow" rather
+    // than "not provisioned" — see KeywardNoAccount.
+    private bool noAccount;
+
     private Guid? actorUserId;
     private Guid tenantId;
 
@@ -207,7 +216,11 @@
     {
         actorUserId = CurrentUser.UserId;
         tenantId = Workspace.TenantId;
-        if (actorUserId is null) return;
+        if (actorUserId is null)
+        {
+            noAccount = true;
+            return;
+        }
         canManageGroups = await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
         await ReloadGroupsAsync();
         // A single group is the common case early on — open it right away.

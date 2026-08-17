@@ -19,7 +19,11 @@
         <p>@Loc["Page.DefaultEnvs.Desc"]</p>
     </div>
 
-    @if (rows is null)
+    @if (noAccount)
+    {
+        <KeywardNoAccount />
+    }
+    else if (rows is null)
     {
         <p class="muted">@Loc["Common.Loading"]</p>
     }
@@ -102,6 +106,11 @@
 </KeywardUi>
 
 @code {
+    // Set when the signed-in visitor has no Keyward profile (ICurrentUser.UserId is null). Without it the
+    // early return below would leave the loading placeholder up for good, which reads as "slow" rather
+    // than "not provisioned" — see KeywardNoAccount.
+    private bool noAccount;
+
     private Guid? actorUserId;
     private IReadOnlyList<DefaultEnvironmentInfo>? rows;
     private bool canManage;
@@ -120,7 +129,11 @@
     protected override async Task OnInitializedAsync()
     {
         actorUserId = CurrentUser.UserId;
-        if (actorUserId is null) return;
+        if (actorUserId is null)
+        {
+            noAccount = true;
+            return;
+        }
         canManage = await GroupService.CanManageGroupsAsync(actorUserId.Value, Workspace.TenantId);
         await ReloadAsync();
     }

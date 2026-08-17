@@ -5,6 +5,23 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **The provisioning page reported a deliberate posture as an open point.** Integrated Security outside
+  Development was a Warning that told the operator to switch to the dedicated least-privilege login — on the
+  premise, corrected in 0.14.0, that only such a login makes row-level security bite. It does not: the policy's
+  filter predicates apply to every principal, `db_owner` included. The row now states which connection is in
+  use as a fact and no longer counts toward "n of 6 points still open", because a status page that lists a
+  documented choice as a to-do is a page that stops being read. The stale "the ONE prerequisite that comes by
+  hand … without it Keyward will not start" wording went with it — a host may fall back to its own connection.
+- **A signed-in visitor with no Keyward profile saw a permanent loading placeholder.** Every feature page
+  resolves the current user first and returned early without one, leaving the spinner up for good — which reads
+  as "slow", not as "not provisioned". Applications, Groups, DefaultEnvironments and the vault workspace now
+  render the new `KeywardNoAccount` notice: the profile is created at sign-in, so signing out and in again is
+  the fix, and if it isn't, the environment is not fully set up. Found the hard way — in a production incident
+  this cost an hour of looking in the wrong place while the actual cause (no tenant in the store that instance
+  had been pointed at, so the sign-in binding never created a profile) was one sentence away from obvious.
+
 ## [0.14.0-preview] - 2026-08-16
 
 ### Added

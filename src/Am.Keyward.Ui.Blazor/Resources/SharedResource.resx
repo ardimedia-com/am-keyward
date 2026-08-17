@@ -103,6 +103,7 @@
   <data name="Profile.Email" xml:space="preserve"><value>Email</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>System administrator</value></data>
   <data name="Common.Loading" xml:space="preserve"><value>Loading…</value></data>
+  <data name="Common.NoKeywardAccount" xml:space="preserve"><value>This account has no Keyward profile yet. Sign out and sign in again — the profile is created at sign-in. If that changes nothing, Keyward is not fully set up in this environment.</value></data>
   <data name="Common.Save" xml:space="preserve"><value>Save</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Close</value></data>
@@ -873,7 +874,7 @@
     <value>Connection string «{0}»</value>
   </data>
   <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve">
-    <value>The one prerequisite that comes by hand: a connection string pointing at this environment's database server. Without it Keyward does not start. Integrated Security locally; the least-privilege login outside Development.</value>
+    <value>A connection to this environment's database. Where the host falls back to its own privileged connection it is optional — row-level security constrains both alike. A dedicated least-privilege login additionally withholds the right to switch the isolation off or alter the schema.</value>
   </data>
   <data name="Provisioning.Check.ConnectionString.Location" xml:space="preserve">
     <value>{0} → ConnectionStrings:{1}</value>
@@ -927,7 +928,7 @@
     <value>Configured, but not readable.</value>
   </data>
   <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
-    <value>Configured, but with Integrated Security.</value>
+    <value>Running on the host's privileged connection (Integrated Security).</value>
   </data>
   <data name="Provisioning.Outcome.DatabaseUnreachable" xml:space="preserve">
     <value>The connection failed.</value>
@@ -961,9 +962,6 @@
   </data>
   <data name="Provisioning.Fix.ConnectionUnreadable" xml:space="preserve">
     <value>Check the syntax of the connection string.</value>
-  </data>
-  <data name="Provisioning.Fix.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
-    <value>Outside Development use the dedicated least-privilege login — Integrated Security is meant for local development only.</value>
   </data>
   <data name="Provisioning.Fix.DatabaseUnreachable" xml:space="preserve">
     <value>Check the login, the password and the network access.</value>

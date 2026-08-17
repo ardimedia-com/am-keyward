@@ -29,7 +29,11 @@
         </details>
     </div>
 
-    @if (apps is null)
+    @if (noAccount)
+    {
+        <KeywardNoAccount />
+    }
+    else if (apps is null)
     {
         <p class="muted">@Loc["Common.Loading"]</p>
     }
@@ -232,6 +236,11 @@
 </KeywardUi>
 
 @code {
+    // Set when the signed-in visitor has no Keyward profile (ICurrentUser.UserId is null). Without it the
+    // early return below would leave the loading placeholder up for good, which reads as "slow" rather
+    // than "not provisioned" — see KeywardNoAccount.
+    private bool noAccount;
+
     private Guid? actorUserId;
     private Guid tenantId;
     private bool canManage;
@@ -272,7 +281,11 @@
     protected override async Task OnInitializedAsync()
     {
         actorUserId = CurrentUser.UserId;
-        if (actorUserId is null) return;
+        if (actorUserId is null)
+        {
+            noAccount = true;
+            return;
+        }
         tenantId = Workspace.TenantId;
         // Software-management gate: system admin, tenant admin, OR software manager (the «Application» role).
         canManage = await ProjectService.CanManageAsync(tenantId, actorUserId.Value);

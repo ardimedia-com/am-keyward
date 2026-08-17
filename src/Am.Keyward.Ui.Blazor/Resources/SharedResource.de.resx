@@ -103,6 +103,7 @@
   <data name="Profile.Email" xml:space="preserve"><value>E-Mail</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>System-Administrator</value></data>
   <data name="Common.Loading" xml:space="preserve"><value>Wird geladen…</value></data>
+  <data name="Common.NoKeywardAccount" xml:space="preserve"><value>Für dieses Konto besteht noch kein Keyward-Profil. Melde dich ab und wieder an — das Profil entsteht bei der Anmeldung. Ändert das nichts, ist Keyward in dieser Umgebung nicht vollständig eingerichtet.</value></data>
   <data name="Common.Save" xml:space="preserve"><value>Speichern</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Schliessen</value></data>
@@ -873,7 +874,7 @@
     <value>Connection-String «{0}»</value>
   </data>
   <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve">
-    <value>Die EINZIGE Voraussetzung, die von Hand kommt: ein Connection-String auf den Datenbankserver dieser Umgebung. Ohne ihn startet Keyward nicht. Lokal Integrated Security; ausserhalb von Development der rechtearme Login.</value>
+    <value>Eine Verbindung zur Datenbank dieser Umgebung. Fällt der Host ohne sie auf seine eigene privilegierte Verbindung zurück, ist sie optional — die Row-Level-Security schützt beide gleich. Ein eigener, rechtearmer Login entzieht der Anwendung zusätzlich das Recht, die Isolation abzuschalten oder das Schema zu ändern.</value>
   </data>
   <data name="Provisioning.Check.ConnectionString.Location" xml:space="preserve">
     <value>{0} → ConnectionStrings:{1}</value>
@@ -927,7 +928,7 @@
     <value>Hinterlegt, aber nicht lesbar.</value>
   </data>
   <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
-    <value>Hinterlegt, aber mit Integrated Security.</value>
+    <value>Läuft auf der privilegierten Verbindung des Hosts (Integrated Security).</value>
   </data>
   <data name="Provisioning.Outcome.DatabaseUnreachable" xml:space="preserve">
     <value>Die Verbindung ist fehlgeschlagen.</value>
@@ -961,9 +962,6 @@
   </data>
   <data name="Provisioning.Fix.ConnectionUnreadable" xml:space="preserve">
     <value>Syntax des Connection-Strings prüfen.</value>
-  </data>
-  <data name="Provisioning.Fix.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve">
-    <value>Ausserhalb von Development den dedizierten, rechtearmen Login verwenden — Integrated Security ist nur lokal vorgesehen.</value>
   </data>
   <data name="Provisioning.Fix.DatabaseUnreachable" xml:space="preserve">
     <value>Login, Passwort und Netzwerkzugang prüfen.</value>

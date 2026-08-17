@@ -13,7 +13,11 @@
 @inject IKeywardNotifier Notifier
 @inject NavigationManager Nav
 
-@if (vaults is null)
+@if (noAccount)
+{
+    <KeywardNoAccount />
+}
+else if (vaults is null)
 {
     <p class="muted">@Loc["Common.Loading"]</p>
 }
@@ -399,6 +403,11 @@ else
 }
 
 @code {
+    // Set when the signed-in visitor has no Keyward profile (ICurrentUser.UserId is null). Without it the
+    // early return below would leave the loading placeholder up for good, which reads as "slow" rather
+    // than "not provisioned" — see KeywardNoAccount.
+    private bool noAccount;
+
     [Parameter] public bool Team { get; set; }
 
     // Detail-pane tabs: «Einträge» (add + item list) vs «Tresor-Einstellungen» (the work areas). The item
@@ -741,7 +750,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         actorUserId = CurrentUser.UserId;
-        if (actorUserId is null) return;
+        if (actorUserId is null)
+        {
+            noAccount = true;
+            return;
+        }
         tenantId = Workspace.TenantId;
         await ReloadVaultsAsync();
         // Personal vaults are always exportable by their owner; team vaults only by tenant admins (the

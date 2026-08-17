@@ -103,6 +103,7 @@
   <data name="Profile.Email" xml:space="preserve"><value>E-mail</value></data>
   <data name="Profile.SystemAdmin" xml:space="preserve"><value>Administrador do sistema</value></data>
   <data name="Common.Loading" xml:space="preserve"><value>A carregar…</value></data>
+  <data name="Common.NoKeywardAccount" xml:space="preserve"><value>Esta conta ainda não tem um perfil Keyward. Termine a sessão e inicie-a novamente — o perfil é criado ao iniciar sessão. Se isso não mudar nada, o Keyward não está totalmente configurado neste ambiente.</value></data>
   <data name="Common.Save" xml:space="preserve"><value>Guardar</value></data>
   <data name="Common.Cancel" xml:space="preserve"><value>Cancelar</value></data>
   <data name="Common.Close" xml:space="preserve"><value>Fechar</value></data>
@@ -820,7 +821,7 @@
   <data name="Provisioning.Check.KekFile.Requirement" xml:space="preserve"><value>NÃO é fornecido à mão: o ficheiro de chave é criado automaticamente no primeiro arranque. A sua única tarefa é guardá-lo depois offline.</value></data>
   <data name="Provisioning.Check.KekFile.Location" xml:space="preserve"><value>Nenhum ficheiro a editar — é criado no arranque; só a cópia de segurança offline lhe compete.</value></data>
   <data name="Provisioning.Check.ConnectionString.Title" xml:space="preserve"><value>Cadeia de ligação «{0}»</value></data>
-  <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve"><value>O único requisito que vem à mão: uma cadeia de ligação para o servidor de base de dados deste ambiente. Sem ela o Keyward não arranca. Integrated Security localmente; fora de Development, o início de sessão com privilégios mínimos.</value></data>
+  <data name="Provisioning.Check.ConnectionString.Requirement" xml:space="preserve"><value>Uma ligação à base de dados deste ambiente. Se o host recorrer à sua própria ligação privilegiada, é opcional — a segurança ao nível da linha protege ambas da mesma forma. Um início de sessão dedicado com privilégios mínimos retira ainda o direito de desativar o isolamento ou alterar o esquema.</value></data>
   <data name="Provisioning.Check.ConnectionString.Location" xml:space="preserve"><value>{0} → ConnectionStrings:{1}</value></data>
   <data name="Provisioning.Check.DatabaseReachable.Title" xml:space="preserve"><value>Base de dados acessível</value></data>
   <data name="Provisioning.Check.DatabaseReachable.Requirement" xml:space="preserve"><value>O início de sessão da cadeia de ligação tem de conseguir abrir a base de dados.</value></data>
@@ -838,7 +839,7 @@
   <data name="Provisioning.Outcome.KekNotFileBased" xml:space="preserve"><value>Está configurado um fornecedor de chaves externo — não há qualquer ficheiro de chave a verificar.</value></data>
   <data name="Provisioning.Outcome.ConnectionMissing" xml:space="preserve"><value>Não configurada.</value></data>
   <data name="Provisioning.Outcome.ConnectionUnreadable" xml:space="preserve"><value>Configurada, mas ilegível.</value></data>
-  <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve"><value>Configurada, mas com Integrated Security.</value></data>
+  <data name="Provisioning.Outcome.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve"><value>A funcionar na ligação privilegiada do host (Integrated Security).</value></data>
   <data name="Provisioning.Outcome.DatabaseUnreachable" xml:space="preserve"><value>A ligação falhou.</value></data>
   <data name="Provisioning.Outcome.SchemaMissing" xml:space="preserve"><value>O esquema «amkeyward» não existe nesta base de dados.</value></data>
   <data name="Provisioning.Outcome.SchemaNoMigrations" xml:space="preserve"><value>O esquema existe, mas não foi aplicada qualquer migração.</value></data>
@@ -850,7 +851,6 @@
   <data name="Provisioning.Fix.KekMissing" xml:space="preserve"><value>É criado automaticamente no próximo arranque. Guarde-o depois OFFLINE — está ligado à máquina e não pode ser recuperado.</value></data>
   <data name="Provisioning.Fix.ConnectionMissing" xml:space="preserve"><value>Acrescente a cadeia de ligação para o servidor de base de dados deste ambiente. Injete a palavra-passe como segredo de implementação — nunca a coloque no repositório.</value></data>
   <data name="Provisioning.Fix.ConnectionUnreadable" xml:space="preserve"><value>Verifique a sintaxe da cadeia de ligação.</value></data>
-  <data name="Provisioning.Fix.ConnectionIntegratedSecurityOutsideDevelopment" xml:space="preserve"><value>Fora de Development use o início de sessão dedicado com privilégios mínimos — o Integrated Security destina-se apenas ao desenvolvimento local.</value></data>
   <data name="Provisioning.Fix.DatabaseUnreachable" xml:space="preserve"><value>Verifique o início de sessão, a palavra-passe e o acesso à rede.</value></data>
   <data name="Provisioning.Fix.SchemaMissing" xml:space="preserve"><value>É criado no arranque da aplicação através de uma ligação privilegiada. Verifique essa ligação e os seus direitos DDL.</value></data>
   <data name="Provisioning.Fix.SchemaNoMigrations" xml:space="preserve"><value>Reinicie a aplicação — a migração é executada no arranque.</value></data>

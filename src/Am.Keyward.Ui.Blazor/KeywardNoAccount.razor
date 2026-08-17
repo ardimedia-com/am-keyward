@@ -1,0 +1,18 @@
+@inject IStringLocalizer<SharedResource> Loc
+
+@* Shown where a signed-in visitor has no Keyward profile yet, i.e. ICurrentUser.UserId is null.
+
+   It exists because the alternative is worse than it looks: every feature page resolves the current user
+   first and cannot do anything without it, so returning early leaves the page's LOADING placeholder standing
+   for good. A permanent spinner reads as "slow", not as "misconfigured" — in a production incident that cost
+   an hour of looking in the wrong place, while the actual cause (no tenant in the store this instance was
+   pointed at, so the sign-in binding never created a profile) was one sentence away from being obvious.
+
+   Deliberately no link to a status page: the route for that belongs to the host, not to this package. *@
+
+<div class="card">
+    <div class="empty-state">
+        <KeywardIcon Name="alert" Size="28" />
+        <p>@Loc["Common.NoKeywardAccount"]</p>
+    </div>
+</div>
