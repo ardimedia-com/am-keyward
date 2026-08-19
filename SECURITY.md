@@ -1,7 +1,10 @@
 # Security Policy
 
 AM KEYWARD is a credential & secrets manager in **early development (pre-1.0)**. Its design has **not**
-yet undergone an external security review. Do not use it to store real secrets yet.
+yet undergone an external security review — no independent party has audited the envelope crypto, the tenant
+isolation or the audit hash chain. It is usable with real secrets, but that assurance gap is real: everything
+in this policy rests on the project's own testing. Weigh it against what the secrets protect, and track
+releases so you get fixes.
 
 ## Reporting a vulnerability
 

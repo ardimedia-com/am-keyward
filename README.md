@@ -1,7 +1,9 @@
 # AM KEYWARD
 
-> ⚠️ **Early development (pre-1.0).** Not production-ready. The security design has **not** yet been
-> externally reviewed — do not store real secrets in it yet.
+> ⚠️ **Pre-1.0 — no external security review yet.** AM KEYWARD is usable and the design is documented in
+> full below, but no independent party has audited the crypto, the tenant isolation or the audit chain. You
+> can run it with real secrets; do so knowing that assurance rests on this project's own testing, and weigh
+> that against what those secrets protect. See [SECURITY.md](SECURITY.md).
 
 **AM KEYWARD** is an open-source, .NET-native, **library-first** credential & secrets manager: a
 building block you embed in your own .NET environment (and can offer to your own users), plus an
@@ -69,7 +71,9 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
   server can decrypt; this is the acknowledged trade-off of escrow (zero-knowledge human vaults are v0.2).
 - **Host hardening** — OS, network exposure, TLS, and the security of the identity provider are the
   operator's responsibility.
-- **No external security review yet** (pre-1.0) — do not store real secrets until one has been done.
+- **No external security review yet** (pre-1.0) — nothing here has been audited by an independent party, so
+  the assurance behind every mitigation above is this project's own testing. That is a real limit on how much
+  weight the list deserves, not a reason it cannot be used; judge it against the value of what you store.
 
 ## Security & operations
 

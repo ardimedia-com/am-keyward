@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **The pre-1.0 caveat is now a warning about assurance, not an instruction not to use the project.** The
+  README banner, the threat model's "out of scope" entry and SECURITY.md all said *do not store real secrets
+  yet* — which reads as "this is not finished", when the actual fact is narrower and more useful: the code is
+  usable, and what is missing is an **independent** audit of the envelope crypto, the tenant isolation and the
+  audit hash chain. All three now say that plainly: you can run it with real secrets, the assurance behind
+  every mitigation is this project's own testing, and that is a limit to weigh against the value of what you
+  store. The published `0.1.0-preview` notes keep their original wording — release notes are history and must
+  keep matching what was published.
+
 ## [0.14.1-preview] - 2026-08-17
 
 ### Changed
