@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.14.2-preview] - 2026-08-25
+
 ### Fixed
 
 - **One undecryptable secret no longer empties the whole startup overlay.** `KeywardMachineSecrets.ReadAllAsync`
