@@ -92,6 +92,11 @@ public sealed class KeywardMachineSecrets(
     /// path (not a bulk reader), so the per-secret read statistics attribute these reads as in-process rather
     /// than as a client-token read. Never throws — a Keyward hiccup returns an empty result and the
     /// configuration values stay in effect.
+    /// <para>
+    /// Failure is isolated PER SECRET: an entry this installation cannot decrypt is logged by name and
+    /// skipped, and every other secret still reaches the overlay. Only a failure of the surrounding read
+    /// (tenant, project, listing) gives up on all of them.
+    /// </para>
     /// </summary>
     public async Task<IReadOnlyDictionary<string, string>> ReadAllAsync(CancellationToken cancellationToken = default)
     {
@@ -111,12 +116,31 @@ public sealed class KeywardMachineSecrets(
 
             foreach (SoftwareSecretSummary key in keys)
             {
-                string? value = await secrets.ReadAsync(
-                    new ReadSoftwareSecretQuery(tenantId, projectId, this.EnvironmentName, key.Key, ActorUserId: null),
-                    cancellationToken).ConfigureAwait(false);
-                if (value is not null)
+                // Per SECRET, not per overlay: one value this installation cannot decrypt must not cost the
+                // app every other value. A database that carries ciphertext from a foreign key ring - the
+                // usual case being a production copy restored onto a dev or test machine - has exactly that
+                // shape: some entries open, some throw AuthenticationTagMismatchException. Catching around
+                // the whole loop let the FIRST such entry end it, so every key after it silently never
+                // arrived, and which ones those were depended on the listing order. The app then started
+                // with a half-empty configuration and one warning line to explain it.
+                try
                 {
-                    result[key.Key] = value;
+                    string? value = await secrets.ReadAsync(
+                        new ReadSoftwareSecretQuery(tenantId, projectId, this.EnvironmentName, key.Key, ActorUserId: null),
+                        cancellationToken).ConfigureAwait(false);
+                    if (value is not null)
+                    {
+                        result[key.Key] = value;
+                    }
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw; // A real shutdown - not a bad secret. Let it end the read.
+                }
+                catch (Exception ex)
+                {
+                    // Named, so the operator can see WHICH entries this installation does not own.
+                    logger.LogWarning(ex, "KEYWARD: secret {Key} could not be read and is skipped; the remaining secrets still apply.", key.Key);
                 }
             }
         }

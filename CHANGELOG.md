@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **One undecryptable secret no longer empties the whole startup overlay.** `KeywardMachineSecrets.ReadAllAsync`
+  caught around the entire read loop, so the FIRST value this installation could not open ended the loop and
+  every key listed after it silently never reached configuration — which ones those were came down to listing
+  order. The app then started half-configured behind a single warning line. Failure is now isolated per secret:
+  the unreadable entry is logged **by name** and skipped, and every other secret still applies. This is the
+  everyday shape of a production database copied onto a dev or test machine, where the local key ring opens
+  some entries and not others.
+
+
 ### Changed
 
 - **The pre-1.0 caveat is now a warning about assurance, not an instruction not to use the project.** The
