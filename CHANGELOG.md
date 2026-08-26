@@ -1,9 +1,15 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project are documented here, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project is pre-1.0.
 
 ## [Unreleased]
+
+### Fixed
+
+- **The secrets panel builds without a nullable warning.** The copy button passed `env.Value` into
+  `CopyAsync(string, string)` from inside its own `@if (env.HasValue)` branch, but `HasValue` tells the
+  compiler nothing about `Value` — an empty string now stands in for the case that branch already rules out.
 
 ## [0.14.2-preview] - 2026-08-25
 
