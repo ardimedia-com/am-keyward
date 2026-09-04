@@ -187,8 +187,10 @@
   <data name="Secret.Rotation.Column" xml:space="preserve"><value>Rotation</value></data>
   <data name="Secret.Rotation.Edit" xml:space="preserve"><value>Set rotation date and note</value></data>
   <data name="Secret.Rotation.ExpiresAt" xml:space="preserve"><value>Rotate by</value></data>
-  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Note - how is a new value obtained?</value></data>
-  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>e.g. Azure portal, app registration, certificates &amp; secrets</value></data>
+  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Note for this environment</value></data>
+  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>e.g. where the value comes from, who owns it, how a new one is obtained (Azure portal, app registration, …)</value></data>
+  <data name="Secret.Note.Add" xml:space="preserve"><value>Add a note …</value></data>
+  <data name="Secret.Note.Edit" xml:space="preserve"><value>Edit note</value></data>
   <data name="Secret.Rotation.None" xml:space="preserve"><value>No date</value></data>
   <data name="Secret.Rotation.NoteOnly" xml:space="preserve"><value>Note only</value></data>
   <data name="Secret.Rotation.DaysLeft" xml:space="preserve"><value>in {0} day(s) ({1})</value></data>

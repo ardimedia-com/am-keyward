@@ -1,9 +1,19 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project are documented here, following
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). The project is pre-1.0.
 
 ## [Unreleased]
+
+### Changed
+
+- **The per-environment note is visible in the environment row.** Every secret value has carried a
+  free-text note per environment since the rotation feature, but it lived behind the «Rotation» column's
+  editor — a column that scrolls out of view on a narrow panel, so the note was effectively invisible.
+  The environment cell now shows the note itself (or «Notiz hinzufügen …»); a click opens the editor
+  below the row as before. The field is no longer worded as a rotation-only note («Notiz zu dieser
+  Umgebung»): where the value comes from, who owns it, how a new one is obtained. The table's minimum
+  width shrinks from 68rem to 58rem so the four working columns fit a 1440px window.
 
 ### Fixed
 

@@ -232,6 +232,29 @@
     .keyward-ui ::deep .kw-rotation-editor { grid-template-columns: 1fr; }
 }
 
+/* The per-environment note, shown in the environment cell as a quiet block; it is a button because a
+   click opens the editor below the row. Clamped to a few lines — the full text is one click away. */
+.keyward-ui ::deep .kw-env-note {
+    display: block;
+    width: 100%;
+    margin-top: .25rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    text-align: left;
+    font: inherit;
+    font-size: .78rem;
+    line-height: 1.35;
+    color: var(--kw-muted-text);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    max-height: 5.4em;
+    overflow: hidden;
+    cursor: pointer;
+}
+.keyward-ui ::deep .kw-env-note:hover { text-decoration: underline; }
+.keyward-ui ::deep .kw-env-note-empty { font-style: italic; opacity: .7; }
+
 /* Rotation state chips — quiet until the value actually needs attention. */
 .keyward-ui ::deep .kw-rot-ok { color: var(--kw-muted-text); }
 .keyward-ui ::deep .kw-rot-due { color: var(--kw-warning, #b45309); font-weight: 600; }

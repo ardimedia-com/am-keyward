@@ -187,8 +187,10 @@
   <data name="Secret.Rotation.Column" xml:space="preserve"><value>Erneuerung</value></data>
   <data name="Secret.Rotation.Edit" xml:space="preserve"><value>Ablaufdatum und Notiz festlegen</value></data>
   <data name="Secret.Rotation.ExpiresAt" xml:space="preserve"><value>Erneuern bis</value></data>
-  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Notiz - wie erhält man einen neuen Wert?</value></data>
-  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>z.B. Azure-Portal, App-Registrierung, Zertifikate &amp; Geheimnisse</value></data>
+  <data name="Secret.Rotation.Note" xml:space="preserve"><value>Notiz zu dieser Umgebung</value></data>
+  <data name="Secret.Rotation.NotePlaceholder" xml:space="preserve"><value>z.B. woher der Wert stammt, wer zuständig ist, wie man einen neuen erhält (Azure-Portal, App-Registrierung, …)</value></data>
+  <data name="Secret.Note.Add" xml:space="preserve"><value>Notiz hinzufügen …</value></data>
+  <data name="Secret.Note.Edit" xml:space="preserve"><value>Notiz bearbeiten</value></data>
   <data name="Secret.Rotation.None" xml:space="preserve"><value>Kein Datum</value></data>
   <data name="Secret.Rotation.NoteOnly" xml:space="preserve"><value>Nur Notiz</value></data>
   <data name="Secret.Rotation.DaysLeft" xml:space="preserve"><value>in {0} Tag(en) ({1})</value></data>
