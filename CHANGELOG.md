@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.14.3-preview] - 2026-09-05
+
 ### Changed
 
 - **The per-environment note is visible in the environment row.** Every secret value has carried a
