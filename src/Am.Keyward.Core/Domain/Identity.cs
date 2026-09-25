@@ -80,6 +80,15 @@ public sealed class AppUser
     /// </summary>
     public bool NotifyMonitoring { get; private set; }
 
+    /// <summary>
+    /// When the host disabled this user (or stopped granting them anything). A disabled user keeps their
+    /// record — audit references stay meaningful — but no token may act for them and they count as a member of
+    /// no tenant. Null while enabled.
+    /// </summary>
+    public DateTimeOffset? DisabledAt { get; private set; }
+
+    public bool IsDisabled => DisabledAt is not null;
+
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt, bool isSoftwareManager = false)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -109,6 +118,11 @@ public sealed class AppUser
     public void SetTokenAccessAlertNotification(bool enabled) => NotifyTokenAccessAlerts = enabled;
 
     public void SetMonitoringNotification(bool enabled) => NotifyMonitoring = enabled;
+
+    /// <summary>Disables the user. Idempotent: an already disabled user keeps the original time.</summary>
+    public void Disable(DateTimeOffset at) => DisabledAt ??= at;
+
+    public void Enable() => DisabledAt = null;
 }
 
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>

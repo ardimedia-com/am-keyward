@@ -37,6 +37,27 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
         return new KeywardBoundUser(user.Id, user.IsSystemAdmin);
     }
 
+    public Task<bool> DisableAsync(string externalId, CancellationToken cancellationToken = default) =>
+        this.ChangeStateAsync(externalId, user => user.Disable(clock.UtcNow), cancellationToken);
+
+    public Task<bool> EnableAsync(string externalId, CancellationToken cancellationToken = default) =>
+        this.ChangeStateAsync(externalId, user => user.Enable(), cancellationToken);
+
+    private async Task<bool> ChangeStateAsync(string externalId, Action<AppUser> change, CancellationToken cancellationToken)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(externalId);
+
+        AppUser? user = await this.FindAsync(externalId, cancellationToken).ConfigureAwait(false);
+        if (user is null)
+        {
+            return false;
+        }
+
+        change(user);
+        await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
     private async Task<AppUser> EnsureUserAsync(
         string externalId, string displayName, KeywardIdentityBinding binding, CancellationToken cancellationToken)
     {
@@ -57,6 +78,14 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
             if (existing.IsSoftwareManager != isSoftwareManager)
             {
                 if (isSoftwareManager) { existing.GrantSoftwareManager(); } else { existing.RevokeSoftwareManager(); }
+                changed = true;
+            }
+
+            // The host is authoritative at sign-in: granting anything enables a disabled user, granting nothing
+            // disables them. (Changed here, in the same save as the flags — every save clears the tracker.)
+            if (existing.IsDisabled == binding.GrantsAnything)
+            {
+                if (binding.GrantsAnything) { existing.Enable(); } else { existing.Disable(clock.UtcNow); }
                 changed = true;
             }
 
@@ -97,6 +126,10 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
                 isSystemAdmin: binding.IsSystemAdmin,
                 createdAt: clock.UtcNow,
                 isSoftwareManager: binding.IsSoftwareManager || binding.IsSystemAdmin);
+            if (!binding.GrantsAnything)
+            {
+                created.Disable(clock.UtcNow);
+            }
 
             db.Users.Add(created);
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

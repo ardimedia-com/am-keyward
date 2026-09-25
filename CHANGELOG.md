@@ -5,6 +5,26 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Keyward knows when a user is disabled.** A user record now carries a disabled state. The host sets it
+  through `IKeywardIdentityBinder.DisableAsync` / `EnableAsync` from its own disable, enable and delete
+  actions (the reference app does), and at sign-in a binding that grants nothing disables the user while one
+  that grants something enables them again. A disabled user counts as a member of no tenant — system admins
+  included — so the management API refuses them even with a still-valid session. Requires the
+  `AppUserDisabledAt` migration.
+
+### Changed
+
+- **BREAKING (implementers only):** `IKeywardIdentityBinder` gains `DisableAsync` and `EnableAsync`. Hosts
+  that only call the binder need no change; a host with its own implementation of the interface must add them.
+
+### Security
+
+- **Removing every Keyward role from a user now takes effect in Keyward.** `KeywardClaimsBinding.ApplyAsync`
+  used to skip Keyward entirely when the host granted nothing, so the user's tenant membership stayed in
+  place. It now disables the user's Keyward record.
+
 ## [0.16.0-preview] - 2026-09-25
 
 ### Added

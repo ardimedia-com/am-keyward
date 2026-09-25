@@ -117,9 +117,21 @@ public static class KeywardClaimsBinding
         ArgumentNullException.ThrowIfNull(logger);
 
         // A user the host grants nothing gets no Keyward identity at all: no user-id claim, so no Keyward
-        // user scope is ever established for them and every Keyward service call fails its scope check.
+        // user scope is ever established for them and every Keyward service call fails its scope check. If they
+        // HAD a Keyward user, it is disabled, so nothing acting for them (a token) keeps working either.
         if (!binding.GrantsAnything)
         {
+            try
+            {
+                await binder.DisableAsync(externalId, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex,
+                    "KEYWARD: could not disable the Keyward user of external user {ExternalId}, who is no longer granted "
+                    + "Keyward access — Keyward is unavailable in this environment.", externalId);
+            }
+
             return null;
         }
 

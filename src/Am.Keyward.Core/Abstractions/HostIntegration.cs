@@ -81,4 +81,15 @@ public interface IKeywardIdentityBinder
         Guid tenantId,
         KeywardIdentityBinding binding,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Disables the Keyward user of a host identity — call it from the host's own «disable user» and «delete
+    /// user» actions, which run without the user signing in. A disabled user counts as a member of no tenant and
+    /// no token may act for them. Returns <c>false</c> when the identity was never bound (nothing to disable).
+    /// The next <see cref="BindAsync"/> with a binding that grants something enables the user again.
+    /// </summary>
+    Task<bool> DisableAsync(string externalId, CancellationToken cancellationToken = default);
+
+    /// <summary>Enables a disabled Keyward user again. Returns <c>false</c> when the identity was never bound.</summary>
+    Task<bool> EnableAsync(string externalId, CancellationToken cancellationToken = default);
 }

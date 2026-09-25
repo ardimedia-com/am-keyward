@@ -312,7 +312,7 @@ adminUsers.MapPost("/unlock", async (HttpContext ctx, [FromForm] string userId,
 });
 
 adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
-    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit) =>
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, IKeywardIdentityBinder keywardUsers) =>
 {
     // Never let an admin disable their own account (self-lockout).
     if (userId != users.GetUserId(ctx.User))
@@ -322,6 +322,8 @@ adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
         {
             await users.SetLockoutEnabledAsync(user, true);
             await users.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+            // The lockout only stops sign-in; Keyward must know too, so nothing keeps acting for the user.
+            await keywardUsers.DisableAsync(userId);
             await AuditUserAdminAsync(ctx, db, audit, userId, "disable");
         }
     }
@@ -330,13 +332,14 @@ adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
 });
 
 adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
-    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit) =>
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, IKeywardIdentityBinder keywardUsers) =>
 {
     var user = await users.FindByIdAsync(userId);
     if (user is not null)
     {
         await users.SetLockoutEndDateAsync(user, null);
         await users.ResetAccessFailedCountAsync(user);
+        await keywardUsers.EnableAsync(userId);
         await AuditUserAdminAsync(ctx, db, audit, userId, "enable");
     }
 
@@ -350,7 +353,7 @@ adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
 // predicate admits personal vaults only for their owner, so an admin delete must act on the owner's behalf.
 adminUsers.MapPost("/delete", async (HttpContext ctx, [FromForm] string userId,
     UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit,
-    IUserScopeSetter userScope, ITenantScopeSetter tenantScope) =>
+    IUserScopeSetter userScope, ITenantScopeSetter tenantScope, IKeywardIdentityBinder keywardUsers) =>
 {
     if (userId == users.GetUserId(ctx.User))
     {
@@ -371,8 +374,10 @@ adminUsers.MapPost("/delete", async (HttpContext ctx, [FromForm] string userId,
             return Results.LocalRedirect("/account/admin/users");
         }
 
-        // Audit FIRST (as the acting admin), then switch to the target's scope for the data removal.
+        // Audit FIRST (as the acting admin), then switch to the target's scope for the data removal. The
+        // AppUser row stays (audit references), so it is disabled: nothing may act for a deleted account.
         await AuditUserAdminAsync(ctx, db, audit, userId, "delete");
+        await keywardUsers.DisableAsync(userId);
 
         userScope.SetUser(domainUser.Id);
         tenantScope.SetTenant(Demo.TenantId);

@@ -193,6 +193,18 @@ public sealed class MyKeywardClaimsFactory(
 }
 ```
 
+**Disabling and deleting users.** A binding that grants nothing disables the user's Keyward record at their
+next sign-in, and a binding that grants something enables it again. But your own «disable user» and «delete
+user» actions run *without* the user signing in, so call the binder there as well — otherwise Keyward keeps
+treating the account as active:
+
+```csharp
+await binder.DisableAsync(user.Id);   // in your disable and delete actions
+await binder.EnableAsync(user.Id);    // in your enable action
+```
+
+A disabled user counts as a member of no tenant (system admins included), and no token may act for them.
+
 - **`KeywardClaims.UserId` must be a GUID that exists in Keyward's `Users` table (`AppUser`).** Use
   `IKeywardIdentityBinder` (above) — it creates the `AppUser` and the `TenantMembership` for you. The
   `Tenant` itself is seeded once at startup: `KeywardSingleTenantSeeder.EnsureSeededAsync(...)` covers the
