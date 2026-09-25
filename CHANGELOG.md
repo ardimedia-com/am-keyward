@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.16.0-preview] - 2026-09-25
+
 ### Added
 
 - **Audit entries record who acted and how.** Every new audit entry carries the actor kind — a signed-in user,
