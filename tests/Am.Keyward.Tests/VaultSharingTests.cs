@@ -94,6 +94,47 @@ public class VaultSharingTests
         }
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Share_and_folder_guards_reject_foreign_targets()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var creator = Guid.NewGuid();
+        var foreignUser = Guid.NewGuid();
+
+        using (var seed = ScopeFor(provider, tenantId, creator))
+        {
+            var db = seed.ServiceProvider.GetRequiredService<KeywardDbContext>();
+            db.Tenants.Add(new Am.Keyward.Core.Domain.Identity.Tenant(tenantId, "guards", isSystemTenant: false, DateTimeOffset.UtcNow));
+            db.TenantMemberships.Add(new Am.Keyward.Core.Domain.Identity.TenantMembership(Guid.NewGuid(), tenantId, creator, TenantRole.Member, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        using var scope = ScopeFor(provider, tenantId, creator);
+        var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+        var vaultA = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(creator, tenantId, "Vault A"));
+        var vaultB = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(creator, tenantId, "Vault B"));
+        var folderInB = await vaults.AddFolderAsync(new AddVaultFolderCommand(creator, vaultB, "Folder in B"));
+
+        // A grant to a user who is not a member of the tenant is refused.
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.ShareWithUserAsync(new ShareVaultWithUserCommand(creator, tenantId, vaultA, foreignUser, Permission.Read)));
+
+        // An item cannot be placed into a folder of another vault — neither on create nor on update.
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.AddItemAsync(new AddVaultItemCommand(creator, vaultA, folderInB, ItemType.Generic, "x", "y")));
+
+        var itemId = await vaults.AddItemAsync(new AddVaultItemCommand(creator, vaultA, null, ItemType.Generic, "x", "y"));
+        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() =>
+            vaults.UpdateItemAsync(new UpdateVaultItemCommand(creator, itemId, "x", folderInB, "y")));
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();

@@ -35,6 +35,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Am.Keyward.Api\Am.Keyward.Api.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Client\Am.Keyward.Client.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Core\Am.Keyward.Core.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Infrastructure\Am.Keyward.Infrastructure.csproj" />

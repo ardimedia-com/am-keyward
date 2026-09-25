@@ -9,7 +9,8 @@ client never sends them.
 ## Endpoints
 
 Base path: `/keyward/api/v1`. Authentication: `Authorization: Bearer <token>`. Requests are rate limited
-per token.
+per token, and failed authentications are throttled per client IP (after 20 failures in 5 minutes the IP is
+refused until the window resets).
 
 | Method | Path | Purpose |
 |---|---|---|

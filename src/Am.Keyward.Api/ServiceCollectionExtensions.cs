@@ -20,6 +20,15 @@ public sealed class KeywardSoftwareClientApiOptions
 
     /// <summary>Requests queued once the limit is hit. Default 0 (reject immediately).</summary>
     public int QueueLimit { get; set; }
+
+    /// <summary>
+    /// Failed token authentications allowed per client IP per <see cref="FailedAuthenticationWindow"/> before
+    /// that IP is refused without a token lookup. Default 20.
+    /// </summary>
+    public int FailedAuthenticationLimit { get; set; } = 20;
+
+    /// <summary>Fixed-window length for <see cref="FailedAuthenticationLimit"/>. Default 5 minutes.</summary>
+    public TimeSpan FailedAuthenticationWindow { get; set; } = TimeSpan.FromMinutes(5);
 }
 
 public static class ServiceCollectionExtensions
@@ -32,12 +41,19 @@ public static class ServiceCollectionExtensions
     /// footgun). The host still adds the authentication/authorization and rate-limiter <em>middleware</em>
     /// (<c>app.UseAuthentication()/UseAuthorization()</c>, <c>app.UseRateLimiter()</c>); Keyward's limiter
     /// policy composes with any the host registers itself.
+    /// <para>
+    /// Call <c>app.UseRateLimiter()</c> BEFORE <c>app.UseAuthentication()</c>: the token is validated inside the
+    /// authorization middleware, so a limiter placed after it only ever sees requests that already cost a
+    /// token lookup. Guessed tokens are additionally throttled per client IP (<see cref="FailedAuthenticationThrottle"/>).
+    /// </para>
     /// </summary>
     public static IServiceCollection AddKeywardSoftwareClientApi(
         this IServiceCollection services, Action<KeywardSoftwareClientApiOptions>? configure = null)
     {
         var options = new KeywardSoftwareClientApiOptions();
         configure?.Invoke(options);
+
+        services.AddSingleton(new FailedAuthenticationThrottle(options));
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, SoftwareClientAuthenticationHandler>(

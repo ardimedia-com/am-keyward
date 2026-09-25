@@ -120,6 +120,13 @@ public sealed class VaultService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         await LoadAuthorizedVaultAsync(db, cmd.ActorUserId, cmd.VaultId, Permission.Manage, ct).ConfigureAwait(false);
 
+        // Users are installation-global: the grantee must be a member of THIS tenant (the same rule that builds
+        // the share candidate list), otherwise a caller could grant a team vault to another tenant's user.
+        if (!await db.TenantMemberships.AnyAsync(m => m.TenantId == cmd.TenantId && m.UserId == cmd.GranteeUserId, ct).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException($"User {cmd.GranteeUserId} is not a member of tenant {cmd.TenantId}.");
+        }
+
         var existing = await db.AccessGrants.FirstOrDefaultAsync(
             g => g.PrincipalType == PrincipalType.User && g.PrincipalId == cmd.GranteeUserId
               && g.Scope.Kind == GrantScopeKind.Vault && g.Scope.TargetId == cmd.VaultId, ct)
@@ -274,6 +281,7 @@ public sealed class VaultService(
         EnsureUserScope(cmd.UserId);
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        await EnsureFolderInVaultAsync(db, cmd.FolderId, vault.Id, ct).ConfigureAwait(false);
 
         var item = new VaultItem(
             Guid.NewGuid(), vault.Id, vault.TenantId, vault.OwnerUserId, cmd.FolderId, cmd.Type, cmd.Name, cmd.UserId, clock.UtcNow);
@@ -418,6 +426,7 @@ public sealed class VaultService(
             .FirstOrDefaultAsync(i => i.Id == cmd.ItemId, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {cmd.ItemId} not found.");
         var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+        await EnsureFolderInVaultAsync(db, cmd.FolderId, vault.Id, ct).ConfigureAwait(false);
 
         item.Rename(cmd.Name);
         item.MoveToFolder(cmd.FolderId);
@@ -430,6 +439,17 @@ public sealed class VaultService(
 
         await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    // An item's folder must belong to the item's own vault: FolderId carries no FK, and a folder from another
+    // vault would make the item vanish from its vault's tree (and survive that folder's deletion unparented).
+    private static async Task EnsureFolderInVaultAsync(KeywardDbContext db, Guid? folderId, Guid vaultId, CancellationToken ct)
+    {
+        if (folderId is { } id
+            && !await db.Folders.AnyAsync(f => f.Id == id && f.VaultId == vaultId, ct).ConfigureAwait(false))
+        {
+            throw new InvalidOperationException($"Folder {id} not found in vault {vaultId}.");
+        }
     }
 
     public async Task<Guid> MoveItemAsync(Guid userId, Guid itemId, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct = default)

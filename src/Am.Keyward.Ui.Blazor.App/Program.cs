@@ -219,6 +219,10 @@ app.UseRequestLocalization();
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
+// Before authentication: the software-client token is validated inside the authorization middleware, so the
+// limiter must reject over-limit requests before that lookup runs.
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -236,8 +240,6 @@ app.UseKeywardCurrentUser();
 // AddKeywardSingleTenant only covers the interactive path, and a PRERENDERING Keyward page calls a Keyward
 // service before the circuit exists — without this it would hit an unset ambient tenant.
 app.UseKeywardSingleTenant(Demo.TenantId);
-
-app.UseRateLimiter();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

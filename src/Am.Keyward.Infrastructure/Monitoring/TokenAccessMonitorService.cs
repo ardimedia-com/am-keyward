@@ -21,7 +21,8 @@ public sealed class TokenAccessMonitorService(
     IClock clock,
     ICurrentTenant tenant,
     DbAuditSink audit,
-    IOptions<MonitoringOptions> options) : ITokenAccessMonitorService
+    IOptions<MonitoringOptions> options,
+    ICurrentUser currentUser) : ITokenAccessMonitorService
 {
     private const string ResourceType = "TokenAccessMonitor";
 
@@ -153,21 +154,9 @@ public sealed class TokenAccessMonitorService(
     }
 
     // Same operator predicate as token/application management: system admin, software manager or tenant admin.
-    private static async Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
-    {
-        if (actorUserId is not { } actor)
-        {
-            return; // trusted/system caller — the management API authorizes at the HTTP layer
-        }
-
-        var isOperator = await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
-            || await db.TenantMemberships.AnyAsync(
-                m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
-        if (!isOperator)
-        {
-            throw new UnauthorizedAccessException("Managing heartbeat monitoring requires the tenant-admin or software-manager role.");
-        }
-    }
+    private Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+            "Managing heartbeat monitoring requires the tenant-admin or software-manager role.", ct);
 
     private void EnsureTenantScope(Guid requestedTenantId)
     {

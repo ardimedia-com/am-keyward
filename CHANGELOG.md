@@ -5,6 +5,34 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **An item can no longer be placed into another vault's folder.** Creating or editing an item accepted any
+  folder id; one from a different vault made the item disappear from its own vault's tree. The folder must now
+  belong to the item's vault, as it already had to when moving items and folders.
+- **The audit chain lock is released when sealing fails.** If reading the chain head failed after the
+  per-tenant lock was taken, the lock stayed held on the connection and every further audited change in that
+  tenant waited on it. The lock is now released on any failure, waits at most 30 seconds for another writer,
+  and a lock that could not be acquired fails the save instead of being treated as held.
+
+### Security
+
+- **The management REST API enforces the software-operator role.** Its endpoints passed no acting user to the
+  services, and the services took a missing user to mean a trusted system call, so any tenant member could
+  issue, rotate and revoke client tokens and overwrite secrets over HTTP — actions the UI reserves for tenant
+  admins and software managers. The endpoints now pass the signed-in user, and the services fall back to the
+  signed-in user whenever no actor is given; only a call with no user at all (seeding, background jobs) is
+  treated as a system call.
+- **Guessed client tokens are throttled per IP.** Every failed token authentication counts against the
+  caller's IP (default 20 per 5 minutes, `KeywardSoftwareClientApiOptions.FailedAuthenticationLimit` /
+  `FailedAuthenticationWindow`); once used up, that IP is refused without a token lookup until the window
+  resets. The per-token rate limiter could not do this, since each guessed token was its own partition.
+  Hosts should call `app.UseRateLimiter()` before `app.UseAuthentication()` so over-limit requests are
+  rejected before the token lookup; the reference host now does.
+- **A vault can only be shared with members of its tenant.** Sharing with a user accepted any user id, so a
+  grant could be given to a user of another tenant. It now requires tenant membership, like sharing with a
+  group already did.
+
 ## [0.14.3-preview] - 2026-09-05
 
 ### Changed

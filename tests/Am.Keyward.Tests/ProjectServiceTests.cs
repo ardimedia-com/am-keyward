@@ -213,6 +213,47 @@ public class ProjectServiceTests
         }
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Omitted_actor_is_checked_as_the_signed_in_user()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var admin = Guid.NewGuid();
+        var member = Guid.NewGuid();
+        await SeedTenantAsync(provider, tenantId, (admin, TenantRole.TenantAdmin), (member, TenantRole.Member));
+
+        Guid appId;
+        using (var scope = ScopeFor(provider, admin, tenantId))
+        {
+            appId = await scope.ServiceProvider.GetRequiredService<IProjectService>().CreateAsync(tenantId, "guarded", admin);
+        }
+
+        // A signed-in plain member who omits the actor (as the management API used to) is still refused.
+        using (var memberScope = ScopeFor(provider, member, tenantId))
+        {
+            var secrets = memberScope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            var tokens = memberScope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>();
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
+                secrets.StoreAsync(new StoreSoftwareSecretCommand(tenantId, appId, "Production", "Api:Key", "v1", null)));
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
+                tokens.IssueAsync(new IssueSoftwareClientTokenCommand(tenantId, appId, "Production", "sneaky", null, null)));
+        }
+
+        // Without any user in scope (seeding, background jobs) the call is a trusted system call.
+        using (var systemScope = provider.CreateScope())
+        {
+            systemScope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            await systemScope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
+                .StoreAsync(new StoreSoftwareSecretCommand(tenantId, appId, "Production", "Api:Key", "v1", null));
+        }
+    }
+
     private static ServiceProvider BuildProvider()
     {
         var services = new ServiceCollection();

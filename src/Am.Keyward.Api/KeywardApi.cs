@@ -52,17 +52,17 @@ public static class KeywardApi
 
         group.MapPut(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/environments/{environment}/secrets/{**key}",
-            async (Guid tenantId, Guid projectId, string environment, string key, StoreSecretRequest body, ISoftwareSecretService service, CancellationToken ct) =>
+            async (Guid tenantId, Guid projectId, string environment, string key, StoreSecretRequest body, ISoftwareSecretService service, ICurrentUser user, CancellationToken ct) =>
             {
-                await service.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, environment, key, body.Value, null), ct);
+                await service.StoreAsync(new StoreSoftwareSecretCommand(tenantId, projectId, environment, key, body.Value, user.UserId), ct);
                 return Results.NoContent();
             });
 
         group.MapGet(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/environments/{environment}/secrets/{**key}",
-            async (Guid tenantId, Guid projectId, string environment, string key, ISoftwareSecretService service, CancellationToken ct) =>
+            async (Guid tenantId, Guid projectId, string environment, string key, ISoftwareSecretService service, ICurrentUser user, CancellationToken ct) =>
             {
-                var value = await service.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, environment, key, null), ct);
+                var value = await service.ReadAsync(new ReadSoftwareSecretQuery(tenantId, projectId, environment, key, user.UserId), ct);
                 return value is null ? Results.NotFound() : Results.Ok(new SecretResponse(key, value));
             });
 
@@ -71,10 +71,10 @@ public static class KeywardApi
         // Issue a token for one (project, environment). The plaintext token is returned ONCE.
         group.MapPost(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/environments/{environment}/tokens",
-            async (Guid tenantId, Guid projectId, string environment, IssueTokenRequest body, ISoftwareClientTokenService tokens, CancellationToken ct) =>
+            async (Guid tenantId, Guid projectId, string environment, IssueTokenRequest body, ISoftwareClientTokenService tokens, ICurrentUser user, CancellationToken ct) =>
             {
                 var issued = await tokens.IssueAsync(
-                    new IssueSoftwareClientTokenCommand(tenantId, projectId, environment, body.Name, body.ExpiresAt, null), ct);
+                    new IssueSoftwareClientTokenCommand(tenantId, projectId, environment, body.Name, body.ExpiresAt, user.UserId), ct);
                 return Results.Ok(issued);
             });
 
@@ -86,14 +86,14 @@ public static class KeywardApi
         // Rotate a token's secret in place (the previous secret stops working). Returns the new token ONCE.
         group.MapPost(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/tokens/{tokenId:guid}/rotate",
-            async (Guid tenantId, Guid projectId, Guid tokenId, RotateTokenRequest? body, ISoftwareClientTokenService tokens, CancellationToken ct) =>
-                Results.Ok(await tokens.RotateAsync(tenantId, tokenId, TokenExpiryChange.FromNullableKeep(body?.ExpiresAt), null, ct)));
+            async (Guid tenantId, Guid projectId, Guid tokenId, RotateTokenRequest? body, ISoftwareClientTokenService tokens, ICurrentUser user, CancellationToken ct) =>
+                Results.Ok(await tokens.RotateAsync(tenantId, tokenId, TokenExpiryChange.FromNullableKeep(body?.ExpiresAt), user.UserId, ct)));
 
         group.MapDelete(
             "/tenants/{tenantId:guid}/projects/{projectId:guid}/tokens/{tokenId:guid}",
-            async (Guid tenantId, Guid projectId, Guid tokenId, ISoftwareClientTokenService tokens, CancellationToken ct) =>
+            async (Guid tenantId, Guid projectId, Guid tokenId, ISoftwareClientTokenService tokens, ICurrentUser user, CancellationToken ct) =>
             {
-                await tokens.RevokeAsync(tenantId, tokenId, null, ct);
+                await tokens.RevokeAsync(tenantId, tokenId, user.UserId, ct);
                 return Results.NoContent();
             });
 

@@ -29,6 +29,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
     private readonly ISoftwareClientAuthenticator authenticator;
     private readonly ITenantScopeSetter tenantScope;
     private readonly ITokenAccessRecorder accessRecorder;
+    private readonly FailedAuthenticationThrottle failedAttempts;
 
     public SoftwareClientAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -36,12 +37,14 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
         UrlEncoder encoder,
         ISoftwareClientAuthenticator authenticator,
         ITenantScopeSetter tenantScope,
-        ITokenAccessRecorder accessRecorder)
+        ITokenAccessRecorder accessRecorder,
+        FailedAuthenticationThrottle failedAttempts)
         : base(options, logger, encoder)
     {
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
         this.accessRecorder = accessRecorder;
+        this.failedAttempts = failedAttempts;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -57,10 +60,19 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
             return AuthenticateResult.NoResult();
         }
 
+        // An IP that has used up its failed attempts is refused before the token lookup, so guessing tokens
+        // costs the attacker time and the database nothing. A valid token from that IP waits out the window too.
+        var clientIp = Context.Connection.RemoteIpAddress?.ToString();
+        if (failedAttempts.IsBlocked(clientIp))
+        {
+            return AuthenticateResult.Fail("Too many failed authentication attempts; try again later.");
+        }
+
         var token = raw[BearerPrefix.Length..].Trim();
         var principal = await authenticator.AuthenticateAsync(token, Context.RequestAborted);
         if (principal is null)
         {
+            failedAttempts.RecordFailure(clientIp);
             return AuthenticateResult.Fail("Invalid or expired software-client token.");
         }
 
@@ -71,7 +83,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
         // persisted by the background flush — never a database write on the auth hot path. The IP is the
         // connection's remote address; behind a proxy/load balancer it is only meaningful when the host
         // has forwarded-headers middleware configured.
-        accessRecorder.Record(principal.TokenId, Context.Connection.RemoteIpAddress?.ToString());
+        accessRecorder.Record(principal.TokenId, clientIp);
 
         var identity = new ClaimsIdentity(
         [

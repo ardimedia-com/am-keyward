@@ -244,11 +244,21 @@ don't exist otherwise:
 ```csharp
 builder.Services.AddKeywardSoftwareClientApi();  // "Keyward.SoftwareClient" scheme + rate-limiter policy
 // ...
-app.UseRateLimiter();                            // the mapped group requires the middleware
+app.UseRateLimiter();                            // the mapped group requires the middleware — BEFORE auth
+app.UseAuthentication();
+app.UseAuthorization();
+// ...
 app.MapKeywardClientApi();                       // GET /keyward/api/v1/secrets[/{key}]
 // Optional management REST API, guarded by YOUR admin policy:
 app.MapKeywardApi(authorizationPolicy: "YourAdminPolicy");
 ```
+
+Place `UseRateLimiter()` before `UseAuthentication()`: the token is checked inside the authorization
+middleware, so a limiter after it only sees requests that already cost a token lookup. Independently of the
+limiter, failed token authentications are throttled per client IP (20 per 5 minutes by default, tunable via
+`AddKeywardSoftwareClientApi(o => { o.FailedAuthenticationLimit = …; o.FailedAuthenticationWindow = …; })`).
+The management API checks the software-operator role (tenant admin, software manager or system admin) for
+every mutation, whatever policy you pass.
 
 With the client API mapped, Keyward also records **access statistics** per app token (last access + IP,
 requests per day, seen IPs) and derives rule-based **access alerts** (never-seen IP, active again after a

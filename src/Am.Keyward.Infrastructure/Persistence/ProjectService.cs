@@ -19,7 +19,8 @@ public sealed class ProjectService(
     IClock clock,
     ICurrentTenant tenant,
     DbAuditSink audit,
-    ISoftwareClientTokenService tokens) : IProjectService
+    ISoftwareClientTokenService tokens,
+    ICurrentUser currentUser) : IProjectService
 {
     private const string ResourceType = "Project";
 
@@ -162,34 +163,13 @@ public sealed class ProjectService(
         return await CanManageAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
     }
 
-    private static async Task<bool> CanManageAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
-    {
-        if (actorUserId is not { } actor)
-        {
-            return false;
-        }
+    // CanManageAsync deliberately returns false for a null actor — it drives the read-only UI.
+    private static Task<bool> CanManageAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
+        SoftwareOperatorGuard.IsOperatorAsync(db, tenantId, actorUserId, ct);
 
-        return await db.Users.AnyAsync(u => u.Id == actor && (u.IsSystemAdmin || u.IsSoftwareManager), ct).ConfigureAwait(false)
-            || await db.TenantMemberships.AnyAsync(
-                m => m.TenantId == tenantId && m.UserId == actor && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
-    }
-
-    private static async Task EnsureOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct)
-    {
-        // A null actor is a trusted/system caller (management API authorized at the HTTP layer; seed/system
-        // operations). Every UI call carries the acting user, and THAT must be a manager. (CanManageAsync
-        // deliberately returns false for a null actor — it drives the read-only UI — so the null case is
-        // handled here, not there.)
-        if (actorUserId is null)
-        {
-            return;
-        }
-
-        if (!await CanManageAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false))
-        {
-            throw new UnauthorizedAccessException("Managing applications requires the tenant-admin or software-manager role.");
-        }
-    }
+    private Task EnsureOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+            "Managing applications requires the tenant-admin or software-manager role.", ct);
 
     private void EnsureTenantScope(Guid requestedTenantId)
     {

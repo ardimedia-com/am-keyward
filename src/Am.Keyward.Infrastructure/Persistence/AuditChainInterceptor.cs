@@ -23,6 +23,10 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
     private static string LockResourceFor(Guid? tenantId) =>
         tenantId is { } t ? $"Keyward_AuditChain_{t:N}" : "Keyward_AuditChain_system";
 
+    // Upper bound for waiting on another writer's chain lock. Without it sp_getapplock waits forever, so one
+    // stuck writer would block every audited mutation of the tenant.
+    private const int LockTimeoutMilliseconds = 30_000;
+
     // Mirrors TenantSessionContextInterceptor: opening the connection ourselves bypasses EF's
     // ConnectionOpened interceptor, so we must set the row-level-security session context here too.
     // The statement itself is built by SessionContextCommand, which both call sites share.
@@ -58,6 +62,24 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         }
 
         var state = states.GetOrCreateValue(context);
+        try
+        {
+            await SealAsync(context, state, pending, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            // EF does not route an exception thrown by a SavingChanges interceptor to SaveChangesFailed, so a
+            // lock acquired before the failure would otherwise stay held on the (pooled) connection and block
+            // every further audited write of the tenant. Release here, then let the save fail.
+            await ReleaseAsync(context).ConfigureAwait(false);
+            throw;
+        }
+
+        return result;
+    }
+
+    private async Task SealAsync(DbContext context, SaveState state, List<AuditEntry> pending, CancellationToken ct)
+    {
         var connection = context.Database.GetDbConnection();
         if (connection.State != ConnectionState.Open)
         {
@@ -79,8 +101,13 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             foreach (var group in pending.GroupBy(e => e.TenantId).OrderBy(g => g.Key))
             {
                 var resource = LockResourceFor(group.Key);
+
+                // sp_getapplock reports timeout/deadlock/error as a negative return code, not as an exception;
+                // THROW turns it into one so an unacquired lock can never be mistaken for a held one.
                 await ExecuteAsync(connection,
-                    $"EXEC sp_getapplock @Resource = N'{resource}', @LockMode = 'Exclusive', @LockOwner = 'Session';", ct)
+                    $"DECLARE @result int; "
+                    + $"EXEC @result = sp_getapplock @Resource = N'{resource}', @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = {LockTimeoutMilliseconds}; "
+                    + "IF @result < 0 THROW 51000, N'Could not acquire the audit chain lock.', 1;", ct)
                     .ConfigureAwait(false);
                 state.HeldLocks.Add(resource);
 
@@ -98,25 +125,26 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         }
         finally
         {
-            await SetBypassAsync(connection, on: false, ct).ConfigureAwait(false);
+            // Not the caller's token: a cancelled save must still switch the read bypass off again.
+            await SetBypassAsync(connection, on: false, CancellationToken.None).ConfigureAwait(false);
         }
-
-        return result;
     }
 
     public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken ct = default)
     {
-        await ReleaseAsync(eventData.Context, ct).ConfigureAwait(false);
+        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
         return result;
     }
 
     public override async Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken ct = default)
     {
-        await ReleaseAsync(eventData.Context, ct).ConfigureAwait(false);
+        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
     }
 
-    private async Task ReleaseAsync(DbContext? context, CancellationToken ct)
+    // Deliberately ignores the caller's cancellation token: releasing the lock must happen even when the save
+    // was cancelled, otherwise the cancelled request would keep the tenant's chain locked.
+    private async Task ReleaseAsync(DbContext? context)
     {
         if (context is null || !states.TryGetValue(context, out var state))
         {
@@ -132,7 +160,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             {
                 try
                 {
-                    await ExecuteAsync(connection, $"EXEC sp_releaseapplock @Resource = N'{resource}', @LockOwner = 'Session';", ct).ConfigureAwait(false);
+                    await ExecuteAsync(connection, $"EXEC sp_releaseapplock @Resource = N'{resource}', @LockOwner = 'Session';", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
