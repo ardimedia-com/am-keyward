@@ -55,7 +55,25 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
 
         change(user);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+
+        if (user.IsDisabled)
+        {
+            await this.RevokeAgentTokensAsync(user.Id, cancellationToken).ConfigureAwait(false);
+        }
+
         return true;
+    }
+
+    /// <summary>
+    /// A disabled user keeps no working agent token: each is revoked for good, so enabling the user again does
+    /// not silently bring the tokens back. (The authenticator also refuses a disabled user on every request.)
+    /// </summary>
+    private Task<int> RevokeAgentTokensAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var now = clock.UtcNow;
+        return db.AgentTokens
+            .Where(t => t.UserId == userId && t.RevokedAt == null)
+            .ExecuteUpdateAsync(set => set.SetProperty(t => t.RevokedAt, now), cancellationToken);
     }
 
     private async Task<AppUser> EnsureUserAsync(
@@ -92,6 +110,11 @@ internal sealed class KeywardIdentityBinder(KeywardDbContext db, IClock clock) :
             if (changed)
             {
                 await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            if (existing.IsDisabled)
+            {
+                await this.RevokeAgentTokensAsync(existing.Id, cancellationToken).ConfigureAwait(false);
             }
 
             return existing;

@@ -151,6 +151,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
 // only adds the middleware (app.UseRateLimiter, below). Pass a lambda to AddKeywardSoftwareClientApi to tune
 // the limits.
 builder.Services.AddKeywardSoftwareClientApi();
+builder.Services.AddKeywardAgentApi();          // Keyward.Agent scheme + per-token rate limiter
 
 // The management API requires a signed-in admin (cookie scheme); the system-admin policy additionally
 // requires the Keyward system-admin claim (used to gate the admin user-management UI + endpoints).
@@ -250,6 +251,7 @@ app.MapRazorComponents<App>()
 
 app.MapKeywardApi(authorizationPolicy: managementPolicy);  // management API: signed-in admin (cookie)
 app.MapKeywardClientApi();                                  // software-client read API: token + rate limited
+app.MapKeywardAgentApi();                                   // agent API (/keyward/api/v1/agent): agent token + rate limited
 
 // Health endpoints: liveness (KEK reachable) and readiness (KEK + ops-monitor snapshot). Anonymous and
 // body-free by default so they leak nothing; operators put detail behind their own auth if needed.

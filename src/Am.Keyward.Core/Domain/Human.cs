@@ -29,6 +29,13 @@ public sealed class Vault
     public ProtectionMode ProtectionMode { get; private set; }
     public string Name { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>
+    /// Whether AI agent tokens may be allowlisted for this vault and reach it. Off by default; only tenant
+    /// vaults can turn it on — a personal vault is never reachable by an agent.
+    /// </summary>
+    public bool AgentAccessAllowed { get; private set; }
+
     public IReadOnlyList<Folder> Folders => _folders;
 
     public Vault(Guid id, Guid? tenantId, OwnerType ownerType, Guid ownerId, ProtectionMode protectionMode, string name, DateTimeOffset createdAt)
@@ -57,6 +64,18 @@ public sealed class Vault
         Name = name.Trim();
         CreatedAt = createdAt;
     }
+
+    public void AllowAgentAccess()
+    {
+        if (TenantId is null)
+        {
+            throw new InvalidOperationException("A personal vault cannot be opened to agents.");
+        }
+
+        AgentAccessAllowed = true;
+    }
+
+    public void DenyAgentAccess() => AgentAccessAllowed = false;
 
     public Folder AddFolder(Guid id, string name, DateTimeOffset createdAt, Guid? parentFolderId = null)
     {

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Am.Keyward.Api;
 
@@ -53,7 +54,7 @@ public static class ServiceCollectionExtensions
         var options = new KeywardSoftwareClientApiOptions();
         configure?.Invoke(options);
 
-        services.AddSingleton(new FailedAuthenticationThrottle(options));
+        services.TryAddSingleton(new FailedAuthenticationThrottle(options));
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, SoftwareClientAuthenticationHandler>(
@@ -89,4 +90,70 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>
+    /// Registers the agent API: the <c>Keyward.Agent</c> Bearer scheme, an authorization policy requiring it and
+    /// the per-token rate limiter <see cref="KeywardAgentApi.RateLimiterPolicy"/>. Like the software-client API,
+    /// the host adds the middleware (<c>app.UseRateLimiter()</c> before <c>app.UseAuthentication()</c>) and maps
+    /// the endpoints with <c>MapKeywardAgentApi()</c>. Failed authentications share the per-IP throttle with the
+    /// software-client API.
+    /// </summary>
+    public static IServiceCollection AddKeywardAgentApi(
+        this IServiceCollection services, Action<KeywardAgentApiOptions>? configure = null)
+    {
+        var options = new KeywardAgentApiOptions();
+        configure?.Invoke(options);
+
+        services.TryAddSingleton(new FailedAuthenticationThrottle(options.FailedAuthenticationLimit, options.FailedAuthenticationWindow));
+
+        services.AddAuthentication()
+            .AddScheme<AuthenticationSchemeOptions, AgentAuthenticationHandler>(AgentAuthenticationHandler.SchemeName, _ => { });
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AgentAuthenticationHandler.SchemeName, policy =>
+            {
+                policy.AddAuthenticationSchemes(AgentAuthenticationHandler.SchemeName);
+                policy.RequireAuthenticatedUser();
+            });
+
+        services.AddRateLimiter(limiter =>
+        {
+            limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            limiter.AddPolicy(KeywardAgentApi.RateLimiterPolicy, httpContext =>
+            {
+                var authHeader = httpContext.Request.Headers.Authorization.ToString();
+                var partitionKey = string.IsNullOrEmpty(authHeader)
+                    ? "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous")
+                    : "tok:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(authHeader)));
+
+                return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = options.PermitLimit,
+                    Window = options.Window,
+                    QueueLimit = 0,
+                });
+            });
+        });
+
+        return services;
+    }
+}
+
+/// <summary>Tuning for the agent API.</summary>
+public sealed class KeywardAgentApiOptions
+{
+    /// <summary>Requests allowed per token per <see cref="Window"/>. Default 120.</summary>
+    public int PermitLimit { get; set; } = 120;
+
+    /// <summary>Fixed-window length. Default 1 minute.</summary>
+    public TimeSpan Window { get; set; } = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// Failed authentications per client IP per <see cref="FailedAuthenticationWindow"/>; used only when the
+    /// software-client API is not registered (the throttle is shared). Default 20.
+    /// </summary>
+    public int FailedAuthenticationLimit { get; set; } = 20;
+
+    /// <summary>Default 5 minutes.</summary>
+    public TimeSpan FailedAuthenticationWindow { get; set; } = TimeSpan.FromMinutes(5);
 }

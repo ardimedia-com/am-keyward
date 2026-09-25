@@ -113,6 +113,18 @@ public sealed class VaultService(
             .ConfigureAwait(false);
     }
 
+    public async Task SetAgentAccessAsync(Guid userId, Guid vaultId, bool allowed, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Manage, ct).ConfigureAwait(false);
+
+        if (allowed) { vault.AllowAgentAccess(); } else { vault.DenyAgentAccess(); }
+
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, allowed ? AuditAction.Grant : AuditAction.Revoke, "VaultAgentAccess", vault.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     public async Task ShareWithUserAsync(ShareVaultWithUserCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.ActorUserId);

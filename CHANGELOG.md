@@ -5,6 +5,19 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Agent tokens (foundation, not yet in the UI).** A user can issue a token for an AI assistant that acts
+  **as that user** on an explicit list of tenant vaults, narrowed by scopes (list, read, write, reveal) and
+  optionally by network (CIDR). Tokens always expire (90 days by default, at most 365), can be rotated and
+  revoked, and are refused on every request once the user is disabled or no longer a tenant member — disabling
+  a user also revokes their agent tokens for good. A vault is reachable only after someone with Manage opens it
+  to agents (`IVaultService.SetAgentAccessAsync`); personal vaults never can be. Access is decided per request
+  (`IAgentVaultAccess`): closing the vault, dropping it from the allowlist, revoking the user's grant or the
+  token takes effect on the next call. Hosts register `AddKeywardAgentApi()` and map `MapKeywardAgentApi()`
+  (`GET /keyward/api/v1/agent/ping` for now); requests are audited as the agent with its token. The token page
+  and the vault endpoints follow. Requires the `AgentTokens` migration.
+
 ## [0.17.0-preview] - 2026-09-26
 
 ### Added

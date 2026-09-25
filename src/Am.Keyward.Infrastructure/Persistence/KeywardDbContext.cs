@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Access;
+using Am.Keyward.Core.Domain.Agent;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.Human;
 using Am.Keyward.Core.Domain.Identity;
@@ -40,6 +41,8 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SecretValue> SecretValues => Set<SecretValue>();
     public DbSet<SecretVersion> SecretVersions => Set<SecretVersion>();
     public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
+    public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
+    public DbSet<AgentTokenVaultAllowance> AgentTokenVaultAllowances => Set<AgentTokenVaultAllowance>();
     public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
     public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
     public DbSet<TokenAccessAlert> TokenAccessAlerts => Set<TokenAccessAlert>();
@@ -220,6 +223,32 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             // row-level-security policy — it must be looked up by prefix BEFORE the tenant is known. The
             // record carries TenantId only to scope the request once the token is authenticated. It holds
             // no secret material (only a hash + a non-secret prefix).
+        });
+
+        // Agent tokens: installation-global like the software-client tokens (looked up by prefix before the
+        // tenant is known; deliberately NO tenant query filter and NOT in row-level security). Every request
+        // re-checks the token, its user and the vault (AgentAuthenticator, AgentVaultAccess).
+        model.Entity<AgentToken>(e =>
+        {
+            e.ToTable("AgentTokens");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
+            e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
+            e.Property(x => x.AllowedNetworks).HasMaxLength(1024).IsRequired();
+            e.HasIndex(x => x.TokenPrefix).IsUnique();
+            e.HasIndex(x => new { x.TenantId, x.UserId });
+            e.HasMany(x => x.AllowedVaults).WithOne().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.AllowedVaults).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        // The vault allowlist of an agent token. Deleting the vault or the token removes the row.
+        model.Entity<AgentTokenVaultAllowance>(e =>
+        {
+            e.ToTable("AgentTokenVaultAllowances");
+            e.HasKey(x => new { x.TokenId, x.VaultId });
+            e.HasIndex(x => x.VaultId);
+            e.HasOne<Vault>().WithMany().HasForeignKey(x => x.VaultId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // Token access statistics: pre-aggregated daily counters, seen IPs and access-pattern alerts.

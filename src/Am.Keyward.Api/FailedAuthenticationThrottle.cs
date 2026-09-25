@@ -18,12 +18,21 @@ public sealed class FailedAuthenticationThrottle : IDisposable
     private readonly PartitionedRateLimiter<string> limiter;
 
     public FailedAuthenticationThrottle(KeywardSoftwareClientApiOptions options)
+        : this(options.FailedAuthenticationLimit, options.FailedAuthenticationWindow)
+    {
+    }
+
+    /// <summary>
+    /// One throttle is shared by every Keyward token scheme (software clients, agents): a caller guessing tokens
+    /// of either kind uses up the same allowance.
+    /// </summary>
+    public FailedAuthenticationThrottle(int failedAttemptLimit, TimeSpan window)
     {
         limiter = PartitionedRateLimiter.Create<string, string>(ip =>
             RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = options.FailedAuthenticationLimit,
-                Window = options.FailedAuthenticationWindow,
+                PermitLimit = failedAttemptLimit,
+                Window = window,
                 QueueLimit = 0,
             }));
     }

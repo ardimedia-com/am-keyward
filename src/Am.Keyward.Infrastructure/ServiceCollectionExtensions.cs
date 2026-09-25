@@ -56,6 +56,11 @@ public static class ServiceCollectionExtensions
         // model). It runs on the host's AUTHENTICATION path, so it deliberately needs no tenant scope: the
         // Users and TenantMemberships tables are installation-global.
         services.AddScoped<IKeywardIdentityBinder, KeywardIdentityBinder>();
+
+        // Agent tokens (AI assistants acting for their issuing user).
+        services.AddScoped<IAgentTokenService, Auth.AgentTokenService>();
+        services.AddScoped<IAgentAuthenticator, Auth.AgentAuthenticator>();
+        services.AddScoped<IAgentVaultAccess, Auth.AgentVaultAccess>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();

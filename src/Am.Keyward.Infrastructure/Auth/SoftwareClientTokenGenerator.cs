@@ -18,11 +18,14 @@ public static class SoftwareClientTokenGenerator
 
     public sealed record GeneratedToken(string Token, string Prefix, string Hash);
 
-    public static GeneratedToken Generate()
+    public static GeneratedToken Generate() => Generate(Scheme);
+
+    /// <summary>A token of another Keyward token kind (e.g. agent tokens), told apart by its leading scheme.</summary>
+    internal static GeneratedToken Generate(string scheme)
     {
         var prefix = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(PrefixBytes));
         var secret = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(SecretBytes));
-        var token = $"{Scheme}_{prefix}_{secret}";
+        var token = $"{scheme}_{prefix}_{secret}";
         return new GeneratedToken(token, prefix, Hash(token));
     }
 
@@ -30,7 +33,9 @@ public static class SoftwareClientTokenGenerator
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     /// <summary>Extracts the lookup prefix from a presented token, or false if it is not a Keyward token.</summary>
-    public static bool TryParsePrefix(string? token, out string prefix)
+    public static bool TryParsePrefix(string? token, out string prefix) => TryParsePrefix(token, Scheme, out prefix);
+
+    internal static bool TryParsePrefix(string? token, string scheme, out string prefix)
     {
         prefix = string.Empty;
         if (string.IsNullOrWhiteSpace(token))
@@ -39,7 +44,7 @@ public static class SoftwareClientTokenGenerator
         }
 
         var parts = token.Split('_');
-        if (parts.Length != 3 || parts[0] != Scheme || parts[1].Length == 0 || parts[2].Length == 0)
+        if (parts.Length != 3 || parts[0] != scheme || parts[1].Length == 0 || parts[2].Length == 0)
         {
             return false;
         }

@@ -92,6 +92,12 @@ public interface IVaultService
     Task<Guid> CreateTenantVaultAsync(CreateTenantVaultCommand command, CancellationToken ct = default);
     Task<IReadOnlyList<VaultSummary>> ListVaultsAsync(Guid userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Opens or closes a tenant vault to AI agent tokens (<see cref="Domain.Human.Vault.AgentAccessAllowed"/>).
+    /// Requires Manage on the vault; a personal vault can never be opened.
+    /// </summary>
+    Task SetAgentAccessAsync(Guid userId, Guid vaultId, bool allowed, CancellationToken ct = default);
+
     /// <summary>Tenant ("team") vaults the user has been granted access to (includes ones they created).</summary>
     Task<IReadOnlyList<VaultSummary>> ListSharedVaultsAsync(Guid userId, Guid tenantId, CancellationToken ct = default);
 
