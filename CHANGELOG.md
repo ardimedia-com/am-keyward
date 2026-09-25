@@ -19,6 +19,14 @@ All notable changes to this project are documented here, following
   actor kind, token and reason; free text is length-prefixed so no reason can collide with another. Every
   existing entry stays version 1 and verifies exactly as before, so existing chains remain intact across the
   upgrade. Requires the `AuditActorKind` migration.
+- **Single-key client reads no longer write an audit entry.** A deployed app reading one secret was recorded
+  once in the read statistics and once more in the audit chain, and every such entry waited on the tenant's
+  audit lock together with every change made in the UI. Single reads are now evidenced by the read statistics
+  (per secret, environment and day) only; a bulk load (`GET /secrets`) still writes one audit entry per load,
+  attributed to the client and its token. Both reads load only the token's environment, untracked.
+- **BREAKING:** `ISoftwareSecretReader.ReadAsync` and `ReadAllAsync` no longer take an `actorUserId`; the
+  acting client comes from `ICurrentActor`. Only callers of the reader interface itself are affected (the
+  client API and the KEYWARD tests); hosts that use `MapKeywardClientApi` need no change.
 
 ## [0.15.0-preview] - 2026-09-25
 

@@ -219,7 +219,7 @@ public sealed class SoftwareSecretService(
     // --- ISoftwareSecretReader: the software-client read path (environment fixed by the token) ---
 
     public async Task<string?> ReadAsync(
-        Guid tenantId, Guid projectId, Guid environmentId, string key, Guid? actorUserId, CancellationToken ct = default)
+        Guid tenantId, Guid projectId, Guid environmentId, string key, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
@@ -227,7 +227,8 @@ public sealed class SoftwareSecretService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var secretKey = SecretKey.Create(key);
         var secret = await db.SoftwareSecrets
-            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .AsNoTracking()
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId)).ThenInclude(v => v.Versions)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
             .ConfigureAwait(false);
 
@@ -240,25 +241,27 @@ public sealed class SoftwareSecretService(
         var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
             .ConfigureAwait(false);
 
+        // A single-key client read is evidenced by the read statistics (per secret, environment and day), not
+        // by an audit entry: one entry per read would serialise every client read of the tenant on the audit
+        // chain lock, together with every UI change, and grow the chain without bound. The bulk load below
+        // still writes one audit entry per load.
         readStatistics.Record(tenantId, secret.Id, environmentId, SecretReadSource.Client);
-        await audit.AppendAsync(
-            db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, actorUserId), ct)
-            .ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return plaintext;
     }
 
     public async Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(
-        Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
+        Guid tenantId, Guid projectId, Guid environmentId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        // Only the token's environment, untracked: the audit entry below is added on its own.
         var secrets = await db.SoftwareSecrets
+            .AsNoTracking()
             .Where(s => s.ProjectId == projectId)
-            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId)).ThenInclude(v => v.Versions)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
@@ -278,7 +281,7 @@ public sealed class SoftwareSecretService(
         }
 
         await audit.AppendAsync(
-            db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", null, actorUserId), ct)
+            db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", null, ActorUserId: null), ct)
             .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 

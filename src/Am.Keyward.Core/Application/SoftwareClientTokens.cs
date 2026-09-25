@@ -108,12 +108,14 @@ public interface ISoftwareClientAuthenticator
 
 /// <summary>
 /// Reads software secrets for an already-resolved (project, environment) — the software-client path,
-/// where the environment is fixed by the authenticated token rather than named by the caller.
+/// where the environment is fixed by the authenticated token rather than named by the caller. The acting
+/// client is attributed through <see cref="Abstractions.ICurrentActor"/>, set by the token handler.
 /// </summary>
 public interface ISoftwareSecretReader
 {
-    Task<string?> ReadAsync(Guid tenantId, Guid projectId, Guid environmentId, string key, Guid? actorUserId, CancellationToken ct = default);
+    /// <summary>One secret. Recorded in the read statistics, not as an audit entry.</summary>
+    Task<string?> ReadAsync(Guid tenantId, Guid projectId, Guid environmentId, string key, CancellationToken ct = default);
 
-    /// <summary>All current key/value pairs for the environment (the IConfiguration bulk-load case).</summary>
-    Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default);
+    /// <summary>All current key/value pairs for the environment (the IConfiguration bulk-load case). One audit entry per load.</summary>
+    Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(Guid tenantId, Guid projectId, Guid environmentId, CancellationToken ct = default);
 }

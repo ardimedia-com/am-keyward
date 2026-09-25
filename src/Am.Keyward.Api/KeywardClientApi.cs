@@ -29,7 +29,7 @@ public static class KeywardClientApi
         group.MapGet("/secrets", async (ClaimsPrincipal user, ISoftwareSecretReader reader, CancellationToken ct) =>
         {
             var (tenantId, projectId, environmentId) = ReadScope(user);
-            var all = await reader.ReadAllAsync(tenantId, projectId, environmentId, null, ct);
+            var all = await reader.ReadAllAsync(tenantId, projectId, environmentId, ct);
             return Results.Ok(all.ToDictionary(kv => kv.Key, kv => kv.Value));
         });
 
@@ -37,7 +37,7 @@ public static class KeywardClientApi
         group.MapGet("/secrets/{**key}", async (string key, ClaimsPrincipal user, ISoftwareSecretReader reader, CancellationToken ct) =>
         {
             var (tenantId, projectId, environmentId) = ReadScope(user);
-            var value = await reader.ReadAsync(tenantId, projectId, environmentId, key, null, ct);
+            var value = await reader.ReadAsync(tenantId, projectId, environmentId, key, ct);
             return value is null ? Results.NotFound() : Results.Ok(new SecretResponse(key, value));
         });
 

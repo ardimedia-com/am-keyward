@@ -451,6 +451,61 @@ public class SoftwareClientTokenTests
         Assert.IsNull(await AuthenticateAsync(provider, issued.Token));
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Single_key_reads_are_not_audited_but_a_bulk_load_is_once_as_the_client()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var projectId = Guid.NewGuid();
+        await SeedProjectWithTwoEnvironmentsAsync(provider, tenantId, projectId, prodValue: "prod-secret", devValue: "d");
+        var issued = await IssueAsync(provider, tenantId, projectId, "Production", expiresAt: null);
+        var principal = await AuthenticateAsync(provider, issued.Token);
+        Assert.IsNotNull(principal);
+
+        async Task<int> CountReadsAsync()
+        {
+            using var scope = ScopeFor(provider, tenantId);
+            return await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().AuditEntries
+                .CountAsync(a => a.TenantId == tenantId && a.Action == AuditAction.Read && a.ResourceType == "SoftwareSecret");
+        }
+
+        var before = await CountReadsAsync();
+
+        // As the host does after authentication: tenant and actor from the token.
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            scope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetActor(ActorKind.SoftwareClient, principal.TokenId);
+            var reader = scope.ServiceProvider.GetRequiredService<ISoftwareSecretReader>();
+            for (var i = 0; i < 3; i++)
+            {
+                Assert.AreEqual("prod-secret", await reader.ReadAsync(tenantId, projectId, principal.EnvironmentId, Key));
+            }
+
+            Assert.AreEqual(before, await CountReadsAsync(), "Single-key client reads must not write audit entries.");
+
+            var all = await reader.ReadAllAsync(tenantId, projectId, principal.EnvironmentId);
+            Assert.AreEqual("prod-secret", all.Single(kv => kv.Key == Key).Value);
+        }
+
+        Assert.AreEqual(before + 1, await CountReadsAsync(), "A bulk load writes exactly one audit entry.");
+
+        using (var scope = ScopeFor(provider, tenantId))
+        {
+            var bulk = await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().AuditEntries
+                .Where(a => a.TenantId == tenantId && a.Action == AuditAction.Read && a.ResourceType == "SoftwareSecret")
+                .OrderByDescending(a => a.Sequence)
+                .FirstAsync();
+            Assert.AreEqual(ActorKind.SoftwareClient, bulk.ActorKind);
+            Assert.AreEqual(principal.TokenId, bulk.ActorTokenId);
+        }
+    }
+
     private static async Task<IssuedSoftwareClientToken> IssueAsync(
         ServiceProvider provider, Guid tenantId, Guid projectId, string environment, DateTimeOffset? expiresAt)
     {
@@ -476,6 +531,6 @@ public class SoftwareClientTokenTests
         // The host would set the scope from the token; do the same here, then read via the client reader.
         using var scope = ScopeFor(provider, principal.TenantId);
         return await scope.ServiceProvider.GetRequiredService<ISoftwareSecretReader>()
-            .ReadAsync(principal.TenantId, principal.ProjectId, principal.EnvironmentId, key, null);
+            .ReadAsync(principal.TenantId, principal.ProjectId, principal.EnvironmentId, key);
     }
 }

@@ -55,6 +55,9 @@ from a deployed application* for the full option list.
   the same stored secret valid again, expiry unchanged); deleting removes the record permanently. Deleting
   an environment (or a whole application) **deletes** its tokens. Every lifecycle change is written to the
   tamper-evident audit chain.
+- **Reads.** A bulk load (`GET /secrets`) writes one audit entry per load, attributed to the client and its
+  token. A single-key read (`GET /secrets/{key}`) is counted in the read statistics (per secret, environment
+  and day, shown on the application's «Statistics» tab) instead of the audit chain.
 
 ## Issuing a token
 
