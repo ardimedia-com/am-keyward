@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **The reference app starts again.** Since 0.17.0-preview its user-admin endpoints (disable, enable, delete)
+  took `IKeywardIdentityBinder` as a parameter; minimal APIs treat any parameter type with a `BindAsync` method
+  as a custom binder, so the host refused to start. The parameter is now marked `[FromServices]`. The published
+  packages were not affected — only the reference shell in this repository.
+
 ### Added
 
 - **Agent tokens (foundation, not yet in the UI).** A user can issue a token for an AI assistant that acts

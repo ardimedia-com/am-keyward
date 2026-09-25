@@ -314,7 +314,7 @@ adminUsers.MapPost("/unlock", async (HttpContext ctx, [FromForm] string userId,
 });
 
 adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
-    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, IKeywardIdentityBinder keywardUsers) =>
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, [FromServices] IKeywardIdentityBinder keywardUsers) =>
 {
     // Never let an admin disable their own account (self-lockout).
     if (userId != users.GetUserId(ctx.User))
@@ -334,7 +334,7 @@ adminUsers.MapPost("/disable", async (HttpContext ctx, [FromForm] string userId,
 });
 
 adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
-    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, IKeywardIdentityBinder keywardUsers) =>
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, [FromServices] IKeywardIdentityBinder keywardUsers) =>
 {
     var user = await users.FindByIdAsync(userId);
     if (user is not null)
@@ -355,7 +355,7 @@ adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
 // predicate admits personal vaults only for their owner, so an admin delete must act on the owner's behalf.
 adminUsers.MapPost("/delete", async (HttpContext ctx, [FromForm] string userId,
     UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit,
-    IUserScopeSetter userScope, ITenantScopeSetter tenantScope, IKeywardIdentityBinder keywardUsers) =>
+    IUserScopeSetter userScope, ITenantScopeSetter tenantScope, [FromServices] IKeywardIdentityBinder keywardUsers) =>
 {
     if (userId == users.GetUserId(ctx.User))
     {
