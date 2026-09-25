@@ -83,4 +83,29 @@ public enum AuditAction
     Revoke,
     Login,
     BreakGlass,
+
+    /// <summary>A secret value was handed out through an approved reveal request (not a UI open, which is <see cref="Read"/>).</summary>
+    Reveal,
+    RevealRequested,
+    RevealApproved,
+    RevealRejected,
+}
+
+/// <summary>
+/// Which kind of principal performed an audited action. The actor's identity is the pseudonym; the kind tells
+/// apart what the same user did in person from what a token acting for them did.
+/// </summary>
+public enum ActorKind
+{
+    /// <summary>A signed-in human.</summary>
+    User,
+
+    /// <summary>A deployed application presenting a software-client token.</summary>
+    SoftwareClient,
+
+    /// <summary>An AI agent presenting an agent token that acts for its issuing user.</summary>
+    Agent,
+
+    /// <summary>No principal: seeding, background jobs, maintenance.</summary>
+    System,
 }

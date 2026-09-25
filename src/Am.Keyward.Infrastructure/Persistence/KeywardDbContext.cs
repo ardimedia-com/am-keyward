@@ -404,6 +404,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.ResourceType).HasMaxLength(128).IsRequired();
             e.Property(x => x.PreviousHash).HasMaxLength(64).IsRequired();
             e.Property(x => x.Hash).HasMaxLength(64).IsRequired();
+            // HashVersion: rows written before actor kinds existed became version 1 through the column default of
+            // the AuditActorKind migration; the sink always sets the current version explicitly.
+            e.Property(x => x.ActorKind).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Reason).HasMaxLength(AuditEntry.MaxReasonLength);
             e.HasIndex(x => new { x.TenantId, x.Sequence }).IsUnique();
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });

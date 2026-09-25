@@ -115,9 +115,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
                 foreach (var entry in group.OrderBy(e => e.OccurredAt))
                 {
                     sequence++;
-                    var hash = AuditChainHash.Compute(
-                        entry.TenantId, sequence, entry.Action, entry.ResourceType,
-                        entry.ResourceId, entry.ActorPseudonymId, entry.OccurredAt, previousHash);
+                    var hash = AuditChainHash.Compute(entry, sequence, previousHash);
                     entry.Seal(sequence, previousHash, hash);
                     previousHash = hash;
                 }

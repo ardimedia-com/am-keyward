@@ -1,4 +1,5 @@
 using Am.Keyward.Core.Abstractions;
+using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Audit;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +15,7 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// <see cref="AuditChainInterceptor"/> under a per-chain lock — the single writer — so concurrent appends
 /// cannot fork the chain or collide on a sequence number.
 /// </summary>
-public sealed class DbAuditSink(KeywardDbContext db, IClock clock, DbAuditSubjectDirectory subjects) : IAuditSink
+public sealed class DbAuditSink(KeywardDbContext db, IClock clock, DbAuditSubjectDirectory subjects, ICurrentActor actor) : IAuditSink
 {
     public ValueTask AppendAsync(AuditRequest request, CancellationToken ct = default) =>
         AppendAsync(db, request, ct);
@@ -23,10 +24,15 @@ public sealed class DbAuditSink(KeywardDbContext db, IClock clock, DbAuditSubjec
     {
         var pseudonymId = await ResolveActorAsync(target, request.ActorUserId, ct).ConfigureAwait(false);
 
+        // The kind comes from the host edge when a token handler set it; otherwise a user id means a signed-in
+        // user and no user means a system operation (seeding, background jobs).
+        var actorKind = actor.Kind ?? (request.ActorUserId is null ? ActorKind.System : ActorKind.User);
+
         // Sequence + previous/current hash are filled in by AuditChainInterceptor at SaveChanges.
         target.AuditEntries.Add(new AuditEntry(
             Guid.NewGuid(), request.TenantId, sequence: 0, request.Action, request.ResourceType,
-            request.ResourceId, pseudonymId, clock.UtcNow, AuditChainHash.GenesisHash, hash: string.Empty));
+            request.ResourceId, pseudonymId, clock.UtcNow, AuditChainHash.GenesisHash, hash: string.Empty,
+            AuditEntry.CurrentHashVersion, actorKind, actor.TokenId, request.Reason));
     }
 
     private async ValueTask<Guid?> ResolveActorAsync(KeywardDbContext target, Guid? actorUserId, CancellationToken ct)

@@ -37,9 +37,17 @@ public sealed class DbAuditChainVerifier(IDbContextFactory<KeywardDbContext> dbF
                     "Previous-hash link does not match the prior entry.");
             }
 
-            var expectedHash = AuditChainHash.Compute(
-                entry.TenantId, entry.Sequence, entry.Action, entry.ResourceType,
-                entry.ResourceId, entry.ActorPseudonymId, entry.OccurredAt, entry.PreviousHash);
+            // Each entry is recomputed with the canonical form of ITS hash version, so chains that span the
+            // v1 → v2 switch verify end to end.
+            string expectedHash;
+            try
+            {
+                expectedHash = AuditChainHash.Compute(entry, entry.Sequence, entry.PreviousHash);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return new AuditChainStatus(false, entry.Sequence - 1, entry.Sequence, ex.Message);
+            }
 
             if (entry.Hash != expectedHash)
             {

@@ -9,8 +9,17 @@ namespace Am.Keyward.Core.Domain.Audit;
 /// <see cref="PreviousHash"/> and <see cref="Hash"/> are assigned by the single-writer audit sink
 /// (infrastructure), not by callers.
 /// </summary>
+/// <remarks>
+/// <see cref="HashVersion"/> selects the canonical form the hash covers. Version 1 (every entry written before
+/// actor kinds existed) covers the original fields only and has no <see cref="ActorKind"/>,
+/// <see cref="ActorTokenId"/> or <see cref="Reason"/>; version 2 covers those as well.
+/// </remarks>
 public sealed class AuditEntry
 {
+    public const int CurrentHashVersion = 2;
+
+    public const int MaxReasonLength = 500;
+
     public Guid Id { get; private set; }
     public Guid? TenantId { get; private set; }
     public long Sequence { get; private set; }
@@ -21,6 +30,16 @@ public sealed class AuditEntry
     public DateTimeOffset OccurredAt { get; private set; }
     public string PreviousHash { get; private set; }
     public string Hash { get; private set; }
+    public int HashVersion { get; private set; }
+
+    /// <summary>Null on version-1 entries, which predate actor kinds.</summary>
+    public ActorKind? ActorKind { get; private set; }
+
+    /// <summary>The token the actor presented (software client or agent); null for a signed-in user or system.</summary>
+    public Guid? ActorTokenId { get; private set; }
+
+    /// <summary>Caller-supplied justification (untrusted free text); covered by the version-2 hash.</summary>
+    public string? Reason { get; private set; }
 
     public AuditEntry(
         Guid id,
@@ -32,8 +51,17 @@ public sealed class AuditEntry
         Guid? actorPseudonymId,
         DateTimeOffset occurredAt,
         string previousHash,
-        string hash)
+        string hash,
+        int hashVersion,
+        ActorKind? actorKind,
+        Guid? actorTokenId,
+        string? reason)
     {
+        if (reason is { Length: > MaxReasonLength })
+        {
+            throw new ArgumentException($"Reason exceeds {MaxReasonLength} characters.", nameof(reason));
+        }
+
         Id = id;
         TenantId = tenantId;
         Sequence = sequence;
@@ -44,6 +72,10 @@ public sealed class AuditEntry
         OccurredAt = occurredAt;
         PreviousHash = previousHash;
         Hash = hash;
+        HashVersion = hashVersion;
+        ActorKind = actorKind;
+        ActorTokenId = actorTokenId;
+        Reason = reason;
     }
 
     /// <summary>

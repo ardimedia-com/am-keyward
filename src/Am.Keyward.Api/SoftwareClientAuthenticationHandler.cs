@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
+using Am.Keyward.Core.Domain;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -28,6 +29,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
     private readonly ISoftwareClientAuthenticator authenticator;
     private readonly ITenantScopeSetter tenantScope;
+    private readonly IActorScopeSetter actorScope;
     private readonly ITokenAccessRecorder accessRecorder;
     private readonly FailedAuthenticationThrottle failedAttempts;
 
@@ -37,12 +39,14 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
         UrlEncoder encoder,
         ISoftwareClientAuthenticator authenticator,
         ITenantScopeSetter tenantScope,
+        IActorScopeSetter actorScope,
         ITokenAccessRecorder accessRecorder,
         FailedAuthenticationThrottle failedAttempts)
         : base(options, logger, encoder)
     {
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
+        this.actorScope = actorScope;
         this.accessRecorder = accessRecorder;
         this.failedAttempts = failedAttempts;
     }
@@ -78,6 +82,9 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
         // Server-authoritative tenant scope, from the token record (never from the request).
         tenantScope.SetTenant(principal.TenantId);
+
+        // Audit attribution: what this request does is recorded as the software client, with its token.
+        actorScope.SetActor(ActorKind.SoftwareClient, principal.TokenId);
 
         // Access statistics (last access, daily counters, seen IPs → alerts): purely in-memory here,
         // persisted by the background flush — never a database write on the auth hot path. The IP is the

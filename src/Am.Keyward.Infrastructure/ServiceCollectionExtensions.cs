@@ -43,6 +43,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<AmbientUserContext>());
         services.AddScoped<IUserScopeSetter>(sp => sp.GetRequiredService<AmbientUserContext>());
 
+        // The acting principal kind + token (software client, agent), set by the token authentication
+        // handlers and recorded on every audit entry.
+        services.AddScoped<AmbientActorContext>();
+        services.AddScoped<ICurrentActor>(sp => sp.GetRequiredService<AmbientActorContext>());
+        services.AddScoped<IActorScopeSetter>(sp => sp.GetRequiredService<AmbientActorContext>());
+
         services.AddScoped<IKeywardAccessPolicy, TenantAuthorizationService>();
         services.AddScoped<ITenantMembership, TenantMembershipService>();
 

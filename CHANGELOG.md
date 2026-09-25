@@ -5,6 +5,21 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Audit entries record who acted and how.** Every new audit entry carries the actor kind — a signed-in user,
+  a software client (with its token), a system operation, and later an agent — plus an optional reason text.
+  A software client's reads, previously recorded without any actor, now show the client and its token. New
+  audit actions `Reveal`, `RevealRequested`, `RevealApproved` and `RevealRejected` prepare the agent reveal
+  flow. Hosts get `ICurrentActor` / `IActorScopeSetter` for their own token handlers.
+
+### Changed
+
+- **The audit hash chain is versioned.** New entries are sealed with hash version 2, which also covers the
+  actor kind, token and reason; free text is length-prefixed so no reason can collide with another. Every
+  existing entry stays version 1 and verifies exactly as before, so existing chains remain intact across the
+  upgrade. Requires the `AuditActorKind` migration.
+
 ## [0.15.0-preview] - 2026-09-25
 
 ### Fixed

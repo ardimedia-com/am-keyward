@@ -18,6 +18,24 @@ public interface ICurrentUser
     bool IsAuthenticated { get; }
 }
 
+/// <summary>
+/// Which kind of principal is acting in this request/session, and through which token. Read by the audit
+/// sink. <see cref="Kind"/> is null until the host edge sets it; the sink then derives it (a user id means
+/// <see cref="ActorKind.User"/>, none means <see cref="ActorKind.System"/>).
+/// </summary>
+public interface ICurrentActor
+{
+    ActorKind? Kind { get; }
+
+    Guid? TokenId { get; }
+}
+
+/// <summary>Sets the acting principal kind and token. Called ONLY at the host edge (token authentication handlers).</summary>
+public interface IActorScopeSetter
+{
+    void SetActor(ActorKind kind, Guid? tokenId);
+}
+
 /// <summary>The active tenant for this request/session (null = personal context). Server-authoritative.</summary>
 public interface ICurrentTenant
 {
@@ -80,14 +98,17 @@ public interface ISecretBackend
 /// <summary>
 /// What the application asks the audit sink to record. <see cref="ActorUserId"/> is the real actor; the
 /// sink pseudonymizes it (via <see cref="IAuditSubjectDirectory"/>) before storing, and assigns the
-/// sequence/hash and chains it.
+/// sequence/hash and chains it. The actor kind and token come from <see cref="ICurrentActor"/>.
+/// <see cref="Reason"/> is free text supplied by the caller (e.g. an agent's reveal justification): untrusted,
+/// stored and shown as plain text only, at most <see cref="Domain.Audit.AuditEntry.MaxReasonLength"/> characters.
 /// </summary>
 public sealed record AuditRequest(
     Guid? TenantId,
     AuditAction Action,
     string ResourceType,
     Guid? ResourceId,
-    Guid? ActorUserId);
+    Guid? ActorUserId,
+    string? Reason = null);
 
 /// <summary>The actor's human-readable PII held (encrypted) for an audit subject; destroyed on erasure.</summary>
 public sealed record AuditSubjectPii(string DisplayName, string? ExternalId);
