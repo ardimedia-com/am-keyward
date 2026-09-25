@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.15.0-preview] - 2026-09-25
+
 ### Fixed
 
 - **An item can no longer be placed into another vault's folder.** Creating or editing an item accepted any
