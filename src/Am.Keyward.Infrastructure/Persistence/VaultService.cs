@@ -52,7 +52,7 @@ public sealed class VaultService(
         return await db.Vaults
             .Where(v => v.OwnerUserId == userId) // personal vaults
             .OrderBy(v => v.Name)
-            .Select(v => new VaultSummary(v.Id, v.Name, v.ProtectionMode, v.CreatedAt))
+            .Select(v => new VaultSummary(v.Id, v.Name, v.ProtectionMode, v.CreatedAt, v.AgentAccessAllowed))
             .ToListAsync(ct)
             .ConfigureAwait(false);
     }
@@ -108,7 +108,7 @@ public sealed class VaultService(
         return await db.Vaults
             .Where(v => v.TenantId == tenantId && grantedVaultIds.Contains(v.Id))
             .OrderBy(v => v.Name)
-            .Select(v => new VaultSummary(v.Id, v.Name, v.ProtectionMode, v.CreatedAt))
+            .Select(v => new VaultSummary(v.Id, v.Name, v.ProtectionMode, v.CreatedAt, v.AgentAccessAllowed))
             .ToListAsync(ct)
             .ConfigureAwait(false);
     }

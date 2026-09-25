@@ -70,3 +70,22 @@
 .kw-file-drop ::deep .kw-file-drop-input:disabled {
     cursor: not-allowed;
 }
+
+/* Team vault: open to AI agent tokens (share section). */
+.agent-access {
+    margin: .75rem 0;
+    padding: .6rem .75rem;
+    border: 1px solid var(--kw-border);
+    border-radius: .5rem;
+}
+
+.agent-access-toggle {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    font-weight: 500;
+}
+
+.agent-access p {
+    margin: .3rem 0 0;
+}

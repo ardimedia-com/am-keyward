@@ -24,6 +24,12 @@ All notable changes to this project are documented here, following
   token takes effect on the next call. Hosts register `AddKeywardAgentApi()` and map `MapKeywardAgentApi()`
   (`GET /keyward/api/v1/agent/ping` for now); requests are audited as the agent with its token. The token page
   and the vault endpoints follow. Requires the `AgentTokens` migration.
+- **«Agent tokens» page and the vault switch.** Under the vaults in the navigation, a user issues agent tokens
+  for themselves — name, vaults (only those open to agents), permissions (list, read URL/user name, write),
+  validity in days and optional networks — sees the new value once with a copy button, and rotates or revokes
+  their tokens. In a team vault's «Share» section, someone with Manage opens or closes the vault to agent
+  tokens. The reveal permission appears once the approval flow exists. `VaultSummary` carries
+  `AgentAccessAllowed`.
 
 ## [0.17.0-preview] - 2026-09-26
 

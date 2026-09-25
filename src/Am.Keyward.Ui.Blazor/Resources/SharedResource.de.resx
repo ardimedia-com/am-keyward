@@ -983,4 +983,36 @@
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve">
     <value>Rechte des Logins prüfen (der Seed läuft beim App-Start).</value>
   </data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Agent-Tokens</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Agent-Tokens</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens für AI-Assistenten (z. B. Claude Code), die in deinem Namen mit Tresor-Einträgen arbeiten. Ein Token handelt als du, aber nur in den Tresoren, die du auswählst, und nur mit den Rechten, die du ankreuzt. Werte, die er speichert, bekommt er nie zurück.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Token ausstellen</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Name (z. B. der Computer, auf dem der Assistent läuft)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Tresore</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Noch ist kein Team-Tresor für Agents geöffnet. Wer einen Team-Tresor verwaltet, kann ihn unter «Teilen» öffnen.</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Rechte</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Einträge auflisten (nur Namen)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>URL und Benutzername lesen</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Einträge anlegen und ändern</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Gültig (Tage)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Erlaubte Netzwerke (optional, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Kopiere den Token jetzt — er wird nur einmal angezeigt. Lege ihn in der Windows-Anmeldeinformationsverwaltung des Computers ab, auf dem der Assistent läuft.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Deine Agent-Tokens</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Du hast noch keine Agent-Tokens.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Läuft ab</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>jedes Netzwerk</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Aktiv</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Widerrufen</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Abgelaufen</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>Neuer Wert</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Widerrufen…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>«{0}» widerrufen? Der Assistent, der ihn verwendet, funktioniert sofort nicht mehr.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Token ausgestellt.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Neuer Wert ausgestellt; der bisherige funktioniert nicht mehr.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token widerrufen.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Diesen Tresor für AI-Agent-Tokens öffnen</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Erst dann kann ein Mitglied ein Agent-Token dafür ausstellen, und nur mit seinen eigenen Rechten. Schliessen stoppt sofort jedes Agent-Token; die Personen behalten ihren Zugriff.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Tresor für Agent-Tokens geöffnet.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Tresor für Agent-Tokens geschlossen.</value></data>
 </root>

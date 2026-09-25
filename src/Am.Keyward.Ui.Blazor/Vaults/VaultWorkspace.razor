@@ -236,6 +236,13 @@ else
                             <div class="section-body">
                                 <p class="muted">@Loc["Vault.Share.Desc"]</p>
                                 <p class="muted">@Loc["Vault.Share.Boundary"]</p>
+                                <div class="agent-access">
+                                    <label class="agent-access-toggle">
+                                        <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
+                                        @Loc["Vault.Agent.Allow"]
+                                    </label>
+                                    <p class="muted">@Loc["Vault.Agent.Desc"]</p>
+                                </div>
                                 @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
                                 {
                                     <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
@@ -499,6 +506,8 @@ else
     private bool busy;
 
     private string SelectedVaultName => vaults?.FirstOrDefault(v => v.Id == selectedVaultId)?.Name ?? "";
+
+    private bool SelectedVaultAgentAccess => vaults?.FirstOrDefault(v => v.Id == selectedVaultId)?.AgentAccessAllowed ?? false;
 
     private VaultFolderSummary? SelectedFolder =>
         Guid.TryParse(treeSel, out var fid) ? folders.FirstOrDefault(f => f.Id == fid) : null;
@@ -883,6 +892,15 @@ else
         await ReloadVaultsAsync();
         Ok(Loc["Vault.Msg.Renamed"]);
     }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(vaultRenameValue));
+
+    // Opening a team vault to agent tokens needs Manage on it; the service enforces that and reports otherwise.
+    private Task SetAgentAccessAsync(ChangeEventArgs e) => RunAsync(async () =>
+    {
+        var allowed = e.Value is true;
+        await VaultService.SetAgentAccessAsync(actorUserId!.Value, selectedVaultId!.Value, allowed);
+        await ReloadVaultsAsync();
+        Ok(allowed ? Loc["Vault.Agent.Msg.Opened"] : Loc["Vault.Agent.Msg.Closed"]);
+    }, selectedVaultId is not null);
 
     private Task DeleteVaultAsync() => RunAsync(async () =>
     {

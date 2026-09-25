@@ -857,4 +857,36 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Verifique os direitos do início de sessão sobre o esquema «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>É criado (seed) no arranque da aplicação — reinicie e verifique o registo em busca de erros.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Verifique os direitos do início de sessão (o seed é executado no arranque da aplicação).</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Tokens de agente</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Tokens de agente</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens para assistentes de IA (como o Claude Code) que trabalham com as entradas dos cofres em seu nome. Um token age como você, mas apenas nos cofres escolhidos e com as permissões marcadas. Os valores que guarda nunca lhe são devolvidos.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Emitir token</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nome (p. ex. o computador onde o assistente é executado)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Cofres</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Ainda nenhum cofre da equipa está aberto a agentes. Quem gere um cofre da equipa pode abri-lo em «Partilhar».</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Permissões</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Listar entradas (só nomes)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Ler URL e nome de utilizador</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Criar e alterar entradas</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Validade (dias)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Redes permitidas (opcional, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copie o token agora — só é mostrado uma vez. Guarde-o no Gestor de Credenciais do Windows do computador onde o assistente é executado.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Os seus tokens de agente</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Ainda não tem tokens de agente.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Expira</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>qualquer rede</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Ativo</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Revogado</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Expirado</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>Novo valor</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Revogar…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>Revogar «{0}»? O assistente que o usa deixa de funcionar de imediato.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Token emitido.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Novo valor emitido; o anterior deixou de funcionar.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token revogado.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Abrir este cofre aos tokens de agente de IA</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Só então um membro pode emitir um token de agente para ele, e apenas com as suas próprias permissões. Fechá-lo para de imediato todos os tokens de agente; as pessoas mantêm o seu acesso.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Cofre aberto aos tokens de agente.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Cofre fechado aos tokens de agente.</value></data>
 </root>

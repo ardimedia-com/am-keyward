@@ -1,0 +1,275 @@
+@page "/amkeyward/agent-tokens"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
+@attribute [Authorize]
+@using Am.Keyward.Core.Domain.Agent
+@inject IAgentTokenService AgentTokenService
+@inject IVaultService VaultService
+@inject ICurrentUser CurrentUser
+@inject IKeywardWorkspaceContext Workspace
+@inject IStringLocalizer<SharedResource> Loc
+@inject KeywardUiOptions KeywardOptions
+@inject IJSRuntime JS
+
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+@* The signed-in user's own agent tokens: an AI assistant (e.g. Claude Code) presents one to work with vault
+   entries as this user — only on the vaults and with the permissions picked here. The plaintext is shown once. *@
+<KeywardUi>
+    <div class="page-header">
+        <h1>@Loc["Page.AgentTokens.Title"]</h1>
+        <p>@Loc["Page.AgentTokens.Desc"]</p>
+    </div>
+
+    @if (noAccount)
+    {
+        <KeywardNoAccount />
+    }
+    else if (tokens is null || openVaults is null)
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
+    else
+    {
+        <div class="agent-tokens">
+            @if (issuedToken is not null)
+            {
+                <div class="notice notice-reveal" role="status">
+                    @Loc["AgentTokens.New"]
+                    <div class="issued-token">
+                        <code>@issuedToken</code>
+                        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
+                    </div>
+                </div>
+            }
+
+            <section class="card">
+                <h3>@Loc["AgentTokens.Issue.Title"]</h3>
+                @if (openVaults.Count == 0)
+                {
+                    <p class="muted">@Loc["AgentTokens.NoVaults"]</p>
+                }
+                else
+                {
+                    <div class="issue-form">
+                        <label class="field">
+                            <span>@Loc["AgentTokens.Name"]</span>
+                            <input @bind="name" @bind:event="oninput" maxlength="256" />
+                        </label>
+
+                        <fieldset class="field">
+                            <legend>@Loc["AgentTokens.Vaults"]</legend>
+                            @foreach (var vault in openVaults)
+                            {
+                                <label class="choice">
+                                    <input type="checkbox" checked="@selectedVaults.Contains(vault.Id)" @onchange="e => Toggle(selectedVaults, vault.Id, e)" />
+                                    @vault.Name
+                                </label>
+                            }
+                        </fieldset>
+
+                        <fieldset class="field">
+                            <legend>@Loc["AgentTokens.Scopes"]</legend>
+                            @foreach (var scope in OfferedScopes)
+                            {
+                                <label class="choice">
+                                    <input type="checkbox" checked="@selectedScopes.HasFlag(scope)" @onchange="e => ToggleScope(scope, e)" />
+                                    @ScopeLabel(scope)
+                                </label>
+                            }
+                        </fieldset>
+
+                        <div class="field-pair">
+                            <label class="field">
+                                <span>@Loc["AgentTokens.Days"]</span>
+                                <input type="number" min="1" max="@MaxDays" @bind="days" />
+                            </label>
+                            <label class="field">
+                                <span>@Loc["AgentTokens.Networks"]</span>
+                                <input @bind="networks" placeholder="10.0.0.0/8, 192.168.1.0/24" />
+                            </label>
+                        </div>
+
+                        <div>
+                            <button @onclick="IssueAsync" disabled="@(busy || !CanIssue)"><KeywardIcon Name="plus" />@Loc["AgentTokens.Issue.Action"]</button>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="card">
+                <h3>@Loc["AgentTokens.Existing"] (@tokens.Count)</h3>
+                @if (tokens.Count == 0)
+                {
+                    <p class="muted">@Loc["AgentTokens.None"]</p>
+                }
+                else
+                {
+                    <div class="list-rows">
+                        @foreach (var token in tokens)
+                        {
+                            <div class="token-row">
+                                <div class="token-main">
+                                    <KeywardIcon Name="key" Size="17" />
+                                    <span class="token-name">@token.Name</span>
+                                    <span class="badge @StatusClass(token)">@StatusLabel(token)</span>
+                                </div>
+                                <div class="token-facts muted">
+                                    <span>@string.Join(", ", token.VaultIds.Select(VaultName))</span>
+                                    <span>@string.Join(", ", OfferedScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</span>
+                                    <span>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</span>
+                                    <span>@Loc["AgentTokens.Expires"] <LocalTime Utc="token.ExpiresAt" /></span>
+                                </div>
+                                @if (token.RevokedAt is null)
+                                {
+                                    <div class="token-actions">
+                                        @if (confirmRevokeId == token.Id)
+                                        {
+                                            <span>@Loc["AgentTokens.ConfirmRevoke", token.Name]</span>
+                                            <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => confirmRevokeId = null">@Loc["Common.Cancel"]</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["AgentTokens.Rotate"]</button>
+                                            <button class="btn-danger btn-sm" @onclick="() => confirmRevokeId = token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            @if (status is not null)
+            {
+                <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+            }
+        </div>
+    }
+</KeywardUi>
+
+@code {
+    // Reveal is left out until the approval flow exists: a tick that does nothing would mislead.
+    private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite];
+
+    private static readonly int MaxDays = (int)AgentTokenLifetime.Maximum.TotalDays;
+
+    private bool noAccount;
+    private Guid actorUserId;
+    private Guid tenantId;
+
+    private IReadOnlyList<AgentTokenSummary>? tokens;
+    private IReadOnlyList<VaultSummary>? openVaults;
+    private Dictionary<Guid, string> vaultNames = [];
+
+    private string name = "";
+    private readonly HashSet<Guid> selectedVaults = [];
+    private AgentScopes selectedScopes = AgentScopes.VaultList | AgentScopes.VaultWrite;
+    private int days = (int)AgentTokenLifetime.Default.TotalDays;
+    private string networks = "";
+
+    private string? issuedToken;
+    private bool issuedCopied;
+    private Guid? confirmRevokeId;
+
+    private (string Text, bool IsError)? status;
+    private bool busy;
+
+    private bool CanIssue =>
+        !string.IsNullOrWhiteSpace(name) && selectedVaults.Count > 0 && selectedScopes != AgentScopes.None && days is >= 1 && days <= MaxDays;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (CurrentUser.UserId is not { } userId)
+        {
+            noAccount = true;
+            return;
+        }
+
+        actorUserId = userId;
+        tenantId = Workspace.TenantId;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        var shared = await VaultService.ListSharedVaultsAsync(actorUserId, tenantId);
+        vaultNames = shared.ToDictionary(v => v.Id, v => v.Name);
+        openVaults = shared.Where(v => v.AgentAccessAllowed).OrderBy(v => v.Name).ToList();
+        selectedVaults.IntersectWith(openVaults.Select(v => v.Id));
+        tokens = await AgentTokenService.ListAsync(actorUserId, tenantId);
+    }
+
+    private string VaultName(Guid id) => vaultNames.GetValueOrDefault(id, "?");
+
+    private string ScopeLabel(AgentScopes scope) => Loc[$"AgentTokens.Scope.{scope}"];
+
+    private string StatusLabel(AgentTokenSummary token) =>
+        token.RevokedAt is not null ? Loc["AgentTokens.Status.Revoked"]
+        : token.IsActive ? Loc["AgentTokens.Status.Active"]
+        : Loc["AgentTokens.Status.Expired"];
+
+    private static string StatusClass(AgentTokenSummary token) => token.IsActive ? "status-active" : "status-inactive";
+
+    private static void Toggle(HashSet<Guid> set, Guid id, ChangeEventArgs e)
+    {
+        if (e.Value is true) { set.Add(id); } else { set.Remove(id); }
+    }
+
+    private void ToggleScope(AgentScopes scope, ChangeEventArgs e) =>
+        selectedScopes = e.Value is true ? selectedScopes | scope : selectedScopes & ~scope;
+
+    private Task IssueAsync() => RunAsync(async () =>
+    {
+        var issued = await AgentTokenService.IssueAsync(new IssueAgentTokenCommand(
+            actorUserId, tenantId, name, selectedScopes, selectedVaults.ToList(), networks, DateTimeOffset.UtcNow.AddDays(days)));
+        ShowIssued(issued.Token);
+        name = "";
+        networks = "";
+        selectedVaults.Clear();
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Issued"], false);
+    }, CanIssue);
+
+    private Task RotateAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        var rotated = await AgentTokenService.RotateAsync(actorUserId, tenantId, tokenId);
+        ShowIssued(rotated.Token);
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Rotated"], false);
+    }, true);
+
+    private Task RevokeAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await AgentTokenService.RevokeAsync(actorUserId, tenantId, tokenId);
+        confirmRevokeId = null;
+        issuedToken = null;
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Revoked"], false);
+    }, true);
+
+    private void ShowIssued(string token)
+    {
+        issuedToken = token;
+        issuedCopied = false;
+    }
+
+    private async Task CopyIssuedAsync()
+    {
+        if (issuedToken is null) return;
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", issuedToken);
+        issuedCopied = true;
+    }
+
+    // Double-submit guard: the flag is set before the first await, so a second click returns at once.
+    private async Task RunAsync(Func<Task> action, bool precondition)
+    {
+        if (busy || !precondition) return;
+        busy = true;
+        status = null;
+        try { await action(); }
+        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        finally { busy = false; }
+    }
+}

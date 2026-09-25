@@ -30,7 +30,7 @@ public sealed record AddVaultItemCommand(Guid UserId, Guid VaultId, Guid? Folder
 /// <summary>Updates an item's name/folder and stores its new content as a new encrypted version.</summary>
 public sealed record UpdateVaultItemCommand(Guid UserId, Guid ItemId, string Name, Guid? FolderId, string Content);
 
-public sealed record VaultSummary(Guid Id, string Name, ProtectionMode ProtectionMode, DateTimeOffset CreatedAt);
+public sealed record VaultSummary(Guid Id, string Name, ProtectionMode ProtectionMode, DateTimeOffset CreatedAt, bool AgentAccessAllowed = false);
 
 public sealed record VaultItemSummary(Guid Id, Guid? FolderId, ItemType Type, string Name, DateTimeOffset CreatedAt);
 

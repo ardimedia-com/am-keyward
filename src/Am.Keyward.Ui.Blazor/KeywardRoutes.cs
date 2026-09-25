@@ -30,4 +30,7 @@ public static class KeywardRoutes
     public const string Groups = Prefix + "/groups";
     public const string DefaultEnvironments = Prefix + "/default-environments";
     public const string BreakGlass = Prefix + "/breakglass";
+
+    /// <summary>The signed-in user's own agent tokens (AI assistants acting on their behalf).</summary>
+    public const string AgentTokens = Prefix + "/agent-tokens";
 }

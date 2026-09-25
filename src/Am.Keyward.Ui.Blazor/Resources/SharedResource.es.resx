@@ -857,4 +857,36 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión sobre el esquema «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Se crea (seed) al arrancar la aplicación: reinicia y revisa el registro en busca de errores.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión (el seed se ejecuta al arrancar la aplicación).</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Tokens de agente</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Tokens de agente</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens para asistentes de IA (como Claude Code) que trabajan con las entradas de las bóvedas en tu nombre. Un token actúa como tú, pero solo en las bóvedas que elijas y con los permisos que marques. Los valores que guarda nunca se le devuelven.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Emitir token</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nombre (p. ej. el equipo donde se ejecuta el asistente)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Bóvedas</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Todavía no hay ninguna bóveda de equipo abierta a agentes. Quien administre una bóveda de equipo puede abrirla en «Compartir».</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Permisos</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Listar entradas (solo nombres)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Leer URL y nombre de usuario</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Crear y modificar entradas</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Validez (días)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Redes permitidas (opcional, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copia el token ahora: solo se muestra una vez. Guárdalo en el Administrador de credenciales de Windows del equipo donde se ejecuta el asistente.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Tus tokens de agente</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Todavía no tienes tokens de agente.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Caduca</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>cualquier red</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Activo</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Revocado</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Caducado</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>Nuevo valor</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Revocar…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>¿Revocar «{0}»? El asistente que lo usa deja de funcionar de inmediato.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Token emitido.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Nuevo valor emitido; el anterior ya no funciona.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token revocado.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Abrir esta bóveda a los tokens de agente de IA</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Solo entonces un miembro puede emitir un token de agente para ella, y solo con sus propios permisos. Cerrarla detiene de inmediato todos los tokens de agente; las personas conservan su acceso.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Bóveda abierta a los tokens de agente.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Bóveda cerrada a los tokens de agente.</value></data>
 </root>

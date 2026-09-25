@@ -61,7 +61,13 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 - **Secrets in telemetry** — the encrypted envelope is redacted from logs; problem-details and provider
   exceptions never echo values or connection strings.
 - **Token abuse** — software-client tokens are env-scoped (scope from the persisted token, never the
-  request), hashed at rest, rotatable/revocable, rate-limited, with advance-expiry notifications.
+  request), hashed at rest, rotatable/revocable, rate-limited, with advance-expiry notifications. Guessed
+  tokens are throttled per client IP.
+- **AI agents acting for a user** — an agent token (issued by the user on «Agent tokens») acts as that user
+  but only on tenant vaults that were explicitly opened to agents and put on the token's allowlist, with the
+  permissions ticked, optionally only from given networks. Every request re-checks the token, the user (not
+  disabled, still a member), the vault and the user's grant; agent actions are audited as the agent. Tokens
+  always expire, and disabling a user revokes them.
 
 **Out of scope / operator-owned**
 

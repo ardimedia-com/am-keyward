@@ -983,4 +983,36 @@
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve">
     <value>Check the login's rights (the seed runs at application start).</value>
   </data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Agent tokens</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Agent tokens</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens for AI assistants (such as Claude Code) that work with vault entries on your behalf. A token acts as you, but only in the vaults you pick and only with the permissions you tick. Values it stores are never sent back to it.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Issue token</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Issue token</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Name (e.g. the computer the assistant runs on)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Vaults</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>No team vault is open to agents yet. Someone who manages a team vault can open it under «Share».</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Permissions</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>List entries (names only)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Read URL and user name</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Create and update entries</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Valid for (days)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Allowed networks (optional, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copy the token now — it is shown only once. Store it in the Windows Credential Manager of the computer the assistant runs on.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Your agent tokens</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>You have no agent tokens yet.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Expires</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>any network</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Active</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Revoked</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Expired</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>New value</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Revoke…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>Revoke «{0}»? The assistant using it stops working immediately.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Token issued.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>New value issued; the previous one no longer works.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token revoked.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Open this vault to AI agent tokens</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Only then can a member issue an agent token for it, and only with their own rights. Closing it stops every agent token at once; people keep their access.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Vault opened to agent tokens.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Vault closed to agent tokens.</value></data>
 </root>

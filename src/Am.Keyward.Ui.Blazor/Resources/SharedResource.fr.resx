@@ -857,4 +857,36 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Vérifiez les droits du compte sur le schéma «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Il est créé (seed) au démarrage de l'application — redémarrez et vérifiez le journal.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Vérifiez les droits du compte (le seed s'exécute au démarrage de l'application).</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Jetons d'agent</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Jetons d'agent</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Jetons pour les assistants IA (comme Claude Code) qui travaillent avec les entrées des coffres en votre nom. Un jeton agit en votre nom, mais seulement dans les coffres choisis et avec les droits cochés. Les valeurs qu'il enregistre ne lui sont jamais renvoyées.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nom (p. ex. l'ordinateur sur lequel tourne l'assistant)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Coffres</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Aucun coffre d'équipe n'est encore ouvert aux agents. Une personne qui gère un coffre d'équipe peut l'ouvrir sous « Partager ».</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Droits</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Lister les entrées (noms seulement)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Lire l'URL et le nom d'utilisateur</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Créer et modifier des entrées</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Validité (jours)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Réseaux autorisés (facultatif, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copiez le jeton maintenant — il n'est affiché qu'une seule fois. Enregistrez-le dans le Gestionnaire d'identification Windows de l'ordinateur où tourne l'assistant.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Vos jetons d'agent</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Vous n'avez encore aucun jeton d'agent.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Expire le</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>tout réseau</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Actif</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Révoqué</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Expiré</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>Nouvelle valeur</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Révoquer…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>Révoquer « {0} » ? L'assistant qui l'utilise cesse immédiatement de fonctionner.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Jeton émis.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Nouvelle valeur émise ; l'ancienne ne fonctionne plus.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Jeton révoqué.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Ouvrir ce coffre aux jetons d'agent IA</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Ce n'est qu'alors qu'un membre peut émettre un jeton d'agent pour ce coffre, et seulement avec ses propres droits. Le fermer arrête immédiatement tous les jetons d'agent ; les personnes gardent leur accès.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Coffre ouvert aux jetons d'agent.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Coffre fermé aux jetons d'agent.</value></data>
 </root>

@@ -857,4 +857,36 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Controlla i diritti del login sullo schema «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Viene creato (seed) all'avvio dell'applicazione: riavvia e controlla il log per eventuali errori.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Controlla i diritti del login (il seed viene eseguito all'avvio dell'applicazione).</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Token agente</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Token agente</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Token per assistenti IA (come Claude Code) che lavorano con le voci delle casseforti a tuo nome. Un token agisce come te, ma solo nelle casseforti che scegli e solo con i permessi che spunti. I valori che salva non gli vengono mai restituiti.</value></data>
+  <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Emetti token</value></data>
+  <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emetti token</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nome (ad es. il computer su cui gira l'assistente)</value></data>
+  <data name="AgentTokens.Vaults" xml:space="preserve"><value>Casseforti</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Nessuna cassaforte del team è ancora aperta agli agenti. Chi gestisce una cassaforte del team può aprirla in «Condividi».</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Permessi</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Elencare le voci (solo nomi)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Leggere URL e nome utente</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Creare e modificare voci</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Validità (giorni)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Reti consentite (facoltativo, CIDR)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copia ora il token: viene mostrato una sola volta. Salvalo in Gestione credenziali di Windows sul computer su cui gira l'assistente.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>I tuoi token agente</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Non hai ancora token agente.</value></data>
+  <data name="AgentTokens.Expires" xml:space="preserve"><value>Scade</value></data>
+  <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>qualsiasi rete</value></data>
+  <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Attivo</value></data>
+  <data name="AgentTokens.Status.Revoked" xml:space="preserve"><value>Revocato</value></data>
+  <data name="AgentTokens.Status.Expired" xml:space="preserve"><value>Scaduto</value></data>
+  <data name="AgentTokens.Rotate" xml:space="preserve"><value>Nuovo valore</value></data>
+  <data name="AgentTokens.Revoke" xml:space="preserve"><value>Revoca…</value></data>
+  <data name="AgentTokens.ConfirmRevoke" xml:space="preserve"><value>Revocare «{0}»? L'assistente che lo usa smette subito di funzionare.</value></data>
+  <data name="AgentTokens.Msg.Issued" xml:space="preserve"><value>Token emesso.</value></data>
+  <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Nuovo valore emesso; il precedente non funziona più.</value></data>
+  <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token revocato.</value></data>
+  <data name="Vault.Agent.Allow" xml:space="preserve"><value>Apri questa cassaforte ai token agente IA</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Solo allora un membro può emettere un token agente per questa cassaforte, e solo con i propri permessi. Chiuderla ferma subito ogni token agente; le persone mantengono il loro accesso.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Cassaforte aperta ai token agente.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Cassaforte chiusa ai token agente.</value></data>
 </root>
