@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.17.0-preview] - 2026-09-26
+
 ### Added
 
 - **Keyward knows when a user is disabled.** A user record now carries a disabled state. The host sets it
