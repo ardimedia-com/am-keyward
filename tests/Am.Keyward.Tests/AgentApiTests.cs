@@ -147,6 +147,150 @@ public class AgentApiTests
         Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"/keyward/api/v1/agent/items/{login}")).StatusCode);
     }
 
+    [TestMethod, TestCategory("Integration")]
+    public async Task Write_endpoints_create_and_patch_without_echoing_and_refuse_stale_versions()
+    {
+        await using var app = await StartAsync();
+        if (app is null)
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var services = app.Services;
+        var tenantId = Guid.NewGuid();
+        var owner = Guid.NewGuid();
+        await SeedTenantAsync(services, tenantId, owner);
+
+        Guid vault, other, otherFolder;
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            vault = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "Integrations"));
+            other = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "Other"));
+            await vaults.SetAgentAccessAsync(owner, vault, allowed: true);
+            await vaults.SetAgentAccessAsync(owner, other, allowed: true);
+            otherFolder = await vaults.AddFolderAsync(new AddVaultFolderCommand(owner, other, "Elsewhere"));
+        }
+
+        var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            await IssueAsync(services, tenantId, owner, vault, AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite));
+        var items = $"/keyward/api/v1/agent/vaults/{vault}/items";
+
+        // Create a Login: 201, the secret is not in the response.
+        var created = await client.PostAsJsonAsync(items, new AgentCreateItemRequest("Login", "CH-Post API",
+            Url: "https://api.post.ch", Username: "bvd-client", Password: "first-password", Note: "from the e-mail of 2026-09-25"));
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+        var createdBody = await created.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("first-password", createdBody);
+        var written = await created.Content.ReadFromJsonAsync<AgentItemWrittenResponse>();
+        Assert.AreEqual($"\"{written!.VersionId}\"", created.Headers.ETag?.Tag);
+
+        // Other types take value; wrong shapes are refused.
+        Assert.AreEqual(HttpStatusCode.Created, (await client.PostAsJsonAsync(items, new AgentCreateItemRequest("ApiCredential", "DHL key", Value: "dhl-key"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(items, new AgentCreateItemRequest("Login", "x", Value: "v"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(items, new AgentCreateItemRequest("SecureNote", "x"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(items, new AgentCreateItemRequest("Password", "x", Value: "v"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync(items, new AgentCreateItemRequest("Generic", "x", FolderId: otherFolder, Value: "v"))).StatusCode);
+
+        // Outside the allowlist: 404 like a missing vault.
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.PostAsJsonAsync($"/keyward/api/v1/agent/vaults/{other}/items", new AgentCreateItemRequest("Generic", "x", Value: "v"))).StatusCode);
+
+        // Patch: If-Match is required; only the password changes, the other fields stay.
+        var itemUrl = $"/keyward/api/v1/agent/items/{written.Id}";
+        Assert.AreEqual(HttpStatusCode.PreconditionRequired, (await client.PatchAsJsonAsync(itemUrl, new AgentUpdateItemRequest(Password: "second"))).StatusCode);
+
+        var patch = new HttpRequestMessage(HttpMethod.Patch, itemUrl) { Content = JsonContent.Create(new AgentUpdateItemRequest(Password: "second-password")) };
+        patch.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{written.VersionId}\""));
+        var patched = await client.SendAsync(patch);
+        Assert.AreEqual(HttpStatusCode.OK, patched.StatusCode);
+        Assert.DoesNotContain("second-password", await patched.Content.ReadAsStringAsync());
+        var afterPatch = await patched.Content.ReadFromJsonAsync<AgentItemWrittenResponse>();
+        Assert.AreNotEqual(written.VersionId, afterPatch!.VersionId);
+
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var fields = LoginContent.Parse(await scope.ServiceProvider.GetRequiredService<IVaultService>().ReadItemAsync(owner, written.Id));
+            Assert.AreEqual("second-password", fields.Password);
+            Assert.AreEqual("https://api.post.ch", fields.Url);
+            Assert.AreEqual("bvd-client", fields.Username);
+            Assert.AreEqual("from the e-mail of 2026-09-25", fields.Note);
+        }
+
+        // Replaying the old version is refused: the change in between is not overwritten.
+        var stale = new HttpRequestMessage(HttpMethod.Patch, itemUrl) { Content = JsonContent.Create(new AgentUpdateItemRequest(Password: "third")) };
+        stale.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{written.VersionId}\""));
+        Assert.AreEqual(HttpStatusCode.PreconditionFailed, (await client.SendAsync(stale)).StatusCode);
+
+        // A Login field on a non-Login is refused.
+        var bad = new HttpRequestMessage(HttpMethod.Patch, itemUrl) { Content = JsonContent.Create(new AgentUpdateItemRequest(Value: "v")) };
+        bad.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{afterPatch.VersionId}\""));
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.SendAsync(bad)).StatusCode);
+
+        // Both writes are audited as the agent.
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var entries = await scope.ServiceProvider.GetRequiredService<KeywardDbContext>().AuditEntries.AsNoTracking()
+                .Where(a => a.TenantId == tenantId && a.ResourceType == "VaultItem" && a.ResourceId == written.Id)
+                .ToListAsync();
+            Assert.IsTrue(entries.Any(e => e.Action == AuditAction.Create && e.ActorKind == ActorKind.Agent));
+            Assert.IsTrue(entries.Any(e => e.Action == AuditAction.Update && e.ActorKind == ActorKind.Agent));
+        }
+
+        // A token without the write scope can neither create nor change.
+        var readOnly = app.GetTestClient();
+        readOnly.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            await IssueAsync(services, tenantId, owner, vault, AgentScopes.VaultList | AgentScopes.VaultRead));
+        Assert.AreEqual(HttpStatusCode.NotFound, (await readOnly.PostAsJsonAsync(items, new AgentCreateItemRequest("Generic", "x", Value: "v"))).StatusCode);
+        var readOnlyPatch = new HttpRequestMessage(HttpMethod.Patch, itemUrl) { Content = JsonContent.Create(new AgentUpdateItemRequest(Name: "renamed")) };
+        readOnlyPatch.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{afterPatch.VersionId}\""));
+        Assert.AreEqual(HttpStatusCode.NotFound, (await readOnly.SendAsync(readOnlyPatch)).StatusCode);
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Two_concurrent_patches_from_the_same_version_never_both_win()
+    {
+        await using var app = await StartAsync();
+        if (app is null)
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var services = app.Services;
+        var tenantId = Guid.NewGuid();
+        var owner = Guid.NewGuid();
+        await SeedTenantAsync(services, tenantId, owner);
+
+        Guid itemId, version;
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            var vault = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "Race"));
+            itemId = await vaults.AddItemAsync(new AddVaultItemCommand(owner, vault, null, ItemType.Generic, "key", "v0"));
+            version = (await vaults.GetItemReferenceAsync(owner, itemId))!.VersionId;
+        }
+
+        async Task<bool> PatchAsync(string value)
+        {
+            using var scope = ScopeFor(services, tenantId, owner);
+            try
+            {
+                await scope.ServiceProvider.GetRequiredService<IVaultService>()
+                    .PatchItemAsync(new PatchVaultItemCommand(owner, itemId, version, Value: value));
+                return true;
+            }
+            catch (VaultItemVersionConflictException)
+            {
+                return false;
+            }
+        }
+
+        var results = await Task.WhenAll(Enumerable.Range(1, 6).Select(i => PatchAsync($"v{i}")));
+        Assert.AreEqual(1, results.Count(r => r), "Exactly one writer may move the item past the version all of them started from.");
+    }
+
     // The production pipeline order: rate limiter before authentication, then authorization, then endpoints.
     private static async Task<WebApplication?> StartAsync()
     {

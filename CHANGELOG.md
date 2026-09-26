@@ -5,6 +5,29 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Agent API write endpoints.** With the write scope, an agent token now:
+  - `POST /vaults/{id}/items` — creates an item: a Login from url, username, password and note, any other type
+    from its value. Answers 201 with the id, the deep link and the version (also the ETag); the value is never
+    echoed.
+  - `PATCH /items/{id}` — changes an item: a Login field by field (the fields not sent stay as they are), any
+    other type by its whole value, the name of either. Requires `If-Match` with the version it last read
+    (428 without); a change made in between — also by a concurrent writer — is refused with 412 instead of being
+    overwritten.
+
+  Wrong shapes (a value for a Login, a Login field for another type, a folder of another vault, an unknown type,
+  a field over 32 768 characters) answer 400; anything outside the token's reach answers 404. Both writes are
+  audited as the agent. New `IVaultService.PatchItemAsync` / `GetItemReferenceAsync` and
+  `VaultItemVersionConflictException`; contracts `AgentCreateItemRequest`, `AgentUpdateItemRequest`,
+  `AgentItemWrittenResponse`.
+
+### Changed
+
+- **An item version cannot be overwritten by a concurrent writer.** `VaultItem.CurrentVersionId` is now the
+  optimistic-concurrency token, so of two changes started from the same version exactly one wins — in the UI too.
+  Requires the (model-only) `VaultItemVersionConcurrency` migration.
+
 ### Fixed
 
 - **The import drop zone follows the Keyward theme.** Its border, text, hover and focus colours used variables

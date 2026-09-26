@@ -355,6 +355,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasKey(x => x.Id);
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
             e.Property(x => x.Name).HasMaxLength(256).IsRequired();
+            // Every content change moves CurrentVersionId, so it doubles as the optimistic-concurrency token: two
+            // writers that both started from the same version cannot both win (the later UPDATE finds no row).
+            e.Property(x => x.CurrentVersionId).IsConcurrencyToken();
             // Stable, shareable deep-link id — unique so a link resolves to exactly one item, and indexed
             // because the link resolver looks items up by it. Survives cross-vault moves (see AdoptPublicId).
             e.HasIndex(x => x.PublicId).IsUnique();

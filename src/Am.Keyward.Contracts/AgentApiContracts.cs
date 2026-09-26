@@ -20,3 +20,33 @@ public sealed record AgentItemSummaryResponse(Guid Id, Guid VaultId, Guid? Folde
 /// </summary>
 public sealed record AgentItemResponse(
     Guid Id, Guid VaultId, Guid? FolderId, string Type, string Name, string Link, Guid VersionId, string? Url, string? Username);
+
+/// <summary>
+/// Creates an item (<c>POST /vaults/{id}/items</c>). A Login takes <see cref="Url"/>, <see cref="Username"/>,
+/// <see cref="Password"/> and <see cref="Note"/>; every other type takes <see cref="Value"/>. The value is never
+/// echoed back.
+/// </summary>
+public sealed record AgentCreateItemRequest(
+    string Type,
+    string Name,
+    Guid? FolderId = null,
+    string? Url = null,
+    string? Username = null,
+    string? Password = null,
+    string? Note = null,
+    string? Value = null);
+
+/// <summary>
+/// Changes an item (<c>PATCH /items/{id}</c>, with <c>If-Match: "&lt;versionId&gt;"</c>). Omitted fields stay as
+/// they are; a Login changes field by field, every other type by its whole <see cref="Value"/>.
+/// </summary>
+public sealed record AgentUpdateItemRequest(
+    string? Name = null,
+    string? Url = null,
+    string? Username = null,
+    string? Password = null,
+    string? Note = null,
+    string? Value = null);
+
+/// <summary>Result of a create or update: the item, its deep link and its new version (also the ETag).</summary>
+public sealed record AgentItemWrittenResponse(Guid Id, string Link, Guid VersionId);

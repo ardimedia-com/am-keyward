@@ -197,6 +197,18 @@ public interface IVaultService
     /// Null when the item does not exist or has no value yet.
     /// </summary>
     Task<VaultItemMetadata?> GetItemMetadataAsync(Guid userId, Guid itemId, CancellationToken ct = default);
+
+    /// <summary>An item's id, public id and current version — no decryption, no audit entry. Null if not found.</summary>
+    Task<VaultItemReference?> GetItemReferenceAsync(Guid userId, Guid itemId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Applies a partial change (see <see cref="PatchVaultItemCommand"/>) and writes a new version when the content
+    /// changes. Decrypts the current value internally without a Read audit entry — the caller never sees it — and
+    /// audits the Update. Throws <see cref="VaultItemVersionConflictException"/> when the item is no longer at the
+    /// expected version, also when a concurrent change wins the race; <see cref="ArgumentException"/> when a field
+    /// does not fit the item type or nothing would change.
+    /// </summary>
+    Task<VaultItemReference> PatchItemAsync(PatchVaultItemCommand cmd, CancellationToken ct = default);
 }
 
 /// <summary>A search match across vaults; MatchedField names the field that matched ("Name", "Url",
@@ -208,5 +220,31 @@ public sealed record VaultItemSearchHit(Guid VaultId, string VaultName, Guid Ite
 /// <see cref="Username"/> are set for a Login only; password, note and every other type's value are never part
 /// of it. <see cref="VersionId"/> identifies the current value (for optimistic concurrency on updates).
 /// </summary>
+/// <summary>
+/// A partial change to one item, applied only if the item is still at <see cref="ExpectedVersionId"/>. Null means
+/// unchanged. <see cref="Url"/>/<see cref="Username"/>/<see cref="Password"/>/<see cref="Note"/> apply to a Login
+/// only (the rest of its content is kept); <see cref="Value"/> replaces the whole content of any other type.
+/// </summary>
+public sealed record PatchVaultItemCommand(
+    Guid UserId,
+    Guid ItemId,
+    Guid ExpectedVersionId,
+    string? Name = null,
+    string? Url = null,
+    string? Username = null,
+    string? Password = null,
+    string? Note = null,
+    string? Value = null);
+
+/// <summary>Identifies an item and its current value without carrying any of it.</summary>
+public sealed record VaultItemReference(Guid Id, Guid PublicId, Guid VersionId);
+
+/// <summary>The item changed since the caller read it: its current version is no longer the expected one.</summary>
+public sealed class VaultItemVersionConflictException(Guid itemId)
+    : InvalidOperationException($"Item {itemId} was changed in the meantime; read it again and reapply the change.")
+{
+    public Guid ItemId { get; } = itemId;
+}
+
 public sealed record VaultItemMetadata(
     Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, Guid PublicId, Guid VersionId, string? Url, string? Username);

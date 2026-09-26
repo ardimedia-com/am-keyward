@@ -724,6 +724,125 @@ public sealed class VaultService(
         return new VaultItemMetadata(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, item.PublicId, versionId, url, username);
     }
 
+    public async Task<VaultItemReference?> GetItemReferenceAsync(Guid userId, Guid itemId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var item = await db.VaultItems.AsNoTracking()
+            .Where(i => i.Id == itemId)
+            .Select(i => new { i.Id, i.VaultId, i.PublicId, i.CurrentVersionId })
+            .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        if (item?.CurrentVersionId is not { } versionId)
+        {
+            return null;
+        }
+
+        await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        return new VaultItemReference(item.Id, item.PublicId, versionId);
+    }
+
+    public async Task<VaultItemReference> PatchItemAsync(PatchVaultItemCommand cmd, CancellationToken ct = default)
+    {
+        EnsureUserScope(cmd.UserId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == cmd.ItemId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Item {cmd.ItemId} not found.");
+        var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
+
+        if (item.CurrentVersionId != cmd.ExpectedVersionId)
+        {
+            throw new VaultItemVersionConflictException(item.Id);
+        }
+
+        var isLogin = item.Type == ItemType.Login;
+        var loginFieldGiven = cmd.Url is not null || cmd.Username is not null || cmd.Password is not null || cmd.Note is not null;
+        if (!isLogin && loginFieldGiven)
+        {
+            throw new ArgumentException("Url, username, password and note apply to a Login only; set value instead.");
+        }
+
+        if (isLogin && cmd.Value is not null)
+        {
+            throw new ArgumentException("A Login is changed field by field (url, username, password, note), not by value.");
+        }
+
+        if (cmd.Name is null && !loginFieldGiven && cmd.Value is null)
+        {
+            throw new ArgumentException("Nothing to change.");
+        }
+
+        if (cmd.Name is not null)
+        {
+            item.Rename(cmd.Name);
+        }
+
+        if (loginFieldGiven || cmd.Value is not null)
+        {
+            string content;
+            if (isLogin)
+            {
+                // The current fields are needed to keep what the caller does not change; decrypted in memory only
+                // and deliberately not audited as a Read, since nothing is returned to the caller.
+                var current = item.Current;
+                var currentAad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, current.Id, AlgVersion);
+                var fields = LoginContent.Parse(Encoding.UTF8.GetString(await backend.UnprotectAsync(current.Encrypted, currentAad, ct).ConfigureAwait(false)));
+                content = LoginContent.ToJson(
+                    cmd.Url ?? fields.Url, cmd.Username ?? fields.Username, cmd.Password ?? fields.Password, cmd.Note ?? fields.Note);
+            }
+            else
+            {
+                content = cmd.Value!;
+            }
+
+            var versionId = Guid.NewGuid();
+            var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, versionId, AlgVersion);
+            var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(content), aad, ct).ConfigureAwait(false);
+            item.AddVersion(versionId, encrypted, clock.UtcNow);
+            db.VaultItemVersions.Add(item.Current); // new version of a tracked item -> mark Added explicitly
+        }
+
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Update, "VaultItem", item.Id, cmd.UserId), ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            // Another writer moved the item past the expected version between our read and our write. Depending on
+            // which statement loses, that surfaces as the concurrency token (UPDATE of CurrentVersionId finds no
+            // row) or as the unique (VaultItemId, VersionNumber) index on the new version row.
+            if (await MovedPastAsync(cmd.ItemId, cmd.ExpectedVersionId, ex, ct).ConfigureAwait(false))
+            {
+                throw new VaultItemVersionConflictException(item.Id);
+            }
+
+            throw;
+        }
+
+        return new VaultItemReference(item.Id, item.PublicId, item.CurrentVersionId!.Value);
+    }
+
+    // Decides whether a failed save lost a race: true when the item's current version is no longer the one the
+    // change started from. Anything else is a real failure and propagates unchanged.
+    private async Task<bool> MovedPastAsync(Guid itemId, Guid expectedVersionId, DbUpdateException ex, CancellationToken ct)
+    {
+        if (ex is DbUpdateConcurrencyException)
+        {
+            return true;
+        }
+
+        await using var fresh = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var current = await fresh.VaultItems.AsNoTracking()
+            .Where(i => i.Id == itemId)
+            .Select(i => i.CurrentVersionId)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+        return current != expectedVersionId;
+    }
+
     public async Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
