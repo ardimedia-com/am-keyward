@@ -173,11 +173,11 @@ public class AuditHashVersionTests
         var original = await db.AuditEntries.AsNoTracking().SingleAsync(a => a.TenantId == tenantId && a.Sequence == sequence);
 
         // Column names and values are test constants, not input.
-#pragma warning disable EF1002
+#pragma warning disable EF1003
         await db.Database.ExecuteSqlRawAsync(
             "UPDATE [amkeyward].[AuditEntries] SET [" + column + "] = " + tampered + " WHERE [TenantId] = {0} AND [Sequence] = {1}",
             tenantId, sequence);
-#pragma warning restore EF1002
+#pragma warning restore EF1003
 
         var status = await scope.ServiceProvider.GetRequiredService<IAuditChainVerifier>().VerifyAsync(tenantId);
         Assert.IsFalse(status.IsIntact, $"Changing {column} was not detected.");

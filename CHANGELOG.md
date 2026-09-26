@@ -7,6 +7,9 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **Dependencies refreshed.** Microsoft.* 10.0.10 → 10.0.12 (ASP.NET Core, EF Core, Extensions), MailKit
+  4.17.0 → 4.18.0, MSTest 4.3.3 → 4.4.1. The test project drops three explicit references the framework already
+  provides (the NU1510 warnings); the solution now builds without warnings.
 - **The reference shell is started by the test suite.** A new test boots `Am.Keyward.Ui.Blazor.App` through
   `WebApplicationFactory` against the test database (never the developer's; the test checks) and sends requests
   through its full pipeline, so a shell that cannot start — as in 0.17.0-preview — fails the build instead of a
