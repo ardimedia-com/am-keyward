@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.20.0-preview] - 2026-09-26
+
 ### Added
 
 - **Reveal with human approval.** An agent token with the reveal scope can ask to see one secret field — a
