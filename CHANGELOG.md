@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **MCP server `Am.Keyward.Mcp`** (.NET tool `amkeyward-mcp`, MCP over stdio, `ModelContextProtocol` 2.2.0) so an
+  assistant such as Claude Code can use an agent token: `list_vaults`, `list_items`, `search`, `get_item`,
+  `create_login`, `create_item`, `update_item`, `request_reveal`, `consume_reveal`. No tool answer ever contains a
+  secret value; an approved reveal goes to the Windows clipboard only — kept out of clipboard history and cloud
+  sync, cleared after 30 seconds unless something else was copied meanwhile. `amkeyward-mcp setup` stores the token
+  in the Windows Credential Manager (`AmKeyward:Agent`; fallback `KEYWARD_AGENT_TOKEN`), `amkeyward-mcp check`
+  verifies it; the address comes from `Keyward__ServiceUri`. Packaged as a `DotnetTool` + `McpServer` package.
+- **`docs/agent-api.md`**: the agent API, its security model and the MCP setup; README section.
+
 ## [0.20.0-preview] - 2026-09-26
 
 ### Added

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net10.0, not net10.0-windows: the clipboard and the Windows Credential Manager are Windows-only and guarded
+         (SupportedOSPlatform + OperatingSystem.IsWindows), so the tool logic stays testable and the tool starts
+         elsewhere with the environment-variable token (revealing is then refused). -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Am.Keyward.Mcp</RootNamespace>
+
+    <!-- Shipped as a .NET tool (runnable via dnx / dotnet tool) with the MCP server package type. -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>amkeyward-mcp</ToolCommandName>
+    <PackageType>McpServer</PackageType>
+    <Description>AM KEYWARD — MCP server (stdio) that lets an AI assistant such as Claude Code work with KEYWARD vault entries through an agent token: list, search, read non-secret fields, create and update entries, and ask to see a secret, which the token user approves per request and which is then copied to the Windows clipboard — never into the assistant's context.</Description>
+    <PackageTags>$(PackageTags);mcp;ai;agent</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include=".mcp\server.json" Pack="true" PackagePath="/.mcp/" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Am.Keyward.Tests" />
+  </ItemGroup>
+
+</Project>

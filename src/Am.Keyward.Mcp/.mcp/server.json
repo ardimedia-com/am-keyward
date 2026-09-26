@@ -1,0 +1,25 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.ardimedia-com/am-keyward",
+  "description": "Work with AM KEYWARD vault entries through an agent token; secrets are revealed only after human approval and only to the clipboard.",
+  "version": "0.0.0",
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "Am.Keyward.Mcp",
+      "version": "0.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "Keyward__ServiceUri",
+          "description": "Address of the KEYWARD host, e.g. https://toolbox.bvd.li",
+          "isRequired": true,
+          "isSecret": false,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

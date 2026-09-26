@@ -296,6 +296,14 @@ consumers that load their configuration through Keyward need no change at all, l
 the statistics day buckets and the timestamps in notification mails; unset it defaults to the server's
 local zone. Timestamps are stored in UTC and shown in the viewer's own local time zone in the UI.
 
+## AI assistants (agent tokens + MCP server)
+
+An agent token lets an assistant such as Claude Code work with vault entries **as you**, narrowed to the vaults and
+permissions you choose: list and search entries, read a Login's URL and user name, store new credentials (it hands
+you a link, never echoes the value) and update entries. To see a secret it must ask; you approve each request on
+«Agent tokens», and the MCP server `Am.Keyward.Mcp` (a .NET tool, `amkeyward-mcp`) copies the value to the Windows
+clipboard — never into the assistant's context. Setup and endpoints: [docs/agent-api.md](docs/agent-api.md).
+
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 
 The consumer side of the software-client API is one line in the deployed application's `Program.cs` — no
@@ -421,6 +429,8 @@ via Integrated Security.
 End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship:
 
 - [Software-client API](docs/software-client-api.md) — how a deployed app fetches its secrets with a token.
+- [Agent API and MCP server](docs/agent-api.md) — let an AI assistant store and find vault entries as you, with
+  every secret reveal approved by you and sent to the clipboard only.
 - [Database logins](docs/database-logins.md) — the least-privilege runtime login vs. the migration login
   that underpins tenant isolation.
 
