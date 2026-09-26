@@ -42,19 +42,19 @@
     gap: 0.35rem;
     min-height: 5.5rem;
     padding: 1rem;
-    border: 1px dashed var(--border);
+    border: 1px dashed var(--kw-border);
     border-radius: 0.5rem;
     text-align: center;
-    color: var(--muted-text);
+    color: var(--kw-muted-text);
     cursor: pointer;
 }
 
 .kw-file-drop:hover {
-    border-color: var(--primary);
+    border-color: var(--kw-primary);
 }
 
 .kw-file-drop:focus-within {
-    outline: 2px solid var(--primary);
+    outline: 2px solid var(--kw-primary);
     outline-offset: 2px;
 }
 

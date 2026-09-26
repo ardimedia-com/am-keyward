@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **The import drop zone follows the Keyward theme.** Its border, text, hover and focus colours used variables
+  Keyward does not define (`--border`, `--muted-text`, `--primary`), so they only worked in a host that happened
+  to define them and otherwise fell back to the text colour with no hover/focus highlight — in dark mode too.
+  They now use Keyward's own `--kw-*` tokens.
+
 ### Changed
 
 - **Dependencies refreshed.** Microsoft.* 10.0.10 → 10.0.12 (ASP.NET Core, EF Core, Extensions), MailKit
