@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.21.0-preview] - 2026-09-26
+
 ### Added
 
 - **MCP server `Am.Keyward.Mcp`** (.NET tool `amkeyward-mcp`, MCP over stdio, `ModelContextProtocol` 2.2.0) so an
