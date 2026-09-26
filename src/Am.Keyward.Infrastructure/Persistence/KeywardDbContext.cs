@@ -43,6 +43,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
     public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
     public DbSet<AgentTokenVaultAllowance> AgentTokenVaultAllowances => Set<AgentTokenVaultAllowance>();
+    public DbSet<RevealRequest> RevealRequests => Set<RevealRequest>();
     public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
     public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
     public DbSet<TokenAccessAlert> TokenAccessAlerts => Set<TokenAccessAlert>();
@@ -249,6 +250,24 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasKey(x => new { x.TokenId, x.VaultId });
             e.HasIndex(x => x.VaultId);
             e.HasOne<Vault>().WithMany().HasForeignKey(x => x.VaultId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Reveal requests: tenant data (query filter + row-level security). The row version serializes every
+        // transition, so an approved request is consumed at most once. Deleting the item or the token removes them.
+        model.Entity<RevealRequest>(e =>
+        {
+            e.ToTable("RevealRequests");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Field).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
+            e.Property(x => x.Reason).HasMaxLength(RevealRequest.MaxReasonLength).IsRequired();
+            e.Property(x => x.RowVersion).IsRowVersion();
+            e.HasIndex(x => new { x.UserId, x.Status });
+            e.HasIndex(x => x.TokenId);
+            e.HasIndex(x => x.TenantId);
+            e.HasOne<AgentToken>().WithMany().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<VaultItem>().WithMany().HasForeignKey(x => x.ItemId).OnDelete(DeleteBehavior.Cascade);
+            e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
         // Token access statistics: pre-aggregated daily counters, seen IPs and access-pattern alerts.

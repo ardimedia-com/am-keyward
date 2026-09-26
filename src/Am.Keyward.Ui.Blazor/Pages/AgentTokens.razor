@@ -2,7 +2,9 @@
 @rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
 @using Am.Keyward.Core.Domain.Agent
+@implements IAsyncDisposable
 @inject IAgentTokenService AgentTokenService
+@inject IRevealRequestService RevealRequests
 @inject IVaultService VaultService
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
@@ -40,6 +42,37 @@
                         <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
                     </div>
                 </div>
+            }
+
+            @* Pending reveal requests of this user's agents. Only this user can decide them, and they expire within
+               minutes, so the list refreshes itself while the page is open. The reason is the agent's own text:
+               Razor encodes it, so it is shown as plain text. *@
+            @if (pending is { Count: > 0 })
+            {
+                <section class="card reveal-requests" aria-live="polite">
+                    <h3>@Loc["AgentTokens.Reveal.Title"] (@pending.Count)</h3>
+                    <p class="muted">@Loc["AgentTokens.Reveal.Desc"]</p>
+                    @foreach (var request in pending)
+                    {
+                        <div class="reveal-row">
+                            <div class="token-main">
+                                <KeywardIcon Name="eye" Size="17" />
+                                <span class="token-name">@request.ItemName</span>
+                                <span class="badge">@FieldLabel(request.Field)</span>
+                            </div>
+                            <div class="token-facts muted">
+                                <span>@request.VaultName</span>
+                                <span>@Loc["AgentTokens.Reveal.By", request.TokenName]</span>
+                                <span>@Loc["AgentTokens.Reveal.Until"] <LocalTime Utc="request.ExpiresAt" /></span>
+                            </div>
+                            <blockquote class="reveal-reason">@request.Reason</blockquote>
+                            <div class="token-actions">
+                                <button class="btn-sm" @onclick="() => ApproveAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Approve"]</button>
+                                <button class="btn-danger btn-sm" @onclick="() => RejectAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Reject"]</button>
+                            </div>
+                        </div>
+                    }
+                </section>
             }
 
             <section class="card">
@@ -150,8 +183,9 @@
 </KeywardUi>
 
 @code {
-    // Reveal is left out until the approval flow exists: a tick that does nothing would mislead.
-    private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite];
+    private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite, AgentScopes.VaultReveal];
+
+    private static readonly TimeSpan PendingRefresh = TimeSpan.FromSeconds(5);
 
     private static readonly int MaxDays = (int)AgentTokenLifetime.Maximum.TotalDays;
 
@@ -160,6 +194,8 @@
     private Guid tenantId;
 
     private IReadOnlyList<AgentTokenSummary>? tokens;
+    private IReadOnlyList<PendingRevealRequest>? pending;
+    private PeriodicTimer? refreshTimer;
     private IReadOnlyList<VaultSummary>? openVaults;
     private Dictionary<Guid, string> vaultNames = [];
 
@@ -190,6 +226,41 @@
         actorUserId = userId;
         tenantId = Workspace.TenantId;
         await ReloadAsync();
+
+        refreshTimer = new PeriodicTimer(PendingRefresh);
+        _ = RefreshPendingLoopAsync(refreshTimer);
+    }
+
+    private async Task RefreshPendingLoopAsync(PeriodicTimer timer)
+    {
+        try
+        {
+            while (await timer.WaitForNextTickAsync())
+            {
+                if (busy) continue;
+                var fresh = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
+                if (!fresh.Select(r => r.Id).SequenceEqual(pending?.Select(r => r.Id) ?? []))
+                {
+                    pending = fresh;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (ObjectDisposedException)
+        {
+            // The page was left.
+        }
+        catch (Exception ex)
+        {
+            status = (Loc["Common.Error"] + ex.Message, true);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public ValueTask DisposeAsync()
+    {
+        refreshTimer?.Dispose();
+        return ValueTask.CompletedTask;
     }
 
     private async Task ReloadAsync()
@@ -199,7 +270,24 @@
         openVaults = shared.Where(v => v.AgentAccessAllowed).OrderBy(v => v.Name).ToList();
         selectedVaults.IntersectWith(openVaults.Select(v => v.Id));
         tokens = await AgentTokenService.ListAsync(actorUserId, tenantId);
+        pending = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
     }
+
+    private string FieldLabel(RevealField field) => Loc[$"AgentTokens.Field.{field}"];
+
+    private Task ApproveAsync(Guid requestId) => RunAsync(async () =>
+    {
+        await RevealRequests.ApproveAsync(actorUserId, tenantId, requestId);
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Reveal.Msg.Approved"], false);
+    }, true);
+
+    private Task RejectAsync(Guid requestId) => RunAsync(async () =>
+    {
+        await RevealRequests.RejectAsync(actorUserId, tenantId, requestId);
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Reveal.Msg.Rejected"], false);
+    }, true);
 
     private string VaultName(Guid id) => vaultNames.GetValueOrDefault(id, "?");
 

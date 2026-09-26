@@ -50,3 +50,19 @@ public sealed record AgentUpdateItemRequest(
 
 /// <summary>Result of a create or update: the item, its deep link and its new version (also the ETag).</summary>
 public sealed record AgentItemWrittenResponse(Guid Id, string Link, Guid VersionId);
+
+/// <summary>
+/// Asks to see one secret field (<c>POST /items/{id}/reveal-requests</c>): <c>"Password"</c> or <c>"Note"</c> of a
+/// Login, <c>"Value"</c> of any other type. The reason is shown to the human who decides.
+/// </summary>
+public sealed record AgentRevealRequestBody(string Field, string Reason);
+
+/// <summary>
+/// Where a reveal request stands: <c>Pending</c> (waiting for the human, until <see cref="ExpiresAt"/>),
+/// <c>Approved</c> (fetch it once via <c>POST /reveal-requests/{id}/consume</c> before <see cref="ConsumeBy"/>),
+/// <c>Rejected</c>, <c>Expired</c> or <c>Consumed</c>.
+/// </summary>
+public sealed record AgentRevealStateResponse(Guid Id, Guid ItemId, string Field, string Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy);
+
+/// <summary>The revealed value — returned exactly once, never cached.</summary>
+public sealed record AgentRevealValueResponse(Guid RequestId, Guid ItemId, string Field, string Value);

@@ -5,6 +5,26 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Reveal with human approval.** An agent token with the reveal scope can ask to see one secret field — a
+  Login password or note, or another type value — with a reason:
+  - `POST /items/{id}/reveal-requests` creates a pending request (202) and notifies the token user at once
+    (`IKeywardAlertPresenter.NotifyRevealRequestAsync`; the reference shell mails it with a button to the page).
+  - The user approves or rejects it on «Agent tokens», which lists pending requests and refreshes itself every
+    5 seconds. Only the user the token acts for can decide; an undecided request expires after 5 minutes.
+  - `POST /reveal-requests/{id}/consume` hands an approved value out **once**, within 60 seconds, with
+    `Cache-Control: no-store`; any further call, a rejected or an expired request answers 409.
+    `GET /reveal-requests/{id}` reports the status only.
+
+  The item must still be within the token reach when the value is fetched, not only when it was requested.
+  Every step is audited with its actor: requested (agent, with the reason), approved/rejected (the person),
+  revealed (agent). The reason is the agent own text: stored and shown as plain text, HTML-encoded in mails.
+  Requests are tenant data under row-level security; a row version makes every transition single-winner.
+  The reveal permission is now offered when issuing a token. Requires the `RevealRequests` migration.
+- **`IKeywardAlertPresenter.NotifyRevealRequestAsync`** has a default that delivers nothing, so existing hosts
+  keep compiling; implement it so users hear about requests in time.
+
 ## [0.19.0-preview] - 2026-09-26
 
 ### Added

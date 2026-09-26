@@ -178,8 +178,72 @@ public static class KeywardAgentApi
             }
         });
 
+        // Ask to see one secret field. Nothing is revealed until the token user approves in the Keyward UI.
+        group.MapPost("/items/{itemId:guid}/reveal-requests", async (Guid itemId, AgentRevealRequestBody body, ClaimsPrincipal principal,
+            IRevealRequestService reveals, IAgentVaultAccess access, CancellationToken ct) =>
+        {
+            var tokenId = TokenId(principal);
+            if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.VaultReveal, Permission.Read, ct))
+            {
+                return NotFound();
+            }
+
+            if (!Enum.TryParse<RevealField>(body.Field, ignoreCase: true, out var field) || !Enum.IsDefined(field))
+            {
+                return BadRequest($"Unknown field '{body.Field}'. Use one of: {string.Join(", ", Enum.GetNames<RevealField>())}.");
+            }
+
+            try
+            {
+                var state = await reveals.RequestAsync(tokenId, itemId, field, body.Reason ?? "", ct);
+                return Results.Accepted($"{DefaultPrefix}/reveal-requests/{state.Id}", ToResponse(state));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        });
+
+        group.MapGet("/reveal-requests/{requestId:guid}", async (Guid requestId, ClaimsPrincipal principal, IRevealRequestService reveals, CancellationToken ct) =>
+        {
+            var state = await reveals.GetAsync(TokenId(principal), requestId, ct);
+            return state is null ? NotFound() : Results.Ok(ToResponse(state));
+        });
+
+        // The one-time fetch of an approved request. A second call — or one after the window — gets 409.
+        group.MapPost("/reveal-requests/{requestId:guid}/consume", async (Guid requestId, HttpContext http, ClaimsPrincipal principal,
+            IRevealRequestService reveals, IAgentVaultAccess access, CancellationToken ct) =>
+        {
+            var tokenId = TokenId(principal);
+            var state = await reveals.GetAsync(tokenId, requestId, ct);
+
+            // The token must still reach the item now, not only when it asked.
+            if (state is null || !await access.IsItemAllowedAsync(tokenId, state.ItemId, AgentScopes.VaultReveal, Permission.Read, ct))
+            {
+                return NotFound();
+            }
+
+            var result = await reveals.ConsumeAsync(tokenId, requestId, ct);
+            if (result is null)
+            {
+                return NotFound();
+            }
+
+            if (result.Value is null)
+            {
+                return Results.Problem(statusCode: StatusCodes.Status409Conflict,
+                    title: $"The reveal request is {result.Status}; nothing to hand out.");
+            }
+
+            http.Response.Headers.CacheControl = "no-store";
+            return Results.Ok(new AgentRevealValueResponse(requestId, state.ItemId, state.Field.ToString(), result.Value));
+        });
+
         return endpoints;
     }
+
+    private static AgentRevealStateResponse ToResponse(RevealRequestState state) =>
+        new(state.Id, state.ItemId, state.Field.ToString(), state.Status.ToString(), state.ExpiresAt, state.ConsumeBy);
 
     // One request shape for every type: a Login is built from its four fields, anything else takes value.
     private static bool TryBuildContent(AgentCreateItemRequest body, out ItemType type, out string content, out string error)

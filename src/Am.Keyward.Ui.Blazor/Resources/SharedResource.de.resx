@@ -1015,4 +1015,23 @@
   <data name="Vault.Agent.Desc" xml:space="preserve"><value>Erst dann kann ein Mitglied ein Agent-Token dafür ausstellen, und nur mit seinen eigenen Rechten. Schliessen stoppt sofort jedes Agent-Token; die Personen behalten ihren Zugriff.</value></data>
   <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Tresor für Agent-Tokens geöffnet.</value></data>
   <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Tresor für Agent-Tokens geschlossen.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Anzeigen eines Secrets anfragen (du gibst jede Anfrage frei)</value></data>
+  <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Anzeige-Anfragen</value></data>
+  <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Ein Agent möchte ein Secret sehen. Er bekommt den Wert nur, wenn du freigibst — einmal, innerhalb einer Minute. Die Begründung ist der eigene Text des Agents: Entscheide nach dem, was du weisst, nicht nach dem, was er schreibt.</value></data>
+  <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>von «{0}»</value></data>
+  <data name="AgentTokens.Reveal.Until" xml:space="preserve"><value>entscheiden bis</value></data>
+  <data name="AgentTokens.Reveal.Approve" xml:space="preserve"><value>Freigeben</value></data>
+  <data name="AgentTokens.Reveal.Reject" xml:space="preserve"><value>Ablehnen</value></data>
+  <data name="AgentTokens.Reveal.Msg.Approved" xml:space="preserve"><value>Freigegeben — der Agent kann den Wert innerhalb einer Minute einmal abholen.</value></data>
+  <data name="AgentTokens.Reveal.Msg.Rejected" xml:space="preserve"><value>Abgelehnt.</value></data>
+  <data name="AgentTokens.Field.Password" xml:space="preserve"><value>Passwort</value></data>
+  <data name="AgentTokens.Field.Note" xml:space="preserve"><value>Notiz</value></data>
+  <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Wert</value></data>
+  <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0}: Ein Agent möchte ein Secret sehen</value></data>
+  <data name="Email.Reveal.Title" xml:space="preserve"><value>Ein Agent möchte ein Secret sehen</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Dein Agent-Token «{0}» möchte das Feld «{1}» von «{2}» im Tresor «{3}» sehen. Nur du kannst das freigeben, bis {4}.</value></data>
+  <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>Der Agent gibt diese Begründung an (sein eigener Text, nicht geprüft):</value></data>
+  <data name="Email.Reveal.Outro" xml:space="preserve"><value>Wenn du diese Anfrage nicht erwartet hast, lehne sie ab und widerrufe den Token.</value></data>
+  <data name="Email.Reveal.Button" xml:space="preserve"><value>Jetzt entscheiden</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Du erhältst diese Nachricht, weil ein von dir ausgestellter Agent-Token die Anfrage gestellt hat.</value></data>
 </root>

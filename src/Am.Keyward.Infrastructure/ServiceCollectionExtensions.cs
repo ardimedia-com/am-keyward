@@ -61,6 +61,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IAgentTokenService, Auth.AgentTokenService>();
         services.AddScoped<IAgentAuthenticator, Auth.AgentAuthenticator>();
         services.AddScoped<IAgentVaultAccess, Auth.AgentVaultAccess>();
+        services.AddScoped<IRevealRequestService, Auth.RevealRequestService>();
         services.AddScoped<IGroupService, GroupService>();
         services.AddScoped<SystemReadScope>();
         services.AddScoped<TenantSessionContextInterceptor>();

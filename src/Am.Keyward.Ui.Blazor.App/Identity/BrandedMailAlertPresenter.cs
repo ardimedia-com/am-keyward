@@ -70,6 +70,49 @@ public sealed class BrandedMailAlertPresenter(
         return await SendAsync(recipients, subject, content, ct).ConfigureAwait(false);
     }
 
+    public async Task<int> NotifyRevealRequestAsync(
+        Guid tenantId,
+        KeywardAlertRecipient recipient,
+        KeywardRevealRequestLine line,
+        CancellationToken ct = default)
+    {
+        var (subject, content) = BuildRevealContent(line);
+        return await SendAsync([recipient], subject, content, ct).ConfigureAwait(false);
+    }
+
+    // The reason is the agent's untrusted text; BrandedEmail HTML-encodes every paragraph.
+    private (string Subject, BrandedEmailContent Content) BuildRevealContent(KeywardRevealRequestLine line)
+    {
+        var decideUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
+            ? null
+            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.AgentTokens;
+
+        var previous = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = ResolveNotificationCulture();
+        try
+        {
+            return (loc["Email.Reveal.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
+            {
+                Brand = uiOptions.ProductName,
+                Title = loc["Email.Reveal.Title"].Value,
+                Paragraphs =
+                [
+                    loc["Email.Reveal.Intro", line.TokenName, loc[$"AgentTokens.Field.{line.Field}"].Value, line.ItemName, line.VaultName, FormatTimestamp(line.ExpiresAt)].Value,
+                    loc["Email.Reveal.ReasonLabel"].Value,
+                    line.Reason,
+                    loc["Email.Reveal.Outro"].Value,
+                ],
+                ButtonText = decideUrl is null ? null : loc["Email.Reveal.Button"].Value,
+                ActionUrl = decideUrl,
+                FooterNote = loc["Email.Reveal.Footer"].Value,
+            });
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
     private async Task<int> SendAsync(
         IReadOnlyList<KeywardAlertRecipient> recipients, string subject, BrandedEmailContent content, CancellationToken ct)
     {

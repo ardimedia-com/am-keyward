@@ -104,3 +104,29 @@
 .status-inactive {
     color: var(--kw-muted-text);
 }
+
+/* Pending reveal requests: the one place a human decides whether an agent may see a secret. */
+.reveal-requests {
+    border-color: var(--kw-warning);
+}
+
+.reveal-row {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .6rem 0;
+    border-bottom: 1px solid var(--kw-border);
+}
+
+.reveal-row:last-child {
+    border-bottom: 0;
+}
+
+.reveal-reason {
+    margin: 0;
+    padding: .4rem .6rem;
+    border-left: 3px solid var(--kw-border);
+    background: var(--kw-muted);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

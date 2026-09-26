@@ -209,6 +209,13 @@ public interface IVaultService
     /// does not fit the item type or nothing would change.
     /// </summary>
     Task<VaultItemReference> PatchItemAsync(PatchVaultItemCommand cmd, CancellationToken ct = default);
+
+    /// <summary>
+    /// Decrypts and returns ONE secret field of an item — a Login password or note, or another type value — and
+    /// audits it as <c>Reveal</c> with <paramref name="reason"/>. The only caller is the approved reveal flow; the
+    /// UI opens items through <see cref="GetItemAsync"/>. Null when the item has no value.
+    /// </summary>
+    Task<string?> RevealFieldAsync(Guid userId, Guid itemId, Domain.Agent.RevealField field, string reason, CancellationToken ct = default);
 }
 
 /// <summary>A search match across vaults; MatchedField names the field that matched ("Name", "Url",

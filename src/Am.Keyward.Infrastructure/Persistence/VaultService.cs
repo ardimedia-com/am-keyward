@@ -843,6 +843,36 @@ public sealed class VaultService(
         return current != expectedVersionId;
     }
 
+    public async Task<string?> RevealFieldAsync(Guid userId, Guid itemId, Core.Domain.Agent.RevealField field, string reason, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+        if (item?.CurrentVersionId is not { } versionId)
+        {
+            return null;
+        }
+
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        var version = item.Versions.Single(v => v.Id == versionId);
+        var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
+        var content = Encoding.UTF8.GetString(await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false));
+
+        var value = (item.Type, field) switch
+        {
+            (ItemType.Login, Core.Domain.Agent.RevealField.Password) => LoginContent.Parse(content).Password,
+            (ItemType.Login, Core.Domain.Agent.RevealField.Note) => LoginContent.Parse(content).Note,
+            (not ItemType.Login, Core.Domain.Agent.RevealField.Value) => content,
+            _ => throw new ArgumentException($"A {item.Type} has no field {field}."),
+        };
+
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Reveal, "VaultItem", item.Id, userId, reason), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return value;
+    }
+
     public async Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);

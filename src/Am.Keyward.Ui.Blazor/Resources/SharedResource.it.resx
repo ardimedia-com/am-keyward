@@ -889,4 +889,23 @@
   <data name="Vault.Agent.Desc" xml:space="preserve"><value>Solo allora un membro può emettere un token agente per questa cassaforte, e solo con i propri permessi. Chiuderla ferma subito ogni token agente; le persone mantengono il loro accesso.</value></data>
   <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Cassaforte aperta ai token agente.</value></data>
   <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Cassaforte chiusa ai token agente.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Chiedere di vedere un segreto (approvi ogni richiesta)</value></data>
+  <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Richieste di visualizzazione</value></data>
+  <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Un agente chiede di vedere un segreto. Ottiene il valore solo se approvi — una volta, entro un minuto. La motivazione è il testo dell'agente: decidi in base a ciò che sai, non a ciò che scrive.</value></data>
+  <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>da «{0}»</value></data>
+  <data name="AgentTokens.Reveal.Until" xml:space="preserve"><value>decidere entro</value></data>
+  <data name="AgentTokens.Reveal.Approve" xml:space="preserve"><value>Approva</value></data>
+  <data name="AgentTokens.Reveal.Reject" xml:space="preserve"><value>Rifiuta</value></data>
+  <data name="AgentTokens.Reveal.Msg.Approved" xml:space="preserve"><value>Approvata: l'agente può prelevare il valore una volta entro un minuto.</value></data>
+  <data name="AgentTokens.Reveal.Msg.Rejected" xml:space="preserve"><value>Rifiutata.</value></data>
+  <data name="AgentTokens.Field.Password" xml:space="preserve"><value>Password</value></data>
+  <data name="AgentTokens.Field.Note" xml:space="preserve"><value>Nota</value></data>
+  <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Valore</value></data>
+  <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0}: un agente chiede di vedere un segreto</value></data>
+  <data name="Email.Reveal.Title" xml:space="preserve"><value>Un agente chiede di vedere un segreto</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Il tuo token agente «{0}» chiede di vedere il campo «{1}» di «{2}» nella cassaforte «{3}». Solo tu puoi approvarlo, entro {4}.</value></data>
+  <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>L'agente fornisce questa motivazione (suo testo, non verificato):</value></data>
+  <data name="Email.Reveal.Outro" xml:space="preserve"><value>Se non ti aspettavi questa richiesta, rifiutala e revoca il token.</value></data>
+  <data name="Email.Reveal.Button" xml:space="preserve"><value>Decidi ora</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Ricevi questo messaggio perché un token agente da te emesso ha fatto la richiesta.</value></data>
 </root>

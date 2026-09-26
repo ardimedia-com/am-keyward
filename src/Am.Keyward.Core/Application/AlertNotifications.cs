@@ -1,3 +1,4 @@
+using Am.Keyward.Core.Domain.Agent;
 using Am.Keyward.Core.Domain.Software;
 
 namespace Am.Keyward.Core.Application;
@@ -40,6 +41,20 @@ public sealed record KeywardSecretExpiryLine(
     int DaysLeft,
     DateTimeOffset ExpiresAt,
     string Note);
+
+/// <summary>
+/// An agent asks to see a secret; the token's user decides in the Keyward UI (agent tokens page) before
+/// <paramref name="ExpiresAt"/>. <paramref name="Reason"/> is the agent's own text — untrusted, render it as plain
+/// text (HTML-encode it in a mail). The secret itself is never part of this record.
+/// </summary>
+public sealed record KeywardRevealRequestLine(
+    Guid RequestId,
+    string TokenName,
+    string VaultName,
+    string ItemName,
+    RevealField Field,
+    string Reason,
+    DateTimeOffset ExpiresAt);
 
 /// <summary>
 /// Delivers administrative alerts to the administrators who opted into them. Two categories exist and are
@@ -109,4 +124,19 @@ public interface IKeywardAlertPresenter
         IReadOnlyList<KeywardAlertRecipient> recipients,
         IReadOnlyList<KeywardSecretExpiryLine> lines,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// Tells the user an agent token acts for that it asks to see a secret, which only they can approve. Sent at
+    /// once, to that one user, regardless of any opt-in: the request expires within minutes and nobody else can
+    /// decide it. Returns how many recipients were reached.
+    /// <para>
+    /// Has a default that delivers nothing, so a host that has not implemented it yet keeps compiling; the pending
+    /// request still shows on the agent tokens page. Implement it so the user hears about requests in time.
+    /// </para>
+    /// </summary>
+    Task<int> NotifyRevealRequestAsync(
+        Guid tenantId,
+        KeywardAlertRecipient recipient,
+        KeywardRevealRequestLine line,
+        CancellationToken ct = default) => Task.FromResult(0);
 }

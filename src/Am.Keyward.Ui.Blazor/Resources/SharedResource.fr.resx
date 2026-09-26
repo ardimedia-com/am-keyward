@@ -889,4 +889,23 @@
   <data name="Vault.Agent.Desc" xml:space="preserve"><value>Ce n'est qu'alors qu'un membre peut émettre un jeton d'agent pour ce coffre, et seulement avec ses propres droits. Le fermer arrête immédiatement tous les jetons d'agent ; les personnes gardent leur accès.</value></data>
   <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Coffre ouvert aux jetons d'agent.</value></data>
   <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Coffre fermé aux jetons d'agent.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Demander à voir un secret (vous approuvez chaque demande)</value></data>
+  <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Demandes d'affichage</value></data>
+  <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Un agent demande à voir un secret. Il n'obtient la valeur que si vous approuvez — une seule fois, dans la minute. La raison est le texte de l'agent : décidez selon ce que vous savez, pas selon ce qu'il écrit.</value></data>
+  <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>par « {0} »</value></data>
+  <data name="AgentTokens.Reveal.Until" xml:space="preserve"><value>décider avant</value></data>
+  <data name="AgentTokens.Reveal.Approve" xml:space="preserve"><value>Approuver</value></data>
+  <data name="AgentTokens.Reveal.Reject" xml:space="preserve"><value>Refuser</value></data>
+  <data name="AgentTokens.Reveal.Msg.Approved" xml:space="preserve"><value>Approuvé — l'agent peut récupérer la valeur une seule fois dans la minute.</value></data>
+  <data name="AgentTokens.Reveal.Msg.Rejected" xml:space="preserve"><value>Refusé.</value></data>
+  <data name="AgentTokens.Field.Password" xml:space="preserve"><value>Mot de passe</value></data>
+  <data name="AgentTokens.Field.Note" xml:space="preserve"><value>Note</value></data>
+  <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Valeur</value></data>
+  <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0} : un agent demande à voir un secret</value></data>
+  <data name="Email.Reveal.Title" xml:space="preserve"><value>Un agent demande à voir un secret</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Votre jeton d'agent « {0} » demande à voir le champ « {1} » de « {2} » dans le coffre « {3} ». Vous seul pouvez l'approuver, jusqu'à {4}.</value></data>
+  <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>L'agent donne cette raison (son propre texte, non vérifié) :</value></data>
+  <data name="Email.Reveal.Outro" xml:space="preserve"><value>Si vous n'attendiez pas cette demande, refusez-la et révoquez le jeton.</value></data>
+  <data name="Email.Reveal.Button" xml:space="preserve"><value>Décider maintenant</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Vous recevez ce message car un jeton d'agent que vous avez émis a fait la demande.</value></data>
 </root>

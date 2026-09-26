@@ -292,7 +292,7 @@ public class AgentApiTests
     }
 
     // The production pipeline order: rate limiter before authentication, then authorization, then endpoints.
-    private static async Task<WebApplication?> StartAsync()
+    internal static async Task<WebApplication?> StartAsync(Action<IServiceCollection>? configure = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
@@ -302,6 +302,7 @@ public class AgentApiTests
         // Endpoints only: Keyward's background services must not run against the shared test database — the
         // KEK integrity check would seal it with this run's random test key and break every later test.
         builder.Services.RemoveAll<IHostedService>();
+        configure?.Invoke(builder.Services);
 
         var app = builder.Build();
         app.UseRateLimiter();
@@ -322,7 +323,7 @@ public class AgentApiTests
         return app;
     }
 
-    private static async Task<string> IssueAsync(IServiceProvider services, Guid tenantId, Guid userId, Guid vaultId, AgentScopes scopes)
+    internal static async Task<string> IssueAsync(IServiceProvider services, Guid tenantId, Guid userId, Guid vaultId, AgentScopes scopes)
     {
         using var scope = ScopeFor(services, tenantId, userId);
         var issued = await scope.ServiceProvider.GetRequiredService<IAgentTokenService>()
@@ -330,7 +331,7 @@ public class AgentApiTests
         return issued.Token;
     }
 
-    private static async Task SeedTenantAsync(IServiceProvider services, Guid tenantId, Guid userId)
+    internal static async Task SeedTenantAsync(IServiceProvider services, Guid tenantId, Guid userId)
     {
         using var scope = services.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
@@ -341,7 +342,7 @@ public class AgentApiTests
         await db.SaveChangesAsync();
     }
 
-    private static IServiceScope ScopeFor(IServiceProvider services, Guid tenantId, Guid userId)
+    internal static IServiceScope ScopeFor(IServiceProvider services, Guid tenantId, Guid userId)
     {
         var scope = services.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
