@@ -30,6 +30,10 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
     private readonly IUserScopeSetter userScope;
     private readonly IActorScopeSetter actorScope;
     private readonly FailedAuthenticationThrottle failedAttempts;
+    private readonly AgentNetworkPolicy networkPolicy;
+
+    // Marks a request refused for its network, so the challenge answers 403 instead of 401.
+    private const string OutsideAllowedNetworks = "Keyward.Agent.OutsideAllowedNetworks";
 
     public AgentAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -39,9 +43,11 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         ITenantScopeSetter tenantScope,
         IUserScopeSetter userScope,
         IActorScopeSetter actorScope,
-        FailedAuthenticationThrottle failedAttempts)
+        FailedAuthenticationThrottle failedAttempts,
+        AgentNetworkPolicy networkPolicy)
         : base(options, logger, encoder)
     {
+        this.networkPolicy = networkPolicy;
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
         this.userScope = userScope;
@@ -63,6 +69,15 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         }
 
         var clientAddress = Context.Connection.RemoteIpAddress;
+
+        // The host-wide network restriction comes first: from elsewhere no token is looked up at all, and the
+        // attempt does not count against the failed-authentication throttle.
+        if (!networkPolicy.Allows(clientAddress))
+        {
+            Context.Items[OutsideAllowedNetworks] = true;
+            return AuthenticateResult.Fail("The agent API is not available from this network.");
+        }
+
         var clientIp = clientAddress?.ToString();
         if (failedAttempts.IsBlocked(clientIp))
         {
@@ -88,5 +103,16 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         ], SchemeName);
 
         return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName));
+    }
+
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    {
+        if (Context.Items.ContainsKey(OutsideAllowedNetworks))
+        {
+            Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        return base.HandleChallengeAsync(properties);
     }
 }

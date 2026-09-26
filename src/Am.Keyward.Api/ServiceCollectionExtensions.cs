@@ -105,6 +105,7 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.TryAddSingleton(new FailedAuthenticationThrottle(options.FailedAuthenticationLimit, options.FailedAuthenticationWindow));
+        services.AddSingleton(new AgentNetworkPolicy(options.AllowedNetworks));
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, AgentAuthenticationHandler>(AgentAuthenticationHandler.SchemeName, _ => { });
@@ -156,4 +157,12 @@ public sealed class KeywardAgentApiOptions
 
     /// <summary>Default 5 minutes.</summary>
     public TimeSpan FailedAuthenticationWindow { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// Comma-separated CIDR networks the agent API accepts calls from (e.g. <c>10.1.0.0/23, 10.8.0.0/24</c>); empty
+    /// means any network. Checked before any token lookup; other callers get 403. Checked against the address the
+    /// host sees: behind a reverse proxy, keep the proxy address OUT of these networks (or resolve the real client
+    /// address with forwarded headers from that known proxy), otherwise everything it forwards passes.
+    /// </summary>
+    public string? AllowedNetworks { get; set; }
 }

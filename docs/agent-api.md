@@ -56,7 +56,10 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 A host maps the API with `builder.Services.AddKeywardAgentApi()` and `app.MapKeywardAgentApi()`
 (`app.UseRateLimiter()` before `app.UseAuthentication()`), and implements
 `IKeywardAlertPresenter.NotifyRevealRequestAsync` so users hear about reveal requests in time. Expose the path to
-your LAN/VPN only (IIS or firewall), in addition to the per-token networks.
+your LAN/VPN with `AddKeywardAgentApi(o => o.AllowedNetworks = "10.1.0.0/23, …")`: callers from elsewhere get 403
+before any token is looked up. The check uses the address the host sees — **behind a reverse proxy every internet
+request arrives with the proxy address**, so keep that address outside the allowed networks (or resolve the real
+client address with forwarded headers from that known proxy only). The per-token networks follow the same rule.
 
 ## MCP server (`Am.Keyward.Mcp`)
 

@@ -291,13 +291,15 @@ public class AgentApiTests
         Assert.AreEqual(1, results.Count(r => r), "Exactly one writer may move the item past the version all of them started from.");
     }
 
+    internal const string TestClientIpHeader = "X-Test-Client-Ip";
+
     // The production pipeline order: rate limiter before authentication, then authorization, then endpoints.
-    internal static async Task<WebApplication?> StartAsync(Action<IServiceCollection>? configure = null)
+    internal static async Task<WebApplication?> StartAsync(Action<IServiceCollection>? configure = null, Action<KeywardAgentApiOptions>? agentOptions = null)
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddKeyward(ConnectionString, RandomNumberGenerator.GetBytes(32), "test-kek:v1");
-        builder.Services.AddKeywardAgentApi();
+        builder.Services.AddKeywardAgentApi(agentOptions);
 
         // Endpoints only: Keyward's background services must not run against the shared test database — the
         // KEK integrity check would seal it with this run's random test key and break every later test.
@@ -305,6 +307,17 @@ public class AgentApiTests
         configure?.Invoke(builder.Services);
 
         var app = builder.Build();
+
+        // Test only: the in-memory server has no client address; a request may set one to exercise network rules.
+        app.Use((context, next) =>
+        {
+            if (context.Request.Headers.TryGetValue(TestClientIpHeader, out var ip))
+            {
+                context.Connection.RemoteIpAddress = IPAddress.Parse(ip.ToString());
+            }
+
+            return next();
+        });
         app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();

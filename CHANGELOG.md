@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **The agent API can be limited to networks.** `KeywardAgentApiOptions.AllowedNetworks` (CIDR list, e.g.
+  `10.1.0.0/23`): callers from elsewhere get 403 before any token is looked up, and the attempt does not count
+  against the failed-authentication throttle. Behind a reverse proxy every internet request carries the proxy
+  address, so that address must stay outside the list — documented in `docs/agent-api.md`.
+
 ## [0.21.0-preview] - 2026-09-26
 
 ### Added
