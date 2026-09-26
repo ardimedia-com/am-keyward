@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.10" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
     <PackageReference Include="MSTest" Version="4.3.3" />
     <PackageReference Include="NetArchTest.Rules" Version="1.3.2" />
@@ -37,6 +38,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Am.Keyward.Api\Am.Keyward.Api.csproj" />
+    <ProjectReference Include="..\..\src\Am.Keyward.Ui.Blazor.App\Am.Keyward.Ui.Blazor.App.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Client\Am.Keyward.Client.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Core\Am.Keyward.Core.csproj" />
     <ProjectReference Include="..\..\src\Am.Keyward.Infrastructure\Am.Keyward.Infrastructure.csproj" />

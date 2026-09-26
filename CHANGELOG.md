@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **The reference shell is started by the test suite.** A new test boots `Am.Keyward.Ui.Blazor.App` through
+  `WebApplicationFactory` against the test database (never the developer's; the test checks) and sends requests
+  through its full pipeline, so a shell that cannot start — as in 0.17.0-preview — fails the build instead of a
+  deployment. Verified by re-introducing that bug: the test fails.
+
 ### Added
 
 - **Agent API read endpoints.** Under `/keyward/api/v1/agent`, an agent token now reads:
