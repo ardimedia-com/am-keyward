@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.22.0-preview] - 2026-09-26
+
 ### Added
 
 - **The agent API can be limited to networks.** `KeywardAgentApiOptions.AllowedNetworks` (CIDR list, e.g.
