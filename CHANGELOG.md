@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Agent API read endpoints.** Under `/keyward/api/v1/agent`, an agent token now reads:
+  - `GET /vaults` — the vaults it may reach (the user's team vaults, narrowed to its allowlist and the agent
+    flag),
+  - `GET /vaults/{id}/tree` — folders and item names/types,
+  - `GET /search?q=` — items by name across those vaults (at least 2 characters, at most 100 hits),
+  - `GET /items/{id}` — one item without its secret: name, type, folder, deep link, version (also the ETag) and,
+    for a Login, url and username; password, note and every other type's value never leave the server.
+
+  Everything outside the token's reach answers 404, exactly like a missing item. Search reads cleartext names
+  only and writes no audit entry; reading a Login's url/username decrypts it and is audited
+  (`VaultItemMetadata`) as the agent. New `IVaultService.SearchItemNamesAsync` / `GetItemMetadataAsync`; wire
+  shapes in `Am.Keyward.Contracts` (`AgentVaultResponse`, `AgentVaultTreeResponse`, `AgentItemResponse`, …);
+  `KeywardApiDefaults.EntryLinkPath` is the one definition of the deep-link path.
+
 ## [0.18.0-preview] - 2026-09-26
 
 ### Fixed

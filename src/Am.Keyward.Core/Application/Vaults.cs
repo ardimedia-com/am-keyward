@@ -182,8 +182,31 @@ public interface IVaultService
     /// Login passwords are deliberately NOT matched. Queries shorter than 2 characters return nothing.
     /// </summary>
     Task<IReadOnlyList<VaultItemSearchHit>> SearchItemsAsync(Guid userId, Guid tenantId, bool teamVaults, string query, CancellationToken ct = default);
+
+    /// <summary>
+    /// Items of the given vaults whose cleartext name contains <paramref name="query"/> (at least 2 characters,
+    /// case-insensitive). Never decrypts and writes no audit entry — names are not secret. At most
+    /// <paramref name="limit"/> hits. The caller decides which vaults may be searched; each is still checked
+    /// for the user's Read grant.
+    /// </summary>
+    Task<IReadOnlyList<VaultItemSearchHit>> SearchItemNamesAsync(Guid userId, IReadOnlyCollection<Guid> vaultIds, string query, int limit = 100, CancellationToken ct = default);
+
+    /// <summary>
+    /// An item's non-secret fields (<see cref="VaultItemMetadata"/>). For a Login the value is decrypted to read
+    /// url and username, and that read is audited (<c>VaultItemMetadata</c>); other types are not decrypted.
+    /// Null when the item does not exist or has no value yet.
+    /// </summary>
+    Task<VaultItemMetadata?> GetItemMetadataAsync(Guid userId, Guid itemId, CancellationToken ct = default);
 }
 
 /// <summary>A search match across vaults; MatchedField names the field that matched ("Name", "Url",
 /// "Username", "Note" or "Value") so the UI can show where the hit was found.</summary>
 public sealed record VaultItemSearchHit(Guid VaultId, string VaultName, Guid ItemId, Guid? FolderId, ItemType Type, string Name, string MatchedField);
+
+/// <summary>
+/// An item without its secret: what an agent may read with the read scope. <see cref="Url"/> and
+/// <see cref="Username"/> are set for a Login only; password, note and every other type's value are never part
+/// of it. <see cref="VersionId"/> identifies the current value (for optimistic concurrency on updates).
+/// </summary>
+public sealed record VaultItemMetadata(
+    Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, Guid PublicId, Guid VersionId, string? Url, string? Username);

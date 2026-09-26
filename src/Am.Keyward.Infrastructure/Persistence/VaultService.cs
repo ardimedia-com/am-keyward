@@ -660,6 +660,70 @@ public sealed class VaultService(
         return new VaultItemDetail(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, Encoding.UTF8.GetString(plaintext), item.PublicId);
     }
 
+    public async Task<IReadOnlyList<VaultItemSearchHit>> SearchItemNamesAsync(
+        Guid userId, IReadOnlyCollection<Guid> vaultIds, string query, int limit = 100, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        var q = query?.Trim() ?? "";
+        if (q.Length < 2 || vaultIds.Count == 0)
+        {
+            return [];
+        }
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var vaultNames = new Dictionary<Guid, string>();
+        foreach (var vaultId in vaultIds.Distinct())
+        {
+            var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Read, ct).ConfigureAwait(false);
+            vaultNames[vault.Id] = vault.Name;
+        }
+
+        var ids = vaultNames.Keys.ToList();
+        var items = await db.VaultItems.AsNoTracking()
+            .Where(i => ids.Contains(i.VaultId) && i.Name.Contains(q))
+            .OrderBy(i => i.Name)
+            .Take(limit)
+            .Select(i => new { i.Id, i.VaultId, i.FolderId, i.Type, i.Name })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        return items
+            .Select(i => new VaultItemSearchHit(i.VaultId, vaultNames[i.VaultId], i.Id, i.FolderId, i.Type, i.Name, "Name"))
+            .ToList();
+    }
+
+    public async Task<VaultItemMetadata?> GetItemMetadataAsync(Guid userId, Guid itemId, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+        if (item?.CurrentVersionId is not { } versionId)
+        {
+            return null;
+        }
+
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+
+        string? url = null, username = null;
+        if (item.Type == ItemType.Login)
+        {
+            // Decrypted in memory only to lift the two non-secret fields; password and note never leave here.
+            var version = item.Versions.Single(v => v.Id == versionId);
+            var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
+            var fields = LoginContent.Parse(Encoding.UTF8.GetString(await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false)));
+            url = fields.Url;
+            username = fields.Username;
+
+            await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItemMetadata", item.Id, userId), ct).ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+
+        return new VaultItemMetadata(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, item.PublicId, versionId, url, username);
+    }
+
     public async Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);

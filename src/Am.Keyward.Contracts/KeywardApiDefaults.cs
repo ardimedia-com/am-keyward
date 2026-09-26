@@ -11,4 +11,10 @@ public static class KeywardApiDefaults
     /// client requests against. A host that maps the API elsewhere passes its own prefix on both sides.
     /// </summary>
     public const string BasePath = "/keyward/api/v1";
+
+    /// <summary>
+    /// Path of a vault item's shareable deep link on the Keyward host, followed by <c>/{base62-public-id}</c>.
+    /// The UI serves it; the agent API hands it out so an assistant can point a person to the entry.
+    /// </summary>
+    public const string EntryLinkPath = "/amkeyward/e";
 }

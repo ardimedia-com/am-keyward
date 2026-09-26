@@ -17,7 +17,7 @@ public static class KeywardRoutes
 
     /// <summary>Short, shareable deep link to a single vault item: <c>/amkeyward/e/{base62-public-id}</c>. The
     /// <see cref="EntryLink"/> page resolves it and forwards to the right vault page with the item opened.</summary>
-    public const string EntryLink = Prefix + "/e";
+    public const string EntryLink = Am.Keyward.Contracts.KeywardApiDefaults.EntryLinkPath;
 
     /// <summary>Builds the deep-link path for an item's Base62 public id (see <see cref="EntryLink"/>).</summary>
     public static string EntryLinkFor(string publicIdCode) => $"{EntryLink}/{publicIdCode}";
