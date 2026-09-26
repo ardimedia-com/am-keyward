@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.18.0-preview] - 2026-09-26
+
 ### Fixed
 
 - **The reference app starts again.** Since 0.17.0-preview its user-admin endpoints (disable, enable, delete)
