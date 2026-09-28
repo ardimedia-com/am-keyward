@@ -26,7 +26,8 @@ public sealed class SoftwareSecretService(
     ICurrentUser currentUser,
     IKeywardAccessPolicy authorization,
     ISoftwareClientTokenService tokens,
-    ISecretReadRecorder readStatistics) : ISoftwareSecretService, ISoftwareSecretReader
+    ISecretReadRecorder readStatistics,
+    ICurrentActor actor) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
 
@@ -149,7 +150,7 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         var isNew = secret is null;
-        secret ??= new SoftwareSecret(Guid.NewGuid(), cmd.ProjectId, cmd.TenantId, key, cmd.ActorUserId, clock.UtcNow);
+        secret ??= NewSecret(cmd.ProjectId, cmd.TenantId, key, cmd.ActorUserId);
 
         var existingValue = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
         var valueId = existingValue?.Id ?? Guid.NewGuid();
@@ -475,7 +476,7 @@ public sealed class SoftwareSecretService(
 
         // The key exists without a SecretValue in any environment: it lists with zero environments, the
         // client read paths simply don't deliver it, and values are set later per environment as usual.
-        var secret = new SoftwareSecret(Guid.NewGuid(), projectId, tenantId, secretKey, actorUserId, clock.UtcNow);
+        var secret = NewSecret(projectId, tenantId, secretKey, actorUserId);
         db.SoftwareSecrets.Add(secret);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -547,6 +548,18 @@ public sealed class SoftwareSecretService(
     /// confirms the project's true owning tenant matches the current scope (catching a "right scope,
     /// foreign project" attempt even if the query filter were bypassed).
     /// </summary>
+    // A key an agent token creates remembers that token, which may then rename or delete it while it is empty.
+    private SoftwareSecret NewSecret(Guid projectId, Guid tenantId, SecretKey key, Guid? actorUserId)
+    {
+        var secret = new SoftwareSecret(Guid.NewGuid(), projectId, tenantId, key, actorUserId, clock.UtcNow);
+        if (actor is { Kind: ActorKind.Agent, TokenId: { } agentTokenId })
+        {
+            secret.MarkCreatedByAgent(agentTokenId);
+        }
+
+        return secret;
+    }
+
     private async Task EnsureAuthorizedAsync(Guid projectId, Permission action, CancellationToken ct)
     {
         var allowed = await authorization

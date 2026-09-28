@@ -17,6 +17,13 @@ public enum AgentScopes
 
     /// <summary>Request a secret value, which a human must approve per request.</summary>
     VaultReveal = 8,
+
+    /// <summary>
+    /// Set up software-client applications: create applications and environments, create/rename/delete secret
+    /// keys and set secret values (write-only). Separate from the vault scopes; reaches only the applications on
+    /// <see cref="AgentToken.AllowedApplications"/> and those the token created itself. Never app tokens.
+    /// </summary>
+    ManageApplications = 16,
 }
 
 /// <summary>
@@ -31,6 +38,7 @@ public enum AgentScopes
 public sealed class AgentToken
 {
     private readonly List<AgentTokenVaultAllowance> _allowedVaults = [];
+    private readonly List<AgentTokenApplicationAllowance> _allowedApplications = [];
 
     public Guid Id { get; private set; }
     public Guid TenantId { get; private set; }
@@ -63,6 +71,15 @@ public sealed class AgentToken
     public DateTimeOffset? RevokedAt { get; private set; }
 
     public IReadOnlyList<AgentTokenVaultAllowance> AllowedVaults => _allowedVaults;
+
+    /// <summary>The existing applications this token may manage (with <see cref="AgentScopes.ManageApplications"/>).</summary>
+    public IReadOnlyList<AgentTokenApplicationAllowance> AllowedApplications => _allowedApplications;
+
+    /// <summary>
+    /// Whether the token may create new applications (with <see cref="AgentScopes.ManageApplications"/>). An
+    /// application it creates stays reachable for it without an allowlist entry.
+    /// </summary>
+    public bool MayCreateApplications { get; private set; }
 
     public AgentToken(
         Guid id,
@@ -120,6 +137,16 @@ public sealed class AgentToken
         }
     }
 
+    public void AllowApplication(Guid projectId)
+    {
+        if (_allowedApplications.All(a => a.ProjectId != projectId))
+        {
+            _allowedApplications.Add(new AgentTokenApplicationAllowance(Id, projectId));
+        }
+    }
+
+    public void AllowCreatingApplications() => MayCreateApplications = true;
+
     public void Revoke(DateTimeOffset at) => RevokedAt ??= at;
 
     /// <summary>Replaces the secret (the previous token stops working immediately) with a fresh validity window.</summary>
@@ -145,6 +172,19 @@ public sealed class AgentToken
         LastRotatedAt = at;
         CreatedAt = at;
         ExpiresAt = expiresAt;
+    }
+}
+
+/// <summary>One existing application (software project) an agent token may manage. Deleted with the application or the token.</summary>
+public sealed class AgentTokenApplicationAllowance
+{
+    public Guid TokenId { get; private set; }
+    public Guid ProjectId { get; private set; }
+
+    public AgentTokenApplicationAllowance(Guid tokenId, Guid projectId)
+    {
+        TokenId = tokenId;
+        ProjectId = projectId;
     }
 }
 

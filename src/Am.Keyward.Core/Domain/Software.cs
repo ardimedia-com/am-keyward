@@ -17,6 +17,13 @@ public sealed class Project
     public Guid OwnerId { get; private set; }
     public string Name { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>
+    /// The agent token that created this application (null when a person did). Such a token keeps reaching it
+    /// without an allowlist entry, and may rename or delete it while it holds nothing a person put there.
+    /// </summary>
+    public Guid? CreatedByAgentTokenId { get; private set; }
+
     public IReadOnlyList<RuntimeEnvironment> Environments => _environments;
 
     public Project(Guid id, Guid tenantId, OwnerType ownerType, Guid ownerId, string name, DateTimeOffset createdAt)
@@ -48,6 +55,8 @@ public sealed class Project
 
         Name = name.Trim();
     }
+
+    public void MarkCreatedByAgent(Guid tokenId) => CreatedByAgentTokenId = tokenId;
 
     public RuntimeEnvironment AddEnvironment(Guid id, EnvironmentName name, DateTimeOffset createdAt)
     {
@@ -150,6 +159,13 @@ public sealed class SoftwareSecret
     public Guid? CreatedBy { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>
+    /// The agent token that created this key (null when a person did). That token may rename or delete the key
+    /// while it holds no value in any environment — never a key someone else created or filled.
+    /// </summary>
+    public Guid? CreatedByAgentTokenId { get; private set; }
+
     public IReadOnlyList<SecretValue> Values => _values;
 
     public SoftwareSecret(Guid id, Guid projectId, Guid tenantId, SecretKey key, Guid? createdBy, DateTimeOffset createdAt)
@@ -168,6 +184,8 @@ public sealed class SoftwareSecret
     /// that is a caller/UI concern, not an invariant of this aggregate.
     /// </summary>
     public void Rename(SecretKey key) => Key = key;
+
+    public void MarkCreatedByAgent(Guid tokenId) => CreatedByAgentTokenId = tokenId;
 
     /// <summary>Sets (or adds a new version of) this secret's value for a given environment.</summary>
     public SecretValue SetValue(Guid valueId, Guid environmentId, Guid versionId, EncryptedValue encrypted, DateTimeOffset at)

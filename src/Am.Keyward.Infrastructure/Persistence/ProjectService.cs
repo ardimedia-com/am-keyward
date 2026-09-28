@@ -20,7 +20,8 @@ public sealed class ProjectService(
     ICurrentTenant tenant,
     DbAuditSink audit,
     ISoftwareClientTokenService tokens,
-    ICurrentUser currentUser) : IProjectService
+    ICurrentUser currentUser,
+    ICurrentActor actor) : IProjectService
 {
     private const string ResourceType = "Project";
 
@@ -60,6 +61,10 @@ public sealed class ProjectService(
 
         var now = clock.UtcNow;
         var project = new Project(Guid.NewGuid(), tenantId, OwnerType.Tenant, tenantId, trimmed, now);
+        if (actor is { Kind: ActorKind.Agent, TokenId: { } agentTokenId })
+        {
+            project.MarkCreatedByAgent(agentTokenId);
+        }
 
         // The tenant's customized default set (Administration → Default environments); no rows = built-in.
         // Ordered by the set's display order so the project's environments inherit it (AddEnvironment

@@ -43,6 +43,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
     public DbSet<SoftwareClientToken> SoftwareClientTokens => Set<SoftwareClientToken>();
     public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
     public DbSet<AgentTokenVaultAllowance> AgentTokenVaultAllowances => Set<AgentTokenVaultAllowance>();
+    public DbSet<AgentTokenApplicationAllowance> AgentTokenApplicationAllowances => Set<AgentTokenApplicationAllowance>();
     public DbSet<RevealRequest> RevealRequests => Set<RevealRequest>();
     public DbSet<TokenDailyAccess> TokenDailyAccesses => Set<TokenDailyAccess>();
     public DbSet<TokenAccessIp> TokenAccessIps => Set<TokenAccessIp>();
@@ -184,6 +185,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
         {
             e.ToTable("SecretValues");
             e.HasKey(x => x.Id);
+            // Every new value moves CurrentVersionId, so it is the optimistic-concurrency token (the agent API's
+            // If-Match): two writers that started from the same version cannot both win.
+            e.Property(x => x.CurrentVersionId).IsConcurrencyToken();
             e.Property(x => x.Note).HasMaxLength(1024).IsRequired();
             e.HasIndex(x => new { x.SoftwareSecretId, x.EnvironmentId }).IsUnique(); // one value per (secret, environment)
             e.HasIndex(x => x.TenantId);
@@ -241,6 +245,18 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.HasIndex(x => new { x.TenantId, x.UserId });
             e.HasMany(x => x.AllowedVaults).WithOne().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
             e.Navigation(x => x.AllowedVaults).UsePropertyAccessMode(PropertyAccessMode.Field);
+            e.HasMany(x => x.AllowedApplications).WithOne().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
+            e.Navigation(x => x.AllowedApplications).UsePropertyAccessMode(PropertyAccessMode.Field);
+        });
+
+        // The application allowlist of an agent token (ManageApplications). Deleting the application or the token
+        // removes the row. Installation-global like the vault allowlist: read only through the token.
+        model.Entity<AgentTokenApplicationAllowance>(e =>
+        {
+            e.ToTable("AgentTokenApplicationAllowances");
+            e.HasKey(x => new { x.TokenId, x.ProjectId });
+            e.HasIndex(x => x.ProjectId);
+            e.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // The vault allowlist of an agent token. Deleting the vault or the token removes the row.

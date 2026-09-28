@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Agent tokens can be allowed to manage applications.** New permission «Manage applications»
+  (`AgentScopes.ManageApplications`), unticked by default and separate from the vault permissions. It needs a
+  user who may manage the software side, and an application allowlist and/or «may create new applications»;
+  an application the token creates stays reachable for it. Applications and keys an agent creates remember the
+  token (`CreatedByAgentTokenId`). Migration `AgentApplicationManagement`.
+
 ### Fixed
 
 - **Checkboxes no longer stretch across the row.** A host that widens every `<input>` (as the reference shell

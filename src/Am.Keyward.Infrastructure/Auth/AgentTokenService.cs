@@ -11,8 +11,9 @@ namespace Am.Keyward.Infrastructure.Auth;
 
 /// <summary>
 /// Issues, lists, rotates and revokes a user's own agent tokens. A token can only reach tenant vaults that
-/// allow agent access and on which its user holds at least Read at issuance; whether it may still reach them is
-/// decided again on every request (<see cref="AgentVaultAccess"/>).
+/// allow agent access and on which its user holds at least Read at issuance, and — with
+/// <see cref="AgentScopes.ManageApplications"/>, which only a software operator may hold — the tenant's
+/// applications it lists. Whether it may still reach them is decided again on every request.
 /// </summary>
 public sealed class AgentTokenService(
     IDbContextFactory<KeywardDbContext> dbFactory,
@@ -32,9 +33,20 @@ public sealed class AgentTokenService(
         EnsureScope(cmd.UserId, cmd.TenantId);
 
         var vaultIds = cmd.VaultIds.Distinct().ToList();
-        if (vaultIds.Count == 0)
+        var applicationIds = (cmd.ApplicationIds ?? []).Distinct().ToList();
+        var managesApplications = (cmd.Scopes & AgentScopes.ManageApplications) != 0;
+        if ((cmd.Scopes & AgentScopeGroups.Vault) != 0 ? vaultIds.Count == 0 : vaultIds.Count > 0)
         {
-            throw new ArgumentException("An agent token needs at least one vault.", nameof(cmd));
+            throw new ArgumentException(vaultIds.Count == 0
+                ? "An agent token with vault permissions needs at least one vault."
+                : "Vaults need at least one vault permission.", nameof(cmd));
+        }
+
+        if (managesApplications ? applicationIds.Count == 0 && !cmd.MayCreateApplications : applicationIds.Count > 0 || cmd.MayCreateApplications)
+        {
+            throw new ArgumentException(managesApplications
+                ? "Managing applications needs at least one application or the permission to create new ones."
+                : "Applications need the permission to manage applications.", nameof(cmd));
         }
 
         var now = clock.UtcNow;
@@ -47,12 +59,27 @@ public sealed class AgentTokenService(
             await EnsureVaultCanBeAllowedAsync(db, cmd.UserId, cmd.TenantId, vaultId, ct).ConfigureAwait(false);
         }
 
+        if (managesApplications)
+        {
+            await EnsureApplicationsCanBeAllowedAsync(db, cmd.UserId, cmd.TenantId, applicationIds, ct).ConfigureAwait(false);
+        }
+
         var generated = SoftwareClientTokenGenerator.Generate(Scheme);
         var token = new AgentToken(
             Guid.NewGuid(), cmd.TenantId, cmd.UserId, cmd.Name, generated.Prefix, generated.Hash, cmd.Scopes, networks, now, expiresAt);
         foreach (var vaultId in vaultIds)
         {
             token.AllowVault(vaultId);
+        }
+
+        foreach (var applicationId in applicationIds)
+        {
+            token.AllowApplication(applicationId);
+        }
+
+        if (cmd.MayCreateApplications)
+        {
+            token.AllowCreatingApplications();
         }
 
         db.AgentTokens.Add(token);
@@ -70,6 +97,7 @@ public sealed class AgentTokenService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var tokens = await db.AgentTokens.AsNoTracking()
             .Include(t => t.AllowedVaults)
+            .Include(t => t.AllowedApplications)
             .Where(t => t.UserId == userId && t.TenantId == tenantId)
             .OrderBy(t => t.Name)
             .ToListAsync(ct)
@@ -77,7 +105,8 @@ public sealed class AgentTokenService(
 
         return tokens
             .Select(t => new AgentTokenSummary(
-                t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(), t.AllowedNetworks,
+                t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(),
+                t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllowedNetworks,
                 t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now)))
             .ToList();
     }
@@ -137,6 +166,28 @@ public sealed class AgentTokenService(
         if (!await authorization.IsAllowedAsync(userId, new GrantScope(GrantScopeKind.Vault, vaultId), Permission.Read, ct).ConfigureAwait(false))
         {
             throw new UnauthorizedAccessException($"Not authorized for vault {vaultId}.");
+        }
+    }
+
+    // Managing applications is a software-operator task (the same predicate the application pages use), so only
+    // an operator can hand it to an agent. It is checked again on every request, since the role can be withdrawn.
+    private static async Task EnsureApplicationsCanBeAllowedAsync(
+        KeywardDbContext db, Guid userId, Guid tenantId, IReadOnlyList<Guid> applicationIds, CancellationToken ct)
+    {
+        if (!await SoftwareOperatorGuard.IsOperatorAsync(db, tenantId, userId, ct).ConfigureAwait(false))
+        {
+            throw new UnauthorizedAccessException("Only a user who may manage applications can give an agent token that permission.");
+        }
+
+        var found = await db.Projects.AsNoTracking()
+            .Where(p => applicationIds.Contains(p.Id) && p.TenantId == tenantId)
+            .Select(p => p.Id)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var missing = applicationIds.Except(found).ToList();
+        if (missing.Count > 0)
+        {
+            throw new InvalidOperationException($"Application {missing[0]} not found in tenant {tenantId}.");
         }
     }
 

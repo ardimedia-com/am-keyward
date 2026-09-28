@@ -13,10 +13,18 @@ public static class AgentTokenLifetime
 }
 
 /// <summary>
-/// Issues an agent token for <see cref="UserId"/> (the signed-in user, whom the token will act as). Every vault in
-/// <see cref="VaultIds"/> must be a tenant vault of <see cref="TenantId"/> that allows agent access and on which
-/// the user holds at least Read. <see cref="AllowedNetworks"/> is an optional comma-separated CIDR list;
-/// <see cref="ExpiresAt"/> defaults to <see cref="AgentTokenLifetime.Default"/>.
+/// Issues an agent token for <see cref="UserId"/> (the signed-in user, whom the token will act as).
+/// <para>
+/// Vault scopes need at least one vault in <see cref="VaultIds"/>; every one must be a tenant vault of
+/// <see cref="TenantId"/> that allows agent access and on which the user holds at least Read.
+/// </para>
+/// <para>
+/// <see cref="AgentScopes.ManageApplications"/> needs a user who may manage the software side, and at least one
+/// application in <see cref="ApplicationIds"/> or <see cref="MayCreateApplications"/>. Applications and the
+/// create flag without that scope are refused, as are vaults without a vault scope.
+/// </para>
+/// <see cref="AllowedNetworks"/> is an optional comma-separated CIDR list; <see cref="ExpiresAt"/> defaults to
+/// <see cref="AgentTokenLifetime.Default"/>.
 /// </summary>
 public sealed record IssueAgentTokenCommand(
     Guid UserId,
@@ -25,7 +33,15 @@ public sealed record IssueAgentTokenCommand(
     AgentScopes Scopes,
     IReadOnlyList<Guid> VaultIds,
     string? AllowedNetworks = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    IReadOnlyList<Guid>? ApplicationIds = null,
+    bool MayCreateApplications = false);
+
+/// <summary>The scopes that work on vault items (as opposed to <see cref="AgentScopes.ManageApplications"/>).</summary>
+public static class AgentScopeGroups
+{
+    public const AgentScopes Vault = AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite | AgentScopes.VaultReveal;
+}
 
 /// <summary>The plaintext token, shown exactly once.</summary>
 public sealed record IssuedAgentToken(Guid TokenId, string Token, DateTimeOffset ExpiresAt);
@@ -35,6 +51,8 @@ public sealed record AgentTokenSummary(
     string Name,
     AgentScopes Scopes,
     IReadOnlyList<Guid> VaultIds,
+    IReadOnlyList<Guid> ApplicationIds,
+    bool MayCreateApplications,
     string AllowedNetworks,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
