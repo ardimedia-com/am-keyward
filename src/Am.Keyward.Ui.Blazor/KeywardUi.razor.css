@@ -157,9 +157,13 @@
 
 .keyward-ui ::deep .btn-sm, .keyward-ui ::deep button.btn-sm { padding: .4rem .75rem; font-size: .85rem; }
 
-/* Forms */
+/* Forms. Text fields stretch to full width; checkboxes and radios keep their natural size (a stretched
+   checkbox sits centred in an empty row with its label pushed to the far right). */
 .keyward-ui ::deep label { font-size: .85rem; font-weight: 500; color: var(--kw-text); }
-.keyward-ui ::deep input, .keyward-ui ::deep select, .keyward-ui ::deep textarea {
+/* Hosts commonly stretch EVERY input globally (input { width: 100% }); undo that for checkboxes and radios so
+   the library looks right in any host. */
+.keyward-ui ::deep input[type="checkbox"], .keyward-ui ::deep input[type="radio"] { width: auto; padding: 0; }
+.keyward-ui ::deep input:not([type="checkbox"], [type="radio"]), .keyward-ui ::deep select, .keyward-ui ::deep textarea {
     width: 100%;
     box-sizing: border-box;
     padding: .5rem .65rem;

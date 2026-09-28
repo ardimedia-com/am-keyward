@@ -164,7 +164,7 @@ button.btn-danger:hover { background: color-mix(in srgb, var(--danger) 10%, tran
 /* Forms */
 label { font-size: .85rem; font-weight: 500; color: var(--text); }
 
-input, select, textarea {
+input:not([type="checkbox"], [type="radio"]), select, textarea {
     width: 100%;
     box-sizing: border-box;
     padding: .5rem .65rem;

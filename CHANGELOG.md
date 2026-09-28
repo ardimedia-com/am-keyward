@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **Checkboxes no longer stretch across the row.** A host that widens every `<input>` (as the reference shell
+  and the BVD toolbox do) pushed the label of «Open this vault to AI agent tokens» and of the agent-token
+  vault/permission choices to the far right. The UI now keeps checkboxes and radios at their natural size in any
+  host, and the vault's agent toggle shows its explanation beside the checkbox.
+
 ## [0.22.0-preview] - 2026-09-26
 
 ### Added

@@ -60,6 +60,11 @@
     gap: .45rem;
 }
 
+.choice input {
+    flex: none;
+    margin: 0;
+}
+
 .token-row {
     display: flex;
     flex-direction: column;

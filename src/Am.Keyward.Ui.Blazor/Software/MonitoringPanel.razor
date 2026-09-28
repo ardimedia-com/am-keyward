@@ -57,7 +57,7 @@ else
                     {
                         var index = i;
                         <label style="display:flex; gap:.3rem; align-items:center; font-weight:400; cursor:pointer;">
-                            <input type="checkbox" style="width:auto;" checked="@dayFlags[index]"
+                            <input type="checkbox" checked="@dayFlags[index]"
                                    @onchange="e => dayFlags[index] = e.Value is true" />
                             <span>@DayLabel(index)</span>
                         </label>
@@ -76,7 +76,7 @@ else
             </div>
 
             <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer; margin:.25rem 0 .75rem;">
-                <input type="checkbox" style="width:auto; margin-top:.2rem;" @bind="notifyRecovery" />
+                <input type="checkbox" style="margin-top:.2rem;" @bind="notifyRecovery" />
                 <span>@Loc["Monitor.Recovery.Label"]</span>
             </label>
 

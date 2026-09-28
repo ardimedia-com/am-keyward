@@ -239,9 +239,11 @@ else
                                 <div class="agent-access">
                                     <label class="agent-access-toggle">
                                         <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
-                                        @Loc["Vault.Agent.Allow"]
+                                        <span class="agent-access-text">
+                                            <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
+                                            <span class="muted">@Loc["Vault.Agent.Desc"]</span>
+                                        </span>
                                     </label>
-                                    <p class="muted">@Loc["Vault.Agent.Desc"]</p>
                                 </div>
                                 @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
                                 {
