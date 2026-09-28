@@ -17,4 +17,10 @@ public static class KeywardApiDefaults
     /// The UI serves it; the agent API hands it out so an assistant can point a person to the entry.
     /// </summary>
     public const string EntryLinkPath = "/amkeyward/e";
+
+    /// <summary>
+    /// Path of the applications page on the Keyward host. <c>?app={id}</c> opens one application, <c>&amp;tab=data</c>
+    /// its keys and values, <c>&amp;tab=tokens</c> its app tokens.
+    /// </summary>
+    public const string ApplicationsPath = "/amkeyward/applications";
 }

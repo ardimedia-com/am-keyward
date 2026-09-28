@@ -12,6 +12,16 @@ All notable changes to this project are documented here, following
   user who may manage the software side, and an application allowlist and/or «may create new applications»;
   an application the token creates stays reachable for it. Applications and keys an agent creates remember the
   token (`CreatedByAgentTokenId`). Migration `AgentApplicationManagement`.
+- **Agent API: applications for the software-client API.** `GET/POST /applications`, `GET/PATCH/DELETE
+  /applications/{id}`, `POST /applications/{id}/environments`, `POST /applications/{id}/secrets` (a placeholder
+  «not set», or with a value) and `PUT /applications/{id}/secrets/{key}` (`If-Match` with the value's version, or
+  `If-None-Match: *` while it holds none; 428 without, 412 when stale). Keys and applications can be renamed or
+  deleted only when the same token created them and they hold nothing a person put there (no value, no issued
+  app token). Responses carry only «value set yes/no», the version and the UI link — never a value. Every call
+  goes through the services the UI uses (one validator) and is audited as the agent; `GET /token` reports the
+  token's own permissions.
+- `ISoftwareSecretService.StoreAsync` returns the stored version and takes an optional `SecretValuePrecondition`
+  (optimistic concurrency on `SecretValue.CurrentVersionId`).
 
 ### Fixed
 

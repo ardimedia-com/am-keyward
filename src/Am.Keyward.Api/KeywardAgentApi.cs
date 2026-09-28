@@ -16,7 +16,8 @@ namespace Am.Keyward.Api;
 /// narrowed by the token's scopes and vault allowlist (see <see cref="AgentAuthenticationHandler"/>). Every
 /// vault or item endpoint decides access per request through <see cref="IAgentVaultAccess"/>; a vault or item
 /// the token may not reach answers exactly like one that does not exist (404), so the API is no existence
-/// oracle. No response ever carries a secret value.
+/// oracle. No response ever carries a secret value. The application endpoints live in
+/// <see cref="KeywardAgentApplicationsApi"/>.
 /// </summary>
 public static class KeywardAgentApi
 {
@@ -239,6 +240,9 @@ public static class KeywardAgentApi
             return Results.Ok(new AgentRevealValueResponse(requestId, state.ItemId, state.Field.ToString(), result.Value));
         });
 
+        // Applications for the software-client API (ManageApplications): see KeywardAgentApplicationsApi.
+        group.MapAgentApplications();
+
         return endpoints;
     }
 
@@ -294,7 +298,7 @@ public static class KeywardAgentApi
     private static bool TooLong(params string?[] fields) => fields.Any(f => f is { Length: > MaxFieldLength });
 
     // Accepts "guid", W/"guid" or a bare guid.
-    private static bool TryReadIfMatch(HttpContext http, out Guid version)
+    internal static bool TryReadIfMatch(HttpContext http, out Guid version)
     {
         var raw = http.Request.Headers.IfMatch.ToString().Trim();
         if (raw.StartsWith("W/", StringComparison.Ordinal))
@@ -336,16 +340,16 @@ public static class KeywardAgentApi
         return reachable;
     }
 
-    private static IResult NotFound() =>
+    internal static IResult NotFound() =>
         Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found.");
 
     // Set by AgentAuthenticationHandler for every authenticated agent request.
-    private static Guid TokenId(ClaimsPrincipal principal) =>
+    internal static Guid TokenId(ClaimsPrincipal principal) =>
         Guid.Parse(principal.FindFirstValue(AgentAuthenticationHandler.TokenIdClaim)!);
 
-    private static Guid UserId(ICurrentUser user) =>
+    internal static Guid UserId(ICurrentUser user) =>
         user.UserId ?? throw new InvalidOperationException("The agent handler did not establish the user scope.");
 
-    private static Guid TenantId(ICurrentTenant tenant) =>
+    internal static Guid TenantId(ICurrentTenant tenant) =>
         tenant.TenantId ?? throw new InvalidOperationException("The agent handler did not establish the tenant scope.");
 }

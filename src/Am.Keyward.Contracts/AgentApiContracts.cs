@@ -66,3 +66,64 @@ public sealed record AgentRevealStateResponse(Guid Id, Guid ItemId, string Field
 
 /// <summary>The revealed value — returned exactly once, never cached.</summary>
 public sealed record AgentRevealValueResponse(Guid RequestId, Guid ItemId, string Field, string Value);
+
+/// <summary>
+/// What <c>GET /token</c> tells an assistant about the token it holds: its permissions (scope names), how many vaults
+/// and applications it reaches, and whether it may create applications. For <c>amkeyward-mcp check</c>.
+/// </summary>
+public sealed record AgentTokenInfoResponse(
+    Guid Id,
+    string Name,
+    IReadOnlyList<string> Permissions,
+    int VaultCount,
+    int ApplicationCount,
+    bool MayCreateApplications,
+    string AllowedNetworks,
+    DateTimeOffset ExpiresAt);
+
+/// <summary>
+/// An application as the agent API shows it (<c>GET /applications</c>): environments and keys, and per environment
+/// only whether a value is set. <see cref="Link"/> opens it in the Keyward UI (where a person pastes values);
+/// <see cref="TokensLink"/> is where a person issues the app token — agents cannot.
+/// </summary>
+public sealed record AgentApplicationResponse(
+    Guid Id,
+    string Name,
+    bool CreatedByThisToken,
+    IReadOnlyList<string> Environments,
+    IReadOnlyList<AgentSecretKeyResponse> Keys,
+    string Link,
+    string TokensLink);
+
+/// <summary>One key; <see cref="CreatedByThisToken"/> keys may be renamed or deleted by the token while they hold no value.</summary>
+public sealed record AgentSecretKeyResponse(string Key, bool CreatedByThisToken, IReadOnlyList<AgentSecretValueStateResponse> Values);
+
+/// <summary>
+/// Whether <see cref="Environment"/> holds a value for the key. <see cref="VersionId"/> is the ETag to send as
+/// <c>If-Match</c> when replacing it; without a value, send <c>If-None-Match: *</c>. The value itself is never returned.
+/// </summary>
+public sealed record AgentSecretValueStateResponse(string Environment, bool ValueSet, Guid? VersionId);
+
+/// <summary>Creates an application (<c>POST /applications</c>). It starts with the tenant's default environments; others listed here are added.</summary>
+public sealed record AgentCreateApplicationRequest(string Name, IReadOnlyList<string>? Environments = null);
+
+/// <summary>Renames an application the token created (<c>PATCH /applications/{id}</c>).</summary>
+public sealed record AgentRenameApplicationRequest(string Name);
+
+/// <summary>Adds an environment (<c>POST /applications/{id}/environments</c>).</summary>
+public sealed record AgentAddEnvironmentRequest(string Name);
+
+/// <summary>
+/// Creates a key (<c>POST /applications/{id}/secrets</c>). Without <see cref="Value"/> it is a placeholder («not
+/// set») for a person to fill; with one, <see cref="Environment"/> is required. The value is never echoed.
+/// </summary>
+public sealed record AgentCreateSecretRequest(string Key, string? Environment = null, string? Value = null);
+
+/// <summary>Sets a key's value in one environment (<c>PUT /applications/{id}/secrets/{key}</c>, with If-Match or If-None-Match: *).</summary>
+public sealed record AgentSetSecretValueRequest(string Environment, string Value);
+
+/// <summary>Renames a key the token created and that holds no value (<c>PATCH /applications/{id}/secrets/{key}</c>).</summary>
+public sealed record AgentRenameSecretRequest(string Key);
+
+/// <summary>Result of creating a key or setting a value: never the value, only whether one is set, its version (also the ETag) and the UI link.</summary>
+public sealed record AgentSecretWrittenResponse(Guid ApplicationId, string Key, string? Environment, bool ValueSet, Guid? VersionId, string Link);

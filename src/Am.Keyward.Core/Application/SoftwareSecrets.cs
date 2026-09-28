@@ -12,14 +12,31 @@ public interface ISecretReadRecorder
     void Record(Guid tenantId, Guid secretId, Guid environmentId, SecretReadSource source);
 }
 
-/// <summary>Stores (creates or versions) a software secret's value for one project environment.</summary>
+/// <summary>
+/// Stores (creates or versions) a software secret's value for one project environment. With a
+/// <see cref="Precondition"/> the store only happens while the value is still at the expected version.
+/// </summary>
 public sealed record StoreSoftwareSecretCommand(
     Guid TenantId,
     Guid ProjectId,
     string Environment,
     string Key,
     string Value,
-    Guid? ActorUserId);
+    Guid? ActorUserId,
+    SecretValuePrecondition? Precondition = null);
+
+/// <summary>
+/// Optimistic concurrency for a store: the environment's value must still be at <see cref="ExpectedVersionId"/>;
+/// null means it must hold no value yet. A mismatch — also one that happens during the save — throws
+/// <see cref="SecretValueVersionConflictException"/>.
+/// </summary>
+public sealed record SecretValuePrecondition(Guid? ExpectedVersionId);
+
+/// <summary>The version a store produced. Never carries the value.</summary>
+public sealed record StoredSecretValue(Guid SecretId, Guid EnvironmentId, Guid VersionId, int VersionNumber);
+
+public sealed class SecretValueVersionConflictException(string key, string environment)
+    : InvalidOperationException($"The value of '{key}' in '{environment}' was changed in the meantime; read it again and reapply the change.");
 
 /// <summary>Reads the current value of a software secret for one project environment.</summary>
 public sealed record ReadSoftwareSecretQuery(
@@ -61,7 +78,7 @@ public sealed record SoftwareSecretDetail(string Key, IReadOnlyList<SecretEnviro
 /// <summary>Application service for the software-credentials use case (encrypt-and-store / read-and-decrypt).</summary>
 public interface ISoftwareSecretService
 {
-    Task StoreAsync(StoreSoftwareSecretCommand command, CancellationToken ct = default);
+    Task<StoredSecretValue> StoreAsync(StoreSoftwareSecretCommand command, CancellationToken ct = default);
 
     Task<string?> ReadAsync(ReadSoftwareSecretQuery query, CancellationToken ct = default);
 

@@ -133,7 +133,7 @@ public sealed class SoftwareSecretService(
         await tokens.CreatePendingAsync(tenantId, projectId, environment.Id, actorUserId, ct).ConfigureAwait(false);
     }
 
-    public async Task StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
+    public async Task<StoredSecretValue> StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
@@ -153,6 +153,11 @@ public sealed class SoftwareSecretService(
         secret ??= NewSecret(cmd.ProjectId, cmd.TenantId, key, cmd.ActorUserId);
 
         var existingValue = secret.Values.FirstOrDefault(v => v.EnvironmentId == environment.Id);
+        if (cmd.Precondition is { } precondition && existingValue?.CurrentVersionId != precondition.ExpectedVersionId)
+        {
+            throw new SecretValueVersionConflictException(key.Value, environment.Name.Value);
+        }
+
         var valueId = existingValue?.Id ?? Guid.NewGuid();
         var versionId = Guid.NewGuid();
 
@@ -178,7 +183,44 @@ public sealed class SoftwareSecretService(
         await audit.AppendAsync(
             db, new AuditRequest(cmd.TenantId, AuditAction.Update, "SoftwareSecret", secret.Id, cmd.ActorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex) when (cmd.Precondition is not null)
+        {
+            // A concurrent writer that started from the same version: depending on which statement loses, that
+            // surfaces as the concurrency token (CurrentVersionId), the unique (SecretValueId, VersionNumber) or
+            // (SoftwareSecretId, EnvironmentId) index, or the unique key of a secret created twice.
+            if (await MovedPastAsync(cmd.ProjectId, key, environment.Id, cmd.Precondition.ExpectedVersionId, ex, ct).ConfigureAwait(false))
+            {
+                throw new SecretValueVersionConflictException(key.Value, environment.Name.Value);
+            }
+
+            throw;
+        }
+
+        return new StoredSecretValue(secret.Id, environment.Id, secretValue.Current.Id, secretValue.Current.VersionNumber);
+    }
+
+    // Decides whether a failed save lost a race: true when the value is no longer at the version the store started
+    // from. Anything else is a real failure and propagates unchanged.
+    private async Task<bool> MovedPastAsync(
+        Guid projectId, SecretKey key, Guid environmentId, Guid? expectedVersionId, DbUpdateException ex, CancellationToken ct)
+    {
+        if (ex is DbUpdateConcurrencyException)
+        {
+            return true;
+        }
+
+        await using var fresh = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var current = await fresh.SecretValues.AsNoTracking()
+            .Where(v => v.EnvironmentId == environmentId
+                && fresh.SoftwareSecrets.Any(s => s.Id == v.SoftwareSecretId && s.ProjectId == projectId && s.Key == key))
+            .Select(v => v.CurrentVersionId)
+            .FirstOrDefaultAsync(ct)
+            .ConfigureAwait(false);
+        return current != expectedVersionId;
     }
 
     public async Task<string?> ReadAsync(ReadSoftwareSecretQuery query, CancellationToken ct = default)
