@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.23.1-preview] - 2026-10-01
+
+### Fixed
+
+- **A lost race on a software secret value no longer stalls the tenant for 30 seconds.** When two writers set the
+  same value from the same version, the loser's audit-chain lock stayed on its pooled database connection, so every
+  following audited write of that tenant waited for the lock timeout (and failed). EF reports that loss through
+  neither «saved» nor «failed», and closing a pooled connection does not end its session; the audit interceptor now
+  discards such a connection from the pool, which ends the session and the lock with it, and releases any lock still
+  held before EF closes or disposes a connection.
+
 ## [0.23.0-preview] - 2026-09-30
 
 ### Added

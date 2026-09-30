@@ -289,6 +289,17 @@ public class AgentApiTests
 
         var results = await Task.WhenAll(Enumerable.Range(1, 6).Select(i => PatchAsync($"v{i}")));
         Assert.AreEqual(1, results.Count(r => r), "Exactly one writer may move the item past the version all of them started from.");
+
+        // The losers must not leave the tenant's audit chain lock behind: the next audited write goes through at once
+        // instead of waiting for the 30-second lock timeout.
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            var current = (await vaults.GetItemReferenceAsync(owner, itemId))!.VersionId;
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+            await vaults.PatchItemAsync(new PatchVaultItemCommand(owner, itemId, current, Value: "after-the-race"));
+            Assert.IsLessThan(10, watch.Elapsed.TotalSeconds, "A lost race left the audit chain lock held.");
+        }
     }
 
     internal const string TestClientIpHeader = "X-Test-Client-Ip";

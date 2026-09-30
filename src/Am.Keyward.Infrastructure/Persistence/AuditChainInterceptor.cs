@@ -3,6 +3,7 @@ using System.Data.Common;
 using System.Runtime.CompilerServices;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Audit;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
@@ -12,11 +13,12 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// The single writer for the audit hash chain. At SaveChanges it assigns each pending
 /// <see cref="AuditEntry"/> its per-tenant sequence number and chained hashes while holding a
 /// session-scoped SQL Server application lock, so concurrent writers — even across instances — cannot fork
-/// a tenant's chain or collide on its sequence. The lock is released after commit (or on failure).
+/// a tenant's chain or collide on its sequence. The lock is released after commit (or on failure), and in any
+/// case before the context's connection is disposed.
 /// One scoped instance is shared by every context the scope's factory creates, so the per-save state
 /// (opened connection, held locks) is keyed per context — never held in instance fields.
 /// </summary>
-public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor
+public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor, IDbConnectionInterceptor
 {
     // Per-tenant lock resource: appends for different tenants serialize on different locks and no longer
     // contend on one installation-wide lock. The tenant-less (personal/system) chain shares one resource.
@@ -140,9 +142,74 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         await ReleaseAsync(eventData.Context).ConfigureAwait(false);
     }
 
+    // A lost optimistic-concurrency race (a concurrency token matched no row) reaches neither SavedChanges nor
+    // SaveChangesFailed: EF throws DbUpdateConcurrencyException while its data reader is still open — so no release
+    // command can run on that connection — and then closes it. Closing does not end a pooled connection's session,
+    // so the session lock would stay on the pooled connection and every later audited write of the tenant would
+    // wait for the lock timeout. Instead the physical connection is taken out of the pool: when it is closed it is
+    // destroyed, its session ends, and SQL Server releases the lock with it. Rare by nature, so the cost of the
+    // pool rebuilding a connection does not matter.
+    public override ValueTask<InterceptionResult> ThrowingConcurrencyExceptionAsync(
+        ConcurrencyExceptionEventData eventData, InterceptionResult result, CancellationToken ct = default)
+    {
+        DiscardWithLocks(eventData.Context, eventData.Context?.Database.GetDbConnection());
+        return ValueTask.FromResult(result);
+    }
+
+    public override InterceptionResult ThrowingConcurrencyException(ConcurrencyExceptionEventData eventData, InterceptionResult result)
+    {
+        DiscardWithLocks(eventData.Context, eventData.Context?.Database.GetDbConnection());
+        return result;
+    }
+
+    // The safety net for any other path that leaves a lock behind: before EF closes or disposes the connection,
+    // release what is still held for the context — or, if the connection is already closed, discard it as above.
+    ValueTask<InterceptionResult> IDbConnectionInterceptor.ConnectionClosingAsync(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result) =>
+        ReleaseBeforeCloseAsync(eventData.Context, connection, result);
+
+    InterceptionResult IDbConnectionInterceptor.ConnectionClosing(DbConnection connection, ConnectionEventData eventData, InterceptionResult result) =>
+        ReleaseBeforeCloseAsync(eventData.Context, connection, result).AsTask().GetAwaiter().GetResult();
+
+    ValueTask<InterceptionResult> IDbConnectionInterceptor.ConnectionDisposingAsync(
+        DbConnection connection, ConnectionEventData eventData, InterceptionResult result) =>
+        ReleaseBeforeCloseAsync(eventData.Context, connection, result);
+
+    InterceptionResult IDbConnectionInterceptor.ConnectionDisposing(DbConnection connection, ConnectionEventData eventData, InterceptionResult result) =>
+        ReleaseBeforeCloseAsync(eventData.Context, connection, result).AsTask().GetAwaiter().GetResult();
+
+    // The context may already be disposed here, so the connection comes from the event; EF closes it itself.
+    private async ValueTask<InterceptionResult> ReleaseBeforeCloseAsync(DbContext? context, DbConnection connection, InterceptionResult result)
+    {
+        if (connection.State == ConnectionState.Open)
+        {
+            await ReleaseAsync(context, connection, closeConnection: false).ConfigureAwait(false);
+        }
+        else
+        {
+            DiscardWithLocks(context, connection);
+        }
+
+        return result;
+    }
+
+    private void DiscardWithLocks(DbContext? context, DbConnection? connection)
+    {
+        if (context is null || !states.TryGetValue(context, out var state) || state.HeldLocks.Count == 0)
+        {
+            return;
+        }
+
+        states.Remove(context);
+        if (connection is SqlConnection sql)
+        {
+            SqlConnection.ClearPool(sql);
+        }
+    }
+
     // Deliberately ignores the caller's cancellation token: releasing the lock must happen even when the save
     // was cancelled, otherwise the cancelled request would keep the tenant's chain locked.
-    private async Task ReleaseAsync(DbContext? context)
+    private async Task ReleaseAsync(DbContext? context, DbConnection? eventConnection = null, bool closeConnection = true)
     {
         if (context is null || !states.TryGetValue(context, out var state))
         {
@@ -151,7 +218,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
 
         states.Remove(context);
 
-        var connection = context.Database.GetDbConnection();
+        var connection = eventConnection ?? context.Database.GetDbConnection();
         if (state.HeldLocks.Count > 0 && connection is { State: ConnectionState.Open })
         {
             foreach (var resource in state.HeldLocks)
@@ -162,12 +229,13 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
                 }
                 catch
                 {
-                    // Best-effort: closing the connection (or session end) releases a session-scoped lock anyway.
+                    // Best-effort: the session end releases a session-scoped lock. A close alone does not — a
+                    // pooled connection keeps its session, and the lock with it, until it is reused or evicted.
                 }
             }
         }
 
-        if (state.ConnectionOpenedHere is not null)
+        if (closeConnection && state.ConnectionOpenedHere is not null)
         {
             await state.ConnectionOpenedHere.CloseAsync().ConfigureAwait(false);
         }
