@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.23.0-preview] - 2026-09-30
+
 ### Added
 
 - **Agent tokens can be allowed to manage applications.** New permission «Manage applications»
