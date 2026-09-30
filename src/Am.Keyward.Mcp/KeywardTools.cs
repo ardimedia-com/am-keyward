@@ -7,7 +7,9 @@ namespace Am.Keyward.Mcp;
 
 /// <summary>
 /// The MCP tools. Every answer is plain text for the assistant and NEVER contains a secret value: creating and
-/// updating send values without echoing them, and a revealed value goes to the clipboard only.
+/// updating send values without echoing them, and a revealed value goes to the clipboard only. The application
+/// tools set up an application for the software-client API and answer with the link where a person pastes the
+/// values and issues the app token.
 /// </summary>
 [McpServerToolType]
 internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard clipboard)
@@ -174,6 +176,91 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         clipboard.CopyAndClearLater(result.Value!.Value, ClipboardLifetime);
         return $"The {result.Value.Field.ToLowerInvariant()} is on the clipboard for {ClipboardLifetime.TotalSeconds:0} seconds. "
             + "Tell the person to paste it now; the value was not shared with you.";
+    }
+
+    [McpServerTool(Name = "list_applications", ReadOnly = true), Description("Lists the KEYWARD applications (software-client API) this agent token may manage: environments, keys and per environment whether a value is set. Never a value.")]
+    public async Task<string> ListApplicationsAsync(CancellationToken ct)
+    {
+        var result = await keyward.ListApplicationsAsync(ct);
+        if (!result.Ok) return result.Error!;
+        return result.Value is { Count: > 0 } applications
+            ? string.Join("\n\n", applications.Select(Describe))
+            : "No application is reachable with this token.";
+    }
+
+    [McpServerTool(Name = "create_application"), Description("Creates an application for the software-client API (the token needs «may create new applications»). It starts with the tenant's default environments; environments listed here are added. Answers with the link for the person.")]
+    public async Task<string> CreateApplicationAsync(
+        [Description("Application name, e.g. the program that reads the secrets (Am.PionexCom.Cmd.BotWatch).")] string name,
+        [Description("Environments it needs, e.g. [\"Production\"].")] string[]? environments = null,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.CreateApplicationAsync(new AgentCreateApplicationRequest(name, environments), ct);
+        return result.Ok ? $"Created.\n{Describe(result.Value!)}" : result.Error!;
+    }
+
+    [McpServerTool(Name = "add_environment"), Description("Adds an environment (e.g. Staging) to an application.")]
+    public async Task<string> AddEnvironmentAsync(
+        [Description("The application id from list_applications.")] Guid applicationId,
+        [Description("Environment name.")] string name,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.AddEnvironmentAsync(applicationId, new AgentAddEnvironmentRequest(name), ct);
+        return result.Ok ? $"Environment added.\n{Describe(result.Value!)}" : result.Error!;
+    }
+
+    [McpServerTool(Name = "create_secret_key"), Description("Creates a secret key in an application as a placeholder («not set»), e.g. Section:ApiKey. The person pastes the value in KEYWARD via the returned link. Prefer this over set_secret_value whenever you do not legitimately hold the value.")]
+    public async Task<string> CreateSecretKeyAsync(
+        [Description("The application id from list_applications.")] Guid applicationId,
+        [Description("The configuration key, e.g. PionexOwnerBotWatch:ApiKey.")] string key,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.CreateSecretAsync(applicationId, new AgentCreateSecretRequest(key), ct);
+        return result.Ok
+            ? $"Key {result.Value!.Key} created, not set yet. Link for the person to paste the value: {keyward.AbsoluteLink(result.Value.Link)}"
+            : result.Error!;
+    }
+
+    [McpServerTool(Name = "set_secret_value"), Description("Sets a secret key's value in one environment, write-only (the value is never shown back). The value must NOT come from the chat unless the user explicitly provided it for exactly this purpose; if you do not legitimately hold it, use create_secret_key and give the person the link instead. Creates the key if it does not exist yet.")]
+    public async Task<string> SetSecretValueAsync(
+        [Description("The application id from list_applications.")] Guid applicationId,
+        [Description("The configuration key, e.g. PionexOwnerBotWatch:ApiSecret.")] string key,
+        [Description("The environment, e.g. Production.")] string environment,
+        [Description("The value.")] string value,
+        CancellationToken ct = default)
+    {
+        var current = await keyward.GetApplicationAsync(applicationId, ct);
+        if (!current.Ok) return current.Error!;
+
+        var existing = current.Value!.Keys.FirstOrDefault(k => string.Equals(k.Key, key, StringComparison.OrdinalIgnoreCase));
+        var result = existing is null
+            ? await keyward.CreateSecretAsync(applicationId, new AgentCreateSecretRequest(key, environment, value), ct)
+            : await keyward.SetSecretValueAsync(applicationId, existing.Key, new AgentSetSecretValueRequest(environment, value),
+                existing.Values.FirstOrDefault(v => string.Equals(v.Environment, environment, StringComparison.OrdinalIgnoreCase))?.VersionId, ct);
+        return result.Ok
+            ? $"Value of {result.Value!.Key} in {result.Value.Environment} set (version {result.Value.VersionId}). Link for the person: {keyward.AbsoluteLink(result.Value.Link)}"
+            : result.Error!;
+    }
+
+    // Names, environments and «set / not set» only — the API never sends a value, and neither does this text.
+    private string Describe(AgentApplicationResponse application)
+    {
+        var text = new StringBuilder()
+            .AppendLine($"{application.Name}  ({application.Id}){(application.CreatedByThisToken ? "  [created by this token]" : "")}")
+            .AppendLine($"  Environments: {string.Join(", ", application.Environments)}");
+        if (application.Keys.Count == 0)
+        {
+            text.AppendLine("  Keys: none");
+        }
+
+        foreach (var key in application.Keys)
+        {
+            var states = key.Values.Select(v => $"{v.Environment}={(v.ValueSet ? "set" : "not set")}");
+            text.AppendLine($"  {key.Key}: {string.Join(", ", states)}");
+        }
+
+        text.AppendLine($"  Link (keys and values): {keyward.AbsoluteLink(application.Link)}")
+            .Append($"  App tokens are issued by a person here: {keyward.AbsoluteLink(application.TokensLink)}");
+        return text.ToString();
     }
 
     private string Written(string verb, AgentItemWrittenResponse written) =>

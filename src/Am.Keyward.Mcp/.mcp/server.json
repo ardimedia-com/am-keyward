@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.ardimedia-com/am-keyward",
-  "description": "Work with AM KEYWARD vault entries through an agent token; secrets are revealed only after human approval and only to the clipboard.",
+  "description": "Work with AM KEYWARD vault entries and set up applications through an agent token; values are write-only, secrets revealed only after human approval and only to the clipboard.",
   "version": "0.0.0",
   "packages": [
     {

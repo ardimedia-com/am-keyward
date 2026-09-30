@@ -54,11 +54,39 @@ internal sealed class KeywardAgentClient(HttpClient http)
     public Task<AgentResult<AgentRevealValueResponse>> ConsumeRevealAsync(Guid requestId, CancellationToken ct) =>
         SendAsync<AgentRevealValueResponse>(HttpMethod.Post, $"/reveal-requests/{requestId}/consume", null, null, ct);
 
+    public Task<AgentResult<AgentTokenInfoResponse>> TokenInfoAsync(CancellationToken ct) =>
+        SendAsync<AgentTokenInfoResponse>(HttpMethod.Get, "/token", null, null, ct);
+
+    public Task<AgentResult<List<AgentApplicationResponse>>> ListApplicationsAsync(CancellationToken ct) =>
+        SendAsync<List<AgentApplicationResponse>>(HttpMethod.Get, "/applications", null, null, ct);
+
+    public Task<AgentResult<AgentApplicationResponse>> GetApplicationAsync(Guid applicationId, CancellationToken ct) =>
+        SendAsync<AgentApplicationResponse>(HttpMethod.Get, $"/applications/{applicationId}", null, null, ct);
+
+    public Task<AgentResult<AgentApplicationResponse>> CreateApplicationAsync(AgentCreateApplicationRequest body, CancellationToken ct) =>
+        SendAsync<AgentApplicationResponse>(HttpMethod.Post, "/applications", body, null, ct);
+
+    public Task<AgentResult<AgentApplicationResponse>> AddEnvironmentAsync(Guid applicationId, AgentAddEnvironmentRequest body, CancellationToken ct) =>
+        SendAsync<AgentApplicationResponse>(HttpMethod.Post, $"/applications/{applicationId}/environments", body, null, ct);
+
+    public Task<AgentResult<AgentSecretWrittenResponse>> CreateSecretAsync(Guid applicationId, AgentCreateSecretRequest body, CancellationToken ct) =>
+        SendAsync<AgentSecretWrittenResponse>(HttpMethod.Post, $"/applications/{applicationId}/secrets", body, null, ct);
+
+    /// <summary>
+    /// Sets a value: <paramref name="versionId"/> is the value's current version (If-Match), or null while the
+    /// environment holds no value yet (If-None-Match: *).
+    /// </summary>
+    public Task<AgentResult<AgentSecretWrittenResponse>> SetSecretValueAsync(
+        Guid applicationId, string key, AgentSetSecretValueRequest body, Guid? versionId, CancellationToken ct) =>
+        SendAsync<AgentSecretWrittenResponse>(HttpMethod.Put, $"/applications/{applicationId}/secrets/{Uri.EscapeDataString(key)}", body, versionId, ct,
+            ifNoneMatchAny: versionId is null);
+
     /// <summary>The absolute deep link to an item, for handing to a person.</summary>
     public string AbsoluteLink(string link) =>
         http.BaseAddress is null ? link : new Uri(http.BaseAddress, link).ToString();
 
-    private async Task<AgentResult<T>> SendAsync<T>(HttpMethod method, string path, object? body, Guid? ifMatch, CancellationToken ct)
+    private async Task<AgentResult<T>> SendAsync<T>(
+        HttpMethod method, string path, object? body, Guid? ifMatch, CancellationToken ct, bool ifNoneMatchAny = false)
     {
         using var request = new HttpRequestMessage(method, Prefix + path);
         if (body is not null)
@@ -69,6 +97,11 @@ internal sealed class KeywardAgentClient(HttpClient http)
         if (ifMatch is { } version)
         {
             request.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{version}\""));
+        }
+
+        if (ifNoneMatchAny)
+        {
+            request.Headers.IfNoneMatch.Add(EntityTagHeaderValue.Any);
         }
 
         HttpResponseMessage response;
@@ -102,6 +135,7 @@ internal sealed class KeywardAgentClient(HttpClient http)
         {
             HttpStatusCode.Unauthorized => "The agent token was refused (wrong, expired or revoked, or its user is disabled).",
             HttpStatusCode.NotFound => "Not found — or outside what this agent token may reach.",
+            HttpStatusCode.Forbidden => "This agent token may not do that.",
             HttpStatusCode.TooManyRequests => "Too many requests; wait a moment.",
             _ => null,
         };

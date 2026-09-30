@@ -25,6 +25,10 @@ All notable changes to this project are documented here, following
   count only with a vault ticked, so an applications-only token needs no unticking. Texts in all six languages.
 - **Link to one application:** `/amkeyward/applications?app={id}&tab=data` (or `tokens`, …) opens it on that tab —
   the link the agent API hands to a person.
+- **MCP server: application tools.** `list_applications`, `create_application`, `add_environment`,
+  `create_secret_key` (placeholder for a person to fill) and `set_secret_value` (write-only; its description tells
+  the assistant never to take the value from the chat unless the user gave it for exactly this purpose). Every
+  answer carries the UI link. `amkeyward-mcp check` now also prints the token's permissions and what it reaches.
 - `ISoftwareSecretService.StoreAsync` returns the stored version and takes an optional `SecretValuePrecondition`
   (optimistic concurrency on `SecretValue.CurrentVersionId`).
 

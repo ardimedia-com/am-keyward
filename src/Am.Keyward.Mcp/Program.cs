@@ -56,9 +56,20 @@ internal static class KeywardMcpHost
         if (command == "check")
         {
             using var host = builder.Build();
-            var ping = await host.Services.GetRequiredService<KeywardAgentClient>().PingAsync(CancellationToken.None);
-            Console.Error.WriteLine(ping.Ok ? $"OK — the agent token works against {baseAddress}." : ping.Error);
-            return ping.Ok ? 0 : 1;
+            var client = host.Services.GetRequiredService<KeywardAgentClient>();
+            var ping = await client.PingAsync(CancellationToken.None);
+            if (!ping.Ok)
+            {
+                Console.Error.WriteLine(ping.Error);
+                return 1;
+            }
+
+            Console.Error.WriteLine($"OK — the agent token works against {baseAddress}.");
+            var info = await client.TokenInfoAsync(CancellationToken.None);
+            Console.Error.WriteLine(info.Ok
+                ? CheckReport.Describe(info.Value!)
+                : $"(Permissions not shown: {info.Error} — the KEYWARD host may run an older version.)");
+            return 0;
         }
 
         builder.Services
