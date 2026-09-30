@@ -20,6 +20,11 @@ All notable changes to this project are documented here, following
   app token). Responses carry only «value set yes/no», the version and the UI link — never a value. Every call
   goes through the services the UI uses (one validator) and is audited as the agent; `GET /token` reports the
   token's own permissions.
+- **«Agent tokens» page: section «Applications».** A user who may manage applications can tick «Manage
+  applications», pick the applications and allow creating new ones; the token list shows them. Vault permissions
+  count only with a vault ticked, so an applications-only token needs no unticking. Texts in all six languages.
+- **Link to one application:** `/amkeyward/applications?app={id}&tab=data` (or `tokens`, …) opens it on that tab —
+  the link the agent API hands to a person.
 - `ISoftwareSecretService.StoreAsync` returns the stored version and takes an optional `SecretValuePrecondition`
   (optimistic concurrency on `SecretValue.CurrentVersionId`).
 

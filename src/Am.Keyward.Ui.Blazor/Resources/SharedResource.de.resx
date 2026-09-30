@@ -1034,4 +1034,19 @@
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Wenn du diese Anfrage nicht erwartet hast, lehne sie ab und widerrufe den Token.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Jetzt entscheiden</value></data>
   <data name="Email.Reveal.Footer" xml:space="preserve"><value>Du erhältst diese Nachricht, weil ein von dir ausgestellter Agent-Token die Anfrage gestellt hat.</value></data>
+  <data name="AgentTokens.Applications" xml:space="preserve">
+    <value>Applikationen</value>
+  </data>
+  <data name="AgentTokens.Scope.ManageApplications" xml:space="preserve">
+    <value>Applikationen verwalten</value>
+  </data>
+  <data name="AgentTokens.Applications.Desc" xml:space="preserve">
+    <value>Applikationen, Umgebungen und Schlüssel anlegen und Werte setzen – nur schreibend: Der Assistent liest nie einen Wert zurück und kann keine Client-Tokens ausstellen. Nur die hier angekreuzten Applikationen und die, die er selbst anlegt.</value>
+  </data>
+  <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
+    <value>Darf neue Applikationen anlegen</value>
+  </data>
+  <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
+    <value>+ neue Applikationen</value>
+  </data>
 </root>

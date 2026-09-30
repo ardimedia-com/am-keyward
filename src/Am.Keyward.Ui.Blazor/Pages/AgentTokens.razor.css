@@ -65,6 +65,34 @@
     margin: 0;
 }
 
+/* A choice with an explanation under its label: the checkbox aligns with the label's first line. */
+.choice-described {
+    align-items: flex-start;
+}
+
+.choice-described input {
+    margin-top: .2rem;
+}
+
+.choice-text {
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+    min-width: 0;
+}
+
+.choice-text .muted {
+    font-weight: 400;
+}
+
+/* The applications under «Manage applications», indented to the label. */
+.choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin: .2rem 0 0 1.45rem;
+}
+
 .token-row {
     display: flex;
     flex-direction: column;

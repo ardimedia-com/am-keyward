@@ -908,4 +908,19 @@
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Si vous n'attendiez pas cette demande, refusez-la et révoquez le jeton.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Décider maintenant</value></data>
   <data name="Email.Reveal.Footer" xml:space="preserve"><value>Vous recevez ce message car un jeton d'agent que vous avez émis a fait la demande.</value></data>
+  <data name="AgentTokens.Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="AgentTokens.Scope.ManageApplications" xml:space="preserve">
+    <value>Gérer les applications</value>
+  </data>
+  <data name="AgentTokens.Applications.Desc" xml:space="preserve">
+    <value>Créer des applications, des environnements et des clés, et définir des valeurs — en écriture seule : l'assistant ne relit jamais une valeur et ne peut pas émettre de jetons client. Uniquement les applications cochées ici, plus celles qu'il crée lui-même.</value>
+  </data>
+  <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
+    <value>Peut créer de nouvelles applications</value>
+  </data>
+  <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
+    <value>+ nouvelles applications</value>
+  </data>
 </root>

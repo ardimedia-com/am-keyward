@@ -278,6 +278,15 @@
 
     private ProjectInfo? SelectedApp => apps?.FirstOrDefault(a => a.Id == selectedAppId);
 
+    // Deep link (e.g. handed out by the agent API): ?app={id} opens that application, &tab=data|tokens|… a tab.
+    [SupplyParameterFromQuery(Name = "app")]
+    public Guid? LinkedAppId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "tab")]
+    public string? LinkedTab { get; set; }
+
+    private (Guid? App, string? Tab)? appliedLink;
+
     protected override async Task OnInitializedAsync()
     {
         actorUserId = CurrentUser.UserId;
@@ -291,13 +300,35 @@
         canManage = await ProjectService.CanManageAsync(tenantId, actorUserId.Value);
         await ReloadAppsAsync();
         var remembered = UiState.SelectedProjectId;
-        if (apps!.Any(a => a.Id == remembered))
+        if (LinkedAppId is not null && apps!.Any(a => a.Id == LinkedAppId))
+        {
+            // Applied in OnParametersSetAsync.
+        }
+        else if (apps!.Any(a => a.Id == remembered))
         {
             await SelectAppAsync(remembered!.Value);
         }
         else if (apps is { Count: 1 })
         {
             await SelectAppAsync(apps[0].Id);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (apps is null || appliedLink == (LinkedAppId, LinkedTab))
+        {
+            return;
+        }
+
+        appliedLink = (LinkedAppId, LinkedTab);
+        if (LinkedAppId is { } appId && apps.Any(a => a.Id == appId))
+        {
+            await SelectAppAsync(appId);
+            if (canManage && AppTabs.Any(t => t.Key == LinkedTab))
+            {
+                appTab = LinkedTab!;
+            }
         }
     }
 

@@ -6,6 +6,7 @@
 @inject IAgentTokenService AgentTokenService
 @inject IRevealRequestService RevealRequests
 @inject IVaultService VaultService
+@inject IProjectService ProjectService
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
@@ -15,7 +16,8 @@
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 @* The signed-in user's own agent tokens: an AI assistant (e.g. Claude Code) presents one to work with vault
-   entries as this user — only on the vaults and with the permissions picked here. The plaintext is shown once. *@
+   entries as this user — only on the vaults and with the permissions picked here — and, for a user who may manage
+   the software side, to set up applications (write-only, never app tokens). The plaintext is shown once. *@
 <KeywardUi>
     <div class="page-header">
         <h1>@Loc["Page.AgentTokens.Title"]</h1>
@@ -77,7 +79,7 @@
 
             <section class="card">
                 <h3>@Loc["AgentTokens.Issue.Title"]</h3>
-                @if (openVaults.Count == 0)
+                @if (openVaults.Count == 0 && !canManageApplications)
                 {
                     <p class="muted">@Loc["AgentTokens.NoVaults"]</p>
                 }
@@ -89,27 +91,66 @@
                             <input @bind="name" @bind:event="oninput" maxlength="256" />
                         </label>
 
-                        <fieldset class="field">
-                            <legend>@Loc["AgentTokens.Vaults"]</legend>
-                            @foreach (var vault in openVaults)
-                            {
-                                <label class="choice">
-                                    <input type="checkbox" checked="@selectedVaults.Contains(vault.Id)" @onchange="e => Toggle(selectedVaults, vault.Id, e)" />
-                                    @vault.Name
-                                </label>
-                            }
-                        </fieldset>
+                        @if (openVaults.Count == 0)
+                        {
+                            <p class="muted">@Loc["AgentTokens.NoVaults"]</p>
+                        }
+                        else
+                        {
+                            <fieldset class="field">
+                                <legend>@Loc["AgentTokens.Vaults"]</legend>
+                                @foreach (var vault in openVaults)
+                                {
+                                    <label class="choice">
+                                        <input type="checkbox" checked="@selectedVaults.Contains(vault.Id)" @onchange="e => Toggle(selectedVaults, vault.Id, e)" />
+                                        @vault.Name
+                                    </label>
+                                }
+                            </fieldset>
 
-                        <fieldset class="field">
-                            <legend>@Loc["AgentTokens.Scopes"]</legend>
-                            @foreach (var scope in OfferedScopes)
-                            {
-                                <label class="choice">
-                                    <input type="checkbox" checked="@selectedScopes.HasFlag(scope)" @onchange="e => ToggleScope(scope, e)" />
-                                    @ScopeLabel(scope)
+                            <fieldset class="field">
+                                <legend>@Loc["AgentTokens.Scopes"]</legend>
+                                @foreach (var scope in OfferedScopes)
+                                {
+                                    <label class="choice">
+                                        <input type="checkbox" checked="@selectedScopes.HasFlag(scope)" @onchange="e => ToggleScope(scope, e)" />
+                                        @ScopeLabel(scope)
+                                    </label>
+                                }
+                            </fieldset>
+                        }
+
+                        @* Offered only to a user who may manage the software side; unticked by default and separate from
+                           the vault permissions. *@
+                        @if (canManageApplications)
+                        {
+                            <fieldset class="field">
+                                <legend>@Loc["AgentTokens.Applications"]</legend>
+                                <label class="choice choice-described">
+                                    <input type="checkbox" checked="@ManagesApplications" @onchange="e => ToggleScope(AgentScopes.ManageApplications, e)" />
+                                    <span class="choice-text">
+                                        <span>@ScopeLabel(AgentScopes.ManageApplications)</span>
+                                        <span class="muted">@Loc["AgentTokens.Applications.Desc"]</span>
+                                    </span>
                                 </label>
-                            }
-                        </fieldset>
+                                @if (ManagesApplications)
+                                {
+                                    <div class="choice-group">
+                                        @foreach (var application in applications!)
+                                        {
+                                            <label class="choice">
+                                                <input type="checkbox" checked="@selectedApplications.Contains(application.Id)" @onchange="e => Toggle(selectedApplications, application.Id, e)" />
+                                                @application.Name
+                                            </label>
+                                        }
+                                        <label class="choice">
+                                            <input type="checkbox" @bind="mayCreateApplications" />
+                                            @Loc["AgentTokens.Applications.CreateNew"]
+                                        </label>
+                                    </div>
+                                }
+                            </fieldset>
+                        }
 
                         <div class="field-pair">
                             <label class="field">
@@ -147,8 +188,15 @@
                                     <span class="badge @StatusClass(token)">@StatusLabel(token)</span>
                                 </div>
                                 <div class="token-facts muted">
-                                    <span>@string.Join(", ", token.VaultIds.Select(VaultName))</span>
-                                    <span>@string.Join(", ", OfferedScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</span>
+                                    @if (token.VaultIds.Count > 0)
+                                    {
+                                        <span>@string.Join(", ", token.VaultIds.Select(VaultName))</span>
+                                    }
+                                    <span>@string.Join(", ", AllScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</span>
+                                    @if (token.Scopes.HasFlag(AgentScopes.ManageApplications))
+                                    {
+                                        <span>@ApplicationsFact(token)</span>
+                                    }
                                     <span>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</span>
                                     <span>@Loc["AgentTokens.Expires"] <LocalTime Utc="token.ExpiresAt" /></span>
                                 </div>
@@ -185,6 +233,8 @@
 @code {
     private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite, AgentScopes.VaultReveal];
 
+    private static readonly AgentScopes[] AllScopes = [.. OfferedScopes, AgentScopes.ManageApplications];
+
     private static readonly TimeSpan PendingRefresh = TimeSpan.FromSeconds(5);
 
     private static readonly int MaxDays = (int)AgentTokenLifetime.Maximum.TotalDays;
@@ -198,9 +248,13 @@
     private PeriodicTimer? refreshTimer;
     private IReadOnlyList<VaultSummary>? openVaults;
     private Dictionary<Guid, string> vaultNames = [];
+    private bool canManageApplications;
+    private IReadOnlyList<ProjectInfo>? applications;
 
     private string name = "";
     private readonly HashSet<Guid> selectedVaults = [];
+    private readonly HashSet<Guid> selectedApplications = [];
+    private bool mayCreateApplications;
     private AgentScopes selectedScopes = AgentScopes.VaultList | AgentScopes.VaultWrite;
     private int days = (int)AgentTokenLifetime.Default.TotalDays;
     private string networks = "";
@@ -212,8 +266,22 @@
     private (string Text, bool IsError)? status;
     private bool busy;
 
+    private bool ManagesApplications => selectedScopes.HasFlag(AgentScopes.ManageApplications);
+
+    private AgentScopes VaultScopes => selectedScopes & AgentScopeGroups.Vault;
+
+    // Vault permissions count only with a vault ticked (so an applications-only token needs no unticking), a ticked
+    // vault needs a vault permission, «Manage applications» an application or the right to create one.
+    private AgentScopes EffectiveScopes =>
+        (selectedVaults.Count > 0 ? VaultScopes : AgentScopes.None)
+        | (ManagesApplications ? AgentScopes.ManageApplications : AgentScopes.None);
+
     private bool CanIssue =>
-        !string.IsNullOrWhiteSpace(name) && selectedVaults.Count > 0 && selectedScopes != AgentScopes.None && days is >= 1 && days <= MaxDays;
+        !string.IsNullOrWhiteSpace(name)
+        && EffectiveScopes != AgentScopes.None
+        && (selectedVaults.Count == 0 || VaultScopes != AgentScopes.None)
+        && (!ManagesApplications || selectedApplications.Count > 0 || mayCreateApplications)
+        && days is >= 1 && days <= MaxDays;
 
     protected override async Task OnInitializedAsync()
     {
@@ -225,6 +293,7 @@
 
         actorUserId = userId;
         tenantId = Workspace.TenantId;
+        canManageApplications = await ProjectService.CanManageAsync(tenantId, actorUserId);
         await ReloadAsync();
 
         refreshTimer = new PeriodicTimer(PendingRefresh);
@@ -269,6 +338,8 @@
         vaultNames = shared.ToDictionary(v => v.Id, v => v.Name);
         openVaults = shared.Where(v => v.AgentAccessAllowed).OrderBy(v => v.Name).ToList();
         selectedVaults.IntersectWith(openVaults.Select(v => v.Id));
+        applications = (await ProjectService.ListAsync(tenantId)).OrderBy(a => a.Name).ToList();
+        selectedApplications.IntersectWith(applications.Select(a => a.Id));
         tokens = await AgentTokenService.ListAsync(actorUserId, tenantId);
         pending = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
     }
@@ -293,6 +364,17 @@
 
     private string ScopeLabel(AgentScopes scope) => Loc[$"AgentTokens.Scope.{scope}"];
 
+    private string ApplicationsFact(AgentTokenSummary token)
+    {
+        var names = token.ApplicationIds.Select(id => applications?.FirstOrDefault(a => a.Id == id)?.Name ?? "?").ToList();
+        if (token.MayCreateApplications)
+        {
+            names.Add(Loc["AgentTokens.Applications.PlusNew"]);
+        }
+
+        return string.Join(", ", names);
+    }
+
     private string StatusLabel(AgentTokenSummary token) =>
         token.RevokedAt is not null ? Loc["AgentTokens.Status.Revoked"]
         : token.IsActive ? Loc["AgentTokens.Status.Active"]
@@ -310,12 +392,20 @@
 
     private Task IssueAsync() => RunAsync(async () =>
     {
+        // Only what the chosen permissions use: applications without «Manage applications» would be refused, so a
+        // leftover tick from before unticking the permission is dropped.
         var issued = await AgentTokenService.IssueAsync(new IssueAgentTokenCommand(
-            actorUserId, tenantId, name, selectedScopes, selectedVaults.ToList(), networks, DateTimeOffset.UtcNow.AddDays(days)));
+            actorUserId, tenantId, name, EffectiveScopes,
+            selectedVaults.ToList(),
+            networks, DateTimeOffset.UtcNow.AddDays(days),
+            ManagesApplications ? selectedApplications.ToList() : [],
+            ManagesApplications && mayCreateApplications));
         ShowIssued(issued.Token);
         name = "";
         networks = "";
         selectedVaults.Clear();
+        selectedApplications.Clear();
+        mayCreateApplications = false;
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Issued"], false);
     }, CanIssue);

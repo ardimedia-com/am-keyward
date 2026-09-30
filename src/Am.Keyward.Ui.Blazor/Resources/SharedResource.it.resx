@@ -908,4 +908,19 @@
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Se non ti aspettavi questa richiesta, rifiutala e revoca il token.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Decidi ora</value></data>
   <data name="Email.Reveal.Footer" xml:space="preserve"><value>Ricevi questo messaggio perché un token agente da te emesso ha fatto la richiesta.</value></data>
+  <data name="AgentTokens.Applications" xml:space="preserve">
+    <value>Applicazioni</value>
+  </data>
+  <data name="AgentTokens.Scope.ManageApplications" xml:space="preserve">
+    <value>Gestire le applicazioni</value>
+  </data>
+  <data name="AgentTokens.Applications.Desc" xml:space="preserve">
+    <value>Creare applicazioni, ambienti e chiavi e impostare valori — solo in scrittura: l'assistente non rilegge mai un valore e non può emettere token client. Solo le applicazioni spuntate qui, più quelle che crea lui stesso.</value>
+  </data>
+  <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
+    <value>Può creare nuove applicazioni</value>
+  </data>
+  <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
+    <value>+ nuove applicazioni</value>
+  </data>
 </root>

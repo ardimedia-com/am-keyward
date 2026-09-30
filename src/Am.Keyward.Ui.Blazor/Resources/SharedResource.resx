@@ -1034,4 +1034,19 @@
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>If you did not expect this request, reject it and revoke the token.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Decide now</value></data>
   <data name="Email.Reveal.Footer" xml:space="preserve"><value>You receive this because an agent token you issued made the request.</value></data>
+  <data name="AgentTokens.Applications" xml:space="preserve">
+    <value>Applications</value>
+  </data>
+  <data name="AgentTokens.Scope.ManageApplications" xml:space="preserve">
+    <value>Manage applications</value>
+  </data>
+  <data name="AgentTokens.Applications.Desc" xml:space="preserve">
+    <value>Create applications, environments and keys, and set values — write-only: the assistant never reads a value back and cannot issue client tokens. Only the applications ticked here, plus the ones it creates itself.</value>
+  </data>
+  <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
+    <value>May create new applications</value>
+  </data>
+  <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
+    <value>+ new applications</value>
+  </data>
 </root>
