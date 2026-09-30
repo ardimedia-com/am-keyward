@@ -63,6 +63,8 @@ from a deployed application* for the full option list.
 
 Tokens are issued by an administrator through the app-tokens UI or the management API. Store the plaintext
 where the client can read it (an environment variable, a deployment secret) and treat it like a password.
+An AI assistant can set up the application, its environments and keys through the [agent API](agent-api.md),
+but never issues a token: it hands over the link to the app-tokens tab instead.
 
 The UI shows the one-time plaintext together with a **ready-to-run PowerShell block** for the target
 machine: it puts the token into a machine-scope environment variable and appends an `Invoke-RestMethod`

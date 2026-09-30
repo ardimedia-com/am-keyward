@@ -67,7 +67,9 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
   but only on tenant vaults that were explicitly opened to agents and put on the token's allowlist, with the
   permissions ticked, optionally only from given networks. Every request re-checks the token, the user (not
   disabled, still a member), the vault and the user's grant; agent actions are audited as the agent. Tokens
-  always expire, and disabling a user revokes them.
+  always expire, and disabling a user revokes them. With «Manage applications» (software operators only) a
+  token sets up applications for the software-client API — write-only, only on its allowlisted or self-created
+  applications, never app tokens; it may rename or delete only its own still-empty placeholders.
 
 **Out of scope / operator-owned**
 
@@ -302,7 +304,13 @@ An agent token lets an assistant such as Claude Code work with vault entries **a
 permissions you choose: list and search entries, read a Login's URL and user name, store new credentials (it hands
 you a link, never echoes the value) and update entries. To see a secret it must ask; you approve each request on
 «Agent tokens», and the MCP server `Am.Keyward.Mcp` (a .NET tool, `amkeyward-mcp`) copies the value to the Windows
-clipboard — never into the assistant's context. Setup and endpoints: [docs/agent-api.md](docs/agent-api.md).
+clipboard — never into the assistant's context.
+
+With the separate permission **«Manage applications»** the assistant also sets up an application for the
+software-client API: it creates the application, its environments and its secret keys, and hands you the link to
+paste the values. It sets a value itself only when it legitimately holds it, write-only — no endpoint ever returns
+one. App tokens stay with you: the assistant can neither issue, show nor revoke them. Setup, endpoints and the
+checklist for enabling the API on a host: [docs/agent-api.md](docs/agent-api.md).
 
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 
@@ -430,7 +438,8 @@ End-user & operator documentation lives in [`docs/`](docs/) and grows as feature
 
 - [Software-client API](docs/software-client-api.md) — how a deployed app fetches its secrets with a token.
 - [Agent API and MCP server](docs/agent-api.md) — let an AI assistant store and find vault entries as you, with
-  every secret reveal approved by you and sent to the clipboard only.
+  every secret reveal approved by you and sent to the clipboard only, and set up applications for the
+  software-client API write-only; includes the checklist for enabling the API on a host.
 - [Database logins](docs/database-logins.md) — the least-privilege runtime login vs. the migration login
   that underpins tenant isolation.
 

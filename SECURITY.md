@@ -27,6 +27,26 @@ the encrypted envelope; **rate-limiting/lockout** and env-scoped, hashed, rotata
 and a **KEK-integrity** backup/restore check plus health endpoints. Operational procedures are in the
 [operations & KEK/DR runbook](docs/operations-runbook.md).
 
+## AI agents (agent tokens)
+
+An agent token lets an AI assistant act for the user who issued it. The threats this design addresses, and the
+ones it leaves to the operator and the user:
+
+- **A value leaking into the assistant's context.** Values are write-only: no agent endpoint returns a stored value
+  or a part of it — for applications not at all, for vault entries only after a per-request human approval, and then
+  to the Windows clipboard, not to the assistant. Tests check every response and the host's log output for values.
+- **An assistant told to exfiltrate or plant data (prompt injection).** The token reaches only what it was given:
+  allowlisted vaults opened to agents, allowlisted applications and the ones it created, with the ticked
+  permissions. It cannot read a software secret, cannot issue or see an app token, and may rename or delete only its
+  own still-empty placeholders — it cannot break a key a program already reads. A value it sets is visible to the
+  person in the UI and audited as the agent. Treat an agent's reveal reason as untrusted text.
+- **A stolen agent token.** Hashed at rest, always expiring (≤ 365 days), revocable, rate-limited, throttled on
+  failed authentication, re-checked against the user and their role on every request, and restrictable to
+  networks. **Operator:** expose `/keyward/api/v1/agent` only to internal networks (`AllowedNetworks`) and make sure
+  a reverse proxy's address is never among them; keep the token in the Windows Credential Manager, not in files.
+- **Lost updates.** Every change to an existing value needs the version the agent saw (`If-Match`); a concurrent
+  change answers 412.
+
 ## Operator responsibility
 
 AM KEYWARD is self-hosted and library-first; the **operator** is responsible for the security of their

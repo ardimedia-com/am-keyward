@@ -32,6 +32,14 @@ All notable changes to this project are documented here, following
 - `ISoftwareSecretService.StoreAsync` returns the stored version and takes an optional `SecretValuePrecondition`
   (optimistic concurrency on `SecretValue.CurrentVersionId`).
 
+### Security
+
+- **Agent tokens stay write-only for applications.** No application endpoint returns a value — not even a masked
+  part; app tokens have no agent endpoint at all; anything out of the token's reach answers 404 like a missing
+  resource; rename/delete is limited to the token's own empty placeholders; every call is audited as the agent and
+  keeps the rate limit, the failed-authentication throttle and the network restriction. Threat notes in
+  `SECURITY.md`.
+
 ### Fixed
 
 - **Checkboxes no longer stretch across the row.** A host that widens every `<input>` (as the reference shell
