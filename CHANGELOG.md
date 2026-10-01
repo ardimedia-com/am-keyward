@@ -5,6 +5,13 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Generate a strong password** on a Login's password field (add and edit): 20 characters from a cryptographic
+  random source, always with upper- and lower-case letters, digits and symbols; no look-alike characters
+  (`0 O o 1 l I`) and no symbols that break in shells, URLs, JSON or connection strings. `PasswordGenerator` in
+  `Am.Keyward.Core.Support`.
+
 ## [0.23.1-preview] - 2026-10-01
 
 ### Fixed
