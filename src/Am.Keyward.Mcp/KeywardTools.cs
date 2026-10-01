@@ -130,6 +130,17 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? Written("Updated", result.Value!) : result.Error!;
     }
 
+    [McpServerTool(Name = "move_item"), Description("Moves an entry into another folder and/or another reachable vault (folder ids from list_items). Entries cannot be deleted by an agent. The entry link stays the same.")]
+    public async Task<string> MoveItemAsync(
+        [Description("The entry id.")] Guid itemId,
+        [Description("The target vault id (the same vault to change only the folder).")] Guid vaultId,
+        [Description("The target folder id; omit for the vault's top level.")] Guid? folderId = null,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.MoveItemAsync(itemId, new AgentMoveItemRequest(vaultId, folderId), ct);
+        return result.Ok ? Written("Moved", result.Value!) : result.Error!;
+    }
+
     [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password' or 'Note' of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
     public async Task<string> RequestRevealAsync(
         [Description("The entry id.")] Guid itemId,
@@ -243,6 +254,49 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             : result.Error!;
     }
 
+    [McpServerTool(Name = "list_app_tokens", ReadOnly = true), Description("Lists an application's app tokens: name, environment, status, expiry, last access and heartbeat monitoring. Never a token value; issuing, rotating and revoking stay with people (link in list_applications).")]
+    public async Task<string> ListAppTokensAsync([Description("The application id from list_applications.")] Guid applicationId, CancellationToken ct)
+    {
+        var result = await keyward.ListApplicationTokensAsync(applicationId, ct);
+        if (!result.Ok) return result.Error!;
+        if (result.Value is not { Count: > 0 } tokens) return "The application has no app tokens.";
+
+        return string.Join('\n', tokens.Select(t =>
+            $"{t.Name}  [{t.Environment}, {t.Status}]  ({t.Id})"
+            + (t.ExpiresAt is { } expires ? $"  expires {expires:yyyy-MM-dd}" : "")
+            + (t.LastAccessAt is { } last ? $"  last access {last:yyyy-MM-dd HH:mm} UTC from {t.LastAccessIp ?? "?"}" : "  never used")
+            + (t.Monitor is { Enabled: true } m ? $"  monitor {m.State} (max silence {m.MaxSilenceMinutes} min)" : "")));
+    }
+
+    [McpServerTool(Name = "get_app_statistics", ReadOnly = true), Description("Shows an application's app-token access statistics: requests per day, client addresses and access alerts.")]
+    public async Task<string> GetAppStatisticsAsync(
+        [Description("The application id from list_applications.")] Guid applicationId,
+        [Description("How many days back (1–90).")] int days = 30,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.GetApplicationStatisticsAsync(applicationId, days, ct);
+        if (!result.Ok) return result.Error!;
+
+        var stats = result.Value!;
+        var text = new StringBuilder();
+        foreach (var token in stats.Daily.GroupBy(d => d.TokenId))
+        {
+            text.AppendLine($"Token {token.Key}: {token.Sum(d => d.Requests)} requests in {days} days, last day {token.Max(d => d.Date):yyyy-MM-dd}");
+        }
+
+        foreach (var address in stats.Addresses)
+        {
+            text.AppendLine($"Token {address.TokenId}: {address.IpAddress} seen {address.FirstSeenAt:yyyy-MM-dd} – {address.LastSeenAt:yyyy-MM-dd}");
+        }
+
+        foreach (var alert in stats.Alerts)
+        {
+            text.AppendLine($"Alert {alert.Kind} for token {alert.TokenId} at {alert.CreatedAt:yyyy-MM-dd HH:mm} UTC{(alert.IpAddress is null ? "" : $" from {alert.IpAddress}")}");
+        }
+
+        return text.Length == 0 ? "No access recorded." : text.ToString().TrimEnd();
+    }
+
     // Names, environments and «set / not set» only — the API never sends a value, and neither does this text.
     private string Describe(AgentApplicationResponse application)
     {
@@ -256,7 +310,9 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         foreach (var key in application.Keys)
         {
-            var states = key.Values.Select(v => $"{v.Environment}={(v.ValueSet ? "set" : "not set")}");
+            var states = key.Values.Select(v => $"{v.Environment}={(v.ValueSet ? "set" : "not set")}"
+                + (v.RotateBy is { } rotateBy ? $" (renew by {rotateBy:yyyy-MM-dd})" : "")
+                + (string.IsNullOrWhiteSpace(v.RotationNote) ? "" : $" [note: {v.RotationNote}]"));
             text.AppendLine($"  {key.Key}: {string.Join(", ", states)}");
         }
 

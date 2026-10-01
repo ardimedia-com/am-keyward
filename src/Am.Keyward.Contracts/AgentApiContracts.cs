@@ -104,7 +104,45 @@ public sealed record AgentSecretKeyResponse(string Key, bool CreatedByThisToken,
 /// Whether <see cref="Environment"/> holds a value for the key. <see cref="VersionId"/> is the ETag to send as
 /// <c>If-Match</c> when replacing it; without a value, send <c>If-None-Match: *</c>. The value itself is never returned.
 /// </summary>
-public sealed record AgentSecretValueStateResponse(string Environment, bool ValueSet, Guid? VersionId);
+public sealed record AgentSecretValueStateResponse(string Environment, bool ValueSet, Guid? VersionId, DateTimeOffset? RotateBy = null, string RotationNote = "");
+
+/// <summary>
+/// Moves an entry (<c>POST /items/{id}/move</c>) into another folder and/or another reachable vault; the token needs
+/// «Create and update entries» and the user Write on both vaults. Across vaults the entry gets a new id; its link
+/// stays the same.
+/// </summary>
+public sealed record AgentMoveItemRequest(Guid VaultId, Guid? FolderId = null);
+
+/// <summary>
+/// One app token of an application (<c>GET /applications/{id}/tokens</c>): metadata only — never the token or its
+/// prefix. <see cref="Status"/> is Pending (no value issued yet), Active, Expired or Revoked.
+/// </summary>
+public sealed record AgentClientTokenResponse(
+    Guid Id,
+    string Name,
+    string Environment,
+    string Status,
+    string Note,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? ExpiresAt,
+    DateTimeOffset? LastAccessAt,
+    string? LastAccessIp,
+    AgentTokenMonitorResponse? Monitor);
+
+/// <summary>Heartbeat monitoring of an app token: whether it is on, its state (Unknown, Up, Down, Snoozed) and the next deadline.</summary>
+public sealed record AgentTokenMonitorResponse(bool Enabled, string State, int MaxSilenceMinutes, DateTimeOffset? NextDeadline, DateTimeOffset? LastStateChangeAt);
+
+/// <summary>App-token access statistics of an application (<c>GET /applications/{id}/statistics?days=30</c>).</summary>
+public sealed record AgentApplicationStatisticsResponse(
+    IReadOnlyList<AgentDailyAccessResponse> Daily,
+    IReadOnlyList<AgentAccessAddressResponse> Addresses,
+    IReadOnlyList<AgentAccessAlertResponse> Alerts);
+
+public sealed record AgentDailyAccessResponse(Guid TokenId, DateOnly Date, long Requests);
+
+public sealed record AgentAccessAddressResponse(Guid TokenId, string IpAddress, DateTimeOffset FirstSeenAt, DateTimeOffset LastSeenAt);
+
+public sealed record AgentAccessAlertResponse(Guid TokenId, string Kind, string? IpAddress, DateTimeOffset CreatedAt);
 
 /// <summary>Creates an application (<c>POST /applications</c>). It starts with the tenant's default environments; others listed here are added.</summary>
 public sealed record AgentCreateApplicationRequest(string Name, IReadOnlyList<string>? Environments = null);

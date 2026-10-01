@@ -14,8 +14,26 @@ public sealed record AgentApplicationView(
 /// <summary>One key of an application; <see cref="CreatedByThisToken"/> tells whether the token may rename or delete it (while empty).</summary>
 public sealed record AgentSecretKeyView(string Key, bool CreatedByThisToken, IReadOnlyList<AgentSecretValueState> Values);
 
-/// <summary>Whether an environment holds a value for a key; <see cref="VersionId"/> is the ETag for the next write.</summary>
-public sealed record AgentSecretValueState(string Environment, bool ValueSet, Guid? VersionId);
+/// <summary>
+/// Whether an environment holds a value for a key; <see cref="VersionId"/> is the ETag for the next write. The
+/// rotation date and note are advisory metadata a person keeps beside the value — never the value itself.
+/// </summary>
+public sealed record AgentSecretValueState(string Environment, bool ValueSet, Guid? VersionId, DateTimeOffset? RotateBy, string RotationNote);
+
+/// <summary>
+/// An application's app tokens as an agent may see them: metadata, last access and heartbeat monitoring — never a
+/// token value (not even its prefix). Issuing, rotating and revoking stay with people.
+/// </summary>
+public sealed record AgentApplicationTokensView(
+    IReadOnlyList<SoftwareClientTokenInfo> Tokens,
+    IReadOnlyList<TokenMonitorInfo> Monitors,
+    IReadOnlyList<EnvironmentInfo> Environments);
+
+/// <summary>An application's app-token access statistics: daily request counts, client addresses and alerts.</summary>
+public sealed record AgentApplicationStatisticsView(
+    IReadOnlyList<TokenDailyAccessInfo> Daily,
+    IReadOnlyList<TokenAccessIpInfo> Addresses,
+    IReadOnlyList<TokenAccessAlertInfo> Alerts);
 
 /// <summary>The token may not manage applications at all: permission not granted, token no longer valid, or its user may no longer manage the software side.</summary>
 public sealed class AgentApplicationsNotPermittedException()
@@ -87,4 +105,10 @@ public interface IAgentApplicationService
 
     /// <summary>Deletes an application under the same condition as <see cref="RenameAsync"/>.</summary>
     Task DeleteAsync(Guid tokenId, Guid applicationId, CancellationToken ct = default);
+
+    /// <summary>The application's app tokens (metadata, last access, monitoring) — read only, never a token value.</summary>
+    Task<AgentApplicationTokensView> GetTokensAsync(Guid tokenId, Guid applicationId, CancellationToken ct = default);
+
+    /// <summary>The application's app-token access statistics over the last <paramref name="days"/> days (1–90).</summary>
+    Task<AgentApplicationStatisticsView> GetStatisticsAsync(Guid tokenId, Guid applicationId, int days, CancellationToken ct = default);
 }

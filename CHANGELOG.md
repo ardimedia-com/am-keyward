@@ -15,6 +15,11 @@ All notable changes to this project are documented here, following
   link (`AgentRevealStateResponse.ItemLink`, `KeywardRevealRequestLine.ItemPublicId` for host notices), the MCP
   tools hand it to the person («open the entry and copy the value there»), and the pending requests on «Agent
   tokens» link to their entries. Revealing itself is unchanged: approved per request, clipboard only.
+- **Agents may move entries and read all non-secret metadata** (decision T5: delete no, move yes, read everything):
+  `POST /items/{id}/move` (another folder or reachable vault, Write on both; the link stays), per application
+  value the rotation date and note, `GET /applications/{id}/tokens` (app-token metadata, last access, monitoring —
+  never a token) and `GET /applications/{id}/statistics`. MCP tools `move_item`, `list_app_tokens`,
+  `get_app_statistics`. Reads are audited as the agent.
 
 ## [0.23.1-preview] - 2026-10-01
 

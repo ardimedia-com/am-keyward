@@ -28,13 +28,18 @@ Both can be limited to given networks.
 - **Write-only.** Creating and changing never echoes a value back. A Login's URL and user name are the only vault
   fields an agent can read. For applications no endpoint returns a value — not even a masked prefix; the agent
   sees only «value set yes/no» and the version.
+- **The entry link first.** Wherever an agent needs a value it hands the person the entry's deep link (every item
+  and every reveal request carries it): the person opens the entry and copies the value there.
 - **Revealing a vault secret needs a human, every time.** An agent asks to see one field with a reason; the
   token's user approves or rejects it on the «Agent tokens» page within 5 minutes; an approved value can be fetched
   **once**, within 60 seconds. The MCP server puts it on the Windows clipboard (excluded from clipboard history and
   cloud sync, cleared after 30 seconds) — never into the assistant's context. The reason is the agent's own text:
   decide on what you know, not on what it says. Application values cannot be revealed at all.
-- **App tokens are human-only.** An agent can neither issue, reveal, rotate nor revoke a software-client token;
-  there is no endpoint for it. The application response carries the link to the page where a person issues one.
+- **App tokens are human-only.** An agent can neither issue, reveal, rotate nor revoke a software-client token. It
+  may read their metadata — name, environment, status, expiry, last access, heartbeat monitoring, access statistics —
+  never a token or its prefix. The application response carries the link to the page where a person issues one.
+- **Move, never delete.** An agent with «Create and update entries» may move an entry into another folder or another
+  reachable vault (Write needed on both); no agent endpoint deletes a vault entry.
 - **Renaming and deleting is narrow.** An agent may rename or delete only a key **it created itself** that holds no
   value (no value row at all) in any environment, and only an application **it created itself** that holds no value,
   no key of someone else and no issued app token. Everything else is refused with 403 and left to a person in the UI:
@@ -60,9 +65,9 @@ permissions only count when a vault is ticked, so a token can be for application
 |---|---|
 | List entries | `/vaults`, `/vaults/{id}/tree`, `/search` |
 | Read URL and user name | `GET /items/{id}` |
-| Create and update entries | `POST /vaults/{id}/items`, `PATCH /items/{id}` |
+| Create and update entries | `POST /vaults/{id}/items`, `PATCH /items/{id}`, `POST /items/{id}/move` |
 | Ask to see a secret | `POST /items/{id}/reveal-requests`, then consume after approval |
-| Manage applications | `/applications…` below — never a value, never app tokens |
+| Manage applications | `/applications…` below — never a value; app tokens read-only (metadata) |
 
 ## Endpoints
 
@@ -78,12 +83,15 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 | GET | `/items/{id}` | name, type, folder, link, version (also the ETag); Login: URL and user name |
 | POST | `/vaults/{id}/items` | Login: `url`, `username`, `password`, `note`; other types: `value`. 201, no echo |
 | PATCH | `/items/{id}` | `If-Match: "<version>"` required (428 without, 412 when changed meanwhile); Login field by field, other types by `value` |
+| POST | `/items/{id}/move` | `{ "vaultId", "folderId"? }` — another folder and/or another reachable vault (Write on both). 200 with link (unchanged) and version; across vaults the id changes |
 | POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Value", "reason": "…" }` → 202, pending |
 | GET | `/reveal-requests/{id}` | status only: Pending, Approved, Rejected, Expired, Consumed |
 | POST | `/reveal-requests/{id}/consume` | the value, once (`Cache-Control: no-store`); otherwise 409 |
 | GET | `/applications` | reachable applications: name, environments, keys, per environment `valueSet` + `versionId`, `link`, `tokensLink`. 403 without the permission |
 | POST | `/applications` | `{ "name", "environments": [] }` → 201. Starts with the tenant's default environments; listed ones are added. Needs «May create new applications» (403 otherwise) |
-| GET | `/applications/{id}` | one application, as in the list |
+| GET | `/applications/{id}` | one application, as in the list; per environment also `rotateBy` and `rotationNote` |
+| GET | `/applications/{id}/tokens` | app tokens: name, environment, status (Pending/Active/Expired/Revoked), note, expiry, last access, monitoring — never a token |
+| GET | `/applications/{id}/statistics?days=30` | requests per token and day, client addresses, access alerts (1–90 days) |
 | PATCH | `/applications/{id}` | `{ "name" }` — only an application this token created and that is still empty |
 | DELETE | `/applications/{id}` | 204 — same condition |
 | POST | `/applications/{id}/environments` | `{ "name" }` → 201 |
@@ -182,10 +190,12 @@ through the reverse proxy. The lines it needs, all in `Ardimedia.Com.Toolbox.Ui.
 A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
 
 - Vault tools: `list_vaults`, `list_items`, `search`, `get_item`, `create_login`, `create_item`, `update_item`,
-  `request_reveal`, `consume_reveal`.
+  `move_item`, `request_reveal`, `consume_reveal`. `get_item` and `request_reveal` hand out the entry link — usually
+  the simplest way: the person copies the value in KEYWARD.
 - Application tools: `list_applications`, `create_application`, `add_environment`, `create_secret_key` (a placeholder
   for a person to fill) and `set_secret_value` (write-only; its description tells the assistant never to take a value
-  from the chat unless the user gave it for exactly this purpose). Every answer carries the UI link.
+  from the chat unless the user gave it for exactly this purpose), plus the read-only `list_app_tokens` and
+  `get_app_statistics`. Every answer carries the UI link.
 
 ```powershell
 dotnet tool install --global Am.Keyward.Mcp --prerelease

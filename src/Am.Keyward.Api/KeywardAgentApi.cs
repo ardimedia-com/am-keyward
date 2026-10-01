@@ -179,6 +179,30 @@ public static class KeywardAgentApi
             }
         });
 
+        // Move an entry to another folder and/or another reachable vault. The agent may move, never delete.
+        group.MapPost("/items/{itemId:guid}/move", async (Guid itemId, AgentMoveItemRequest body, HttpContext http,
+            ClaimsPrincipal principal, ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
+        {
+            var tokenId = TokenId(principal);
+            if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.VaultWrite, Permission.Write, ct)
+                || !await access.IsVaultAllowedAsync(tokenId, body.VaultId, AgentScopes.VaultWrite, Permission.Write, ct))
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var movedId = await vaults.MoveItemAsync(UserId(user), itemId, body.VaultId, body.FolderId, ct);
+                var reference = await vaults.GetItemReferenceAsync(UserId(user), movedId, ct);
+                return reference is null ? NotFound() : Written(http, reference, StatusCodes.Status200OK);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // E.g. a folder that is not in the target vault.
+                return BadRequest(ex.Message);
+            }
+        });
+
         // Ask to see one secret field. Nothing is revealed until the token user approves in the Keyward UI.
         group.MapPost("/items/{itemId:guid}/reveal-requests", async (Guid itemId, AgentRevealRequestBody body, ClaimsPrincipal principal,
             IRevealRequestService reveals, IAgentVaultAccess access, CancellationToken ct) =>

@@ -21,6 +21,9 @@ public sealed class AgentApplicationService(
     ICurrentUser currentUser,
     IProjectService projects,
     ISoftwareSecretService secrets,
+    ISoftwareClientTokenService clientTokens,
+    ITokenAccessMonitorService monitors,
+    ITokenAccessStatisticsService statistics,
     DbAuditSink audit) : IAgentApplicationService
 {
     public async Task<IReadOnlyList<AgentApplicationView>> ListAsync(Guid tokenId, CancellationToken ct = default)
@@ -170,6 +173,38 @@ public sealed class AgentApplicationService(
         await projects.DeleteAsync(reach.TenantId, applicationId, reach.UserId, ct).ConfigureAwait(false);
     }
 
+    public async Task<AgentApplicationTokensView> GetTokensAsync(Guid tokenId, Guid applicationId, CancellationToken ct = default)
+    {
+        var reach = await ReachableAsync(tokenId, applicationId, ct).ConfigureAwait(false);
+        var view = new AgentApplicationTokensView(
+            await clientTokens.ListAsync(reach.TenantId, applicationId, ct).ConfigureAwait(false),
+            await monitors.ListAsync(reach.TenantId, applicationId, ct).ConfigureAwait(false),
+            await secrets.ListEnvironmentsAsync(reach.TenantId, applicationId, ct).ConfigureAwait(false));
+        await AuditReadAsync(reach, "ApplicationTokens", applicationId, ct).ConfigureAwait(false);
+        return view;
+    }
+
+    public async Task<AgentApplicationStatisticsView> GetStatisticsAsync(Guid tokenId, Guid applicationId, int days, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(days, 90);
+        var reach = await ReachableAsync(tokenId, applicationId, ct).ConfigureAwait(false);
+        var view = new AgentApplicationStatisticsView(
+            await statistics.ListDailyAsync(reach.TenantId, applicationId, days, ct).ConfigureAwait(false),
+            await statistics.ListIpsAsync(reach.TenantId, applicationId, ct).ConfigureAwait(false),
+            await statistics.ListAlertsAsync(reach.TenantId, applicationId, ct: ct).ConfigureAwait(false));
+        await AuditReadAsync(reach, "ApplicationStatistics", applicationId, ct).ConfigureAwait(false);
+        return view;
+    }
+
+    // Reading metadata is still a look into the tenant: one audit entry per read, as the agent.
+    private async Task AuditReadAsync(Reach reach, string resourceType, Guid applicationId, CancellationToken ct)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await audit.AppendAsync(db, new AuditRequest(reach.TenantId, AuditAction.Read, resourceType, applicationId, reach.UserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     private sealed record Reach(Guid TenantId, Guid UserId, bool MayCreate, IReadOnlySet<Guid> ApplicationIds);
 
     // The one reach decision: an active token with the permission, in its own tenant and acting as its own user,
@@ -244,7 +279,7 @@ public sealed class AgentApplicationService(
         // Only the version pointer — the encrypted versions are never loaded here.
         var values = await db.SecretValues.AsNoTracking()
             .Where(v => secretIds.Contains(v.SoftwareSecretId))
-            .Select(v => new { v.SoftwareSecretId, v.EnvironmentId, v.CurrentVersionId })
+            .Select(v => new { v.SoftwareSecretId, v.EnvironmentId, v.CurrentVersionId, v.ExpiresAt, v.Note })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
@@ -259,8 +294,9 @@ public sealed class AgentApplicationService(
                         k.CreatedByAgentTokenId == tokenId,
                         appEnvironments.Select(e =>
                         {
-                            var version = values.FirstOrDefault(v => v.SoftwareSecretId == k.Id && v.EnvironmentId == e.Id)?.CurrentVersionId;
-                            return new AgentSecretValueState(e.Name.Value, version is not null, version);
+                            var value = values.FirstOrDefault(v => v.SoftwareSecretId == k.Id && v.EnvironmentId == e.Id);
+                            return new AgentSecretValueState(
+                                e.Name.Value, value?.CurrentVersionId is not null, value?.CurrentVersionId, value?.ExpiresAt, value?.Note ?? "");
                         }).ToList()))
                     .ToList();
                 return new AgentApplicationView(

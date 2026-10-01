@@ -191,9 +191,17 @@ public class AgentApplicationApiTests
         // Without «may create new applications» the token cannot create one.
         Assert.AreEqual(HttpStatusCode.Forbidden, (await client.SendAsync(Post($"{Base}/applications", new AgentCreateApplicationRequest("new")))).StatusCode);
 
-        // App tokens stay human-only: there is no endpoint for them at all.
-        Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"{Base}/applications/{allowed}/tokens")).StatusCode);
-        Assert.AreEqual(HttpStatusCode.NotFound, (await client.SendAsync(Post($"{Base}/applications/{allowed}/tokens", new { environment = "Production" }))).StatusCode);
+        // App tokens stay human-only: an agent may read their metadata (never a value), but nothing issues one.
+        var tokensResponse = await client.GetAsync($"{Base}/applications/{allowed}/tokens");
+        Assert.AreEqual(HttpStatusCode.OK, tokensResponse.StatusCode);
+        var appTokens = (await tokensResponse.Content.ReadFromJsonAsync<List<AgentClientTokenResponse>>())!;
+        Assert.IsTrue(appTokens.Count > 0 && appTokens.All(t => t.Status == "Pending"));
+        Assert.DoesNotContain("amkw_", await tokensResponse.Content.ReadAsStringAsync());
+        Assert.AreEqual(HttpStatusCode.MethodNotAllowed, (await client.SendAsync(Post($"{Base}/applications/{allowed}/tokens", new { environment = "Production" }))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.SendAsync(Post($"{Base}/applications/{allowed}/tokens/issue", new { environment = "Production" }))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.OK, (await client.GetAsync($"{Base}/applications/{allowed}/statistics?days=7")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"{Base}/applications/{other}/tokens")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"{Base}/applications/{other}/statistics")).StatusCode);
 
         // A vault-only token: the collection says «not permitted», a single application stays a 404.
         var vaultOnly = Client(app, await AgentApiTests.IssueAsync(app.Services, tenantId, manager, vault, AgentScopes.VaultList));

@@ -61,6 +61,7 @@ public class McpToolsTests
         var itemId = Guid.Parse(found.Split('(')[1].Split(',')[0]);
 
         StringAssert.Contains(await Say(tools.ListItemsAsync(vault, default)), "DHL key");
+        StringAssert.StartsWith(await Say(tools.MoveItemAsync(itemId, vault)), "Moved: ");
         var item = await Say(tools.GetItemAsync(itemId, default));
         StringAssert.Contains(item, "User name: bvd-client");
 
@@ -146,6 +147,8 @@ public class McpToolsTests
         StringAssert.Contains(listed, "PionexOwnerBotWatch:ApiSecret: ");
         StringAssert.Contains(listed, "Production=set");
         StringAssert.Contains(listed, "Staging=not set");
+        StringAssert.Contains(await Say(tools.ListAppTokensAsync(applicationId, default)), "Pending");
+        StringAssert.Contains(await Say(tools.GetAppStatisticsAsync(applicationId, 7)), "No access recorded");
 
         foreach (var answer in answers)
         {

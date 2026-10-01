@@ -127,6 +127,35 @@ internal static class KeywardAgentApplicationsApi
                 return Written(http, applicationId, key, body.Environment, stored, StatusCodes.Status200OK);
             }));
 
+        // Read only: what a person sees on the «Client tokens», «Monitoring» and «Statistics» tabs — never a token.
+        group.MapGet("/applications/{applicationId:guid}/tokens", (Guid applicationId, ClaimsPrincipal principal,
+            IAgentApplicationService applications, CancellationToken ct) =>
+            Guarded(collection: false, async () =>
+            {
+                var view = await applications.GetTokensAsync(KeywardAgentApi.TokenId(principal), applicationId, ct);
+                var environments = view.Environments.ToDictionary(e => e.Id, e => e.Name);
+                return Results.Ok(view.Tokens.Select(t =>
+                {
+                    var monitor = view.Monitors.FirstOrDefault(m => m.TokenId == t.Id);
+                    return new AgentClientTokenResponse(
+                        t.Id, t.Name, environments.GetValueOrDefault(t.EnvironmentId, "?"), TokenStatus(t), t.Note, t.CreatedAt,
+                        t.ExpiresAt, t.LastAccessAt, t.LastAccessIp,
+                        monitor is null ? null : new AgentTokenMonitorResponse(
+                            monitor.Enabled, monitor.State.ToString(), monitor.MaxSilenceMinutes, monitor.NextDeadline, monitor.LastStateChangeAt));
+                }).ToList());
+            }));
+
+        group.MapGet("/applications/{applicationId:guid}/statistics", (Guid applicationId, int? days, ClaimsPrincipal principal,
+            IAgentApplicationService applications, CancellationToken ct) =>
+            Guarded(collection: false, async () =>
+            {
+                var view = await applications.GetStatisticsAsync(KeywardAgentApi.TokenId(principal), applicationId, days ?? 30, ct);
+                return Results.Ok(new AgentApplicationStatisticsResponse(
+                    view.Daily.Select(d => new AgentDailyAccessResponse(d.TokenId, d.Date, d.RequestCount)).ToList(),
+                    view.Addresses.Select(a => new AgentAccessAddressResponse(a.TokenId, a.IpAddress, a.FirstSeenAt, a.LastSeenAt)).ToList(),
+                    view.Alerts.Select(a => new AgentAccessAlertResponse(a.TokenId, a.Kind.ToString(), a.IpAddress, a.CreatedAt)).ToList()));
+            }));
+
         group.MapPatch("/applications/{applicationId:guid}/secrets/{key}", (Guid applicationId, string key, AgentRenameSecretRequest body,
             ClaimsPrincipal principal, IAgentApplicationService applications, CancellationToken ct) =>
             Guarded(collection: false, async () =>
@@ -216,13 +245,20 @@ internal static class KeywardAgentApplicationsApi
             : Results.Ok(response);
     }
 
+    private static string TokenStatus(SoftwareClientTokenInfo token) =>
+        !token.HasSecret ? "Pending"
+        : token.RevokedAt is not null ? "Revoked"
+        : token.IsActive ? "Active"
+        : "Expired";
+
     private static AgentApplicationResponse ToResponse(AgentApplicationView view) => new(
         view.Id,
         view.Name,
         view.CreatedByThisToken,
         view.Environments,
         view.Keys.Select(k => new AgentSecretKeyResponse(
-            k.Key, k.CreatedByThisToken, k.Values.Select(v => new AgentSecretValueStateResponse(v.Environment, v.ValueSet, v.VersionId)).ToList())).ToList(),
+            k.Key, k.CreatedByThisToken,
+            k.Values.Select(v => new AgentSecretValueStateResponse(v.Environment, v.ValueSet, v.VersionId, v.RotateBy, v.RotationNote)).ToList())).ToList(),
         DataLink(view.Id),
         $"{ApplicationLink(view.Id)}&tab=tokens");
 

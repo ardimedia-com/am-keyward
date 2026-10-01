@@ -54,6 +54,15 @@ internal sealed class KeywardAgentClient(HttpClient http)
     public Task<AgentResult<AgentRevealValueResponse>> ConsumeRevealAsync(Guid requestId, CancellationToken ct) =>
         SendAsync<AgentRevealValueResponse>(HttpMethod.Post, $"/reveal-requests/{requestId}/consume", null, null, ct);
 
+    public Task<AgentResult<AgentItemWrittenResponse>> MoveItemAsync(Guid itemId, AgentMoveItemRequest body, CancellationToken ct) =>
+        SendAsync<AgentItemWrittenResponse>(HttpMethod.Post, $"/items/{itemId}/move", body, null, ct);
+
+    public Task<AgentResult<List<AgentClientTokenResponse>>> ListApplicationTokensAsync(Guid applicationId, CancellationToken ct) =>
+        SendAsync<List<AgentClientTokenResponse>>(HttpMethod.Get, $"/applications/{applicationId}/tokens", null, null, ct);
+
+    public Task<AgentResult<AgentApplicationStatisticsResponse>> GetApplicationStatisticsAsync(Guid applicationId, int days, CancellationToken ct) =>
+        SendAsync<AgentApplicationStatisticsResponse>(HttpMethod.Get, $"/applications/{applicationId}/statistics?days={days}", null, null, ct);
+
     public Task<AgentResult<AgentTokenInfoResponse>> TokenInfoAsync(CancellationToken ct) =>
         SendAsync<AgentTokenInfoResponse>(HttpMethod.Get, "/token", null, null, ct);
 
