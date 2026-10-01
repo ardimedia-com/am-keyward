@@ -71,6 +71,25 @@
     cursor: not-allowed;
 }
 
+/* A field with a button beside its input (password: generate). */
+.input-with-action {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+
+.input-with-action input {
+    flex: 1;
+    min-width: 0;
+}
+
+/* As tall as the input beside it, so the pair reads as one control. */
+.input-with-action button {
+    flex: none;
+    align-self: stretch;
+    padding: 0 .6rem;
+}
+
 /* Team vault: open to AI agent tokens (share section). Checkbox on the left, title and explanation beside it;
    the whole block is the label, so a click anywhere toggles it. */
 .agent-access {

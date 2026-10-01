@@ -1049,4 +1049,7 @@
   <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
     <value>+ neue Applikationen</value>
   </data>
+  <data name="Vault.Field.GeneratePassword" xml:space="preserve">
+    <value>Starkes Passwort erzeugen</value>
+  </data>
 </root>

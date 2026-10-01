@@ -923,4 +923,7 @@
   <data name="AgentTokens.Applications.PlusNew" xml:space="preserve">
     <value>+ novas aplicações</value>
   </data>
+  <data name="Vault.Field.GeneratePassword" xml:space="preserve">
+    <value>Gerar uma palavra-passe forte</value>
+  </data>
 </root>

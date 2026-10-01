@@ -749,7 +749,15 @@ else
         {
             <div class="field"><label for="kw-item-user">@Loc["Vault.Field.Username"]</label><input id="kw-item-user" @bind="fUser" autocomplete="off" /></div>
             <div class="field"><label for="kw-item-url">@Loc["Vault.Field.Url"]</label><input id="kw-item-url" @bind="fUrl" placeholder="https://example.com" /></div>
-            <div class="field"><label for="kw-item-pwd">@Loc["Vault.Field.Password"]</label><input id="kw-item-pwd" @bind="fPwd" autocomplete="off" /></div>
+            <div class="field">
+                <label for="kw-item-pwd">@Loc["Vault.Field.Password"]</label>
+                <div class="input-with-action">
+                    <input id="kw-item-pwd" @bind="fPwd" autocomplete="off" />
+                    @* Replaces the field with a fresh strong password (shown, so it can be checked and copied). *@
+                    <button type="button" class="icon-btn" title="@Loc["Vault.Field.GeneratePassword"]" aria-label="@Loc["Vault.Field.GeneratePassword"]"
+                            @onclick="() => fPwd = PasswordGenerator.Generate()"><KeywardIcon Name="dices" Size="15" /></button>
+                </div>
+            </div>
             <div class="field"><label for="kw-item-note">@Loc["Vault.Field.Note"]</label><textarea id="kw-item-note" rows="2" @bind="fNote"></textarea></div>
         }
         else
