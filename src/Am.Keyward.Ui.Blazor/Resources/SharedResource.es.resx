@@ -927,7 +927,7 @@
     <value>Generar una contraseña segura</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>A continuación, configúralo en el ordenador del asistente — ver «Cómo usar un token de agente» más abajo.</value>
+    <value>A continuación, en el ordenador donde se ejecuta el asistente — el tercer paso comprueba el token:</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>Cómo usar un token de agente</value>

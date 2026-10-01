@@ -927,7 +927,7 @@
     <value>Genera una password robusta</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Poi configuralo sul computer dell'assistente — vedi «Come usare un token agente» qui sotto.</value>
+    <value>Poi, sul computer su cui gira l'assistente — il terzo passo verifica il token:</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>Come usare un token agente</value>

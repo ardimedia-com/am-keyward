@@ -927,7 +927,7 @@
     <value>Générer un mot de passe fort</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Ensuite, configurez-le sur l'ordinateur de l'assistant — voir « Utiliser un jeton d'agent » ci-dessous.</value>
+    <value>Ensuite, sur l'ordinateur où tourne l'assistant — la troisième étape vérifie le jeton :</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>Utiliser un jeton d'agent</value>

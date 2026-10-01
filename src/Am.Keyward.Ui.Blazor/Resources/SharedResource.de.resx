@@ -1053,7 +1053,7 @@
     <value>Starkes Passwort erzeugen</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Als Nächstes richtest du ihn auf dem Computer des Assistenten ein — siehe «So verwendest du einen Agent-Token» weiter unten.</value>
+    <value>Als Nächstes auf dem Computer, auf dem der Assistent läuft — der dritte Schritt prüft den Token:</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>So verwendest du einen Agent-Token</value>

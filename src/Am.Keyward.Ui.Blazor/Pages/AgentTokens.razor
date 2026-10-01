@@ -44,7 +44,9 @@
                         <code>@issuedToken</code>
                         <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
                     </div>
+                    @* Right where the token is copied: the steps that put it to use, ending with the check. *@
                     <p class="issued-next">@Loc["AgentTokens.Usage.Next"]</p>
+                    @usageSteps
                 </div>
             }
 
@@ -206,19 +208,7 @@
                 <h3>@Loc["AgentTokens.Usage.Title"]</h3>
                 <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
                 <p class="muted">@Loc["AgentTokens.Usage.Scope"]</p>
-                <ol class="usage-steps">
-                    @foreach (var (label, command) in UsageSteps)
-                    {
-                        <li>
-                            <span>@label</span>
-                            <div class="usage-command">
-                                <code>@command</code>
-                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
-                            </div>
-                        </li>
-                    }
-                    <li><span>@Loc["AgentTokens.Usage.Ask"]</span></li>
-                </ol>
+                @usageSteps
             </section>
 
             <section class="card">
@@ -287,6 +277,24 @@
 </KeywardUi>
 
 @code {
+    // The setup steps, shown in the «How to use» section and again inside the notice of a freshly issued token.
+    private RenderFragment usageSteps => __builder =>
+    {
+        <ol class="usage-steps">
+            @foreach (var (label, command) in UsageSteps)
+            {
+                <li>
+                    <span>@label</span>
+                    <div class="usage-command">
+                        <code>@command</code>
+                        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
+                    </div>
+                </li>
+            }
+            <li><span>@Loc["AgentTokens.Usage.Ask"]</span></li>
+        </ol>
+    };
+
     private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite, AgentScopes.VaultReveal];
 
     private static readonly AgentScopes[] AllScopes = [.. OfferedScopes, AgentScopes.ManageApplications];

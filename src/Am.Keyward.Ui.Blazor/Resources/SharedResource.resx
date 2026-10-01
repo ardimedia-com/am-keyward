@@ -1053,7 +1053,7 @@
     <value>Generate a strong password</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Next: set it up on the assistant's computer — see «How to use an agent token» below.</value>
+    <value>Next, on the computer the assistant runs on — the third step checks the token:</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>How to use an agent token</value>

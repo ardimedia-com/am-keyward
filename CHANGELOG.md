@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.25.0-preview] - 2026-10-01
+
 ### Added
 
 - **Edit an agent token** (decision T7 A): its owner changes name, permissions, vaults, applications and networks on
@@ -13,6 +15,8 @@ All notable changes to this project are documented here, following
 - **«All» on an agent token** (decision T8 A): «all team vaults opened to agents» and «all applications», today's and
   future ones, each off by default. For vaults it only replaces the list — the vault's agent flag and the user's own
   grant still decide. `/token` and `amkeyward-mcp check` report it. Migration `AgentTokenWildcards`.
+- **A freshly issued token shows its setup steps right in the notice** — install, store, check (`amkeyward-mcp check`)
+  and register, filled in with this KEYWARD's address and copyable.
 
 ### Changed
 
