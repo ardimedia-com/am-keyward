@@ -59,7 +59,8 @@
                         <div class="reveal-row">
                             <div class="token-main">
                                 <KeywardIcon Name="eye" Size="17" />
-                                <span class="token-name">@request.ItemName</span>
+                                @* The person can also open the entry and copy the value there instead of approving. *@
+                                <a class="token-name" href="@KeywardRoutes.EntryLinkFor(Base62Guid.Encode(request.ItemPublicId))">@request.ItemName</a>
                                 <span class="badge">@FieldLabel(request.Field)</span>
                             </div>
                             <div class="token-facts muted">

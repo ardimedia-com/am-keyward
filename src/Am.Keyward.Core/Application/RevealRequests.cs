@@ -2,8 +2,12 @@ using Am.Keyward.Core.Domain.Agent;
 
 namespace Am.Keyward.Core.Application;
 
-/// <summary>A reveal request as the agent sees it: never the value, only where it stands.</summary>
-public sealed record RevealRequestState(Guid Id, Guid ItemId, RevealField Field, RevealRequestStatus Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy);
+/// <summary>
+/// A reveal request as the agent sees it: never the value, only where it stands — and the entry's stable public id,
+/// so the person can be pointed to the entry to copy the value there.
+/// </summary>
+public sealed record RevealRequestState(
+    Guid Id, Guid ItemId, RevealField Field, RevealRequestStatus Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy, Guid ItemPublicId);
 
 /// <summary>A pending request as the human deciding it sees it (reason is the agent's untrusted text).</summary>
 public sealed record PendingRevealRequest(
@@ -14,7 +18,8 @@ public sealed record PendingRevealRequest(
     RevealField Field,
     string Reason,
     DateTimeOffset CreatedAt,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    Guid ItemPublicId);
 
 /// <summary>Outcome of the one-time fetch: the value only when the request was approved and still in its window.</summary>
 public sealed record RevealConsumeResult(RevealRequestStatus Status, string? Value);

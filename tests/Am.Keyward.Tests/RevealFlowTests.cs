@@ -50,6 +50,9 @@ public class RevealFlowTests
         var request = await created.Content.ReadFromJsonAsync<AgentRevealStateResponse>();
         Assert.AreEqual("Pending", request!.Status);
 
+        // The entry's deep link: the person can open it and copy the value there instead.
+        StringAssert.StartsWith(request.ItemLink, "/amkeyward/e/");
+
         // Not before approval.
         var early = await client.PostAsync($"/keyward/api/v1/agent/reveal-requests/{request.Id}/consume", null);
         Assert.AreEqual(HttpStatusCode.Conflict, early.StatusCode);

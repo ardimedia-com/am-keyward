@@ -247,7 +247,8 @@ public static class KeywardAgentApi
     }
 
     private static AgentRevealStateResponse ToResponse(RevealRequestState state) =>
-        new(state.Id, state.ItemId, state.Field.ToString(), state.Status.ToString(), state.ExpiresAt, state.ConsumeBy);
+        new(state.Id, state.ItemId, state.Field.ToString(), state.Status.ToString(), state.ExpiresAt, state.ConsumeBy,
+            $"{KeywardApiDefaults.EntryLinkPath}/{Base62Guid.Encode(state.ItemPublicId)}");
 
     // One request shape for every type: a Login is built from its four fields, anything else takes value.
     private static bool TryBuildContent(AgentCreateItemRequest body, out ItemType type, out string content, out string error)

@@ -54,7 +54,8 @@ public sealed record KeywardRevealRequestLine(
     string ItemName,
     RevealField Field,
     string Reason,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    Guid ItemPublicId);
 
 /// <summary>
 /// Delivers administrative alerts to the administrators who opted into them. Two categories exist and are

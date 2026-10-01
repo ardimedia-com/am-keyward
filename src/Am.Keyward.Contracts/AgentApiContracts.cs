@@ -60,9 +60,11 @@ public sealed record AgentRevealRequestBody(string Field, string Reason);
 /// <summary>
 /// Where a reveal request stands: <c>Pending</c> (waiting for the human, until <see cref="ExpiresAt"/>),
 /// <c>Approved</c> (fetch it once via <c>POST /reveal-requests/{id}/consume</c> before <see cref="ConsumeBy"/>),
-/// <c>Rejected</c>, <c>Expired</c> or <c>Consumed</c>.
+/// <c>Rejected</c>, <c>Expired</c> or <c>Consumed</c>. <see cref="ItemLink"/> opens the entry in the KEYWARD UI, where the
+/// person can copy the value themselves — often simpler than a reveal.
 /// </summary>
-public sealed record AgentRevealStateResponse(Guid Id, Guid ItemId, string Field, string Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy);
+public sealed record AgentRevealStateResponse(
+    Guid Id, Guid ItemId, string Field, string Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy, string ItemLink);
 
 /// <summary>The revealed value — returned exactly once, never cached.</summary>
 public sealed record AgentRevealValueResponse(Guid RequestId, Guid ItemId, string Field, string Value);

@@ -36,7 +36,7 @@ public sealed class RevealRequestService(
 
         var item = await db.VaultItems.AsNoTracking()
             .Where(i => i.Id == itemId)
-            .Select(i => new { i.Id, i.VaultId, i.Type, i.Name })
+            .Select(i => new { i.Id, i.VaultId, i.Type, i.Name, i.PublicId })
             .FirstOrDefaultAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {itemId} not found.");
 
@@ -53,8 +53,8 @@ public sealed class RevealRequestService(
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.RevealRequested, ResourceType, request.Id, userId, request.Reason), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        await NotifyAsync(tenantId, userId, request, token.Name, item.VaultId, item.Name, ct).ConfigureAwait(false);
-        return Map(request, clock.UtcNow);
+        await NotifyAsync(tenantId, userId, request, token.Name, item.VaultId, item.Name, item.PublicId, ct).ConfigureAwait(false);
+        return Map(request, clock.UtcNow, item.PublicId);
     }
 
     public async Task<RevealRequestState?> GetAsync(Guid tokenId, Guid requestId, CancellationToken ct = default)
@@ -62,7 +62,16 @@ public sealed class RevealRequestService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var request = await db.RevealRequests.AsNoTracking()
             .FirstOrDefaultAsync(r => r.Id == requestId && r.TokenId == tokenId, ct).ConfigureAwait(false);
-        return request is null ? null : Map(request, clock.UtcNow);
+        if (request is null)
+        {
+            return null;
+        }
+
+        var publicId = await db.VaultItems.AsNoTracking()
+            .Where(i => i.Id == request.ItemId)
+            .Select(i => i.PublicId)
+            .FirstOrDefaultAsync(ct).ConfigureAwait(false);
+        return Map(request, clock.UtcNow, publicId);
     }
 
     public async Task<RevealConsumeResult?> ConsumeAsync(Guid tokenId, Guid requestId, CancellationToken ct = default)
@@ -122,14 +131,14 @@ public sealed class RevealRequestService(
             .ToDictionaryAsync(t => t.Id, t => t.Name, ct).ConfigureAwait(false);
         var items = await db.VaultItems.AsNoTracking()
             .Where(i => itemIds.Contains(i.Id))
-            .Join(db.Vaults, i => i.VaultId, v => v.Id, (i, v) => new { i.Id, ItemName = i.Name, VaultName = v.Name })
+            .Join(db.Vaults, i => i.VaultId, v => v.Id, (i, v) => new { i.Id, ItemName = i.Name, VaultName = v.Name, i.PublicId })
             .ToDictionaryAsync(x => x.Id, ct).ConfigureAwait(false);
 
         return requests
             .Where(r => items.ContainsKey(r.ItemId))
             .Select(r => new PendingRevealRequest(
                 r.Id, tokenNames.GetValueOrDefault(r.TokenId, "?"), items[r.ItemId].VaultName, items[r.ItemId].ItemName,
-                r.Field, r.Reason, r.CreatedAt, r.ExpiresAt))
+                r.Field, r.Reason, r.CreatedAt, r.ExpiresAt, items[r.ItemId].PublicId))
             .ToList();
     }
 
@@ -164,7 +173,8 @@ public sealed class RevealRequestService(
     }
 
     // Best-effort: the request is valid without the notice, and a delivery problem must not fail the agent call.
-    private async Task NotifyAsync(Guid tenantId, Guid userId, RevealRequest request, string tokenName, Guid vaultId, string itemName, CancellationToken ct)
+    private async Task NotifyAsync(
+        Guid tenantId, Guid userId, RevealRequest request, string tokenName, Guid vaultId, string itemName, Guid itemPublicId, CancellationToken ct)
     {
         if (!presenters.Any())
         {
@@ -181,7 +191,8 @@ public sealed class RevealRequestService(
                 return;
             }
 
-            var line = new KeywardRevealRequestLine(request.Id, tokenName, vaultName ?? "?", itemName, request.Field, request.Reason, request.ExpiresAt);
+            var line = new KeywardRevealRequestLine(
+                request.Id, tokenName, vaultName ?? "?", itemName, request.Field, request.Reason, request.ExpiresAt, itemPublicId);
             foreach (var presenter in presenters)
             {
                 await presenter.NotifyRevealRequestAsync(tenantId, new KeywardAlertRecipient(userId, externalId), line, ct).ConfigureAwait(false);
@@ -193,7 +204,8 @@ public sealed class RevealRequestService(
         }
     }
 
-    private static RevealRequestState Map(RevealRequest r, DateTimeOffset now) => new(r.Id, r.ItemId, r.Field, r.StatusAt(now), r.ExpiresAt, r.ConsumeBy);
+    private static RevealRequestState Map(RevealRequest r, DateTimeOffset now, Guid itemPublicId) =>
+        new(r.Id, r.ItemId, r.Field, r.StatusAt(now), r.ExpiresAt, r.ConsumeBy, itemPublicId);
 
     private (Guid UserId, Guid TenantId) RequireScope() =>
         (currentUser.UserId ?? throw new UnauthorizedAccessException("No user in scope."),

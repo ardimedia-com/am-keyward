@@ -130,7 +130,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? Written("Updated", result.Value!) : result.Error!;
     }
 
-    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password' or 'Note' of a Login, 'Value' of other types. The person the token belongs to must approve it in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
+    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password' or 'Note' of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
     public async Task<string> RequestRevealAsync(
         [Description("The entry id.")] Guid itemId,
         [Description("Password, Note or Value.")] string field,
@@ -147,7 +147,8 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         var request = result.Value!;
         return $"Reveal request {request.Id} is waiting for approval until {request.ExpiresAt:HH:mm} UTC. "
-            + "Ask the person to approve it in KEYWARD under «Agent tokens», then call consume_reveal with this id.";
+            + "Ask the person to approve it in KEYWARD under «Agent tokens», then call consume_reveal with this id. "
+            + $"Or the person opens the entry and copies the value there: {keyward.AbsoluteLink(request.ItemLink)}";
     }
 
     [McpServerTool(Name = "consume_reveal"), Description("After the person approved a reveal request: copies the value to the Windows clipboard (cleared after 30 seconds, kept out of clipboard history). The value itself is not returned. Works once.")]
@@ -167,7 +168,8 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             case "Approved":
                 break;
             default:
-                return $"The request is {state.Value.Status}; nothing to copy. Ask again with request_reveal if still needed.";
+                return $"The request is {state.Value.Status}; nothing to copy. Ask again with request_reveal if still needed, "
+                    + $"or let the person copy the value from the entry: {keyward.AbsoluteLink(state.Value.ItemLink)}";
         }
 
         var result = await keyward.ConsumeRevealAsync(requestId, ct);

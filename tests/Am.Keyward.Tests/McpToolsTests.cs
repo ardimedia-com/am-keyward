@@ -71,6 +71,8 @@ public class McpToolsTests
         // Reveal: pending until the person approves, then once — to the clipboard only.
         var requested = await Say(tools.RequestRevealAsync(itemId, "Password", "configure the CH-Post client", default));
         var requestId = Guid.Parse(requested.Split(' ')[2]);
+        // The person may simply open the entry and copy the value there: the answer carries the entry link.
+        StringAssert.Contains(requested, "/amkeyward/e/");
         StringAssert.Contains(await Say(tools.ConsumeRevealAsync(requestId, default)), "Not approved yet");
         Assert.IsNull(clipboard.Value);
 

@@ -11,6 +11,10 @@ All notable changes to this project are documented here, following
   random source, always with upper- and lower-case letters, digits and symbols; no look-alike characters
   (`0 O o 1 l I`) and no symbols that break in shells, URLs, JSON or connection strings. `PasswordGenerator` in
   `Am.Keyward.Core.Support`.
+- **The entry link wherever an agent asks for a value** (decision T4 A): a reveal request carries the entry's deep
+  link (`AgentRevealStateResponse.ItemLink`, `KeywardRevealRequestLine.ItemPublicId` for host notices), the MCP
+  tools hand it to the person («open the entry and copy the value there»), and the pending requests on «Agent
+  tokens» link to their entries. Revealing itself is unchanged: approved per request, clipboard only.
 
 ## [0.23.1-preview] - 2026-10-01
 
