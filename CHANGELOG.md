@@ -20,6 +20,9 @@ All notable changes to this project are documented here, following
   value the rotation date and note, `GET /applications/{id}/tokens` (app-token metadata, last access, monitoring —
   never a token) and `GET /applications/{id}/statistics`. MCP tools `move_item`, `list_app_tokens`,
   `get_app_statistics`. Reads are audited as the agent.
+- **«Agent tokens» explains what a token is for and how to set it up**: a section «How to use an agent token» with
+  the typical uses and the four commands (install `amkeyward-mcp`, store the token, check, register in Claude Code)
+  already filled in with this KEYWARD's address, each with a copy button; a freshly issued token points to it.
 
 ## [0.23.1-preview] - 2026-10-01
 

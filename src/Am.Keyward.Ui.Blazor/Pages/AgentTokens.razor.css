@@ -20,6 +20,31 @@
     overflow-wrap: anywhere;
 }
 
+.issued-next {
+    margin: .5rem 0 0;
+}
+
+.usage-steps {
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+    margin: .6rem 0 0;
+    padding-left: 1.2rem;
+}
+
+.usage-command {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-top: .25rem;
+}
+
+.usage-command code {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
 .issue-form {
     display: flex;
     flex-direction: column;

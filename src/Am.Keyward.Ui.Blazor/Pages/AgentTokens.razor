@@ -12,6 +12,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject KeywardUiOptions KeywardOptions
 @inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -43,6 +44,7 @@
                         <code>@issuedToken</code>
                         <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
                     </div>
+                    <p class="issued-next">@Loc["AgentTokens.Usage.Next"]</p>
                 </div>
             }
 
@@ -171,6 +173,26 @@
                 }
             </section>
 
+            @* What a token is for and how it reaches the assistant — the steps are the same on every computer; only the
+               KEYWARD address differs, so it is filled in. *@
+            <section class="card usage" id="usage">
+                <h3>@Loc["AgentTokens.Usage.Title"]</h3>
+                <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
+                <ol class="usage-steps">
+                    @foreach (var (label, command) in UsageSteps)
+                    {
+                        <li>
+                            <span>@label</span>
+                            <div class="usage-command">
+                                <code>@command</code>
+                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
+                            </div>
+                        </li>
+                    }
+                    <li><span>@Loc["AgentTokens.Usage.Ask"]</span></li>
+                </ol>
+            </section>
+
             <section class="card">
                 <h3>@Loc["AgentTokens.Existing"] (@tokens.Count)</h3>
                 @if (tokens.Count == 0)
@@ -262,6 +284,18 @@
 
     private string? issuedToken;
     private bool issuedCopied;
+    private string? copiedCommand;
+
+    // The address the MCP server talks to: the configured public address, else the one this page was opened on.
+    private string ServiceUri => (KeywardOptions.PublicBaseUrl is { Length: > 0 } configured ? configured : Nav.BaseUri).TrimEnd('/');
+
+    private IReadOnlyList<(string Label, string Command)> UsageSteps =>
+    [
+        (Loc["AgentTokens.Usage.Install"], "dotnet tool install --global Am.Keyward.Mcp --prerelease"),
+        (Loc["AgentTokens.Usage.Store"], "amkeyward-mcp setup"),
+        (Loc["AgentTokens.Usage.Check"], $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; amkeyward-mcp check"),
+        (Loc["AgentTokens.Usage.Register"], $"claude mcp add amkeyward --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
+    ];
     private Guid? confirmRevokeId;
 
     private (string Text, bool IsError)? status;
@@ -432,6 +466,12 @@
     {
         issuedToken = token;
         issuedCopied = false;
+    }
+
+    private async Task CopyCommandAsync(string command)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", command);
+        copiedCommand = command;
     }
 
     private async Task CopyIssuedAsync()

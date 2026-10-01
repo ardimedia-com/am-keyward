@@ -926,4 +926,28 @@
   <data name="Vault.Field.GeneratePassword" xml:space="preserve">
     <value>Générer un mot de passe fort</value>
   </data>
+  <data name="AgentTokens.Usage.Next" xml:space="preserve">
+    <value>Ensuite, configurez-le sur l'ordinateur de l'assistant — voir « Utiliser un jeton d'agent » ci-dessous.</value>
+  </data>
+  <data name="AgentTokens.Usage.Title" xml:space="preserve">
+    <value>Utiliser un jeton d'agent</value>
+  </data>
+  <data name="AgentTokens.Usage.Intro" xml:space="preserve">
+    <value>Un jeton relie un assistant IA comme Claude Code à KEYWARD via le serveur MCP « amkeyward-mcp », sur l'ordinateur où tourne l'assistant. Usages typiques : l'assistant enregistre des accès reçus par e-mail et vous donne le lien ; il trouve une entrée et vous donne son lien pour que vous copiiez la valeur vous-même ; avec « Gérer les applications », il crée une application et ses clés pour un programme, et vous saisissez les valeurs. Il ne voit jamais une valeur, sauf si vous approuvez chaque demande.</value>
+  </data>
+  <data name="AgentTokens.Usage.Install" xml:space="preserve">
+    <value>Installer le serveur MCP (une fois par ordinateur) :</value>
+  </data>
+  <data name="AgentTokens.Usage.Store" xml:space="preserve">
+    <value>Enregistrer le jeton dans le Gestionnaire d'identification Windows (le coller lorsqu'il est demandé) :</value>
+  </data>
+  <data name="AgentTokens.Usage.Check" xml:space="preserve">
+    <value>Vérifier la connexion et les droits du jeton :</value>
+  </data>
+  <data name="AgentTokens.Usage.Register" xml:space="preserve">
+    <value>L'ajouter à Claude Code :</value>
+  </data>
+  <data name="AgentTokens.Usage.Ask" xml:space="preserve">
+    <value>Ensuite, demandez simplement à l'assistant, p. ex. « Enregistre les accès de cet e-mail dans KEYWARD et donne-moi le lien » ou « Crée les clés de mon application console en Production ».</value>
+  </data>
 </root>

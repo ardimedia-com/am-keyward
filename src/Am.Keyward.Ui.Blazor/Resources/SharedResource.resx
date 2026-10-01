@@ -1052,4 +1052,28 @@
   <data name="Vault.Field.GeneratePassword" xml:space="preserve">
     <value>Generate a strong password</value>
   </data>
+  <data name="AgentTokens.Usage.Next" xml:space="preserve">
+    <value>Next: set it up on the assistant's computer — see «How to use an agent token» below.</value>
+  </data>
+  <data name="AgentTokens.Usage.Title" xml:space="preserve">
+    <value>How to use an agent token</value>
+  </data>
+  <data name="AgentTokens.Usage.Intro" xml:space="preserve">
+    <value>A token connects an AI assistant such as Claude Code with KEYWARD through the MCP server «amkeyward-mcp», on the computer the assistant runs on. Typical uses: the assistant stores access data that arrived by e-mail and hands you the link; it finds an entry and gives you its link, so you copy the value yourself; with «Manage applications» it sets up an application and its keys for a program, and you paste the values. It never sees a value unless you approve each request.</value>
+  </data>
+  <data name="AgentTokens.Usage.Install" xml:space="preserve">
+    <value>Install the MCP server (once per computer):</value>
+  </data>
+  <data name="AgentTokens.Usage.Store" xml:space="preserve">
+    <value>Store the token in the Windows Credential Manager (paste it when asked):</value>
+  </data>
+  <data name="AgentTokens.Usage.Check" xml:space="preserve">
+    <value>Check the connection and the token's permissions:</value>
+  </data>
+  <data name="AgentTokens.Usage.Register" xml:space="preserve">
+    <value>Register it in Claude Code:</value>
+  </data>
+  <data name="AgentTokens.Usage.Ask" xml:space="preserve">
+    <value>Then ask the assistant in plain words, e.g. «Store the access data from this e-mail in KEYWARD and give me the link» or «Create the keys for my console application in Production».</value>
+  </data>
 </root>
