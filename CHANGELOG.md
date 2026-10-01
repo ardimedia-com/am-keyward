@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.24.0-preview] - 2026-10-01
+
 ### Added
 
 - **Generate a strong password** on a Login's password field (add and edit): 20 characters from a cryptographic
