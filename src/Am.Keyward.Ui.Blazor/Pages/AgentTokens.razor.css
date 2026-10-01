@@ -45,6 +45,11 @@
     overflow-wrap: anywhere;
 }
 
+.issue-hint {
+    margin: -.4rem 0 0;
+    font-size: .85rem;
+}
+
 .issue-form {
     display: flex;
     flex-direction: column;

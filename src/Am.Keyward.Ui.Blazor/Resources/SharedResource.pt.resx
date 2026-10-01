@@ -953,4 +953,7 @@
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
     <value>Onde se aplica: depois de guardado, o token funciona em cada sessão do Claude Code do seu utilizador Windows nesse computador, em cada projeto. Todas agem como você, com exatamente os cofres, aplicações e permissões marcados aqui — nada mais, e só enquanto tiver o acesso. O que está marcado não pode ser alterado depois: para mais ou menos, emita um token novo e revogue o antigo. Use um token por computador, dê-lhe o nome do computador e revogue-o se o computador for perdido ou entregue a outra pessoa. Outros computadores, o Claude Desktop e o claude.ai precisam da sua própria configuração.</value>
   </data>
+  <data name="AgentTokens.Issue.Hint" xml:space="preserve">
+    <value>Um token por computador: dê-lhe o nome do computador para poder revogar um sem afetar os outros — outro computador recebe o seu próprio token. O token é para o Claude Code nesse computador; o Claude Desktop e o claude.ai têm a sua própria configuração MCP e são configurados à parte.</value>
+  </data>
 </root>

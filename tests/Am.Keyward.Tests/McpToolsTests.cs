@@ -160,6 +160,21 @@ public class McpToolsTests
     }
 
     [TestMethod, TestCategory("Unit")]
+    public void Each_KEYWARD_address_gets_its_own_credential()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Assert.Inconclusive("The Windows Credential Manager exists on Windows only.");
+            return;
+        }
+
+        // Nothing about the installations is built in: the target comes from the address the user configures.
+        Assert.AreEqual("AmKeyward:Agent:toolbox.bvd.li", WindowsCredentialStore.TargetFor(new Uri("https://toolbox.bvd.li")));
+        Assert.AreEqual("AmKeyward:Agent:toolbox.ardimedia.com", WindowsCredentialStore.TargetFor(new Uri("https://Toolbox.Ardimedia.com/")));
+        Assert.AreEqual("AmKeyward:Agent:keyward.example.com:8443", WindowsCredentialStore.TargetFor(new Uri("https://keyward.example.com:8443/x")));
+    }
+
+    [TestMethod, TestCategory("Unit")]
     public void Check_reports_the_permissions_of_the_token()
     {
         var report = CheckReport.Describe(new AgentTokenInfoResponse(

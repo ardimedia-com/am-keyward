@@ -953,4 +953,7 @@
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
     <value>Portée : une fois enregistré, le jeton fonctionne dans chaque session Claude Code de votre utilisateur Windows sur cet ordinateur, dans chaque projet. Toutes agissent en votre nom, avec exactement les coffres, applications et droits cochés ici — rien de plus, et seulement tant que vous avez vous-même l'accès. Ce qui est coché ne peut pas être modifié ensuite : pour plus ou moins, émettez un nouveau jeton et révoquez l'ancien. Utilisez un jeton par ordinateur, nommez-le d'après l'ordinateur et révoquez-le si l'ordinateur est perdu ou cédé. Les autres ordinateurs, Claude Desktop et claude.ai doivent être configurés séparément.</value>
   </data>
+  <data name="AgentTokens.Issue.Hint" xml:space="preserve">
+    <value>Un jeton par ordinateur : nommez-le d'après l'ordinateur pour pouvoir en révoquer un sans toucher aux autres — un autre ordinateur reçoit son propre jeton. Le jeton est destiné à Claude Code sur cet ordinateur ; Claude Desktop et claude.ai ont leur propre configuration MCP et se configurent séparément.</value>
+  </data>
 </root>

@@ -13,21 +13,32 @@ internal interface ITokenStore
 }
 
 /// <summary>
-/// The agent token in the Windows Credential Manager (a generic credential, target <see cref="Target"/>,
-/// persisted for this user on this machine). Nothing is written to a file or an environment variable, and the
-/// MCP configuration of the assistant never contains the token.
+/// The agent token in the Windows Credential Manager (a generic credential, persisted for this user on this machine).
+/// Nothing is written to a file or an environment variable, and the MCP configuration of the assistant never contains
+/// the token.
+/// <para>
+/// One credential per KEYWARD: the target carries the address the user configured (<see cref="TargetFor"/>), so one
+/// computer can hold tokens for any number of KEYWARD installations — none of them known when this tool was built.
+/// <see cref="LegacyTarget"/> is the single target of versions before 0.24 and is still read as a fallback.
+/// </para>
 /// </summary>
 [SupportedOSPlatform("windows")]
-internal sealed class WindowsCredentialStore : ITokenStore
+internal sealed class WindowsCredentialStore(string target) : ITokenStore
 {
-    public const string Target = "AmKeyward:Agent";
+    public const string LegacyTarget = "AmKeyward:Agent";
+
+    public string Target => target;
+
+    /// <summary>The credential target for a KEYWARD address: <c>AmKeyward:Agent:{host[:port]}</c>, lower case.</summary>
+    public static string TargetFor(Uri serviceUri) =>
+        $"{LegacyTarget}:{(serviceUri.IsDefaultPort ? serviceUri.Host : $"{serviceUri.Host}:{serviceUri.Port}").ToLowerInvariant()}";
 
     private const uint CredTypeGeneric = 1;
     private const uint CredPersistLocalMachine = 2;
 
     public string? Read()
     {
-        if (!CredRead(Target, CredTypeGeneric, 0, out var pointer))
+        if (!CredRead(target, CredTypeGeneric, 0, out var pointer))
         {
             return null;
         }
@@ -60,7 +71,7 @@ internal sealed class WindowsCredentialStore : ITokenStore
             var credential = new Credential
             {
                 Type = CredTypeGeneric,
-                TargetName = Target,
+                TargetName = target,
                 Comment = "AM KEYWARD agent token (amkeyward-mcp)",
                 CredentialBlobSize = (uint)bytes.Length,
                 CredentialBlob = blob,

@@ -10,6 +10,12 @@ All notable changes to this project are documented here, following
 - **«Agent tokens» says where a token applies**: every Claude Code session of the Windows user on that computer, all
   acting as the user with exactly what was ticked; ticks cannot be changed later (issue a new token); one token per
   computer, revoke it when the computer is lost or passed on.
+- **`amkeyward-mcp` handles several KEYWARD installations on one computer** (decision T6 A): `setup <address>`
+  stores the token under that address (`AmKeyward:Agent:<host>`), and each installation is its own MCP registration
+  with its own `Keyward__ServiceUri`; nothing about any installation is built in. The single pre-0.24 credential is
+  still read as a fallback. The «Agent tokens» page shows `setup` with its address and a registration name of its
+  own (`amkeyward-<host>`), plus a hint at issue time: one token per computer, Claude Desktop and claude.ai set up
+  separately.
 
 ## [0.24.0-preview] - 2026-10-01
 

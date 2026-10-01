@@ -7,11 +7,12 @@ using Microsoft.Extensions.Logging;
 namespace Am.Keyward.Mcp;
 
 /// <summary>
-/// Entry point. <c>amkeyward-mcp</c> runs the MCP server on stdio (what the assistant starts); <c>setup</c> stores
-/// the agent token in the Windows Credential Manager; <c>check</c> verifies it against KEYWARD. The KEYWARD address
-/// comes from configuration: the environment variable <c>Keyward__ServiceUri</c> (the same <c>Keyward:ServiceUri</c>
-/// setting the other Keyward clients use). An explicit class, not top-level statements, so it does not collide with
-/// another <c>Program</c> where both are referenced (the test project).
+/// Entry point. <c>amkeyward-mcp</c> runs the MCP server on stdio (what the assistant starts); <c>setup &lt;address&gt;</c>
+/// stores the agent token for that KEYWARD in the Windows Credential Manager; <c>check</c> verifies it. The KEYWARD
+/// address comes from configuration: the environment variable <c>Keyward__ServiceUri</c> (the same
+/// <c>Keyward:ServiceUri</c> setting the other Keyward clients use). Several KEYWARD installations on one computer
+/// are several MCP registrations, each with its own address and its own stored token. An explicit class, not
+/// top-level statements, so it does not collide with another <c>Program</c> where both are referenced (the test project).
 /// </summary>
 internal static class KeywardMcpHost
 {
@@ -20,7 +21,7 @@ internal static class KeywardMcpHost
         var command = args.FirstOrDefault()?.ToLowerInvariant();
         if (command == "setup")
         {
-            return Setup();
+            return Setup(args.Skip(1).FirstOrDefault() ?? Environment.GetEnvironmentVariable("Keyward__ServiceUri"));
         }
 
         var builder = Host.CreateApplicationBuilder(args.Where(a => a != "check").ToArray());
@@ -30,16 +31,17 @@ internal static class KeywardMcpHost
         builder.Logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Warning);
 
         var serviceUri = builder.Configuration["Keyward:ServiceUri"];
-        var token = ReadToken();
         if (string.IsNullOrWhiteSpace(serviceUri) || !Uri.TryCreate(serviceUri, UriKind.Absolute, out var baseAddress))
         {
-            Console.Error.WriteLine("Set Keyward__ServiceUri to the KEYWARD address, e.g. https://toolbox.bvd.li");
+            Console.Error.WriteLine("Set Keyward__ServiceUri to the KEYWARD address, e.g. https://keyward.example.com");
             return 1;
         }
 
+        var token = ReadToken(baseAddress);
         if (token is null)
         {
-            Console.Error.WriteLine($"No agent token found. Run 'amkeyward-mcp setup' (Windows Credential Manager) or set {EnvironmentTokenStore.Variable}.");
+            Console.Error.WriteLine(
+                $"No agent token found for {baseAddress}. Run 'amkeyward-mcp setup {baseAddress.GetLeftPart(UriPartial.Authority)}' (Windows Credential Manager) or set {EnvironmentTokenStore.Variable}.");
             return 1;
         }
 
@@ -81,21 +83,36 @@ internal static class KeywardMcpHost
         return 0;
     }
 
-    private static string? ReadToken()
+    // The token stored for this KEYWARD, else the single token of versions before 0.24, else the environment variable.
+    private static string? ReadToken(Uri serviceUri)
     {
-        if (OperatingSystem.IsWindows() && new WindowsCredentialStore().Read() is { Length: > 0 } stored)
+        if (OperatingSystem.IsWindows())
         {
-            return stored;
+            if (new WindowsCredentialStore(WindowsCredentialStore.TargetFor(serviceUri)).Read() is { Length: > 0 } stored)
+            {
+                return stored;
+            }
+
+            if (new WindowsCredentialStore(WindowsCredentialStore.LegacyTarget).Read() is { Length: > 0 } legacy)
+            {
+                return legacy;
+            }
         }
 
         return new EnvironmentTokenStore().Read();
     }
 
-    private static int Setup()
+    private static int Setup(string? serviceUri)
     {
         if (!OperatingSystem.IsWindows())
         {
             Console.Error.WriteLine($"The Windows Credential Manager is not available here; set {EnvironmentTokenStore.Variable} instead.");
+            return 1;
+        }
+
+        if (string.IsNullOrWhiteSpace(serviceUri) || !Uri.TryCreate(serviceUri, UriKind.Absolute, out var address))
+        {
+            Console.Error.WriteLine("Which KEYWARD is the token for? Run 'amkeyward-mcp setup https://keyward.example.com' with its address.");
             return 1;
         }
 
@@ -108,8 +125,9 @@ internal static class KeywardMcpHost
             return 1;
         }
 
-        new WindowsCredentialStore().Write(token);
-        Console.Error.WriteLine($"Stored in the Windows Credential Manager as «{WindowsCredentialStore.Target}». Run 'amkeyward-mcp check' to verify it.");
+        var store = new WindowsCredentialStore(WindowsCredentialStore.TargetFor(address));
+        store.Write(token);
+        Console.Error.WriteLine($"Stored in the Windows Credential Manager as «{store.Target}» (for {address.GetLeftPart(UriPartial.Authority)}). Run 'amkeyward-mcp check' to verify it.");
         return 0;
     }
 

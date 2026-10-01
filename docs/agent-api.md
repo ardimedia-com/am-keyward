@@ -199,16 +199,27 @@ A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
 
 ```powershell
 dotnet tool install --global Am.Keyward.Mcp --prerelease
-amkeyward-mcp setup            # paste the agent token; stored in the Windows Credential Manager ("AmKeyward:Agent")
-$env:Keyward__ServiceUri = "https://toolbox.bvd.li"
-amkeyward-mcp check            # verifies the token and prints its permissions
+amkeyward-mcp setup https://keyward.example.com   # paste the agent token; stored in the Windows Credential Manager
+$env:Keyward__ServiceUri = "https://keyward.example.com"
+amkeyward-mcp check                               # verifies the token and prints its permissions
 ```
 
 Register it in Claude Code (the token is not part of the configuration):
 
 ```powershell
-claude mcp add amkeyward --scope user --env Keyward__ServiceUri=https://toolbox.bvd.li -- amkeyward-mcp
+claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- amkeyward-mcp
 ```
+
+The «Agent tokens» page shows these commands filled in with its own address.
+
+**Several KEYWARD installations on one computer** (e.g. two companies' toolboxes): nothing about them is built into
+the tool. Each token is stored under its KEYWARD's address (`AmKeyward:Agent:<host>`), and each installation is its
+own MCP registration with its own `Keyward__ServiceUri` — run `setup` and `claude mcp add` once per installation. A
+token stored by a version before 0.24 (target `AmKeyward:Agent`) is still found as a fallback.
+
+**Where a token applies:** every Claude Code session of that Windows user on that computer (`--scope user`), all
+acting as the token's user. Use one token per computer, named after it; Claude Desktop and claude.ai have their own
+MCP configuration.
 
 Without the Credential Manager (not Windows) the token comes from `KEYWARD_AGENT_TOKEN`; revealing is then refused,
 because there is no clipboard to send the value to.

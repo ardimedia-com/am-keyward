@@ -93,6 +93,7 @@
                             <span>@Loc["AgentTokens.Name"]</span>
                             <input @bind="name" @bind:event="oninput" maxlength="256" />
                         </label>
+                        <p class="muted issue-hint">@Loc["AgentTokens.Issue.Hint"]</p>
 
                         @if (openVaults.Count == 0)
                         {
@@ -290,12 +291,15 @@
     // The address the MCP server talks to: the configured public address, else the one this page was opened on.
     private string ServiceUri => (KeywardOptions.PublicBaseUrl is { Length: > 0 } configured ? configured : Nav.BaseUri).TrimEnd('/');
 
+    // One MCP registration per KEYWARD, named after its host (amkeyward-toolbox-example-com), so several sit side by side.
+    private string McpServerName => "amkeyward-" + new Uri(ServiceUri).Host.ToLowerInvariant().Replace('.', '-');
+
     private IReadOnlyList<(string Label, string Command)> UsageSteps =>
     [
         (Loc["AgentTokens.Usage.Install"], "dotnet tool install --global Am.Keyward.Mcp --prerelease"),
-        (Loc["AgentTokens.Usage.Store"], "amkeyward-mcp setup"),
+        (Loc["AgentTokens.Usage.Store"], $"amkeyward-mcp setup {ServiceUri}"),
         (Loc["AgentTokens.Usage.Check"], $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; amkeyward-mcp check"),
-        (Loc["AgentTokens.Usage.Register"], $"claude mcp add amkeyward --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
+        (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
     ];
     private Guid? confirmRevokeId;
 
