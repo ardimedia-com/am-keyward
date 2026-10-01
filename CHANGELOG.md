@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **«Agent tokens» says where a token applies**: every Claude Code session of the Windows user on that computer, all
+  acting as the user with exactly what was ticked; ticks cannot be changed later (issue a new token); one token per
+  computer, revoke it when the computer is lost or passed on.
+
 ## [0.24.0-preview] - 2026-10-01
 
 ### Added

@@ -950,4 +950,7 @@
   <data name="AgentTokens.Usage.Ask" xml:space="preserve">
     <value>Después pide al asistente con palabras normales, p. ej. «Guarda los datos de acceso de este correo en KEYWARD y dame el enlace» o «Crea las claves de mi aplicación de consola en Production».</value>
   </data>
+  <data name="AgentTokens.Usage.Scope" xml:space="preserve">
+    <value>Dónde vale: una vez guardado, el token funciona en cada sesión de Claude Code de tu usuario de Windows en ese ordenador, en cada proyecto. Todas actúan como tú, con exactamente las bóvedas, aplicaciones y permisos marcados aquí — nada más, y solo mientras tú mismo tengas el acceso. Lo marcado no se puede cambiar después: para más o menos, emite un token nuevo y revoca el anterior. Usa un token por ordenador, ponle el nombre del ordenador y revócalo si el ordenador se pierde o se entrega a otra persona. Otros ordenadores, Claude Desktop y claude.ai necesitan su propia configuración.</value>
+  </data>
 </root>

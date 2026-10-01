@@ -1076,4 +1076,7 @@
   <data name="AgentTokens.Usage.Ask" xml:space="preserve">
     <value>Then ask the assistant in plain words, e.g. «Store the access data from this e-mail in KEYWARD and give me the link» or «Create the keys for my console application in Production».</value>
   </data>
+  <data name="AgentTokens.Usage.Scope" xml:space="preserve">
+    <value>Where it applies: once stored, the token works in every Claude Code session of your Windows user on that computer, in every project. All of them act as you, with exactly the vaults, applications and permissions ticked here — nothing more, and only for as long as you hold the access yourself. What is ticked cannot be changed later: for more or less, issue a new token and revoke the old one. Use one token per computer, name it after the computer, and revoke it if the computer is lost or passed on. Other computers, Claude Desktop and claude.ai need their own setup.</value>
+  </data>
 </root>
