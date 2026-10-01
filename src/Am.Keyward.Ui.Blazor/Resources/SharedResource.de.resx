@@ -1077,9 +1077,21 @@
     <value>Danach sagst du dem Assistenten in normalen Worten, was er tun soll, z. B. «Lege die Zugangsdaten aus dieser E-Mail in KEYWARD ab und gib mir den Link» oder «Lege für meine Konsolen-Applikation die Schlüssel in Production an».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Wo er gilt: Einmal abgelegt, gilt der Token in jeder Claude-Code-Sitzung deines Windows-Benutzers auf diesem Computer, in jedem Projekt. Alle handeln als du, mit genau den hier angekreuzten Tresoren, Applikationen und Rechten — nicht mehr, und nur solange du selbst den Zugriff hast. Was angekreuzt ist, lässt sich nachträglich nicht ändern: Für mehr oder weniger stellst du einen neuen Token aus und widerrufst den alten. Nimm einen Token pro Computer, benenne ihn nach dem Computer und widerrufe ihn, wenn der Computer verloren geht oder weitergegeben wird. Andere Computer, Claude Desktop und claude.ai brauchen eine eigene Einrichtung.</value>
+    <value>Wo er gilt: Einmal abgelegt, gilt der Token in jeder Claude-Code-Sitzung deines Windows-Benutzers auf diesem Computer, in jedem Projekt. Alle handeln als du, mit genau den hier angekreuzten Tresoren, Applikationen und Rechten — nicht mehr, und nur solange du selbst den Zugriff hast. Was angekreuzt ist, kannst du jederzeit mit «Bearbeiten» ändern; der Token behält seinen Wert, nichts muss neu eingerichtet werden. Nimm einen Token pro Computer, benenne ihn nach dem Computer und widerrufe ihn, wenn der Computer verloren geht oder weitergegeben wird. Andere Computer, Claude Desktop und claude.ai brauchen eine eigene Einrichtung.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>Ein Token pro Computer: Benenne ihn nach dem Computer, dann kannst du einen widerrufen, ohne die anderen zu treffen — ein anderer Computer bekommt seinen eigenen Token. Der Token ist für Claude Code auf diesem Computer; Claude Desktop und claude.ai haben ihre eigene MCP-Konfiguration und werden separat eingerichtet.</value>
+  </data>
+  <data name="AgentTokens.AllVaults" xml:space="preserve">
+    <value>Alle für Agents geöffneten Team-Tresore (auch künftige)</value>
+  </data>
+  <data name="AgentTokens.AllApplications" xml:space="preserve">
+    <value>Alle Applikationen (auch künftige)</value>
+  </data>
+  <data name="AgentTokens.Edit.Title" xml:space="preserve">
+    <value>Token «{0}» ändern</value>
+  </data>
+  <data name="AgentTokens.Msg.Updated" xml:space="preserve">
+    <value>Token geändert. Er funktioniert mit seinem bisherigen Wert weiter.</value>
   </data>
 </root>

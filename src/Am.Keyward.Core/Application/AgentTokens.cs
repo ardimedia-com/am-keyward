@@ -35,7 +35,26 @@ public sealed record IssueAgentTokenCommand(
     string? AllowedNetworks = null,
     DateTimeOffset? ExpiresAt = null,
     IReadOnlyList<Guid>? ApplicationIds = null,
-    bool MayCreateApplications = false);
+    bool MayCreateApplications = false,
+    bool AllAgentVaults = false,
+    bool AllApplications = false);
+
+/// <summary>
+/// Changes what an existing token may do and reach (its owner only, audited). Same rules as
+/// <see cref="IssueAgentTokenCommand"/>; the token value and its validity stay as they are.
+/// </summary>
+public sealed record UpdateAgentTokenCommand(
+    Guid UserId,
+    Guid TenantId,
+    Guid TokenId,
+    string Name,
+    AgentScopes Scopes,
+    IReadOnlyList<Guid> VaultIds,
+    string? AllowedNetworks = null,
+    IReadOnlyList<Guid>? ApplicationIds = null,
+    bool MayCreateApplications = false,
+    bool AllAgentVaults = false,
+    bool AllApplications = false);
 
 /// <summary>The scopes that work on vault items (as opposed to <see cref="AgentScopes.ManageApplications"/>).</summary>
 public static class AgentScopeGroups
@@ -53,6 +72,8 @@ public sealed record AgentTokenSummary(
     IReadOnlyList<Guid> VaultIds,
     IReadOnlyList<Guid> ApplicationIds,
     bool MayCreateApplications,
+    bool AllAgentVaults,
+    bool AllApplications,
     string AllowedNetworks,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
@@ -63,6 +84,9 @@ public sealed record AgentTokenSummary(
 public interface IAgentTokenService
 {
     Task<IssuedAgentToken> IssueAsync(IssueAgentTokenCommand cmd, CancellationToken ct = default);
+
+    /// <summary>Changes the token's permissions, vaults, applications, name and networks; the token value stays.</summary>
+    Task UpdateAsync(UpdateAgentTokenCommand cmd, CancellationToken ct = default);
 
     Task<IReadOnlyList<AgentTokenSummary>> ListAsync(Guid userId, Guid tenantId, CancellationToken ct = default);
 

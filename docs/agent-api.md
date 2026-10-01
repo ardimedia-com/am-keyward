@@ -61,6 +61,11 @@ A user who may manage the software side also sees **Applications**: tick «Manag
 default), then the existing applications the token may manage and/or «May create new applications». Vault
 permissions only count when a vault is ticked, so a token can be for applications only.
 
+Instead of listing them, a token can reach **all team vaults opened to agents** and/or **all applications** — today's
+and future ones. For vaults this only replaces the list: each vault must still be opened to agents, and the user
+must still hold the grant. **Edit** changes a token's name, permissions, vaults, applications and networks at any
+time; its value and validity stay, so nothing has to be set up again on the computer (audited as an update).
+
 | Permission | Allows |
 |---|---|
 | List entries | `/vaults`, `/vaults/{id}/tree`, `/search` |

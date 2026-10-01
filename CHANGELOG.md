@@ -5,10 +5,19 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Edit an agent token** (decision T7 A): its owner changes name, permissions, vaults, applications and networks on
+  «Agent tokens»; the token value and validity stay, so the computer needs no new setup. Audited as an update;
+  `IAgentTokenService.UpdateAsync`.
+- **«All» on an agent token** (decision T8 A): «all team vaults opened to agents» and «all applications», today's and
+  future ones, each off by default. For vaults it only replaces the list — the vault's agent flag and the user's own
+  grant still decide. `/token` and `amkeyward-mcp check` report it. Migration `AgentTokenWildcards`.
+
 ### Changed
 
 - **«Agent tokens» says where a token applies**: every Claude Code session of the Windows user on that computer, all
-  acting as the user with exactly what was ticked; ticks cannot be changed later (issue a new token); one token per
+  acting as the user with exactly what was ticked; one token per
   computer, revoke it when the computer is lost or passed on.
 - **`amkeyward-mcp` handles several KEYWARD installations on one computer** (decision T6 A): `setup <address>`
   stores the token under that address (`AmKeyward:Agent:<host>`), and each installation is its own MCP registration

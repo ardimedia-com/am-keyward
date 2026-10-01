@@ -81,7 +81,9 @@ public sealed record AgentTokenInfoResponse(
     int ApplicationCount,
     bool MayCreateApplications,
     string AllowedNetworks,
-    DateTimeOffset ExpiresAt);
+    DateTimeOffset ExpiresAt,
+    bool AllAgentVaults = false,
+    bool AllApplications = false);
 
 /// <summary>
 /// An application as the agent API shows it (<c>GET /applications</c>): environments and keys, and per environment

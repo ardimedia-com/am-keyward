@@ -951,9 +951,21 @@
     <value>Después pide al asistente con palabras normales, p. ej. «Guarda los datos de acceso de este correo en KEYWARD y dame el enlace» o «Crea las claves de mi aplicación de consola en Production».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Dónde vale: una vez guardado, el token funciona en cada sesión de Claude Code de tu usuario de Windows en ese ordenador, en cada proyecto. Todas actúan como tú, con exactamente las bóvedas, aplicaciones y permisos marcados aquí — nada más, y solo mientras tú mismo tengas el acceso. Lo marcado no se puede cambiar después: para más o menos, emite un token nuevo y revoca el anterior. Usa un token por ordenador, ponle el nombre del ordenador y revócalo si el ordenador se pierde o se entrega a otra persona. Otros ordenadores, Claude Desktop y claude.ai necesitan su propia configuración.</value>
+    <value>Dónde vale: una vez guardado, el token funciona en cada sesión de Claude Code de tu usuario de Windows en ese ordenador, en cada proyecto. Todas actúan como tú, con exactamente las bóvedas, aplicaciones y permisos marcados aquí — nada más, y solo mientras tú mismo tengas el acceso. Puedes cambiar lo marcado en cualquier momento con «Editar»; el token conserva su valor y no hay que volver a configurar nada. Usa un token por ordenador, ponle el nombre del ordenador y revócalo si el ordenador se pierde o se entrega a otra persona. Otros ordenadores, Claude Desktop y claude.ai necesitan su propia configuración.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>Un token por ordenador: ponle el nombre del ordenador para poder revocar uno sin afectar a los demás — otro ordenador recibe su propio token. El token es para Claude Code en ese ordenador; Claude Desktop y claude.ai tienen su propia configuración MCP y se configuran por separado.</value>
+  </data>
+  <data name="AgentTokens.AllVaults" xml:space="preserve">
+    <value>Todas las bóvedas de equipo abiertas a agentes (también las futuras)</value>
+  </data>
+  <data name="AgentTokens.AllApplications" xml:space="preserve">
+    <value>Todas las aplicaciones (también las futuras)</value>
+  </data>
+  <data name="AgentTokens.Edit.Title" xml:space="preserve">
+    <value>Cambiar el token «{0}»</value>
+  </data>
+  <data name="AgentTokens.Msg.Updated" xml:space="preserve">
+    <value>Token cambiado. Sigue funcionando con su valor actual.</value>
   </data>
 </root>

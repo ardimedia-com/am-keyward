@@ -227,7 +227,7 @@ public sealed class AgentApplicationService(
 
         var allowlisted = token.AllowedApplications.Select(a => a.ProjectId).ToList();
         var reachable = await db.Projects.AsNoTracking()
-            .Where(p => p.TenantId == token.TenantId && (allowlisted.Contains(p.Id) || p.CreatedByAgentTokenId == tokenId))
+            .Where(p => p.TenantId == token.TenantId && (token.AllApplications || allowlisted.Contains(p.Id) || p.CreatedByAgentTokenId == tokenId))
             .Select(p => p.Id)
             .ToListAsync(ct)
             .ConfigureAwait(false);

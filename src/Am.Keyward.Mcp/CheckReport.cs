@@ -21,10 +21,12 @@ internal static class CheckReport
         var text = new StringBuilder()
             .AppendLine($"Token «{info.Name}», valid until {info.ExpiresAt:yyyy-MM-dd} (UTC).")
             .AppendLine($"Permissions: {string.Join(", ", permissions)}.")
-            .AppendLine($"Vaults: {info.VaultCount}.");
+            .AppendLine(info.AllAgentVaults ? "Vaults: all team vaults opened to agents (also future ones)." : $"Vaults: {info.VaultCount}.");
         if (info.Permissions.Contains("ManageApplications"))
         {
-            text.AppendLine($"Applications: {info.ApplicationCount}{(info.MayCreateApplications ? ", and may create new ones" : "")}.");
+            text.AppendLine(info.AllApplications
+                ? "Applications: all (also future ones)."
+                : $"Applications: {info.ApplicationCount}{(info.MayCreateApplications ? ", and may create new ones" : "")}.");
         }
 
         text.Append(string.IsNullOrEmpty(info.AllowedNetworks) ? "Networks: any." : $"Networks: {info.AllowedNetworks}.");

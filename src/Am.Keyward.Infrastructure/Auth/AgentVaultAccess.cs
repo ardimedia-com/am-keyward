@@ -47,7 +47,8 @@ public sealed class AgentVaultAccess(
             return false;
         }
 
-        var allowlisted = await db.AgentTokenVaultAllowances.AsNoTracking()
+        // «All team vaults opened to agents» replaces only the allowlist: the agent flag and the grant below still decide.
+        var allowlisted = token.AllAgentVaults || await db.AgentTokenVaultAllowances.AsNoTracking()
             .AnyAsync(a => a.TokenId == tokenId && a.VaultId == vaultId, ct)
             .ConfigureAwait(false);
         if (!allowlisted)

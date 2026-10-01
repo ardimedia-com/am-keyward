@@ -81,6 +81,15 @@ public sealed class AgentToken
     /// </summary>
     public bool MayCreateApplications { get; private set; }
 
+    /// <summary>
+    /// Reaches every team vault opened to agents — today's and future ones — instead of an allowlist. Each vault must
+    /// still be opened to agents and the user must still hold the grant; this only spares listing them.
+    /// </summary>
+    public bool AllAgentVaults { get; private set; }
+
+    /// <summary>Reaches every application of the tenant — today's and future ones — instead of an allowlist.</summary>
+    public bool AllApplications { get; private set; }
+
     public AgentToken(
         Guid id,
         Guid tenantId,
@@ -146,6 +155,55 @@ public sealed class AgentToken
     }
 
     public void AllowCreatingApplications() => MayCreateApplications = true;
+
+    /// <summary>
+    /// Sets what the token may do and reach — at issue and on every later edit by its owner. The allowlists are
+    /// replaced as a whole; the secret and the validity stay as they are.
+    /// </summary>
+    public void Configure(
+        string name,
+        AgentScopes scopes,
+        IReadOnlyCollection<Guid> vaultIds,
+        bool allAgentVaults,
+        IReadOnlyCollection<Guid> applicationIds,
+        bool allApplications,
+        bool mayCreateApplications,
+        string? allowedNetworks)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new ArgumentException("Token name required.", nameof(name));
+        }
+
+        if (scopes == AgentScopes.None)
+        {
+            throw new ArgumentException("An agent token needs at least one scope.", nameof(scopes));
+        }
+
+        if (RevokedAt is not null)
+        {
+            throw new InvalidOperationException("A revoked token cannot be changed.");
+        }
+
+        Name = name.Trim();
+        Scopes = scopes;
+        AllowedNetworks = allowedNetworks?.Trim() ?? string.Empty;
+        AllAgentVaults = allAgentVaults;
+        AllApplications = allApplications;
+        MayCreateApplications = mayCreateApplications;
+
+        _allowedVaults.RemoveAll(v => !vaultIds.Contains(v.VaultId));
+        foreach (var vaultId in vaultIds)
+        {
+            AllowVault(vaultId);
+        }
+
+        _allowedApplications.RemoveAll(a => !applicationIds.Contains(a.ProjectId));
+        foreach (var applicationId in applicationIds)
+        {
+            AllowApplication(applicationId);
+        }
+    }
 
     public void Revoke(DateTimeOffset at) => RevokedAt ??= at;
 

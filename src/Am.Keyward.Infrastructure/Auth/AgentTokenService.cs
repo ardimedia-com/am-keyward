@@ -31,62 +31,96 @@ public sealed class AgentTokenService(
     public async Task<IssuedAgentToken> IssueAsync(IssueAgentTokenCommand cmd, CancellationToken ct = default)
     {
         EnsureScope(cmd.UserId, cmd.TenantId);
-
-        var vaultIds = cmd.VaultIds.Distinct().ToList();
-        var applicationIds = (cmd.ApplicationIds ?? []).Distinct().ToList();
-        var managesApplications = (cmd.Scopes & AgentScopes.ManageApplications) != 0;
-        if ((cmd.Scopes & AgentScopeGroups.Vault) != 0 ? vaultIds.Count == 0 : vaultIds.Count > 0)
-        {
-            throw new ArgumentException(vaultIds.Count == 0
-                ? "An agent token with vault permissions needs at least one vault."
-                : "Vaults need at least one vault permission.", nameof(cmd));
-        }
-
-        if (managesApplications ? applicationIds.Count == 0 && !cmd.MayCreateApplications : applicationIds.Count > 0 || cmd.MayCreateApplications)
-        {
-            throw new ArgumentException(managesApplications
-                ? "Managing applications needs at least one application or the permission to create new ones."
-                : "Applications need the permission to manage applications.", nameof(cmd));
-        }
+        var grants = new Grants(
+            cmd.Scopes, cmd.VaultIds.Distinct().ToList(), cmd.AllAgentVaults,
+            (cmd.ApplicationIds ?? []).Distinct().ToList(), cmd.AllApplications, cmd.MayCreateApplications);
 
         var now = clock.UtcNow;
         var expiresAt = ResolveExpiry(cmd.ExpiresAt, now);
         var networks = NormalizeNetworks(cmd.AllowedNetworks);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
-        foreach (var vaultId in vaultIds)
-        {
-            await EnsureVaultCanBeAllowedAsync(db, cmd.UserId, cmd.TenantId, vaultId, ct).ConfigureAwait(false);
-        }
-
-        if (managesApplications)
-        {
-            await EnsureApplicationsCanBeAllowedAsync(db, cmd.UserId, cmd.TenantId, applicationIds, ct).ConfigureAwait(false);
-        }
+        await ValidateAsync(db, cmd.UserId, cmd.TenantId, grants, ct).ConfigureAwait(false);
 
         var generated = SoftwareClientTokenGenerator.Generate(Scheme);
         var token = new AgentToken(
             Guid.NewGuid(), cmd.TenantId, cmd.UserId, cmd.Name, generated.Prefix, generated.Hash, cmd.Scopes, networks, now, expiresAt);
-        foreach (var vaultId in vaultIds)
-        {
-            token.AllowVault(vaultId);
-        }
-
-        foreach (var applicationId in applicationIds)
-        {
-            token.AllowApplication(applicationId);
-        }
-
-        if (cmd.MayCreateApplications)
-        {
-            token.AllowCreatingApplications();
-        }
+        token.Configure(cmd.Name, grants.Scopes, grants.VaultIds, grants.AllAgentVaults, grants.ApplicationIds,
+            grants.AllApplications, grants.MayCreateApplications, networks);
 
         db.AgentTokens.Add(token);
         await audit.AppendAsync(db, new AuditRequest(cmd.TenantId, AuditAction.Create, ResourceType, token.Id, cmd.UserId), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return new IssuedAgentToken(token.Id, generated.Token, expiresAt);
+    }
+
+    public async Task UpdateAsync(UpdateAgentTokenCommand cmd, CancellationToken ct = default)
+    {
+        EnsureScope(cmd.UserId, cmd.TenantId);
+        var grants = new Grants(
+            cmd.Scopes, cmd.VaultIds.Distinct().ToList(), cmd.AllAgentVaults,
+            (cmd.ApplicationIds ?? []).Distinct().ToList(), cmd.AllApplications, cmd.MayCreateApplications);
+        var networks = NormalizeNetworks(cmd.AllowedNetworks);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        // Ownership first: someone else's token is simply not found, whatever was asked for.
+        var token = await db.AgentTokens
+            .Include(t => t.AllowedVaults)
+            .Include(t => t.AllowedApplications)
+            .FirstOrDefaultAsync(t => t.Id == cmd.TokenId && t.UserId == cmd.UserId && t.TenantId == cmd.TenantId, ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Agent token {cmd.TokenId} not found.");
+
+        await ValidateAsync(db, cmd.UserId, cmd.TenantId, grants, ct).ConfigureAwait(false);
+
+        token.Configure(cmd.Name, grants.Scopes, grants.VaultIds, grants.AllAgentVaults, grants.ApplicationIds,
+            grants.AllApplications, grants.MayCreateApplications, networks);
+        await audit.AppendAsync(db, new AuditRequest(cmd.TenantId, AuditAction.Update, ResourceType, token.Id, cmd.UserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    private sealed record Grants(
+        AgentScopes Scopes,
+        IReadOnlyList<Guid> VaultIds,
+        bool AllAgentVaults,
+        IReadOnlyList<Guid> ApplicationIds,
+        bool AllApplications,
+        bool MayCreateApplications);
+
+    // The one rule set for issuing and editing: vault permissions need a vault (or «all vaults opened to agents") and
+    // the other way round; «Manage applications» needs an application, «all applications» or «may create», and a user
+    // who may manage the software side.
+    private async Task ValidateAsync(KeywardDbContext db, Guid userId, Guid tenantId, Grants grants, CancellationToken ct)
+    {
+        var hasVaultScope = (grants.Scopes & AgentScopeGroups.Vault) != 0;
+        var hasVaults = grants.VaultIds.Count > 0 || grants.AllAgentVaults;
+        if (hasVaultScope != hasVaults)
+        {
+            throw new ArgumentException(hasVaultScope
+                ? "An agent token with vault permissions needs at least one vault."
+                : "Vaults need at least one vault permission.");
+        }
+
+        var managesApplications = (grants.Scopes & AgentScopes.ManageApplications) != 0;
+        var hasApplications = grants.ApplicationIds.Count > 0 || grants.AllApplications || grants.MayCreateApplications;
+        if (managesApplications != hasApplications)
+        {
+            throw new ArgumentException(managesApplications
+                ? "Managing applications needs at least one application or the permission to create new ones."
+                : "Applications need the permission to manage applications.");
+        }
+
+        foreach (var vaultId in grants.VaultIds)
+        {
+            await EnsureVaultCanBeAllowedAsync(db, userId, tenantId, vaultId, ct).ConfigureAwait(false);
+        }
+
+        if (managesApplications)
+        {
+            await EnsureApplicationsCanBeAllowedAsync(db, userId, tenantId, grants.ApplicationIds, ct).ConfigureAwait(false);
+        }
     }
 
     public async Task<IReadOnlyList<AgentTokenSummary>> ListAsync(Guid userId, Guid tenantId, CancellationToken ct = default)
@@ -106,7 +140,8 @@ public sealed class AgentTokenService(
         return tokens
             .Select(t => new AgentTokenSummary(
                 t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(),
-                t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllowedNetworks,
+                t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllAgentVaults, t.AllApplications,
+                t.AllowedNetworks,
                 t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now)))
             .ToList();
     }

@@ -1077,9 +1077,21 @@
     <value>Then ask the assistant in plain words, e.g. «Store the access data from this e-mail in KEYWARD and give me the link» or «Create the keys for my console application in Production».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Where it applies: once stored, the token works in every Claude Code session of your Windows user on that computer, in every project. All of them act as you, with exactly the vaults, applications and permissions ticked here — nothing more, and only for as long as you hold the access yourself. What is ticked cannot be changed later: for more or less, issue a new token and revoke the old one. Use one token per computer, name it after the computer, and revoke it if the computer is lost or passed on. Other computers, Claude Desktop and claude.ai need their own setup.</value>
+    <value>Where it applies: once stored, the token works in every Claude Code session of your Windows user on that computer, in every project. All of them act as you, with exactly the vaults, applications and permissions ticked here — nothing more, and only for as long as you hold the access yourself. You can change what is ticked at any time with «Edit»; the token keeps its value, nothing has to be set up again. Use one token per computer, name it after the computer, and revoke it if the computer is lost or passed on. Other computers, Claude Desktop and claude.ai need their own setup.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>One token per computer: name it after the computer, so you can revoke one without touching the others — another computer gets its own token. The token is for Claude Code on that computer; Claude Desktop and claude.ai have their own MCP configuration and are set up separately.</value>
+  </data>
+  <data name="AgentTokens.AllVaults" xml:space="preserve">
+    <value>All team vaults opened to agents (also future ones)</value>
+  </data>
+  <data name="AgentTokens.AllApplications" xml:space="preserve">
+    <value>All applications (also future ones)</value>
+  </data>
+  <data name="AgentTokens.Edit.Title" xml:space="preserve">
+    <value>Change token «{0}»</value>
+  </data>
+  <data name="AgentTokens.Msg.Updated" xml:space="preserve">
+    <value>Token changed. It keeps working with its current value.</value>
   </data>
 </root>

@@ -951,9 +951,21 @@
     <value>Ensuite, demandez simplement à l'assistant, p. ex. « Enregistre les accès de cet e-mail dans KEYWARD et donne-moi le lien » ou « Crée les clés de mon application console en Production ».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Portée : une fois enregistré, le jeton fonctionne dans chaque session Claude Code de votre utilisateur Windows sur cet ordinateur, dans chaque projet. Toutes agissent en votre nom, avec exactement les coffres, applications et droits cochés ici — rien de plus, et seulement tant que vous avez vous-même l'accès. Ce qui est coché ne peut pas être modifié ensuite : pour plus ou moins, émettez un nouveau jeton et révoquez l'ancien. Utilisez un jeton par ordinateur, nommez-le d'après l'ordinateur et révoquez-le si l'ordinateur est perdu ou cédé. Les autres ordinateurs, Claude Desktop et claude.ai doivent être configurés séparément.</value>
+    <value>Portée : une fois enregistré, le jeton fonctionne dans chaque session Claude Code de votre utilisateur Windows sur cet ordinateur, dans chaque projet. Toutes agissent en votre nom, avec exactement les coffres, applications et droits cochés ici — rien de plus, et seulement tant que vous avez vous-même l'accès. Vous pouvez modifier à tout moment ce qui est coché avec « Modifier » ; le jeton garde sa valeur, rien n'est à reconfigurer. Utilisez un jeton par ordinateur, nommez-le d'après l'ordinateur et révoquez-le si l'ordinateur est perdu ou cédé. Les autres ordinateurs, Claude Desktop et claude.ai doivent être configurés séparément.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>Un jeton par ordinateur : nommez-le d'après l'ordinateur pour pouvoir en révoquer un sans toucher aux autres — un autre ordinateur reçoit son propre jeton. Le jeton est destiné à Claude Code sur cet ordinateur ; Claude Desktop et claude.ai ont leur propre configuration MCP et se configurent séparément.</value>
+  </data>
+  <data name="AgentTokens.AllVaults" xml:space="preserve">
+    <value>Tous les coffres d'équipe ouverts aux agents (aussi les futurs)</value>
+  </data>
+  <data name="AgentTokens.AllApplications" xml:space="preserve">
+    <value>Toutes les applications (aussi les futures)</value>
+  </data>
+  <data name="AgentTokens.Edit.Title" xml:space="preserve">
+    <value>Modifier le jeton « {0} »</value>
+  </data>
+  <data name="AgentTokens.Msg.Updated" xml:space="preserve">
+    <value>Jeton modifié. Il continue de fonctionner avec sa valeur actuelle.</value>
   </data>
 </root>

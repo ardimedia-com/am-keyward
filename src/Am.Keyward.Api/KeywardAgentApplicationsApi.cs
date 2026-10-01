@@ -40,7 +40,7 @@ internal static class KeywardAgentApplicationsApi
                 .ToList();
             return Results.Ok(new AgentTokenInfoResponse(
                 token.Id, token.Name, permissions, token.VaultIds.Count, token.ApplicationIds.Count,
-                token.MayCreateApplications, token.AllowedNetworks, token.ExpiresAt));
+                token.MayCreateApplications, token.AllowedNetworks, token.ExpiresAt, token.AllAgentVaults, token.AllApplications));
         });
 
         group.MapGet("/applications", (ClaimsPrincipal principal, IAgentApplicationService applications, CancellationToken ct) =>

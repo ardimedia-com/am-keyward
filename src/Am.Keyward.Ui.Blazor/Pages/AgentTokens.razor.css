@@ -45,6 +45,15 @@
     overflow-wrap: anywhere;
 }
 
+.field-pair.single {
+    grid-template-columns: 1fr;
+}
+
+.form-actions {
+    display: flex;
+    gap: .5rem;
+}
+
 .issue-hint {
     margin: -.4rem 0 0;
     font-size: .85rem;
