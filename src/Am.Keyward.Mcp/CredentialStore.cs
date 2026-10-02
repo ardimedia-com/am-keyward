@@ -10,6 +10,9 @@ internal interface ITokenStore
     string? Read();
 
     void Write(string token);
+
+    /// <summary>Forgets the stored token. False when there was none.</summary>
+    bool Delete();
 }
 
 /// <summary>
@@ -92,6 +95,8 @@ internal sealed class WindowsCredentialStore(string target) : ITokenStore
         }
     }
 
+    public bool Delete() => CredDelete(target, CredTypeGeneric, 0);
+
     private static void CryptographicClear(IntPtr pointer, int length)
     {
         for (var i = 0; i < length; i++)
@@ -123,6 +128,9 @@ internal sealed class WindowsCredentialStore(string target) : ITokenStore
     [DllImport("advapi32.dll", EntryPoint = "CredWriteW", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool CredWrite(ref Credential credential, uint flags);
 
+    [DllImport("advapi32.dll", EntryPoint = "CredDeleteW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool CredDelete(string target, uint type, uint flags);
+
     [DllImport("advapi32.dll")]
     private static extern void CredFree(IntPtr buffer);
 }
@@ -136,4 +144,6 @@ internal sealed class EnvironmentTokenStore : ITokenStore
 
     public void Write(string token) =>
         throw new PlatformNotSupportedException($"Set the {Variable} environment variable instead.");
+
+    public bool Delete() => false;
 }

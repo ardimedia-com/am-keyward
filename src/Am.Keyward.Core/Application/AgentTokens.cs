@@ -102,6 +102,12 @@ public interface IAgentTokenService
     Task RevokeAsync(Guid userId, Guid tenantId, Guid tokenId, CancellationToken ct = default);
 
     /// <summary>
+    /// Removes a revoked or expired token from the owner's list, with its allowlists and reveal requests. An active
+    /// token is refused — revoke it first, so deleting is never the way a working token stops. Audited.
+    /// </summary>
+    Task DeleteAsync(Guid userId, Guid tenantId, Guid tokenId, CancellationToken ct = default);
+
+    /// <summary>
     /// A new validity on the same value (default <see cref="AgentTokenLifetime.Default"/> from now, at most
     /// <see cref="AgentTokenLifetime.Maximum"/>): the computer keeps working without a new setup. Returns the new expiry.
     /// </summary>

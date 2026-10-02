@@ -1013,4 +1013,31 @@
   <data name="AgentTokens.Admin.Owner" xml:space="preserve">
     <value>Propriétaire</value>
   </data>
+  <data name="AgentTokens.Uninstall.Title" xml:space="preserve">
+    <value>Comment tout retirer</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Intro" xml:space="preserve">
+    <value>Pour retirer KEYWARD aux agents IA d'un ordinateur, exécutez ces commandes dans PowerShell sur cet ordinateur. Chaque étape fonctionne seule — faites celles dont vous avez besoin.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Unregister" xml:space="preserve">
+    <value>Le retirer de l'agent IA — ici pour Claude Code (autres agents : supprimer l'entrée « {0} » dans leurs réglages MCP) :</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Forget" xml:space="preserve">
+    <value>Supprimer le jeton enregistré sur cet ordinateur :</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Tool" xml:space="preserve">
+    <value>Désinstaller le programme — seulement si aucun autre KEYWARD ne l'utilise sur cet ordinateur :</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Revoke" xml:space="preserve">
+    <value>Ici, sous « Vos jetons d'agent IA » : « Révoquer » le jeton — il cesse aussitôt de fonctionner partout. Ensuite, « Supprimer » le retire de la liste.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Lost" xml:space="preserve">
+    <value>Ordinateur perdu ou inaccessible ? La dernière étape suffit : un jeton révoqué ne sert plus à rien, même là où il est encore enregistré.</value>
+  </data>
+  <data name="AgentTokens.ConfirmDelete" xml:space="preserve">
+    <value>Supprimer définitivement « {0} » de la liste ?</value>
+  </data>
+  <data name="AgentTokens.Msg.Deleted" xml:space="preserve">
+    <value>Jeton supprimé.</value>
+  </data>
 </root>

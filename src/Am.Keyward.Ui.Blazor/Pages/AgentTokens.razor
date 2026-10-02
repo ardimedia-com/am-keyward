@@ -126,7 +126,27 @@
                                     <dt>@Loc["AgentTokens.Expires"]</dt>
                                     <dd><LocalTime Utc="token.ExpiresAt" /></dd>
                                 </dl>
-                                @if (token.RevokedAt is null)
+                                @if (!token.IsActive && extendTokenId != token.Id)
+                                {
+                                    @* A token that no longer works can leave the list; a working one is revoked first. *@
+                                    <div class="token-actions">
+                                        @if (confirmDeleteId == token.Id)
+                                        {
+                                            <span>@Loc["AgentTokens.ConfirmDelete", token.Name]</span>
+                                            <button class="btn-danger btn-sm" @onclick="() => DeleteAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">@Loc["Common.Cancel"]</button>
+                                        }
+                                        else
+                                        {
+                                            @if (token.RevokedAt is null)
+                                            {
+                                                <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
+                                            }
+                                            <button class="btn-danger btn-sm" @onclick="() => confirmDeleteId = token.Id" disabled="@busy">@Loc["Common.Delete"]</button>
+                                        }
+                                    </div>
+                                }
+                                @if (token.RevokedAt is null && (token.IsActive || extendTokenId == token.Id))
                                 {
                                     <div class="token-actions">
                                         @if (confirmRevokeId == token.Id)
@@ -224,7 +244,22 @@
                 {
                     <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
                     <p class="muted">@Loc["AgentTokens.Usage.Scope"]</p>
-                    @usageSteps
+                    @StepList(UsageSteps)
+                }
+            </section>
+
+            @* The way back: what was set up on a computer, removed in reverse, and the token revoked and deleted here. *@
+            <section class="card usage" id="uninstall">
+                <h3 class="section-heading">
+                    <button type="button" class="section-toggle" aria-expanded="@(showUninstall ? "true" : "false")" @onclick="() => showUninstall = !showUninstall">
+                        <KeywardIcon Name="@(showUninstall ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Uninstall.Title"]
+                    </button>
+                </h3>
+                @if (showUninstall)
+                {
+                    <p class="muted">@Loc["AgentTokens.Uninstall.Intro"]</p>
+                    @StepList(UninstallSteps)
+                    <p class="muted">@Loc["AgentTokens.Uninstall.Lost"]</p>
                 }
             </section>
 
@@ -363,21 +398,24 @@
 </KeywardUi>
 
 @code {
-    // The setup steps, shown in the «How to use» section and again inside the notice of a freshly issued token.
-    private RenderFragment usageSteps => __builder =>
+    // Numbered steps, each with its copyable command (or text only): setup in «How to use» and inside the notice of a
+    // freshly issued token, and the way back in «Remove again».
+    private RenderFragment StepList(IReadOnlyList<(string Label, string? Command)> steps) => __builder =>
     {
         <ol class="usage-steps">
-            @foreach (var (label, command) in UsageSteps)
+            @foreach (var (label, command) in steps)
             {
                 <li>
                     <span>@label</span>
-                    <div class="usage-command">
-                        <code>@command</code>
-                        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
-                    </div>
+                    @if (command is not null)
+                    {
+                        <div class="usage-command">
+                            <code>@command</code>
+                            <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
+                        </div>
+                    }
                 </li>
             }
-            <li><span>@Loc["AgentTokens.Usage.Ask"]</span></li>
         </ol>
     };
 
@@ -419,16 +457,27 @@
     // One MCP registration per KEYWARD, named after its host (amkeyward-toolbox-example-com), so several sit side by side.
     private string McpServerName => "amkeyward-" + new Uri(ServiceUri).Host.ToLowerInvariant().Replace('.', '-');
 
-    private string SetupScript => string.Join("\n", UsageSteps.Select(s => s.Command));
+    private string SetupScript => string.Join("\n", UsageSteps.Select(s => s.Command).OfType<string>());
 
-    private IReadOnlyList<(string Label, string Command)> UsageSteps =>
+    private IReadOnlyList<(string Label, string? Command)> UsageSteps =>
     [
         (Loc["AgentTokens.Usage.Install"], "dotnet tool install --global Am.Keyward.Mcp --prerelease"),
         (Loc["AgentTokens.Usage.Store"], $"amkeyward-mcp setup {ServiceUri}"),
         (Loc["AgentTokens.Usage.Check"], $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; amkeyward-mcp check"),
         (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
+        (Loc["AgentTokens.Usage.Ask"], null),
+    ];
+
+    // The setup in reverse; each step stands on its own (a lost computer needs only the last one).
+    private IReadOnlyList<(string Label, string? Command)> UninstallSteps =>
+    [
+        (Loc["AgentTokens.Uninstall.Unregister", McpServerName], $"claude mcp remove {McpServerName} --scope user"),
+        (Loc["AgentTokens.Uninstall.Forget"], $"amkeyward-mcp remove {ServiceUri}"),
+        (Loc["AgentTokens.Uninstall.Tool"], "dotnet tool uninstall --global Am.Keyward.Mcp"),
+        (Loc["AgentTokens.Uninstall.Revoke"], null),
     ];
     private Guid? confirmRevokeId;
+    private Guid? confirmDeleteId;
     private Guid? extendTokenId;
     private int extendDays = (int)AgentTokenLifetime.Default.TotalDays;
 
@@ -442,6 +491,7 @@
     private IReadOnlyList<AgentTokenAdminSummary>? adminTokens;
     private Guid? adminConfirmRevokeId;
     private bool showUsage;
+    private bool showUninstall;
     private bool showForm;
     private ElementReference nameInput;
     private ElementReference issuedCopyButton;
@@ -693,6 +743,14 @@
         adminConfirmRevokeId = null;
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Revoked"], false);
+    }, true);
+
+    private Task DeleteAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await AgentTokenService.DeleteAsync(actorUserId, tenantId, tokenId);
+        confirmDeleteId = null;
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Deleted"], false);
     }, true);
 
     private Task RevokeAsync(Guid tokenId) => RunAsync(async () =>

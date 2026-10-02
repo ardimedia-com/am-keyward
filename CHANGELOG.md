@@ -17,6 +17,11 @@ All notable changes to this project are documented here, following
   permissions and expiry, and lets them revoke one (a lost computer, someone who left) — audited under the
   administrator. They cannot edit or issue a token for someone else (`IAgentTokenService.CanAdministerAsync`,
   `ListForTenantAsync`, `RevokeAsAdminAsync`).
+- **Remove it again**: a collapsible section «How to remove it again» on «AI agent tokens» lists, filled in with this
+  KEYWARD's address, how to unregister the MCP server, delete the stored token, uninstall the program and revoke the
+  token. New command `amkeyward-mcp remove <address>` deletes the stored token from the Windows Credential Manager
+  (also the pre-0.24 one). A revoked or expired token can be **deleted** from the list (`IAgentTokenService.DeleteAsync`,
+  audited; a working token is revoked first).
 
 ### Changed
 

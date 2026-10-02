@@ -65,6 +65,10 @@ Instead of listing them, a token can reach **all team vaults opened to agents** 
 and future ones. For vaults this only replaces the list: each vault must still be opened to agents, and the user
 must still hold the grant. **Edit** changes a token's name, permissions, vaults, applications and networks at any
 time; its value and validity stay, so nothing has to be set up again on the computer (audited as an update).
+**Revoke** stops a token at once; a revoked or expired token can then be **deleted** from the list (audited; a working
+token cannot be deleted, only revoked). Tenant and system administrators see every token of the organisation with its
+owner in their own section and can revoke one — a lost computer, someone who left — but not edit or issue one for
+someone else.
 
 | Permission | Allows |
 |---|---|
@@ -225,6 +229,17 @@ token stored by a version before 0.24 (target `AmKeyward:Agent`) is still found 
 **Where a token applies:** every Claude Code session of that Windows user on that computer (`--scope user`), all
 acting as the token's user. Use one token per computer, named after it; Claude Desktop and claude.ai have their own
 MCP configuration.
+
+**Removing it again** (the page shows these filled in, under «How to remove it again»); each step stands on its own:
+
+```powershell
+claude mcp remove amkeyward-keyward-example-com --scope user   # the registration in Claude Code
+amkeyward-mcp remove https://keyward.example.com               # the stored token (also the pre-0.24 one)
+dotnet tool uninstall --global Am.Keyward.Mcp                   # only if no other KEYWARD uses it
+```
+
+Then revoke the token on «AI agent tokens» and delete it from the list. For a lost computer revoking alone is enough:
+a revoked token is useless wherever it is still stored.
 
 Without the Credential Manager (not Windows) the token comes from `KEYWARD_AGENT_TOKEN`; revealing is then refused,
 because there is no clipboard to send the value to.

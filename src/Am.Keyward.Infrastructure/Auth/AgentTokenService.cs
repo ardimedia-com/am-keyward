@@ -253,6 +253,23 @@ public sealed class AgentTokenService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    public async Task DeleteAsync(Guid userId, Guid tenantId, Guid tokenId, CancellationToken ct = default)
+    {
+        EnsureScope(userId, tenantId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var token = await LoadOwnAsync(db, userId, tenantId, tokenId, ct).ConfigureAwait(false);
+        if (token.IsActive(clock.UtcNow))
+        {
+            throw new InvalidOperationException("Revoke the agent token before deleting it.");
+        }
+
+        // The allowlists and reveal requests cascade; the audit trail keeps the token id.
+        db.AgentTokens.Remove(token);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Delete, ResourceType, token.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
     // The token table is installation-global (no tenant filter): ownership is the user + tenant match.
     private static async Task<AgentToken> LoadOwnAsync(KeywardDbContext db, Guid userId, Guid tenantId, Guid tokenId, CancellationToken ct) =>
         await db.AgentTokens

@@ -8,7 +8,8 @@ namespace Am.Keyward.Mcp;
 
 /// <summary>
 /// Entry point. <c>amkeyward-mcp</c> runs the MCP server on stdio (what the assistant starts); <c>setup &lt;address&gt;</c>
-/// stores the agent token for that KEYWARD in the Windows Credential Manager; <c>check</c> verifies it. The KEYWARD
+/// stores the agent token for that KEYWARD in the Windows Credential Manager; <c>check</c> verifies it;
+/// <c>remove &lt;address&gt;</c> forgets the stored token again. The KEYWARD
 /// address comes from configuration: the environment variable <c>Keyward__ServiceUri</c> (the same
 /// <c>Keyward:ServiceUri</c> setting the other Keyward clients use). Several KEYWARD installations on one computer
 /// are several MCP registrations, each with its own address and its own stored token. An explicit class, not
@@ -22,6 +23,11 @@ internal static class KeywardMcpHost
         if (command == "setup")
         {
             return Setup(args.Skip(1).FirstOrDefault() ?? Environment.GetEnvironmentVariable("Keyward__ServiceUri"));
+        }
+
+        if (command == "remove")
+        {
+            return Remove(args.Skip(1).FirstOrDefault() ?? Environment.GetEnvironmentVariable("Keyward__ServiceUri"));
         }
 
         var builder = Host.CreateApplicationBuilder(args.Where(a => a != "check").ToArray());
@@ -131,6 +137,32 @@ internal static class KeywardMcpHost
         var store = new WindowsCredentialStore(WindowsCredentialStore.TargetFor(address));
         store.Write(token);
         Console.Error.WriteLine($"Stored in the Windows Credential Manager as «{store.Target}» (for {address.GetLeftPart(UriPartial.Authority)}). Run 'amkeyward-mcp check' to verify it.");
+        return 0;
+    }
+
+    // Forgets the token stored for this KEYWARD, and the single token of versions before 0.24, which every address
+    // falls back to — otherwise the server would keep working with it. The token itself stays valid until it is
+    // revoked on «AI agent tokens».
+    private static int Remove(string? serviceUri)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            Console.Error.WriteLine($"Nothing is stored here; unset {EnvironmentTokenStore.Variable} instead.");
+            return 1;
+        }
+
+        if (string.IsNullOrWhiteSpace(serviceUri) || !Uri.TryCreate(serviceUri, UriKind.Absolute, out var address))
+        {
+            Console.Error.WriteLine("Which KEYWARD? Run 'amkeyward-mcp remove https://keyward.example.com' with its address.");
+            return 1;
+        }
+
+        var store = new WindowsCredentialStore(WindowsCredentialStore.TargetFor(address));
+        var removed = store.Delete();
+        var legacyRemoved = new WindowsCredentialStore(WindowsCredentialStore.LegacyTarget).Delete();
+        Console.Error.WriteLine(removed || legacyRemoved
+            ? $"Removed the stored token for {address.GetLeftPart(UriPartial.Authority)} from the Windows Credential Manager. Revoke it on «AI agent tokens» so it stops working everywhere."
+            : $"No token was stored for {address.GetLeftPart(UriPartial.Authority)} on this computer.");
         return 0;
     }
 

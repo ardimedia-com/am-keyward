@@ -1139,4 +1139,31 @@
   <data name="AgentTokens.Admin.Owner" xml:space="preserve">
     <value>Besitzer</value>
   </data>
+  <data name="AgentTokens.Uninstall.Title" xml:space="preserve">
+    <value>So entfernst du es wieder</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Intro" xml:space="preserve">
+    <value>Um den AI-Agents auf einem Computer KEYWARD wieder wegzunehmen, führe diese Befehle in PowerShell auf diesem Computer aus. Jeder Schritt funktioniert für sich — mach die, die du brauchst.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Unregister" xml:space="preserve">
+    <value>Aus dem AI-Agent austragen — hier für Claude Code (andere Agents: den Eintrag «{0}» in den MCP-Einstellungen löschen):</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Forget" xml:space="preserve">
+    <value>Den abgelegten Token von diesem Computer löschen:</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Tool" xml:space="preserve">
+    <value>Programm deinstallieren — nur wenn kein anderes KEYWARD es auf diesem Computer noch braucht:</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Revoke" xml:space="preserve">
+    <value>Hier unter «Deine AI-Agent-Tokens»: den Token «Widerrufen» — er funktioniert sofort nirgends mehr. Danach entfernt «Löschen» ihn aus der Liste.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Lost" xml:space="preserve">
+    <value>Computer verloren oder nicht erreichbar? Dann reicht der letzte Schritt: Ein widerrufener Token ist wertlos, auch wo er noch abgelegt ist.</value>
+  </data>
+  <data name="AgentTokens.ConfirmDelete" xml:space="preserve">
+    <value>«{0}» endgültig aus der Liste löschen?</value>
+  </data>
+  <data name="AgentTokens.Msg.Deleted" xml:space="preserve">
+    <value>Token gelöscht.</value>
+  </data>
 </root>

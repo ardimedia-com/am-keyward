@@ -1013,4 +1013,31 @@
   <data name="AgentTokens.Admin.Owner" xml:space="preserve">
     <value>Propietario</value>
   </data>
+  <data name="AgentTokens.Uninstall.Title" xml:space="preserve">
+    <value>Cómo quitarlo de nuevo</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Intro" xml:space="preserve">
+    <value>Para quitar KEYWARD a los agentes de IA de un ordenador, ejecuta estos comandos en PowerShell en ese ordenador. Cada paso funciona por sí solo — haz los que necesites.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Unregister" xml:space="preserve">
+    <value>Quitarlo del agente de IA — aquí para Claude Code (otros agentes: borrar la entrada «{0}» en sus ajustes MCP):</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Forget" xml:space="preserve">
+    <value>Borrar el token guardado en este ordenador:</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Tool" xml:space="preserve">
+    <value>Desinstalar el programa — solo si ningún otro KEYWARD lo usa en este ordenador:</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Revoke" xml:space="preserve">
+    <value>Aquí, en «Tus tokens de agente de IA»: «Revocar» el token — deja de funcionar en todas partes al instante. Después, «Eliminar» lo quita de la lista.</value>
+  </data>
+  <data name="AgentTokens.Uninstall.Lost" xml:space="preserve">
+    <value>¿Ordenador perdido o inaccesible? Basta el último paso: un token revocado no sirve de nada, aunque siga guardado.</value>
+  </data>
+  <data name="AgentTokens.ConfirmDelete" xml:space="preserve">
+    <value>¿Eliminar «{0}» de la lista definitivamente?</value>
+  </data>
+  <data name="AgentTokens.Msg.Deleted" xml:space="preserve">
+    <value>Token eliminado.</value>
+  </data>
 </root>
