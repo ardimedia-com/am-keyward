@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.26.1-preview] - 2026-10-02
+
 ### Changed
 
 - **An open entry shows two areas**: «Details» (type, folder, fields) and «Move» (target vault and folder). A login's
