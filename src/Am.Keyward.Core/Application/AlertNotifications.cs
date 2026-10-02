@@ -47,6 +47,9 @@ public sealed record KeywardSecretExpiryLine(
 /// <paramref name="ExpiresAt"/>. <paramref name="Reason"/> is the agent's own text — untrusted, render it as plain
 /// text (HTML-encode it in a mail). The secret itself is never part of this record.
 /// </summary>
+/// <summary>One AI agent token nearing expiry, for the notice to its owner.</summary>
+public sealed record KeywardAgentTokenExpiryLine(Guid TokenId, string TokenName, int DaysLeft, DateTimeOffset ExpiresAt);
+
 public sealed record KeywardRevealRequestLine(
     Guid RequestId,
     string TokenName,
@@ -139,5 +142,17 @@ public interface IKeywardAlertPresenter
         Guid tenantId,
         KeywardAlertRecipient recipient,
         KeywardRevealRequestLine line,
+        CancellationToken ct = default) => Task.FromResult(0);
+
+    /// <summary>
+    /// AI agent tokens of <paramref name="recipient"/> that expire soon, on the <see cref="ExpiryNoticePolicy"/>
+    /// schedule. Only the token's owner can extend it, so this goes to that one user. Returns how many recipients
+    /// were reached; 0 keeps the notice pending. The default does nothing — implement it so a token does not simply
+    /// stop working one day.
+    /// </summary>
+    Task<int> NotifyAgentTokenExpiryAsync(
+        Guid tenantId,
+        KeywardAlertRecipient recipient,
+        IReadOnlyList<KeywardAgentTokenExpiryLine> lines,
         CancellationToken ct = default) => Task.FromResult(0);
 }

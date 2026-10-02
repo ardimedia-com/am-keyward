@@ -178,6 +178,8 @@ public static class ServiceCollectionExtensions
         // register one, or this service says so loudly rather than discarding alerts.
         services.AddHostedService<Monitoring.TokenAccessAlertNotificationService>();
         services.AddHostedService<Monitoring.TokenExpiryNotificationService>();
+        // AI agent tokens: the reminder goes to the token's owner, who alone can extend it.
+        services.AddHostedService<Monitoring.AgentTokenExpiryNotificationService>();
         // Same schedule, other subject: software-secret values that carry a rotation date.
         services.AddHostedService<Monitoring.SecretExpiryNotificationService>();
 

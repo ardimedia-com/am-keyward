@@ -135,9 +135,20 @@
                                             <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
                                             <button class="btn-ghost btn-sm" @onclick="() => confirmRevokeId = null">@Loc["Common.Cancel"]</button>
                                         }
+                                        else if (extendTokenId == token.Id)
+                                        {
+                                            @* A new validity on the same value: the computer keeps working without a new setup. *@
+                                            <label class="extend-days">
+                                                <span>@Loc["AgentTokens.Extend.Days"]</span>
+                                                <input type="number" min="1" max="@MaxDays" @bind="extendDays" />
+                                            </label>
+                                            <button class="btn-sm" @onclick="() => ExtendAsync(token.Id)" disabled="@(busy || extendDays is < 1 || extendDays > MaxDays)">@Loc["AgentTokens.Extend"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => extendTokenId = null">@Loc["Common.Cancel"]</button>
+                                        }
                                         else
                                         {
                                             <button class="btn-ghost btn-sm" @onclick="() => StartEditAsync(token)" disabled="@busy">@Loc["Common.Edit"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
                                             <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["AgentTokens.Rotate"]</button>
                                             <button class="btn-danger btn-sm" @onclick="() => confirmRevokeId = token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
                                         }
@@ -366,6 +377,8 @@
         (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
     ];
     private Guid? confirmRevokeId;
+    private Guid? extendTokenId;
+    private int extendDays = (int)AgentTokenLifetime.Default.TotalDays;
 
     // Edit mode: the form above changes an existing token instead of issuing one; the token value stays.
     private Guid? editingTokenId;
@@ -597,6 +610,21 @@
         status = (Loc["AgentTokens.Msg.Rotated"], false);
         await BringIssuedIntoViewAsync();
     }, true);
+
+    private void StartExtend(Guid tokenId)
+    {
+        confirmRevokeId = null;
+        extendTokenId = tokenId;
+        extendDays = (int)AgentTokenLifetime.Default.TotalDays;
+    }
+
+    private Task ExtendAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        var until = await AgentTokenService.ExtendAsync(actorUserId, tenantId, tokenId, DateTimeOffset.UtcNow.AddDays(extendDays));
+        extendTokenId = null;
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Extended", until.ToLocalTime().ToString("d")], false);
+    }, extendDays is >= 1 && extendDays <= MaxDays);
 
     private Task RevokeAsync(Guid tokenId) => RunAsync(async () =>
     {

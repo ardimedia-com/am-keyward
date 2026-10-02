@@ -163,6 +163,21 @@ public sealed class AgentTokenService(
         return new IssuedAgentToken(token.Id, generated.Token, expiry);
     }
 
+    public async Task<DateTimeOffset> ExtendAsync(Guid userId, Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt = null, CancellationToken ct = default)
+    {
+        EnsureScope(userId, tenantId);
+        var now = clock.UtcNow;
+        var expiry = ResolveExpiry(expiresAt, now);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var token = await LoadOwnAsync(db, userId, tenantId, tokenId, ct).ConfigureAwait(false);
+
+        token.Extend(now, expiry);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, ResourceType, token.Id, userId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return expiry;
+    }
+
     public async Task RevokeAsync(Guid userId, Guid tenantId, Guid tokenId, CancellationToken ct = default)
     {
         EnsureScope(userId, tenantId);

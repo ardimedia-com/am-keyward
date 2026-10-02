@@ -1103,4 +1103,31 @@
   <data name="AgentTokens.Facts.Networks" xml:space="preserve">
     <value>Networks</value>
   </data>
+  <data name="AgentTokens.Extend" xml:space="preserve">
+    <value>Extend</value>
+  </data>
+  <data name="AgentTokens.Extend.Days" xml:space="preserve">
+    <value>Valid for (days from today)</value>
+  </data>
+  <data name="AgentTokens.Msg.Extended" xml:space="preserve">
+    <value>Token extended until {0}. It keeps its value — nothing to set up again.</value>
+  </data>
+  <data name="Email.AgentExpiry.Subject" xml:space="preserve">
+    <value>{0}: an AI agent token expires soon</value>
+  </data>
+  <data name="Email.AgentExpiry.Title" xml:space="preserve">
+    <value>AI agent token expires soon</value>
+  </data>
+  <data name="Email.AgentExpiry.Line" xml:space="preserve">
+    <value>«{0}» expires in {1} day(s), on {2}.</value>
+  </data>
+  <data name="Email.AgentExpiry.Outro" xml:space="preserve">
+    <value>Extend it on «AI agent tokens» — it keeps its value, so nothing has to be set up again on the computer.</value>
+  </data>
+  <data name="Email.AgentExpiry.Button" xml:space="preserve">
+    <value>Extend now</value>
+  </data>
+  <data name="Email.AgentExpiry.Footer" xml:space="preserve">
+    <value>You receive this because you issued this AI agent token.</value>
+  </data>
 </root>

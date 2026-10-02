@@ -977,4 +977,31 @@
   <data name="AgentTokens.Facts.Networks" xml:space="preserve">
     <value>Réseaux</value>
   </data>
+  <data name="AgentTokens.Extend" xml:space="preserve">
+    <value>Prolonger</value>
+  </data>
+  <data name="AgentTokens.Extend.Days" xml:space="preserve">
+    <value>Valable (jours à partir d'aujourd'hui)</value>
+  </data>
+  <data name="AgentTokens.Msg.Extended" xml:space="preserve">
+    <value>Jeton prolongé jusqu'au {0}. Il garde sa valeur — rien à reconfigurer.</value>
+  </data>
+  <data name="Email.AgentExpiry.Subject" xml:space="preserve">
+    <value>{0} : un jeton d'agent IA expire bientôt</value>
+  </data>
+  <data name="Email.AgentExpiry.Title" xml:space="preserve">
+    <value>Jeton d'agent IA bientôt expiré</value>
+  </data>
+  <data name="Email.AgentExpiry.Line" xml:space="preserve">
+    <value>« {0} » expire dans {1} jour(s), le {2}.</value>
+  </data>
+  <data name="Email.AgentExpiry.Outro" xml:space="preserve">
+    <value>Prolongez-le sous « Jetons d'agent IA » — il garde sa valeur, rien n'est à reconfigurer sur l'ordinateur.</value>
+  </data>
+  <data name="Email.AgentExpiry.Button" xml:space="preserve">
+    <value>Prolonger maintenant</value>
+  </data>
+  <data name="Email.AgentExpiry.Footer" xml:space="preserve">
+    <value>Vous recevez ce message car vous avez émis ce jeton d'agent IA.</value>
+  </data>
 </root>

@@ -68,6 +68,12 @@ public sealed class AgentToken
     public DateTimeOffset ExpiresAt { get; private set; }
 
     public DateTimeOffset? LastRotatedAt { get; private set; }
+
+    /// <summary>
+    /// Days-left bucket of the last expiry notice sent for the current validity (dedupe for the reminder schedule);
+    /// reset whenever the validity changes.
+    /// </summary>
+    public int? LastExpiryNoticeDaysLeft { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
 
     public IReadOnlyList<AgentTokenVaultAllowance> AllowedVaults => _allowedVaults;
@@ -230,7 +236,30 @@ public sealed class AgentToken
         LastRotatedAt = at;
         CreatedAt = at;
         ExpiresAt = expiresAt;
+        LastExpiryNoticeDaysLeft = null;
     }
+
+    /// <summary>
+    /// A new validity on the same secret: the computer keeps working without being set up again. The validity is
+    /// counted from <paramref name="at"/>, like at issue, so a token can never be extended past the maximum.
+    /// </summary>
+    public void Extend(DateTimeOffset at, DateTimeOffset expiresAt)
+    {
+        if (RevokedAt is not null)
+        {
+            throw new InvalidOperationException("A revoked token cannot be extended.");
+        }
+
+        if (expiresAt <= at)
+        {
+            throw new ArgumentException("An agent token must expire in the future.", nameof(expiresAt));
+        }
+
+        ExpiresAt = expiresAt;
+        LastExpiryNoticeDaysLeft = null;
+    }
+
+    public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
 }
 
 /// <summary>One existing application (software project) an agent token may manage. Deleted with the application or the token.</summary>

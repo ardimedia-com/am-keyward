@@ -234,6 +234,17 @@
     min-width: 0;
 }
 
+.extend-days {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: .85rem;
+}
+
+.extend-days input {
+    width: 5.5rem;
+}
+
 .token-actions {
     display: flex;
     flex-wrap: wrap;

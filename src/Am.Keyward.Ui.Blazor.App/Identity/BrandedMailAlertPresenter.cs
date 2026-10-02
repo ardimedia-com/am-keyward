@@ -80,6 +80,41 @@ public sealed class BrandedMailAlertPresenter(
         return await SendAsync([recipient], subject, content, ct).ConfigureAwait(false);
     }
 
+    public async Task<int> NotifyAgentTokenExpiryAsync(
+        Guid tenantId,
+        KeywardAlertRecipient recipient,
+        IReadOnlyList<KeywardAgentTokenExpiryLine> lines,
+        CancellationToken ct = default)
+    {
+        var extendUrl = string.IsNullOrWhiteSpace(uiOptions.PublicBaseUrl)
+            ? null
+            : uiOptions.PublicBaseUrl.TrimEnd('/') + KeywardRoutes.AgentTokens;
+
+        var previous = CultureInfo.CurrentUICulture;
+        CultureInfo.CurrentUICulture = ResolveNotificationCulture();
+        try
+        {
+            var content = new BrandedEmailContent
+            {
+                Brand = uiOptions.ProductName,
+                Title = loc["Email.AgentExpiry.Title"].Value,
+                Paragraphs =
+                [
+                    .. lines.Select(l => loc["Email.AgentExpiry.Line", l.TokenName, l.DaysLeft, FormatDate(l.ExpiresAt)].Value),
+                    loc["Email.AgentExpiry.Outro"].Value,
+                ],
+                ButtonText = extendUrl is null ? null : loc["Email.AgentExpiry.Button"].Value,
+                ActionUrl = extendUrl,
+                FooterNote = loc["Email.AgentExpiry.Footer"].Value,
+            };
+            return await SendAsync([recipient], loc["Email.AgentExpiry.Subject", uiOptions.ProductName].Value, content, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            CultureInfo.CurrentUICulture = previous;
+        }
+    }
+
     // The reason is the agent's untrusted text; BrandedEmail HTML-encodes every paragraph.
     private (string Subject, BrandedEmailContent Content) BuildRevealContent(KeywardRevealRequestLine line)
     {

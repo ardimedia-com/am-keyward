@@ -977,4 +977,31 @@
   <data name="AgentTokens.Facts.Networks" xml:space="preserve">
     <value>Redes</value>
   </data>
+  <data name="AgentTokens.Extend" xml:space="preserve">
+    <value>Ampliar</value>
+  </data>
+  <data name="AgentTokens.Extend.Days" xml:space="preserve">
+    <value>Válido durante (días desde hoy)</value>
+  </data>
+  <data name="AgentTokens.Msg.Extended" xml:space="preserve">
+    <value>Token ampliado hasta el {0}. Conserva su valor — no hay que configurar nada de nuevo.</value>
+  </data>
+  <data name="Email.AgentExpiry.Subject" xml:space="preserve">
+    <value>{0}: un token de agente de IA caduca pronto</value>
+  </data>
+  <data name="Email.AgentExpiry.Title" xml:space="preserve">
+    <value>Token de agente de IA a punto de caducar</value>
+  </data>
+  <data name="Email.AgentExpiry.Line" xml:space="preserve">
+    <value>«{0}» caduca en {1} día(s), el {2}.</value>
+  </data>
+  <data name="Email.AgentExpiry.Outro" xml:space="preserve">
+    <value>Amplíalo en «Tokens de agente de IA» — conserva su valor y no hay que volver a configurar nada en el ordenador.</value>
+  </data>
+  <data name="Email.AgentExpiry.Button" xml:space="preserve">
+    <value>Ampliar ahora</value>
+  </data>
+  <data name="Email.AgentExpiry.Footer" xml:space="preserve">
+    <value>Recibes este mensaje porque emitiste este token de agente de IA.</value>
+  </data>
 </root>

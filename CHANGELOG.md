@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Extend an AI agent token and get reminded before it expires** (decision T9 A): «Extend» sets a new validity
+  (up to 365 days from today) on the same value, so the computer needs no new setup
+  (`IAgentTokenService.ExtendAsync`). The owner is reminded 30, 20 and 10 days ahead and then daily
+  (`AgentTokenExpiryNotificationService`, `IKeywardAlertPresenter.NotifyAgentTokenExpiryAsync` — default does
+  nothing, the shell sends a branded mail in six languages). Migration `AgentTokenExpiryNotice`.
+
 ### Changed
 
 - **«AI agent tokens» page reworked for end users**: renamed from «Agent tokens» in all six languages (also the

@@ -977,4 +977,31 @@
   <data name="AgentTokens.Facts.Networks" xml:space="preserve">
     <value>Reti</value>
   </data>
+  <data name="AgentTokens.Extend" xml:space="preserve">
+    <value>Prolunga</value>
+  </data>
+  <data name="AgentTokens.Extend.Days" xml:space="preserve">
+    <value>Valido per (giorni da oggi)</value>
+  </data>
+  <data name="AgentTokens.Msg.Extended" xml:space="preserve">
+    <value>Token prolungato fino al {0}. Mantiene il suo valore — nulla da riconfigurare.</value>
+  </data>
+  <data name="Email.AgentExpiry.Subject" xml:space="preserve">
+    <value>{0}: un token agente IA scade presto</value>
+  </data>
+  <data name="Email.AgentExpiry.Title" xml:space="preserve">
+    <value>Token agente IA in scadenza</value>
+  </data>
+  <data name="Email.AgentExpiry.Line" xml:space="preserve">
+    <value>«{0}» scade tra {1} giorno/i, il {2}.</value>
+  </data>
+  <data name="Email.AgentExpiry.Outro" xml:space="preserve">
+    <value>Prolungalo in «Token agente IA» — mantiene il suo valore, sul computer non serve riconfigurare nulla.</value>
+  </data>
+  <data name="Email.AgentExpiry.Button" xml:space="preserve">
+    <value>Prolunga ora</value>
+  </data>
+  <data name="Email.AgentExpiry.Footer" xml:space="preserve">
+    <value>Ricevi questo messaggio perché hai emesso questo token agente IA.</value>
+  </data>
 </root>
