@@ -864,7 +864,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Nom — idéalement le nom de l'ordinateur</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Coffres</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Aucun coffre d'équipe n'est encore ouvert aux agents. Une personne qui gère un coffre d'équipe peut l'ouvrir sous « Partager ».</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Aucun coffre n'est encore ouvert aux agents IA. Ouvrez un coffre personnel dans ses réglages ; un coffre d'équipe est ouvert par la personne qui le gère, sous « Partage ».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>Que peut faire l'agent dans ces coffres ?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Trouver des entrées (noms seulement)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Voir l'URL et le nom d'utilisateur</value></data>
@@ -957,7 +957,7 @@
     <value>Un jeton par ordinateur. Tous les agents IA de cet ordinateur (Claude Code, VS Code, Claude Desktop …) le partagent. Si un ordinateur est perdu, vous ne révoquez que son jeton.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Tous les coffres d'équipe ouverts aux agents IA — aussi les futurs</value>
+    <value>Tous les coffres ouverts aux agents IA — aussi les futurs</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>Toutes les applications — aussi les futures</value>
@@ -1054,5 +1054,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>Mode d'emploi</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (personnel)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Ce n'est qu'alors que vous pouvez émettre un jeton d'agent IA pour lui — personne d'autre, le coffre reste privé. Le fermer arrête aussitôt tout jeton d'agent IA pour ce coffre.</value>
   </data>
 </root>

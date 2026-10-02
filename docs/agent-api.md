@@ -18,8 +18,9 @@ Both can be limited to given networks.
 - **Acts as its user.** Every request runs as the token's user: their vault grants and roles apply, and every
   action is audited as the agent with its token id.
 - **Checked on every request.** The token must be active, its user enabled and still a tenant member.
-  - Vaults: the vault must be on the allowlist and opened to agents (a team-vault setting under «Share»), and the
-    user must hold the needed grant. Personal vaults are never reachable.
+  - Vaults: the vault must be on the allowlist and opened to agents, and the user must hold the needed grant. A team
+    vault is opened under «Sharing» by someone with Manage; a personal vault by its owner in its settings — it is then
+    reachable by the owner's tokens only (decision T12 B), and the owner holds every permission on it.
   - Applications: the token must hold «Manage applications», its user must still be allowed to manage the software
     side (system admin, tenant admin or software manager), and the application must be on the token's allowlist or
     created by this very token.
@@ -55,13 +56,14 @@ Both can be limited to given networks.
 
 On **Agent tokens** (navigation, under the vaults): name, vaults (only those opened to agents) with their
 permissions, validity (default 90 days, at most 365) and optional networks in CIDR notation. The value is shown
-once. A person with Manage opens a team vault to agents in its «Share» section.
+once. A person with Manage opens a team vault to agents in its «Sharing» section; the owner opens a personal vault in
+its settings (listed on the token as «Name (personal)»).
 
 A user who may manage the software side also sees **Applications**: tick «Manage applications» (unticked by
 default), then the existing applications the token may manage and/or «May create new applications». Vault
 permissions only count when a vault is ticked, so a token can be for applications only.
 
-Instead of listing them, a token can reach **all team vaults opened to agents** and/or **all applications** — today's
+Instead of listing them, a token can reach **all vaults opened to agents** (team and the user's personal ones) and/or **all applications** — today's
 and future ones. For vaults this only replaces the list: each vault must still be opened to agents, and the user
 must still hold the grant. **Edit** changes a token's name, permissions, vaults, applications and networks at any
 time; its value and validity stay, so nothing has to be set up again on the computer (audited as an update).

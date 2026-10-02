@@ -29,6 +29,10 @@ All notable changes to this project are documented here, following
   runner so the program is signed ad hoc. «AI agent tokens» shows the commands for Windows or macOS (a switch), the
   .NET 10 SDK prerequisite (`winget install Microsoft.DotNet.SDK.10` / `brew install --cask dotnet-sdk`) and a link to
   the guide without .NET.
+- **A personal vault can be opened to AI agents** (decision T12 B): its owner ticks «Open this vault to AI agent tokens»
+  in the vault's settings; then only the owner's tokens can reach it — listed as «Name (personal)», or through «All
+  vaults opened to AI agents», which now includes personal vaults. Same rules as a team vault: allowlist or «all», the
+  vault's flag (closing it stops every token at once), permissions per token.
 
 ### Changed
 

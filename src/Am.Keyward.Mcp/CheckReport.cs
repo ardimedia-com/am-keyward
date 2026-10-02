@@ -21,7 +21,7 @@ internal static class CheckReport
         var text = new StringBuilder()
             .AppendLine($"Token «{info.Name}», valid until {info.ExpiresAt:yyyy-MM-dd} (UTC).")
             .AppendLine($"Permissions: {string.Join(", ", permissions)}.")
-            .AppendLine(info.AllAgentVaults ? "Vaults: all team vaults opened to agents (also future ones)." : $"Vaults: {info.VaultCount}.");
+            .AppendLine(info.AllAgentVaults ? "Vaults: all vaults opened to agents (also future ones)." : $"Vaults: {info.VaultCount}.");
         if (info.Permissions.Contains("ManageApplications"))
         {
             text.AppendLine(info.AllApplications

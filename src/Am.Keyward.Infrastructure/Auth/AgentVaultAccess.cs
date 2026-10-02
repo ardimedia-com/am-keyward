@@ -47,7 +47,7 @@ public sealed class AgentVaultAccess(
             return false;
         }
 
-        // «All team vaults opened to agents» replaces only the allowlist: the agent flag and the grant below still decide.
+        // «All vaults opened to agents» replaces only the allowlist: the agent flag and the grant below still decide.
         var allowlisted = token.AllAgentVaults || await db.AgentTokenVaultAllowances.AsNoTracking()
             .AnyAsync(a => a.TokenId == tokenId && a.VaultId == vaultId, ct)
             .ConfigureAwait(false);
@@ -59,10 +59,22 @@ public sealed class AgentVaultAccess(
         // Through the tenant filter (and row-level security): another tenant's vault is simply not found.
         var vault = await db.Vaults.AsNoTracking()
             .Where(v => v.Id == vaultId)
-            .Select(v => new { v.TenantId, v.AgentAccessAllowed, v.ProtectionMode })
+            .Select(v => new { v.TenantId, v.OwnerUserId, v.AgentAccessAllowed, v.ProtectionMode })
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false);
-        if (vault is null || vault.TenantId != token.TenantId || !vault.AgentAccessAllowed || vault.ProtectionMode != ProtectionMode.ServerSide)
+        if (vault is null || !vault.AgentAccessAllowed || vault.ProtectionMode != ProtectionMode.ServerSide)
+        {
+            return false;
+        }
+
+        // A personal vault (decision T12 B) is reachable only through its owner's tokens, whatever tenant they were
+        // issued in; the owner holds every permission on it.
+        if (vault.TenantId is null)
+        {
+            return vault.OwnerUserId == token.UserId;
+        }
+
+        if (vault.TenantId != token.TenantId)
         {
             return false;
         }

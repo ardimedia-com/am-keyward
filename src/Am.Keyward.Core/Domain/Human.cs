@@ -65,15 +65,11 @@ public sealed class Vault
         CreatedAt = createdAt;
     }
 
-    public void AllowAgentAccess()
-    {
-        if (TenantId is null)
-        {
-            throw new InvalidOperationException("A personal vault cannot be opened to agents.");
-        }
-
-        AgentAccessAllowed = true;
-    }
+    /// <summary>
+    /// Opens the vault to AI agent tokens — a team vault (by someone with Manage) or, since decision T12 B, a personal
+    /// vault (by its owner, for the owner's own tokens only).
+    /// </summary>
+    public void AllowAgentAccess() => AgentAccessAllowed = true;
 
     public void DenyAgentAccess() => AgentAccessAllowed = false;
 

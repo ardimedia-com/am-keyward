@@ -47,8 +47,7 @@ public class AgentTokenTests
         var open = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "Integrations"));
         await vaults.SetAgentAccessAsync(owner, open, allowed: true);
 
-        // A personal vault can never be opened, nor allowlisted.
-        await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => vaults.SetAgentAccessAsync(owner, personal, allowed: true));
+        // A personal vault is allowlisted only once its owner opened it (decision T12 B; AgentPersonalVaultTests).
         await Assert.ThrowsExactlyAsync<InvalidOperationException>(() => tokens.IssueAsync(Issue(owner, tenantId, personal)));
 
         // A tenant vault that does not allow agents cannot be allowlisted.

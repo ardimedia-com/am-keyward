@@ -990,7 +990,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Name — am besten der Name des Computers</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Tresore</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Noch ist kein Team-Tresor für Agents geöffnet. Wer einen Team-Tresor verwaltet, kann ihn unter «Teilen» öffnen.</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Noch ist kein Tresor für AI-Agents geöffnet. Einen persönlichen Tresor öffnest du in seinen Einstellungen; einen Team-Tresor öffnet, wer ihn verwaltet, unter «Teilen».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>Was darf der Agent in diesen Tresoren?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Einträge finden (nur die Namen)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>URL und Benutzername sehen</value></data>
@@ -1083,7 +1083,7 @@
     <value>Ein Token pro Computer. Alle AI-Agents auf diesem Computer (Claude Code, VS Code, Claude Desktop …) nutzen ihn gemeinsam. Geht ein Computer verloren, widerrufst du nur seinen Token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Alle Team-Tresore, die für AI-Agents geöffnet sind — auch künftige</value>
+    <value>Alle Tresore, die für AI-Agents geöffnet sind — auch künftige</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>Alle Applikationen — auch künftige</value>
@@ -1180,5 +1180,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>So geht's</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (persönlich)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Erst dann kannst du ein AI-Agent-Token dafür ausstellen — niemand sonst, der Tresor bleibt privat. Schliessen stoppt sofort jedes AI-Agent-Token für diesen Tresor.</value>
   </data>
 </root>

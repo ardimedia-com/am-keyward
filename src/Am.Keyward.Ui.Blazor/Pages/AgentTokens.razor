@@ -621,9 +621,13 @@
 
     private async Task ReloadAsync()
     {
+        // Team vaults and the user's own personal vaults (decision T12 B), the personal ones marked as such.
         var shared = await VaultService.ListSharedVaultsAsync(actorUserId, tenantId);
-        vaultNames = shared.ToDictionary(v => v.Id, v => v.Name);
-        openVaults = shared.Where(v => v.AgentAccessAllowed).OrderBy(v => v.Name).ToList();
+        var personal = (await VaultService.ListVaultsAsync(actorUserId))
+            .Select(v => v with { Name = Loc["AgentTokens.PersonalVault", v.Name] })
+            .ToList();
+        vaultNames = shared.Concat(personal).ToDictionary(v => v.Id, v => v.Name);
+        openVaults = shared.Concat(personal).Where(v => v.AgentAccessAllowed).OrderBy(v => v.Name).ToList();
         selectedVaults.IntersectWith(openVaults.Select(v => v.Id));
         applications = (await ProjectService.ListAsync(tenantId)).OrderBy(a => a.Name).ToList();
         selectedApplications.IntersectWith(applications.Select(a => a.Id));

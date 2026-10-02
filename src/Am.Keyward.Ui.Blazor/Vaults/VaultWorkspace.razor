@@ -212,6 +212,19 @@ else
                                 <input @bind="vaultRenameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
                                 <button class="btn-ghost btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">@Loc["Common.Rename"]</button>
                             </div>
+                            @if (!Team)
+                            {
+                                @* A personal vault opens to its owner's AI agent tokens only (decision T12 B); a team vault does it under «Share». *@
+                                <div class="agent-access">
+                                    <label class="agent-access-toggle">
+                                        <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
+                                        <span class="agent-access-text">
+                                            <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
+                                            <span class="muted">@Loc["Vault.Agent.PersonalDesc"]</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            }
                             <div class="danger-zone">
                                 @if (confirmDeleteVault)
                                 {
@@ -903,7 +916,7 @@ else
         Ok(Loc["Vault.Msg.Renamed"]);
     }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(vaultRenameValue));
 
-    // Opening a team vault to agent tokens needs Manage on it; the service enforces that and reports otherwise.
+    // Opening a team vault to agent tokens needs Manage on it, a personal vault its owner; the service enforces that.
     private Task SetAgentAccessAsync(ChangeEventArgs e) => RunAsync(async () =>
     {
         var allowed = e.Value is true;

@@ -864,7 +864,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emetti token</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Nome — meglio il nome del computer</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Casseforti</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Nessuna cassaforte del team è ancora aperta agli agenti. Chi gestisce una cassaforte del team può aprirla in «Condividi».</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Nessuna cassaforte è ancora aperta agli agenti IA. Apri una cassaforte personale nelle sue impostazioni; una cassaforte del team la apre chi la gestisce, in «Condivisione».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>Cosa può fare l'agente in queste casseforti?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Trovare voci (solo i nomi)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Vedere URL e nome utente</value></data>
@@ -957,7 +957,7 @@
     <value>Un token per computer. Tutti gli agenti IA di quel computer (Claude Code, VS Code, Claude Desktop …) lo condividono. Se un computer va perso, revochi solo il suo token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Tutte le casseforti del team aperte agli agenti IA — anche future</value>
+    <value>Tutte le casseforti aperte agli agenti IA — anche le future</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>Tutte le applicazioni — anche future</value>
@@ -1054,5 +1054,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>Come fare</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (personale)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Solo allora puoi emettere un token agente IA per essa — nessun altro può, la cassaforte resta privata. Chiuderla ferma subito ogni token agente IA per questa cassaforte.</value>
   </data>
 </root>

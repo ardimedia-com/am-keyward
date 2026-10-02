@@ -351,7 +351,10 @@ public static class KeywardAgentApi
         ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct)
     {
         var tokenId = TokenId(principal);
-        var candidates = await vaults.ListSharedVaultsAsync(UserId(user), TenantId(tenant), ct);
+        // The team vaults of the token's tenant and the user's personal vaults (decision T12 B).
+        var candidates = (await vaults.ListSharedVaultsAsync(UserId(user), TenantId(tenant), ct))
+            .Concat(await vaults.ListVaultsAsync(UserId(user), ct))
+            .ToList();
 
         var reachable = new List<VaultSummary>();
         foreach (var vault in candidates.Where(v => v.AgentAccessAllowed))

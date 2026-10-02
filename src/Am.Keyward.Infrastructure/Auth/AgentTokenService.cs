@@ -283,7 +283,9 @@ public sealed class AgentTokenService(
             .FirstOrDefaultAsync(v => v.Id == vaultId, ct)
             .ConfigureAwait(false);
 
-        if (vault is null || vault.TenantId != tenantId)
+        // A team vault of this tenant, or the user's own personal vault (decision T12 B; it has no tenant).
+        var personal = vault is { TenantId: null } && vault.OwnerUserId == userId;
+        if (vault is null || (vault.TenantId != tenantId && !personal))
         {
             throw new InvalidOperationException($"Vault {vaultId} not found in tenant {tenantId}.");
         }
@@ -293,7 +295,8 @@ public sealed class AgentTokenService(
             throw new InvalidOperationException($"Vault {vaultId} does not allow agent access.");
         }
 
-        if (!await authorization.IsAllowedAsync(userId, new GrantScope(GrantScopeKind.Vault, vaultId), Permission.Read, ct).ConfigureAwait(false))
+        // The owner of a personal vault holds every permission on it; a team vault needs the user's grant.
+        if (!personal && !await authorization.IsAllowedAsync(userId, new GrantScope(GrantScopeKind.Vault, vaultId), Permission.Read, ct).ConfigureAwait(false))
         {
             throw new UnauthorizedAccessException($"Not authorized for vault {vaultId}.");
         }

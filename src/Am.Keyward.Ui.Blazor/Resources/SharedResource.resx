@@ -990,7 +990,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Issue token</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Name — best the computer's name</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Vaults</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>No team vault is open to agents yet. Someone who manages a team vault can open it under «Share».</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>No vault is open to AI agents yet. Open a personal vault in its settings; a team vault is opened by whoever manages it, under «Sharing».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>What may the agent do in these vaults?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Find entries (names only)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>See URL and user name</value></data>
@@ -1083,7 +1083,7 @@
     <value>One token per computer. All AI agents on that computer (Claude Code, VS Code, Claude Desktop …) share it. If a computer is lost, you revoke just its token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>All team vaults opened to AI agents — also future ones</value>
+    <value>All vaults opened to AI agents — also future ones</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>All applications — also future ones</value>
@@ -1180,5 +1180,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>How it works</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (personal)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Only then can you issue an AI agent token for it — nobody else can, the vault stays private. Closing it stops every AI agent token for it at once.</value>
   </data>
 </root>

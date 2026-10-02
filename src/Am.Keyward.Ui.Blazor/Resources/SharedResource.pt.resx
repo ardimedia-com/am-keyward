@@ -864,7 +864,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Nome — de preferência o nome do computador</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Cofres</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Ainda nenhum cofre da equipa está aberto a agentes. Quem gere um cofre da equipa pode abri-lo em «Partilhar».</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Ainda nenhum cofre está aberto aos agentes de IA. Abra um cofre pessoal nas suas definições; um cofre de equipa é aberto por quem o gere, em «Partilha».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>O que pode o agente fazer nestes cofres?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Encontrar entradas (apenas os nomes)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Ver URL e nome de utilizador</value></data>
@@ -957,7 +957,7 @@
     <value>Um token por computador. Todos os agentes de IA desse computador (Claude Code, VS Code, Claude Desktop …) partilham-no. Se um computador se perder, revoga apenas o token dele.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Todos os cofres da equipa abertos a agentes de IA — também os futuros</value>
+    <value>Todos os cofres abertos aos agentes de IA — também os futuros</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>Todas as aplicações — também as futuras</value>
@@ -1054,5 +1054,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>Como fazer</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (pessoal)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Só então pode emitir um token de agente de IA para ele — mais ninguém pode, o cofre continua privado. Fechá-lo para de imediato todos os tokens de agente de IA para este cofre.</value>
   </data>
 </root>

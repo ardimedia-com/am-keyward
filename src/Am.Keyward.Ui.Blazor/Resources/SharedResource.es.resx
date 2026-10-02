@@ -864,7 +864,7 @@
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
   <data name="AgentTokens.Name" xml:space="preserve"><value>Nombre — mejor el nombre del ordenador</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Bóvedas</value></data>
-  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Todavía no hay ninguna bóveda de equipo abierta a agentes. Quien administre una bóveda de equipo puede abrirla en «Compartir».</value></data>
+  <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Todavía no hay ninguna bóveda abierta a los agentes de IA. Abre una bóveda personal en sus ajustes; una de equipo la abre quien la gestiona, en «Compartir».</value></data>
   <data name="AgentTokens.Scopes" xml:space="preserve"><value>¿Qué puede hacer el agente en estas bóvedas?</value></data>
   <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Buscar entradas (solo los nombres)</value></data>
   <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Ver URL y nombre de usuario</value></data>
@@ -957,7 +957,7 @@
     <value>Un token por ordenador. Todos los agentes de IA de ese ordenador (Claude Code, VS Code, Claude Desktop …) lo comparten. Si se pierde un ordenador, revocas solo su token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Todas las bóvedas de equipo abiertas a agentes de IA — también las futuras</value>
+    <value>Todas las bóvedas abiertas a los agentes de IA — también las futuras</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
     <value>Todas las aplicaciones — también las futuras</value>
@@ -1054,5 +1054,11 @@
   </data>
   <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
     <value>Cómo hacerlo</value>
+  </data>
+  <data name="AgentTokens.PersonalVault" xml:space="preserve">
+    <value>{0} (personal)</value>
+  </data>
+  <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
+    <value>Solo entonces puedes emitir un token de agente de IA para ella — nadie más puede, la bóveda sigue siendo privada. Cerrarla detiene al instante todo token de agente de IA para ella.</value>
   </data>
 </root>
