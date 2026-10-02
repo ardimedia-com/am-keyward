@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.26.0-preview] - 2026-10-02
+
 ### Added
 
 - **Extend an AI agent token and get reminded before it expires** (decision T9 A): «Extend» sets a new validity
