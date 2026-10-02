@@ -871,7 +871,7 @@
   <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Crear, cambiar y mover entradas</value></data>
   <data name="AgentTokens.Days" xml:space="preserve"><value>Válido (días, como máximo 365)</value></data>
   <data name="AgentTokens.Networks" xml:space="preserve"><value>Solo desde estas redes (opcional)</value></data>
-  <data name="AgentTokens.New" xml:space="preserve"><value>Copia el token ahora — solo se muestra una vez.</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copia el token ahora — solo se muestra una vez. Lo necesitas abajo para el comando «amkeyward-mcp setup».</value></data>
   <data name="AgentTokens.Existing" xml:space="preserve"><value>Tus tokens de agente de IA</value></data>
   <data name="AgentTokens.None" xml:space="preserve"><value>Todavía no tienes tokens de agente de IA.</value></data>
   <data name="AgentTokens.Expires" xml:space="preserve"><value>Caduca</value></data>

@@ -14,6 +14,9 @@ All notable changes to this project are documented here, following
   → ask for a password; the network field explains its format. A freshly issued token comes into view with one
   copyable PowerShell block (install, store — asks for the token, check, register); setup is described for any
   AI agent, not only Claude Code.
+- **`amkeyward-mcp setup` shows that the token arrived**: one `*` per pasted character, then
+  «Received amkwa_<prefix>_**** (N characters)» — the secret part is never echoed. The notice of a new token says
+  where it is needed («amkeyward-mcp setup» below).
 
 ## [0.25.0-preview] - 2026-10-01
 

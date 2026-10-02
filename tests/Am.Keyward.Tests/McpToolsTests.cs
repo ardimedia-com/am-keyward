@@ -175,6 +175,13 @@ public class McpToolsTests
     }
 
     [TestMethod, TestCategory("Unit")]
+    public void Setup_confirms_a_pasted_token_without_showing_its_secret()
+    {
+        Assert.AreEqual("amkwa_1fc78941e51b_****", KeywardMcpHost.MaskToken("amkwa_1fc78941e51b_7a50919007cb73e76444ed98524836613ea73ab427b769f2b0f85b2d74c2e631"));
+        Assert.AreEqual("****", KeywardMcpHost.MaskToken("amkwa_garbled"));
+    }
+
+    [TestMethod, TestCategory("Unit")]
     public void Check_reports_the_permissions_of_the_token()
     {
         var report = CheckReport.Describe(new AgentTokenInfoResponse(

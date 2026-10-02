@@ -116,7 +116,7 @@ internal static class KeywardMcpHost
             return 1;
         }
 
-        Console.Error.Write("Paste the agent token (input is hidden) and press Enter: ");
+        Console.Error.Write("Paste the agent token (shown as *) and press Enter: ");
         var token = ReadHidden();
         Console.Error.WriteLine();
         if (!token.StartsWith("amkwa_", StringComparison.Ordinal))
@@ -125,10 +125,20 @@ internal static class KeywardMcpHost
             return 1;
         }
 
+        // Confirms what arrived without showing the secret: the public prefix (the middle segment) and the length.
+        Console.Error.WriteLine($"Received {MaskToken(token)} ({token.Length} characters).");
+
         var store = new WindowsCredentialStore(WindowsCredentialStore.TargetFor(address));
         store.Write(token);
         Console.Error.WriteLine($"Stored in the Windows Credential Manager as «{store.Target}» (for {address.GetLeftPart(UriPartial.Authority)}). Run 'amkeyward-mcp check' to verify it.");
         return 0;
+    }
+
+    /// <summary><c>amkwa_&lt;prefix&gt;_****</c>: the prefix is a non-secret lookup handle, the rest stays hidden.</summary>
+    internal static string MaskToken(string token)
+    {
+        var parts = token.Split('_');
+        return parts.Length >= 3 ? $"{parts[0]}_{parts[1]}_****" : "****";
     }
 
     private static string ReadHidden()
@@ -136,10 +146,25 @@ internal static class KeywardMcpHost
         var chars = new List<char>();
         while (true)
         {
+            // One «*» per character, so a paste is visibly received; the characters themselves are never echoed.
             var key = Console.ReadKey(intercept: true);
             if (key.Key == ConsoleKey.Enter) break;
-            if (key.Key == ConsoleKey.Backspace) { if (chars.Count > 0) chars.RemoveAt(chars.Count - 1); continue; }
-            if (!char.IsControl(key.KeyChar)) chars.Add(key.KeyChar);
+            if (key.Key == ConsoleKey.Backspace)
+            {
+                if (chars.Count > 0)
+                {
+                    chars.RemoveAt(chars.Count - 1);
+                    Console.Error.Write("\b \b");
+                }
+
+                continue;
+            }
+
+            if (!char.IsControl(key.KeyChar))
+            {
+                chars.Add(key.KeyChar);
+                Console.Error.Write('*');
+            }
         }
 
         return new string([.. chars]).Trim();
