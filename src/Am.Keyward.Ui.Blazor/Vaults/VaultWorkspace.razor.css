@@ -178,3 +178,34 @@
 .ws-tree.collapsed .vault-kind {
     display: none;
 }
+
+/* «Sharing» of a team vault: people first, then AI agent tokens — each its own framed area. */
+.share-area {
+    padding: .8rem .9rem;
+    border: 1px solid var(--kw-border);
+    border-radius: .5rem;
+}
+
+.share-area + .share-area {
+    margin-top: .9rem;
+}
+
+.share-area-title {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    margin: 0 0 .4rem;
+    font-size: .95rem;
+}
+
+.share-area .agent-access {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.share-principal {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+}

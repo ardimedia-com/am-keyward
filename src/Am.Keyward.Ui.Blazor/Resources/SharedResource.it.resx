@@ -1069,4 +1069,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Casseforti personali per i tuoi accessi — visibili solo a te. Casseforti del team per le credenziali di cui un team ha bisogno insieme, come la password del Wi-Fi o un account di servizio condiviso — decidi per ogni persona chi può leggere, modificare o gestire.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Utenti</value>
+  </data>
 </root>

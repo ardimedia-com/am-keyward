@@ -1069,4 +1069,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Bóvedas personales para tus propios inicios de sesión — solo tú las ves. Bóvedas de equipo para credenciales que un equipo necesita en común, como la contraseña del Wi-Fi o una cuenta de servicio compartida — decides por persona quién puede leer, editar o administrar.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Usuarios</value>
+  </data>
 </root>

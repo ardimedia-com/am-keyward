@@ -1069,4 +1069,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Cofres pessoais para os seus próprios logins — visíveis só para si. Cofres de equipa para credenciais de que uma equipa precisa em conjunto, como a palavra-passe do Wi-Fi ou uma conta de serviço partilhada — decide por pessoa quem pode ler, editar ou gerir.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Utilizadores</value>
+  </data>
 </root>

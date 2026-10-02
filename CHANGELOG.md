@@ -46,6 +46,9 @@ All notable changes to this project are documented here, following
 - **BREAKING:** `IVaultService.SearchItemsAsync` no longer takes `teamVaults` — it searches every vault of the user
   (audited once per audit chain touched). `KeywardRoutes.PersonalVaults` / `TeamVaults` are obsolete; use
   `KeywardRoutes.Vaults`. Hosts linking the two pages (bvd.li.toolbox, ardimedia.com.toolbox) switch to the one route.
+- **«Sharing» of a team vault in two areas**: first «Users» (who may read, write or manage), then «AI agent tokens»
+  (the switch that opens the vault to them). The rows of its table are aligned again (the name cell was laid out as
+  flex, not as a table cell).
 - **Issuing and editing happen inside «Your AI agent tokens»**: its head carries the «Issue token» button; while a
   token is issued or edited, the form takes the place of the list (Cancel returns to it). The separate «Issue token»
   section is gone. «All vaults opened to AI agents — also future ones» can now be chosen before any vault is open —

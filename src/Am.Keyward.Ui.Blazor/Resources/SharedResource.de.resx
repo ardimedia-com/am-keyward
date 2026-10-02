@@ -1195,4 +1195,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Persönliche Tresore für deine eigenen Logins — nur für dich sichtbar. Team-Tresore für Zugangsdaten, die ein Team gemeinsam braucht, etwa das WLAN-Passwort oder ein geteiltes Service-Konto — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Benutzer</value>
+  </data>
 </root>

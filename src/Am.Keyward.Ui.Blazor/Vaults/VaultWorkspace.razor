@@ -225,78 +225,87 @@ else
                         <details class="card section">
                             <summary><KeywardIcon Name="users" /> @Loc["Vault.Share.Title"]@(shares is { Count: > 0 } ? $" ({shares.Count})" : "")</summary>
                             <div class="section-body">
-                                <p class="muted">@Loc["Vault.Share.Desc"]</p>
-                                <p class="muted">@Loc["Vault.Share.Boundary"]</p>
-                                <div class="agent-access">
-                                    <label class="agent-access-toggle">
-                                        <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
-                                        <span class="agent-access-text">
-                                            <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
-                                            <span class="muted">@Loc["Vault.Agent.Desc"]</span>
-                                        </span>
-                                    </label>
-                                </div>
-                                @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
-                                {
-                                    <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
-                                }
-                                else
-                                {
-                                    <div class="row" style="margin:.5rem 0;">
-                                        <select @bind="sharePrincipalId" aria-label="@(Loc["Vault.Share.SelectUser"])" style="max-width:16rem;">
-                                            <option value="">@Loc["Vault.Share.SelectUser"]</option>
-                                            @if (shareGroups.Count > 0)
-                                            {
-                                                <optgroup label="@Loc["Vault.Share.Groups"]">
-                                                    @foreach (var g in shareGroups)
+                                @* Two areas: who may use the vault (people and groups), then whether AI agent tokens may. *@
+                                <div class="share-area">
+                                    <h4 class="share-area-title"><KeywardIcon Name="users" Size="15" />@Loc["Vault.Share.UsersArea"]</h4>
+                                    <p class="muted">@Loc["Vault.Share.Desc"]</p>
+                                    <p class="muted">@Loc["Vault.Share.Boundary"]</p>
+                                    @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
+                                    {
+                                        <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
+                                    }
+                                    else
+                                    {
+                                        <div class="row" style="margin:.5rem 0;">
+                                            <select @bind="sharePrincipalId" aria-label="@(Loc["Vault.Share.SelectUser"])" style="max-width:16rem;">
+                                                <option value="">@Loc["Vault.Share.SelectUser"]</option>
+                                                @if (shareGroups.Count > 0)
+                                                {
+                                                    <optgroup label="@Loc["Vault.Share.Groups"]">
+                                                        @foreach (var g in shareGroups)
+                                                        {
+                                                            <option value="g:@g.Id">@g.Name</option>
+                                                        }
+                                                    </optgroup>
+                                                }
+                                                <optgroup label="@Loc["Vault.Share.People"]">
+                                                    @foreach (var c in shareCandidates)
                                                     {
-                                                        <option value="g:@g.Id">@g.Name</option>
+                                                        <option value="u:@c.UserId">@c.DisplayName</option>
                                                     }
                                                 </optgroup>
-                                            }
-                                            <optgroup label="@Loc["Vault.Share.People"]">
-                                                @foreach (var c in shareCandidates)
+                                            </select>
+                                            <select @bind="sharePermission" aria-label="@(Loc["Vault.Share.Permission"])" style="max-width:10rem;">
+                                                @foreach (var p in Enum.GetValues<Permission>())
                                                 {
-                                                    <option value="u:@c.UserId">@c.DisplayName</option>
+                                                    <option value="@p">@PermissionLabel(p)</option>
                                                 }
-                                            </optgroup>
-                                        </select>
-                                        <select @bind="sharePermission" aria-label="@(Loc["Vault.Share.Permission"])" style="max-width:10rem;">
-                                            @foreach (var p in Enum.GetValues<Permission>())
-                                            {
-                                                <option value="@p">@PermissionLabel(p)</option>
-                                            }
-                                        </select>
-                                        <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(sharePrincipalId))">@Loc["Vault.Share.Action"]</button>
+                                            </select>
+                                            <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(sharePrincipalId))">@Loc["Vault.Share.Action"]</button>
+                                        </div>
+                                    }
+                                    @if (shares is { Count: > 0 })
+                                    {
+                                        <table>
+                                            <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th><th></th></tr></thead>
+                                            <tbody>
+                                                @foreach (var s in shares)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            <span class="share-principal">
+                                                                <KeywardIcon Name="@(s.PrincipalType == PrincipalType.Group ? "users-round" : "users")" Size="14" />
+                                                                @s.DisplayName
+                                                                @if (s.PrincipalType == PrincipalType.Group)
+                                                                {
+                                                                    <span class="badge">@Loc["Groups.Badge"]</span>
+                                                                }
+                                                            </span>
+                                                        </td>
+                                                        <td><span class="badge">@PermissionLabel(s.Permission)</span></td>
+                                                        <td>
+                                                            <div class="row-actions">
+                                                                <button class="btn-danger btn-sm" @onclick="() => RevokeShareAsync(s)" disabled="@busy">@Loc["Vault.Share.Revoke"]</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    }
+                                </div>
+                                <div class="share-area">
+                                    <h4 class="share-area-title"><KeywardIcon Name="key" Size="15" />@Loc["Nav.AgentTokens"]</h4>
+                                    <div class="agent-access">
+                                        <label class="agent-access-toggle">
+                                            <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
+                                            <span class="agent-access-text">
+                                                <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
+                                                <span class="muted">@Loc["Vault.Agent.Desc"]</span>
+                                            </span>
+                                        </label>
                                     </div>
-                                }
-                                @if (shares is { Count: > 0 })
-                                {
-                                    <table>
-                                        <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th><th></th></tr></thead>
-                                        <tbody>
-                                            @foreach (var s in shares)
-                                            {
-                                                <tr>
-                                                    <td style="display:flex; align-items:center; gap:.4rem;">
-                                                        <KeywardIcon Name="@(s.PrincipalType == PrincipalType.Group ? "users-round" : "users")" Size="14" />
-                                                        @s.DisplayName
-                                                        @if (s.PrincipalType == PrincipalType.Group)
-                                                        {
-                                                            <span class="badge">@Loc["Groups.Badge"]</span>
-                                                        }
-                                                    </td>
-                                                    <td><span class="badge">@PermissionLabel(s.Permission)</span></td>
-                                                    <td>
-                                                        <div class="row-actions">
-                                                            <button class="btn-danger btn-sm" @onclick="() => RevokeShareAsync(s)" disabled="@busy">@Loc["Vault.Share.Revoke"]</button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                }
+                                </div>
                             </div>
                         </details>
                     }

@@ -1069,4 +1069,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Coffres personnels pour vos propres identifiants — visibles par vous seul. Coffres d'équipe pour les identifiants dont une équipe a besoin en commun, comme le mot de passe Wi-Fi ou un compte de service partagé — vous décidez par personne qui peut lire, modifier ou gérer.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Utilisateurs</value>
+  </data>
 </root>

@@ -1195,4 +1195,7 @@
   <data name="Home.Tile.Vaults" xml:space="preserve">
     <value>Personal vaults for your own logins — visible to you alone. Team vaults for credentials a team needs together, such as the Wi-Fi password or a shared service account — you decide per person who may read, edit or manage.</value>
   </data>
+  <data name="Vault.Share.UsersArea" xml:space="preserve">
+    <value>Users</value>
+  </data>
 </root>
