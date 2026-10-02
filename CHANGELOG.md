@@ -29,6 +29,9 @@ All notable changes to this project are documented here, following
   runner so the program is signed ad hoc. «AI agent tokens» shows the commands for Windows or macOS (a switch), the
   .NET 10 SDK prerequisite (`winget install Microsoft.DotNet.SDK.10` / `brew install --cask dotnet-sdk`) and a link to
   the guide without .NET.
+- **The Windows programs are signed** (decision T14 A): the release signs `amkeyward-mcp-win-*.exe` with Azure
+  Artifact Signing over OIDC (no secret on the runner) as soon as the repository variable `ARTIFACT_SIGNING_ACCOUNT`
+  and the Azure identity exist; until then they ship unsigned. Setup steps are in `release.yml`.
 - **A personal vault can be opened to AI agents** (decision T12 B): its owner ticks «Open this vault to AI agent tokens»
   in the vault's settings; then only the owner's tokens can reach it — listed as «Name (personal)», or through «All
   vaults opened to AI agents», which now includes personal vaults. Same rules as a team vault: allowlist or «all», the

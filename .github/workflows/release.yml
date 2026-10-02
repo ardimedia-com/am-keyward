@@ -106,8 +106,20 @@ jobs:
   # The MCP server as one self-contained program per platform, attached to the GitHub Release — for computers
   # without the .NET SDK (decision T10 A). macOS builds on a macOS runner: only there does the SDK sign the
   # program (ad hoc), without which Apple Silicon refuses to start it.
+  #
+  # Windows programs are Authenticode-signed with Azure Artifact Signing (decision T14 A, the Ardimedia standard —
+  # see D:\CODE\.claude\code-signing.md) through OIDC: no secret on the runner. The step runs once the repository
+  # variable ARTIFACT_SIGNING_ACCOUNT is set; until then the release still ships, unsigned. Setup (once):
+  #   - Artifact Signing account + validated identity + certificate profile (public trust) in Azure;
+  #   - an Entra app registration with a federated credential for
+  #     repo:ardimedia-com/am-keyward:environment:code-signing and the role
+  #     «Artifact Signing Certificate Profile Signer» on the certificate profile;
+  #   - repository secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID and variables
+  #     ARTIFACT_SIGNING_ENDPOINT (e.g. https://weu.codesigning.azure.net/), ARTIFACT_SIGNING_ACCOUNT,
+  #     ARTIFACT_SIGNING_PROFILE.
   mcp-binaries:
     needs: release
+    environment: code-signing
     strategy:
       matrix:
         include:
@@ -125,25 +137,63 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish and attach amkeyward-mcp (${{ matrix.rid }})
+      - name: Publish amkeyward-mcp (${{ matrix.rid }})
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet publish src/Am.Keyward.Mcp -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version="$VERSION" -o publish
+          mkdir -p sign dist
+          case "${{ matrix.rid }}" in
+            win-*)
+              mv publish/Am.Keyward.Mcp.exe "sign/amkeyward-mcp-${{ matrix.rid }}.exe" ;;
+            *)
+              mv publish/Am.Keyward.Mcp publish/amkeyward-mcp
+              chmod +x publish/amkeyward-mcp ;;
+          esac
+
+      - name: Azure login (OIDC, for signing)
+        if: startsWith(matrix.rid, 'win-') && vars.ARTIFACT_SIGNING_ACCOUNT != ''
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign amkeyward-mcp (Azure Artifact Signing)
+        if: startsWith(matrix.rid, 'win-') && vars.ARTIFACT_SIGNING_ACCOUNT != ''
+        uses: azure/artifact-signing-action@v2
+        with:
+          endpoint: ${{ vars.ARTIFACT_SIGNING_ENDPOINT }}
+          signing-account-name: ${{ vars.ARTIFACT_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.ARTIFACT_SIGNING_PROFILE }}
+          files-folder: ${{ github.workspace }}/sign
+          files-folder-filter: exe
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+          timestamp-digest: SHA256
+          exclude-environment-credential: true
+          exclude-workload-identity-credential: true
+          exclude-managed-identity-credential: true
+          exclude-shared-token-cache-credential: true
+          exclude-visual-studio-credential: true
+          exclude-visual-studio-code-credential: true
+          exclude-azure-cli-credential: false
+          exclude-azure-powershell-credential: true
+          exclude-azure-developer-cli-credential: true
+          exclude-interactive-browser-credential: true
+
+      - name: Attach to the release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          dotnet publish src/Am.Keyward.Mcp -c Release -r ${{ matrix.rid }} --self-contained \
-            -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none \
-            -p:Version="$VERSION" -o publish
-          mkdir -p dist
           case "${{ matrix.rid }}" in
             win-*)
               ASSET="amkeyward-mcp-${{ matrix.rid }}.exe"
-              mv publish/Am.Keyward.Mcp.exe "dist/$ASSET" ;;
+              mv "sign/$ASSET" "dist/$ASSET" ;;
             *)
               # A tar keeps the executable bit; the program inside is called amkeyward-mcp.
               ASSET="amkeyward-mcp-${{ matrix.rid }}.tar.gz"
-              mv publish/Am.Keyward.Mcp publish/amkeyward-mcp
-              chmod +x publish/amkeyward-mcp
               tar -czf "dist/$ASSET" -C publish amkeyward-mcp ;;
           esac
           (cd dist && if command -v sha256sum >/dev/null; then sha256sum "$ASSET"; else shasum -a 256 "$ASSET"; fi > "$ASSET.sha256")

@@ -287,7 +287,8 @@ curl -sL "https://github.com/ardimedia-com/am-keyward/releases/download/$tag/amk
 claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- ~/.local/bin/amkeyward-mcp
 ```
 
-Downloaded this way (PowerShell, curl) the program carries no «from the internet» mark, so neither SmartScreen nor
+The Windows programs are signed with Azure Artifact Signing once the signing identity is set up (until then they
+are unsigned). Downloaded this way (PowerShell, curl) the program carries no «from the internet» mark, so neither SmartScreen nor
 Gatekeeper stops it; downloaded with a browser, macOS refuses to open it until it is allowed under System Settings →
 Privacy & Security. An update is the same download again. To remove it: `amkeyward-mcp remove <address>`, then delete
 the file and `claude mcp remove` the registration.
