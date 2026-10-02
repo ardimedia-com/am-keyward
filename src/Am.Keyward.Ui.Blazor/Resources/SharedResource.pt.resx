@@ -971,4 +971,10 @@
   <data name="AgentTokens.Networks.Help" xml:space="preserve">
     <value>Vazio = a partir de qualquer lugar. Caso contrário, intervalos de rede separados por vírgulas, p. ex. 10.1.0.0/23 (= de 10.1.0.0 a 10.1.1.255).</value>
   </data>
+  <data name="AgentTokens.Facts.Permissions" xml:space="preserve">
+    <value>Permissões</value>
+  </data>
+  <data name="AgentTokens.Facts.Networks" xml:space="preserve">
+    <value>Redes</value>
+  </data>
 </root>

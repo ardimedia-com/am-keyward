@@ -196,8 +196,8 @@
 .token-row {
     display: flex;
     flex-direction: column;
-    gap: .3rem;
-    padding: .6rem 0;
+    gap: .45rem;
+    padding: .75rem .9rem;
     border-bottom: 1px solid var(--kw-border);
 }
 
@@ -216,11 +216,22 @@
     overflow-wrap: anywhere;
 }
 
+/* Facts and actions line up with the token name, right of its icon (17px + .5rem gap). */
 .token-facts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .25rem 1rem;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .2rem .9rem;
+    margin: 0 0 0 1.6rem;
     font-size: .85rem;
+}
+
+.token-facts dt {
+    font-weight: 500;
+}
+
+.token-facts dd {
+    margin: 0;
+    min-width: 0;
 }
 
 .token-actions {
@@ -228,6 +239,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: .5rem;
+    margin-left: 1.6rem;
 }
 
 .status-active {

@@ -971,4 +971,10 @@
   <data name="AgentTokens.Networks.Help" xml:space="preserve">
     <value>Vide = depuis partout. Sinon des plages réseau séparées par des virgules, p. ex. 10.1.0.0/23 (= 10.1.0.0 à 10.1.1.255).</value>
   </data>
+  <data name="AgentTokens.Facts.Permissions" xml:space="preserve">
+    <value>Droits</value>
+  </data>
+  <data name="AgentTokens.Facts.Networks" xml:space="preserve">
+    <value>Réseaux</value>
+  </data>
 </root>

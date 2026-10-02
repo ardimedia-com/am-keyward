@@ -971,4 +971,10 @@
   <data name="AgentTokens.Networks.Help" xml:space="preserve">
     <value>Vuoto = da ovunque. Altrimenti intervalli di rete separati da virgole, ad es. 10.1.0.0/23 (= da 10.1.0.0 a 10.1.1.255).</value>
   </data>
+  <data name="AgentTokens.Facts.Permissions" xml:space="preserve">
+    <value>Permessi</value>
+  </data>
+  <data name="AgentTokens.Facts.Networks" xml:space="preserve">
+    <value>Reti</value>
+  </data>
 </root>

@@ -1097,4 +1097,10 @@
   <data name="AgentTokens.Networks.Help" xml:space="preserve">
     <value>Leer = von überall. Sonst Netzwerkbereiche, mit Komma getrennt, z. B. 10.1.0.0/23 (= 10.1.0.0 bis 10.1.1.255).</value>
   </data>
+  <data name="AgentTokens.Facts.Permissions" xml:space="preserve">
+    <value>Rechte</value>
+  </data>
+  <data name="AgentTokens.Facts.Networks" xml:space="preserve">
+    <value>Netzwerke</value>
+  </data>
 </root>

@@ -107,23 +107,25 @@
                                     <span class="token-name">@token.Name</span>
                                     <span class="badge @StatusClass(token)">@StatusLabel(token)</span>
                                 </div>
-                                <div class="token-facts muted">
-                                    @if (token.AllAgentVaults)
+                                @* One labelled line per fact, indented under the token name. *@
+                                <dl class="token-facts muted">
+                                    @if (token.AllAgentVaults || token.VaultIds.Count > 0)
                                     {
-                                        <span>@Loc["AgentTokens.AllVaults"]</span>
+                                        <dt>@Loc["AgentTokens.Vaults"]</dt>
+                                        <dd>@(token.AllAgentVaults ? Loc["AgentTokens.AllVaults"] : string.Join(", ", token.VaultIds.Select(VaultName)))</dd>
+                                        <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
+                                        <dd>@string.Join(", ", OfferedScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</dd>
                                     }
-                                    else if (token.VaultIds.Count > 0)
-                                    {
-                                        <span>@string.Join(", ", token.VaultIds.Select(VaultName))</span>
-                                    }
-                                    <span>@string.Join(", ", AllScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</span>
                                     @if (token.Scopes.HasFlag(AgentScopes.ManageApplications))
                                     {
-                                        <span>@ApplicationsFact(token)</span>
+                                        <dt>@Loc["AgentTokens.Applications"]</dt>
+                                        <dd>@ApplicationsFact(token)</dd>
                                     }
-                                    <span>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</span>
-                                    <span>@Loc["AgentTokens.Expires"] <LocalTime Utc="token.ExpiresAt" /></span>
-                                </div>
+                                    <dt>@Loc["AgentTokens.Facts.Networks"]</dt>
+                                    <dd>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</dd>
+                                    <dt>@Loc["AgentTokens.Expires"]</dt>
+                                    <dd><LocalTime Utc="token.ExpiresAt" /></dd>
+                                </dl>
                                 @if (token.RevokedAt is null)
                                 {
                                     <div class="token-actions">

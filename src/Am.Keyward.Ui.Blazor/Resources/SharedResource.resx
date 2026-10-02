@@ -1097,4 +1097,10 @@
   <data name="AgentTokens.Networks.Help" xml:space="preserve">
     <value>Empty = from anywhere. Otherwise network ranges, separated by commas, e.g. 10.1.0.0/23 (= 10.1.0.0 to 10.1.1.255).</value>
   </data>
+  <data name="AgentTokens.Facts.Permissions" xml:space="preserve">
+    <value>Permissions</value>
+  </data>
+  <data name="AgentTokens.Facts.Networks" xml:space="preserve">
+    <value>Networks</value>
+  </data>
 </root>
