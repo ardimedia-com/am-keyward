@@ -927,7 +927,7 @@
     <value>Générer un mot de passe fort</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Ensuite, exécutez ceci dans PowerShell sur l'ordinateur de l'agent. La deuxième commande demande le jeton — collez-le à ce moment ; la troisième indique si tout fonctionne.</value>
+    <value>Ensuite, exécutez ceci sur l'ordinateur de l'agent — dans PowerShell sous Windows, dans le Terminal sur Mac. La deuxième commande demande le jeton — collez-le à ce moment ; la troisième indique si tout fonctionne.</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>Utiliser un jeton d'agent IA</value>
@@ -951,7 +951,7 @@
     <value>Terminé. Dites à l'agent ce qu'il doit faire, p. ex. « Enregistre les accès de cet e-mail dans KEYWARD et donne-moi le lien ».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Le jeton vaut pour tous les agents IA de votre utilisateur Windows sur cet ordinateur. Ils agissent en votre nom, mais uniquement avec ce que vous avez coché — modifiable à tout moment avec « Modifier ». Si l'ordinateur est perdu, révoquez le jeton.</value>
+    <value>Le jeton vaut pour tous les agents IA de votre compte utilisateur sur cet ordinateur. Ils agissent en votre nom, mais uniquement avec ce que vous avez coché — modifiable à tout moment avec « Modifier ». Si l'ordinateur est perdu, révoquez le jeton.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>Un jeton par ordinateur. Tous les agents IA de cet ordinateur (Claude Code, VS Code, Claude Desktop …) le partagent. Si un ordinateur est perdu, vous ne révoquez que son jeton.</value>
@@ -1017,7 +1017,7 @@
     <value>Comment tout retirer</value>
   </data>
   <data name="AgentTokens.Uninstall.Intro" xml:space="preserve">
-    <value>Pour retirer KEYWARD aux agents IA d'un ordinateur, exécutez ces commandes dans PowerShell sur cet ordinateur. Chaque étape fonctionne seule — faites celles dont vous avez besoin.</value>
+    <value>Pour retirer KEYWARD aux agents IA d'un ordinateur, exécutez ces commandes sur cet ordinateur (Windows : PowerShell, Mac : Terminal). Chaque étape fonctionne seule — faites celles dont vous avez besoin.</value>
   </data>
   <data name="AgentTokens.Uninstall.Unregister" xml:space="preserve">
     <value>Le retirer de l'agent IA — ici pour Claude Code (autres agents : supprimer l'entrée « {0} » dans leurs réglages MCP) :</value>
@@ -1039,5 +1039,20 @@
   </data>
   <data name="AgentTokens.Msg.Deleted" xml:space="preserve">
     <value>Jeton supprimé.</value>
+  </data>
+  <data name="AgentTokens.Usage.Os" xml:space="preserve">
+    <value>Système d'exploitation</value>
+  </data>
+  <data name="AgentTokens.Usage.DotNet" xml:space="preserve">
+    <value>Nécessaire une fois par ordinateur : le SDK .NET 10. Si « dotnet --version » affiche 10 ou plus, il est déjà là. Sinon, installez-le, puis ouvrez une nouvelle fenêtre PowerShell ou Terminal :</value>
+  </data>
+  <data name="AgentTokens.Usage.DotNet.NoBrew" xml:space="preserve">
+    <value>(Ceci utilise Homebrew ; sans lui, prenez l'installateur sur dotnet.microsoft.com/download.)</value>
+  </data>
+  <data name="AgentTokens.Usage.NoDotNet" xml:space="preserve">
+    <value>Sans .NET : le programme existe aussi en fichier unique pour Windows, macOS et Linux.</value>
+  </data>
+  <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
+    <value>Mode d'emploi</value>
   </data>
 </root>

@@ -169,9 +169,9 @@ public class McpToolsTests
         }
 
         // Nothing about the installations is built in: the target comes from the address the user configures.
-        Assert.AreEqual("AmKeyward:Agent:toolbox.bvd.li", WindowsCredentialStore.TargetFor(new Uri("https://toolbox.bvd.li")));
-        Assert.AreEqual("AmKeyward:Agent:toolbox.ardimedia.com", WindowsCredentialStore.TargetFor(new Uri("https://Toolbox.Ardimedia.com/")));
-        Assert.AreEqual("AmKeyward:Agent:keyward.example.com:8443", WindowsCredentialStore.TargetFor(new Uri("https://keyward.example.com:8443/x")));
+        Assert.AreEqual("AmKeyward:Agent:toolbox.bvd.li", TokenStore.TargetFor(new Uri("https://toolbox.bvd.li")));
+        Assert.AreEqual("AmKeyward:Agent:toolbox.ardimedia.com", TokenStore.TargetFor(new Uri("https://Toolbox.Ardimedia.com/")));
+        Assert.AreEqual("AmKeyward:Agent:keyward.example.com:8443", TokenStore.TargetFor(new Uri("https://keyward.example.com:8443/x")));
     }
 
     [TestMethod, TestCategory("Unit")]

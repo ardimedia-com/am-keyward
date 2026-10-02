@@ -22,6 +22,13 @@ All notable changes to this project are documented here, following
   token. New command `amkeyward-mcp remove <address>` deletes the stored token from the Windows Credential Manager
   (also the pre-0.24 one). A revoked or expired token can be **deleted** from the list (`IAgentTokenService.DeleteAsync`,
   audited; a working token is revoked first).
+- **The MCP server on macOS, and without .NET** (decision T10 A): `amkeyward-mcp` keeps the token in the macOS Keychain
+  (Security framework, the token never on a command line) and reveals to the macOS clipboard (`pbcopy`, cleared after
+  30 seconds unless something else was copied). Each GitHub Release carries the server as one self-contained program
+  per platform (win-x64, win-arm64, osx-arm64, osx-x64, linux-x64, each with a SHA-256 file); macOS builds on a macOS
+  runner so the program is signed ad hoc. «AI agent tokens» shows the commands for Windows or macOS (a switch), the
+  .NET 10 SDK prerequisite (`winget install Microsoft.DotNet.SDK.10` / `brew install --cask dotnet-sdk`) and a link to
+  the guide without .NET.
 
 ### Changed
 

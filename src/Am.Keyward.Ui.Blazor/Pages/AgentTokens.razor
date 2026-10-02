@@ -47,6 +47,8 @@
                     @* Right where the token is copied: everything to run on the agent's computer, as one PowerShell block.
                        «setup» asks for the token (hidden input), so it never lands in the shell history. *@
                     <p class="issued-next">@Loc["AgentTokens.Usage.Next"]</p>
+                    @OsSwitch
+                    @DotNetPrerequisite
                     <div class="usage-script">
                         <pre><code>@SetupScript</code></pre>
                         <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(SetupScript)"><KeywardIcon Name="@(copiedCommand == SetupScript ? "check" : "copy")" Size="15" /></button>
@@ -244,6 +246,8 @@
                 {
                     <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
                     <p class="muted">@Loc["AgentTokens.Usage.Scope"]</p>
+                    @OsSwitch
+                    @DotNetPrerequisite
                     @StepList(UsageSteps)
                 }
             </section>
@@ -258,6 +262,7 @@
                 @if (showUninstall)
                 {
                     <p class="muted">@Loc["AgentTokens.Uninstall.Intro"]</p>
+                    @OsSwitch
                     @StepList(UninstallSteps)
                     <p class="muted">@Loc["AgentTokens.Uninstall.Lost"]</p>
                 }
@@ -419,6 +424,32 @@
         </ol>
     };
 
+    // The commands for Windows (PowerShell) or macOS (Terminal); one switch for every place they appear.
+    private RenderFragment OsSwitch => __builder =>
+    {
+        <div class="os-switch" role="group" aria-label="@Loc["AgentTokens.Usage.Os"]">
+            <button type="button" class="@(mac ? null : "active")" aria-pressed="@(mac ? "false" : "true")" @onclick="() => mac = false">Windows</button>
+            <button type="button" class="@(mac ? "active" : null)" aria-pressed="@(mac ? "true" : "false")" @onclick="() => mac = true">macOS</button>
+        </div>
+    };
+
+    // The .NET SDK the program installs with; kept out of the copy-all block, because a new window is needed after it.
+    private RenderFragment DotNetPrerequisite => __builder =>
+    {
+        <div class="usage-prereq">
+            <span>@Loc["AgentTokens.Usage.DotNet"]</span>
+            <div class="usage-command">
+                <code>@DotNetCommand</code>
+                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(DotNetCommand)"><KeywardIcon Name="@(copiedCommand == DotNetCommand ? "check" : "copy")" Size="15" /></button>
+            </div>
+            @if (mac)
+            {
+                <span class="muted">@Loc["AgentTokens.Usage.DotNet.NoBrew"]</span>
+            }
+            <span class="muted">@Loc["AgentTokens.Usage.NoDotNet"] <a href="@NoDotNetGuide" target="_blank" rel="noopener">@Loc["AgentTokens.Usage.NoDotNet.Link"]</a></span>
+        </div>
+    };
+
     private static readonly AgentScopes[] OfferedScopes = [AgentScopes.VaultList, AgentScopes.VaultRead, AgentScopes.VaultWrite, AgentScopes.VaultReveal];
 
     private static readonly AgentScopes[] AllScopes = [.. OfferedScopes, AgentScopes.ManageApplications];
@@ -459,12 +490,25 @@
 
     private string SetupScript => string.Join("\n", UsageSteps.Select(s => s.Command).OfType<string>());
 
+    // Windows puts the .NET tools folder on PATH; on macOS it is not, so the commands name the program by its path —
+    // which also lets the AI agent start it whatever PATH it was launched with.
+    private bool mac;
+
+    private string Tool => mac ? "~/.dotnet/tools/amkeyward-mcp" : "amkeyward-mcp";
+
+    private string DotNetCommand => mac ? "brew install --cask dotnet-sdk" : "winget install Microsoft.DotNet.SDK.10";
+
+    // The single-file program on GitHub Releases, for computers without .NET (decision T10 A).
+    private const string NoDotNetGuide = "https://github.com/ardimedia-com/am-keyward/blob/main/docs/agent-api.md#without-net";
+
     private IReadOnlyList<(string Label, string? Command)> UsageSteps =>
     [
         (Loc["AgentTokens.Usage.Install"], "dotnet tool install --global Am.Keyward.Mcp --prerelease"),
-        (Loc["AgentTokens.Usage.Store"], $"amkeyward-mcp setup {ServiceUri}"),
-        (Loc["AgentTokens.Usage.Check"], $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; amkeyward-mcp check"),
-        (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- amkeyward-mcp"),
+        (Loc["AgentTokens.Usage.Store"], $"{Tool} setup {ServiceUri}"),
+        (Loc["AgentTokens.Usage.Check"], mac
+            ? $"Keyward__ServiceUri={ServiceUri} {Tool} check"
+            : $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; {Tool} check"),
+        (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- {Tool}"),
         (Loc["AgentTokens.Usage.Ask"], null),
     ];
 
@@ -472,7 +516,7 @@
     private IReadOnlyList<(string Label, string? Command)> UninstallSteps =>
     [
         (Loc["AgentTokens.Uninstall.Unregister", McpServerName], $"claude mcp remove {McpServerName} --scope user"),
-        (Loc["AgentTokens.Uninstall.Forget"], $"amkeyward-mcp remove {ServiceUri}"),
+        (Loc["AgentTokens.Uninstall.Forget"], $"{Tool} remove {ServiceUri}"),
         (Loc["AgentTokens.Uninstall.Tool"], "dotnet tool uninstall --global Am.Keyward.Mcp"),
         (Loc["AgentTokens.Uninstall.Revoke"], null),
     ];

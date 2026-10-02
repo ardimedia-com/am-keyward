@@ -303,8 +303,9 @@ local zone. Timestamps are stored in UTC and shown in the viewer's own local tim
 An agent token lets an assistant such as Claude Code work with vault entries **as you**, narrowed to the vaults and
 permissions you choose: list and search entries, read a Login's URL and user name, store new credentials (it hands
 you a link, never echoes the value) and update entries. To see a secret it must ask; you approve each request on
-«AI agent tokens», and the MCP server `Am.Keyward.Mcp` (a .NET tool, `amkeyward-mcp`) copies the value to the Windows
-clipboard — never into the assistant's context.
+«AI agent tokens», and the MCP server `Am.Keyward.Mcp` (`amkeyward-mcp` — a .NET tool, or a single program file per
+platform on the GitHub Releases) copies the value to the clipboard of Windows or macOS — never into the assistant's
+context.
 
 With the separate permission **«Manage applications»** the assistant also sets up an application for the
 software-client API: it creates the application, its environments and its secret keys, and hands you the link to

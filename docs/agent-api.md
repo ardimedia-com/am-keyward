@@ -206,27 +206,39 @@ A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
   from the chat unless the user gave it for exactly this purpose), plus the read-only `list_app_tokens` and
   `get_app_statistics`. Every answer carries the UI link.
 
+It needs the **.NET 10 SDK** once per computer (`dotnet --version` shows 10 or higher). Without it:
+`winget install Microsoft.DotNet.SDK.10` on Windows, `brew install --cask dotnet-sdk` on macOS (or the installer from
+dotnet.microsoft.com/download), then open a new window. No .NET at all: see [Without .NET](#without-net).
+
+Windows (PowerShell):
+
 ```powershell
 dotnet tool install --global Am.Keyward.Mcp --prerelease
 amkeyward-mcp setup https://keyward.example.com   # paste the agent token; stored in the Windows Credential Manager
 $env:Keyward__ServiceUri = "https://keyward.example.com"
 amkeyward-mcp check                               # verifies the token and prints its permissions
-```
-
-Register it in Claude Code (the token is not part of the configuration):
-
-```powershell
 claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- amkeyward-mcp
 ```
 
-The «AI agent tokens» page shows these commands filled in with its own address.
+macOS (Terminal) — the .NET tools folder is not on the PATH there, so the program is named by its path (which also
+lets the AI agent start it whatever PATH it runs with):
+
+```sh
+dotnet tool install --global Am.Keyward.Mcp --prerelease
+~/.dotnet/tools/amkeyward-mcp setup https://keyward.example.com   # stored in the macOS Keychain
+Keyward__ServiceUri=https://keyward.example.com ~/.dotnet/tools/amkeyward-mcp check
+claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- ~/.dotnet/tools/amkeyward-mcp
+```
+
+The token is not part of the MCP configuration. The «AI agent tokens» page shows these commands filled in with its own
+address, for Windows or macOS.
 
 **Several KEYWARD installations on one computer** (e.g. two companies' toolboxes): nothing about them is built into
 the tool. Each token is stored under its KEYWARD's address (`AmKeyward:Agent:<host>`), and each installation is its
 own MCP registration with its own `Keyward__ServiceUri` — run `setup` and `claude mcp add` once per installation. A
 token stored by a version before 0.24 (target `AmKeyward:Agent`) is still found as a fallback.
 
-**Where a token applies:** every Claude Code session of that Windows user on that computer (`--scope user`), all
+**Where a token applies:** every Claude Code session of that user account on that computer (`--scope user`), all
 acting as the token's user. Use one token per computer, named after it; Claude Desktop and claude.ai have their own
 MCP configuration.
 
@@ -238,11 +250,45 @@ amkeyward-mcp remove https://keyward.example.com               # the stored toke
 dotnet tool uninstall --global Am.Keyward.Mcp                   # only if no other KEYWARD uses it
 ```
 
+On macOS the second line is `~/.dotnet/tools/amkeyward-mcp remove …`; it removes the Keychain entry.
+
 Then revoke the token on «AI agent tokens» and delete it from the list. For a lost computer revoking alone is enough:
 a revoked token is useless wherever it is still stored.
 
-Without the Credential Manager (not Windows) the token comes from `KEYWARD_AGENT_TOKEN`; revealing is then refused,
-because there is no clipboard to send the value to.
+On Linux there is neither a credential store nor a clipboard the tool uses: the token comes from
+`KEYWARD_AGENT_TOKEN`, and revealing is refused, because there is no clipboard to send the value to.
+
+### Without .NET
+
+Each release on [GitHub Releases](https://github.com/ardimedia-com/am-keyward/releases) carries the MCP server as one
+self-contained program per platform — `amkeyward-mcp-win-x64.exe`, `-win-arm64.exe`, `-osx-arm64.tar.gz` (Apple
+Silicon), `-osx-x64.tar.gz` (Intel), `-linux-x64.tar.gz` — each with a `.sha256` file. It behaves exactly like the .NET
+tool. All releases are previews (0.x), which GitHub's «latest» link skips, so the commands look up the newest tag.
+
+Windows (PowerShell):
+
+```powershell
+$tag = (Invoke-RestMethod https://api.github.com/repos/ardimedia-com/am-keyward/releases)[0].tag_name
+$dir = "$env:LOCALAPPDATA\Programs\amkeyward-mcp"; New-Item -ItemType Directory -Force $dir | Out-Null
+Invoke-WebRequest "https://github.com/ardimedia-com/am-keyward/releases/download/$tag/amkeyward-mcp-win-x64.exe" -OutFile "$dir\amkeyward-mcp.exe"
+& "$dir\amkeyward-mcp.exe" setup https://keyward.example.com
+claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- "$dir\amkeyward-mcp.exe"
+```
+
+macOS (Terminal; on an Intel Mac `osx-x64` instead of `osx-arm64`):
+
+```sh
+tag=$(curl -s https://api.github.com/repos/ardimedia-com/am-keyward/releases | grep -m1 '"tag_name"' | cut -d '"' -f4)
+mkdir -p ~/.local/bin
+curl -sL "https://github.com/ardimedia-com/am-keyward/releases/download/$tag/amkeyward-mcp-osx-arm64.tar.gz" | tar -xz -C ~/.local/bin
+~/.local/bin/amkeyward-mcp setup https://keyward.example.com
+claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- ~/.local/bin/amkeyward-mcp
+```
+
+Downloaded this way (PowerShell, curl) the program carries no «from the internet» mark, so neither SmartScreen nor
+Gatekeeper stops it; downloaded with a browser, macOS refuses to open it until it is allowed under System Settings →
+Privacy & Security. An update is the same download again. To remove it: `amkeyward-mcp remove <address>`, then delete
+the file and `claude mcp remove` the registration.
 
 ### Example: an application for a console
 

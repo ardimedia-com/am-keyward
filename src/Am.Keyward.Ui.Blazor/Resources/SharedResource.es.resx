@@ -927,7 +927,7 @@
     <value>Generar una contraseña segura</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>A continuación, ejecuta esto en PowerShell en el ordenador del agente. El segundo comando pide el token — pégalo ahí; el tercero muestra si todo funciona.</value>
+    <value>A continuación, ejecuta esto en el ordenador del agente — en PowerShell en Windows, en Terminal en Mac. El segundo comando pide el token — pégalo ahí; el tercero muestra si todo funciona.</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
     <value>Cómo usar un token de agente de IA</value>
@@ -951,7 +951,7 @@
     <value>Listo. Dile al agente qué hacer, p. ej. «Guarda los datos de acceso de este correo en KEYWARD y dame el enlace».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>El token vale para todos los agentes de IA de tu usuario de Windows en ese ordenador. Actúan como tú, pero solo con lo que marcaste — puedes cambiarlo en cualquier momento con «Editar». Si se pierde el ordenador, revoca el token.</value>
+    <value>El token vale para todos los agentes de IA de tu cuenta de usuario en ese ordenador. Actúan como tú, pero solo con lo que marcaste — puedes cambiarlo en cualquier momento con «Editar». Si se pierde el ordenador, revoca el token.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
     <value>Un token por ordenador. Todos los agentes de IA de ese ordenador (Claude Code, VS Code, Claude Desktop …) lo comparten. Si se pierde un ordenador, revocas solo su token.</value>
@@ -1017,7 +1017,7 @@
     <value>Cómo quitarlo de nuevo</value>
   </data>
   <data name="AgentTokens.Uninstall.Intro" xml:space="preserve">
-    <value>Para quitar KEYWARD a los agentes de IA de un ordenador, ejecuta estos comandos en PowerShell en ese ordenador. Cada paso funciona por sí solo — haz los que necesites.</value>
+    <value>Para quitar KEYWARD a los agentes de IA de un ordenador, ejecuta estos comandos en ese ordenador (Windows: PowerShell, Mac: Terminal). Cada paso funciona por sí solo — haz los que necesites.</value>
   </data>
   <data name="AgentTokens.Uninstall.Unregister" xml:space="preserve">
     <value>Quitarlo del agente de IA — aquí para Claude Code (otros agentes: borrar la entrada «{0}» en sus ajustes MCP):</value>
@@ -1039,5 +1039,20 @@
   </data>
   <data name="AgentTokens.Msg.Deleted" xml:space="preserve">
     <value>Token eliminado.</value>
+  </data>
+  <data name="AgentTokens.Usage.Os" xml:space="preserve">
+    <value>Sistema operativo</value>
+  </data>
+  <data name="AgentTokens.Usage.DotNet" xml:space="preserve">
+    <value>Necesario una vez por ordenador: el SDK de .NET 10. Si «dotnet --version» muestra 10 o superior, ya está. Si no, instálalo y abre después una nueva ventana de PowerShell o Terminal:</value>
+  </data>
+  <data name="AgentTokens.Usage.DotNet.NoBrew" xml:space="preserve">
+    <value>(Esto usa Homebrew; sin él, usa el instalador de dotnet.microsoft.com/download.)</value>
+  </data>
+  <data name="AgentTokens.Usage.NoDotNet" xml:space="preserve">
+    <value>Sin .NET: el programa también existe como un único archivo para Windows, macOS y Linux.</value>
+  </data>
+  <data name="AgentTokens.Usage.NoDotNet.Link" xml:space="preserve">
+    <value>Cómo hacerlo</value>
   </data>
 </root>

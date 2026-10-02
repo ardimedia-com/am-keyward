@@ -145,11 +145,79 @@ internal sealed class WindowsSecretClipboard : ISecretClipboard
     private static extern bool GlobalUnlock(IntPtr memory);
 }
 
-/// <summary>No clipboard (not Windows): revealing is refused rather than falling back to the assistant's context.</summary>
+/// <summary>
+/// The macOS clipboard through <c>pbcopy</c> / <c>pbpaste</c>; the value goes through standard input, never a command
+/// line. macOS keeps no clipboard history of its own. Cleared after a short time — but only if the clipboard still
+/// holds the value, so something the user copied meanwhile stays.
+/// </summary>
+[SupportedOSPlatform("macos")]
+internal sealed class MacSecretClipboard : ISecretClipboard
+{
+    public bool IsAvailable => true;
+
+    public void CopyAndClearLater(string value, TimeSpan clearAfter)
+    {
+        Copy(value);
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(clearAfter).ConfigureAwait(false);
+            try
+            {
+                if (Paste() == value)
+                {
+                    Copy("");
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // Nothing more to do; the value stays until the next copy.
+            }
+        });
+    }
+
+    private static void Copy(string value)
+    {
+        using var process = Start("/usr/bin/pbcopy", redirectInput: true);
+        process.StandardInput.Write(value);
+        process.StandardInput.Close();
+        process.WaitForExit();
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException("Could not put the value on the clipboard.");
+        }
+    }
+
+    private static string Paste()
+    {
+        using var process = Start("/usr/bin/pbpaste", redirectInput: false);
+        var text = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return text;
+    }
+
+    private static System.Diagnostics.Process Start(string file, bool redirectInput) =>
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(file)
+        {
+            RedirectStandardInput = redirectInput,
+            RedirectStandardOutput = !redirectInput,
+            UseShellExecute = false,
+        }) ?? throw new InvalidOperationException($"Could not start {file}.");
+}
+
+/// <summary>No clipboard (Linux, a server): revealing is refused rather than falling back to the assistant's context.</summary>
 internal sealed class NoSecretClipboard : ISecretClipboard
 {
     public bool IsAvailable => false;
 
     public void CopyAndClearLater(string value, TimeSpan clearAfter) =>
-        throw new PlatformNotSupportedException("Revealing needs the Windows clipboard.");
+        throw new PlatformNotSupportedException("Revealing needs the Windows or macOS clipboard.");
+}
+
+internal static class SecretClipboard
+{
+    /// <summary>The clipboard of this computer, or none.</summary>
+    public static ISecretClipboard ForThisComputer() =>
+        OperatingSystem.IsWindows() ? new WindowsSecretClipboard()
+        : OperatingSystem.IsMacOS() ? new MacSecretClipboard()
+        : new NoSecretClipboard();
 }

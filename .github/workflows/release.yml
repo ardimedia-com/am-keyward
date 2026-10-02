@@ -3,7 +3,8 @@ name: Release
 # Tag-driven release. Push a v* tag (e.g. v0.1.0-preview) on a release-prep commit that has already promoted
 # the matching "## [<version>]" CHANGELOG section. The job builds + tests, packs the libraries and pushes
 # them to nuget.org via Trusted Publishing (OIDC — no long-lived API key), then publishes a GitHub Release
-# whose notes ARE that CHANGELOG section.
+# whose notes ARE that CHANGELOG section. A second job attaches the MCP server as one self-contained program per
+# platform (amkeyward-mcp-<rid>) to that release.
 # Setup (once): create a Trusted Publishing policy on nuget.org for this repo + workflow, and set the repo
 # Actions variable NUGET_USER to the nuget.org account username that owns the policy. No secret needed.
 on:
@@ -101,3 +102,49 @@ jobs:
             --title "AM KEYWARD $TAG_LABEL" \
             "${NOTES_ARG[@]}" \
             $IS_PRERELEASE
+
+  # The MCP server as one self-contained program per platform, attached to the GitHub Release — for computers
+  # without the .NET SDK (decision T10 A). macOS builds on a macOS runner: only there does the SDK sign the
+  # program (ad hoc), without which Apple Silicon refuses to start it.
+  mcp-binaries:
+    needs: release
+    strategy:
+      matrix:
+        include:
+          - { rid: win-x64,   os: windows-latest }
+          - { rid: win-arm64, os: windows-latest }
+          - { rid: osx-arm64, os: macos-latest }
+          - { rid: osx-x64,   os: macos-latest }
+          - { rid: linux-x64, os: ubuntu-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish and attach amkeyward-mcp (${{ matrix.rid }})
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet publish src/Am.Keyward.Mcp -c Release -r ${{ matrix.rid }} --self-contained \
+            -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none \
+            -p:Version="$VERSION" -o publish
+          mkdir -p dist
+          case "${{ matrix.rid }}" in
+            win-*)
+              ASSET="amkeyward-mcp-${{ matrix.rid }}.exe"
+              mv publish/Am.Keyward.Mcp.exe "dist/$ASSET" ;;
+            *)
+              # A tar keeps the executable bit; the program inside is called amkeyward-mcp.
+              ASSET="amkeyward-mcp-${{ matrix.rid }}.tar.gz"
+              mv publish/Am.Keyward.Mcp publish/amkeyward-mcp
+              chmod +x publish/amkeyward-mcp
+              tar -czf "dist/$ASSET" -C publish amkeyward-mcp ;;
+          esac
+          (cd dist && if command -v sha256sum >/dev/null; then sha256sum "$ASSET"; else shasum -a 256 "$ASSET"; fi > "$ASSET.sha256")
+          gh release upload "$GITHUB_REF_NAME" dist/* --clobber

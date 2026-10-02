@@ -150,7 +150,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
     {
         if (!clipboard.IsAvailable)
         {
-            return "Revealing needs the Windows clipboard, which is not available here; nothing was requested.";
+            return "Revealing needs the Windows or macOS clipboard, which is not available here; nothing was requested.";
         }
 
         var result = await keyward.RequestRevealAsync(itemId, new AgentRevealRequestBody(field, reason), ct);
@@ -162,12 +162,12 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             + $"Or the person opens the entry and copies the value there: {keyward.AbsoluteLink(request.ItemLink)}";
     }
 
-    [McpServerTool(Name = "consume_reveal"), Description("After the person approved a reveal request: copies the value to the Windows clipboard (cleared after 30 seconds, kept out of clipboard history). The value itself is not returned. Works once.")]
+    [McpServerTool(Name = "consume_reveal"), Description("After the person approved a reveal request: copies the value to the clipboard of this computer (cleared after 30 seconds; on Windows kept out of clipboard history). The value itself is not returned. Works once.")]
     public async Task<string> ConsumeRevealAsync([Description("The id from request_reveal.")] Guid requestId, CancellationToken ct)
     {
         if (!clipboard.IsAvailable)
         {
-            return "Revealing needs the Windows clipboard, which is not available here.";
+            return "Revealing needs the Windows or macOS clipboard, which is not available here.";
         }
 
         var state = await keyward.GetRevealAsync(requestId, ct);

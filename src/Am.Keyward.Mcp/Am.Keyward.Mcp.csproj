@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <!-- net10.0, not net10.0-windows: the clipboard and the Windows Credential Manager are Windows-only and guarded
-         (SupportedOSPlatform + OperatingSystem.IsWindows), so the tool logic stays testable and the tool starts
+    <!-- net10.0, not net10.0-windows: the clipboards and credential stores (Windows, macOS) are OS-specific and guarded
+         (SupportedOSPlatform + OperatingSystem.IsWindows/IsMacOS), so the tool logic stays testable and the tool starts
          elsewhere with the environment-variable token (revealing is then refused). -->
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -14,7 +14,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>amkeyward-mcp</ToolCommandName>
     <PackageType>McpServer</PackageType>
-    <Description>AM KEYWARD — MCP server (stdio) that lets an AI assistant such as Claude Code work with KEYWARD vault entries through an agent token: list, search, read non-secret fields, create and update entries, and ask to see a secret, which the token user approves per request and which is then copied to the Windows clipboard — never into the assistant's context. With «Manage applications» it also sets up applications for the software-client API: applications, environments, secret keys and write-only values.</Description>
+    <Description>AM KEYWARD — MCP server (stdio) that lets an AI assistant such as Claude Code work with KEYWARD vault entries through an agent token: list, search, read non-secret fields, create and update entries, and ask to see a secret, which the token user approves per request and which is then copied to the clipboard of Windows or macOS — never into the assistant's context. With «Manage applications» it also sets up applications for the software-client API: applications, environments, secret keys and write-only values.</Description>
     <PackageTags>$(PackageTags);mcp;ai;agent</PackageTags>
   </PropertyGroup>
 

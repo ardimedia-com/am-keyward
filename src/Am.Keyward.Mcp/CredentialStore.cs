@@ -7,6 +7,9 @@ namespace Am.Keyward.Mcp;
 /// <summary>Where the agent token is kept on the workstation.</summary>
 internal interface ITokenStore
 {
+    /// <summary>The store's name for messages, e.g. «the Windows Credential Manager».</summary>
+    string Place { get; }
+
     string? Read();
 
     void Write(string token);
@@ -16,25 +19,37 @@ internal interface ITokenStore
 }
 
 /// <summary>
-/// The agent token in the Windows Credential Manager (a generic credential, persisted for this user on this machine).
+/// The operating system's own secret store for the agent token: the Windows Credential Manager or the macOS Keychain.
 /// Nothing is written to a file or an environment variable, and the MCP configuration of the assistant never contains
 /// the token.
 /// <para>
-/// One credential per KEYWARD: the target carries the address the user configured (<see cref="TargetFor"/>), so one
-/// computer can hold tokens for any number of KEYWARD installations — none of them known when this tool was built.
-/// <see cref="LegacyTarget"/> is the single target of versions before 0.24 and is still read as a fallback.
+/// One entry per KEYWARD: the name carries the address the user configured (<see cref="TargetFor"/>), so one computer
+/// can hold tokens for any number of KEYWARD installations — none of them known when this tool was built.
+/// <see cref="LegacyTarget"/> is the single Windows target of versions before 0.24 and is still read as a fallback.
 /// </para>
 /// </summary>
-[SupportedOSPlatform("windows")]
-internal sealed class WindowsCredentialStore(string target) : ITokenStore
+internal static class TokenStore
 {
     public const string LegacyTarget = "AmKeyward:Agent";
 
-    public string Target => target;
-
-    /// <summary>The credential target for a KEYWARD address: <c>AmKeyward:Agent:{host[:port]}</c>, lower case.</summary>
+    /// <summary>The entry name for a KEYWARD address: <c>AmKeyward:Agent:{host[:port]}</c>, lower case.</summary>
     public static string TargetFor(Uri serviceUri) =>
         $"{LegacyTarget}:{(serviceUri.IsDefaultPort ? serviceUri.Host : $"{serviceUri.Host}:{serviceUri.Port}").ToLowerInvariant()}";
+
+    /// <summary>The store on this computer, or null where there is none (Linux: <see cref="EnvironmentTokenStore"/>).</summary>
+    public static ITokenStore? For(string target) =>
+        OperatingSystem.IsWindows() ? new WindowsCredentialStore(target)
+        : OperatingSystem.IsMacOS() ? new MacKeychainStore(target)
+        : null;
+}
+
+/// <summary>A generic credential in the Windows Credential Manager, persisted for this user on this machine.</summary>
+[SupportedOSPlatform("windows")]
+internal sealed class WindowsCredentialStore(string target) : ITokenStore
+{
+    public string Place => "the Windows Credential Manager";
+
+    public string Target => target;
 
     private const uint CredTypeGeneric = 1;
     private const uint CredPersistLocalMachine = 2;
@@ -139,6 +154,8 @@ internal sealed class WindowsCredentialStore(string target) : ITokenStore
 internal sealed class EnvironmentTokenStore : ITokenStore
 {
     public const string Variable = "KEYWARD_AGENT_TOKEN";
+
+    public string Place => $"the {Variable} environment variable";
 
     public string? Read() => Environment.GetEnvironmentVariable(Variable) is { Length: > 0 } token ? token : null;
 
