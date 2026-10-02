@@ -44,8 +44,34 @@
     color: inherit;
 }
 
-.agent-tokens .section-heading + * {
+.agent-tokens .section-heading + *,
+.agent-tokens .section-head + * {
     margin-top: .75rem;
+}
+
+/* «Your AI agent tokens»: the toggle takes the row, the «Issue token» button sits at its end. */
+.section-head {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+}
+
+.section-head .section-heading {
+    flex: 1;
+    min-width: 0;
+}
+
+.agent-tokens .section-head .section-heading + * {
+    margin-top: 0;
+}
+
+.form-title {
+    margin: 0 0 .25rem;
+    font-size: 1rem;
+}
+
+.choice-hint {
+    margin: .2rem 0 .4rem;
 }
 
 .usage-script {
