@@ -36,6 +36,16 @@ All notable changes to this project are documented here, following
 
 ### Changed
 
+- **One «Vaults» page for personal and team vaults** (decision T13 A): the tree shows both groups, each vault marked
+  by its owner; a new vault is personal or team by a switch; the search covers every vault; sharing, export and the
+  agent switch follow the selected vault. Moving between a personal and a team vault works only through «Move to:»
+  in the open entry, never by drag and drop. Ownership is unchanged (personal = yours in every organisation, never
+  reached by emergency access; team = the organisation's). The former routes `/amkeyward/vaults/personal` and
+  `/amkeyward/vaults/team` forward to `/amkeyward/vaults`, keeping `?item=` deep links; `KeywardNav` and the shell's
+  home page show one «Vaults» entry.
+- **BREAKING:** `IVaultService.SearchItemsAsync` no longer takes `teamVaults` — it searches every vault of the user
+  (audited once per audit chain touched). `KeywardRoutes.PersonalVaults` / `TeamVaults` are obsolete; use
+  `KeywardRoutes.Vaults`. Hosts linking the two pages (bvd.li.toolbox, ardimedia.com.toolbox) switch to the one route.
 - **«AI agent tokens» page reworked for end users**: renamed from «Agent tokens» in all six languages (also the
   vault toggle, reveal mails and MCP messages); full width; three collapsible sections in the order «Your AI agent
   tokens» (open), «How to use» and «Issue token» (closed; «Edit» opens it); plainer texts throughout; the vault

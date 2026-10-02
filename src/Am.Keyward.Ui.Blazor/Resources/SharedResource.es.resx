@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Inicio</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Bóvedas personales</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Bóvedas de equipo</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Secretos de software</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>Tokens de app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Iniciar sesión</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>Registrarse</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>¿Ya tienes una cuenta?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Iniciar sesión</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Bóvedas personales</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Tus cajas fuertes privadas — cifradas y visibles solo para ti. Guarda inicios de sesión, notas seguras y otros secretos.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Bóvedas de equipo</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Cajas fuertes que comparte tu organización — decides por persona quién puede leer, editar o administrar.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Secretos de software</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Los valores que tus aplicaciones leen en tiempo de ejecución — claves de API, cadenas de conexión y más, por aplicación y entorno. Elige la aplicación a la izquierda.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de app</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Tipo</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Entorno</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Error: </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Bóvedas de equipo</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Tus bóvedas</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Tus bóvedas</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Las bóvedas de equipo pertenecen al inquilino y se comparten con personas mediante permisos. Ves las que posees o a las que te han dado acceso. Compartir una bóveda permite a un colega leer o editar sus elementos.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Las bóvedas personales son solo tuyas — nadie más puede verlas. Úsalas para tus propios inicios de sesión, notas y secretos.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>Todavía no hay cajas fuertes.</value></data>
@@ -274,10 +267,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirmar correo</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Tu correo está confirmado. Ya puedes iniciar sesión:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Este enlace de confirmación no es válido o ha caducado.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Tus bóvedas privadas para inicios de sesión personales, notas seguras y otros secretos. Te pertenecen solo a ti — cifradas para que nadie más, ni siquiera un administrador, pueda leerlas. Úsalas como un gestor de contraseñas personal: guarda un inicio de sesión por sitio web, muestra la contraseña solo cuando la necesites y organiza los elementos en carpetas.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Bóvedas propiedad de tu organización (inquilino) y compartidas con colegas mediante permisos de acceso. Úsalas para credenciales que un equipo necesita en común — cuentas de servicio compartidas, claves de Wi-Fi, claves de licencia — donde decides por persona quién puede leer, editar o gestionar cada bóveda. Compartir es explícito: un colega solo ve las bóvedas que le concedes.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -294,12 +287,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>¿Cómo funciona?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>Tus inicios de sesión privados, notas seguras y secretos — cifrados y visibles solo para ti; ni siquiera un administrador puede leerlos. Como un gestor de contraseñas personal: por ejemplo un inicio de sesión de un sitio web, un PIN o una clave de licencia.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Cajas fuertes compartidas para tu organización — decides por persona quién puede leer, editar o administrar. Para credenciales que un equipo necesita en común: por ejemplo la contraseña del Wi-Fi, una cuenta de servicio compartida o claves de licencia.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Valores que tus aplicaciones leen en tiempo de ejecución, en lugar de guardarlos en archivos de configuración — mantenidos por entorno (de Development a Production): por ejemplo una clave de API, una cadena de conexión de base de datos o una clave de firma. Los cambios surten efecto sin volver a desplegar tu aplicación.</value>
@@ -1060,5 +1047,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Solo entonces puedes emitir un token de agente de IA para ella — nadie más puede, la bóveda sigue siendo privada. Cerrarla detiene al instante todo token de agente de IA para ella.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Bóvedas</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Bóvedas</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Las bóvedas personales son solo tuyas; las de equipo pertenecen a tu organización y se comparten persona a persona. Guarda inicios de sesión, notas seguras y otros secretos.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Personales</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Equipo</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Entre una bóveda personal y una de equipo, mueve con «Mover a:» en el elemento abierto — así nunca ocurre por descuido.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Bóvedas personales para tus propios inicios de sesión — solo tú las ves. Bóvedas de equipo para credenciales que un equipo necesita en común, como la contraseña del Wi-Fi o una cuenta de servicio compartida — decides por persona quién puede leer, editar o administrar.</value>
   </data>
 </root>

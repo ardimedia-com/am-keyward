@@ -126,3 +126,55 @@
 .agent-access-text .muted {
     font-weight: 400;
 }
+
+/* Personal / team groups in the vault tree, and the kind switch for a new vault (decision T13 A). */
+.tree-group-label {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+    margin: .6rem .5rem .2rem;
+    color: var(--kw-muted-text);
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+}
+
+.tree-group-empty {
+    margin: 0;
+    padding: .1rem .5rem;
+    font-size: .8rem;
+}
+
+.vault-kind {
+    display: inline-flex;
+    margin: .4rem 0 .2rem;
+    border: 1px solid var(--kw-border);
+    border-radius: .4rem;
+    overflow: hidden;
+}
+
+.vault-kind button {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .2rem .65rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--kw-muted-text);
+    font-size: .8rem;
+    cursor: pointer;
+}
+
+.vault-kind button.active {
+    background: var(--kw-surface);
+    color: inherit;
+    font-weight: 600;
+}
+
+.ws-tree.collapsed .tree-group-label,
+.ws-tree.collapsed .tree-group-empty,
+.ws-tree.collapsed .vault-kind {
+    display: none;
+}

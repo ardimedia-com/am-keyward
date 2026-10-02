@@ -943,7 +943,7 @@ public sealed class VaultService(
         return result;
     }
 
-    public async Task<IReadOnlyList<VaultItemSearchHit>> SearchItemsAsync(Guid userId, Guid tenantId, bool teamVaults, string query, CancellationToken ct = default)
+    public async Task<IReadOnlyList<VaultItemSearchHit>> SearchItemsAsync(Guid userId, Guid tenantId, string query, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
 
@@ -953,9 +953,12 @@ public sealed class VaultService(
             return [];
         }
 
-        var vaults = teamVaults
-            ? await ListSharedVaultsAsync(userId, tenantId, ct).ConfigureAwait(false)
-            : await ListVaultsAsync(userId, ct).ConfigureAwait(false);
+        // Every vault the user can read: their personal vaults and the team vaults shared with them (decision T13 A).
+        var personal = await ListVaultsAsync(userId, ct).ConfigureAwait(false);
+        var personalIds = personal.Select(v => v.Id).ToHashSet();
+        var vaults = personal
+            .Concat(await ListSharedVaultsAsync(userId, tenantId, ct).ConfigureAwait(false))
+            .ToList();
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var hits = new List<VaultItemSearchHit>();
@@ -1000,9 +1003,18 @@ public sealed class VaultService(
             }
         }
 
-        // One audit entry per executed search (a search decrypts many items; auditing each would flood the
-        // chain — opening a hit still writes the usual per-item Read).
-        await audit.AppendAsync(db, new AuditRequest(teamVaults ? tenantId : null, AuditAction.Read, "VaultSearch", null, userId), ct).ConfigureAwait(false);
+        // One audit entry per executed search and audit chain it touched — the user's own (personal vaults) and the
+        // tenant's (team vaults). A search decrypts many items; auditing each would flood the chain — opening a hit
+        // still writes the usual per-item Read.
+        if (vaults.Any(v => personalIds.Contains(v.Id)))
+        {
+            await audit.AppendAsync(db, new AuditRequest(null, AuditAction.Read, "VaultSearch", null, userId), ct).ConfigureAwait(false);
+        }
+
+        if (vaults.Any(v => !personalIds.Contains(v.Id)))
+        {
+            await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Read, "VaultSearch", null, userId), ct).ConfigureAwait(false);
+        }
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         return hits;

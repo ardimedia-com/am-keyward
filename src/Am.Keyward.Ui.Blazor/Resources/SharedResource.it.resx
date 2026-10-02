@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Casseforti personali</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Casseforti del team</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Segreti software</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>Token dell'app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Accedi</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>Registrati</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>Hai già un account?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Accedi</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Casseforti personali</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Le tue cassaforti private — cifrate e visibili solo a te. Conserva accessi, note sicure e altri segreti.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Casseforti del team</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Cassaforti condivise dalla tua organizzazione — decidi per ogni persona chi può leggere, modificare o gestire.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Segreti software</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>I valori che le tue applicazioni leggono a runtime — chiavi API, stringhe di connessione e altro, per applicazione e ambiente. Scegli l'applicazione a sinistra.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Token dell'app</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Tipo</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Ambiente</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Errore: </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Casseforti del team</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Le tue casseforti</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Le tue casseforti</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Le casseforti del team appartengono al tenant e vengono condivise con le persone tramite autorizzazioni. Vedi quelle di cui sei proprietario o a cui ti è stato dato accesso. Condividere una cassaforte consente a un collega di leggere o modificare i suoi elementi.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Le casseforti personali sono solo tue — nessun altro può vederle. Usale per i tuoi accessi, note e segreti.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>Ancora nessuna cassaforte.</value></data>
@@ -274,10 +267,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Conferma e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>La tua e-mail è confermata. Ora puoi accedere:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Questo link di conferma non è valido o è scaduto.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Le tue casseforti private per accessi personali, note sicure e altri segreti. Appartengono solo a te — cifrate in modo che nessun altro, nemmeno un amministratore, possa leggerle. Usale come un gestore di password personale: memorizza un accesso per ogni sito web, mostra la password solo quando ti serve e organizza gli elementi in cartelle.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Casseforti di proprietà della tua organizzazione (tenant) e condivise con i colleghi tramite autorizzazioni di accesso. Usale per le credenziali di cui un team ha bisogno in comune — account di servizio condivisi, chiavi Wi-Fi, chiavi di licenza — dove decidi per ogni persona chi può leggere, modificare o gestire ciascuna cassaforte. La condivisione è esplicita: un collega vede solo le casseforti che gli concedi.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -294,12 +287,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>Come funziona?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>I tuoi accessi privati, note sicure e segreti — cifrati e visibili solo a te; nemmeno un amministratore può leggerli. Come un password manager personale: ad esempio un login di un sito web, un PIN o una chiave di licenza.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Cassaforti condivise per la tua organizzazione — decidi per ogni persona chi può leggere, modificare o gestire. Per le credenziali di cui un team ha bisogno insieme: ad esempio la password del Wi-Fi, un account di servizio condiviso o chiavi di licenza.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Valori che le tue applicazioni leggono a runtime, invece di tenerli nei file di configurazione — gestiti per ambiente (da Development a Production): ad esempio una chiave API, una stringa di connessione al database o una chiave di firma. Le modifiche hanno effetto senza ridistribuire l'app.</value>
@@ -1060,5 +1047,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Solo allora puoi emettere un token agente IA per essa — nessun altro può, la cassaforte resta privata. Chiuderla ferma subito ogni token agente IA per questa cassaforte.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Casseforti</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Casseforti</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Le casseforti personali appartengono solo a te; quelle del team appartengono alla tua organizzazione e si condividono persona per persona. Conserva accessi, note sicure e altri segreti.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Personali</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Tra una cassaforte personale e una del team sposti con «Sposta in:» nell'elemento aperto — così non succede mai per sbaglio.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Casseforti personali per i tuoi accessi — visibili solo a te. Casseforti del team per le credenziali di cui un team ha bisogno insieme, come la password del Wi-Fi o un account di servizio condiviso — decidi per ogni persona chi può leggere, modificare o gestire.</value>
   </data>
 </root>

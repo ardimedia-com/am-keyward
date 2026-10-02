@@ -14,7 +14,8 @@ It covers two halves equally:
 - **Software credentials** — machine/integration secrets (API keys, connection strings), scoped per
   project & environment, fetched by your software via an API. Each value can carry a rotation date and a
   note on how a new one is obtained; the date is advisory (reads keep working) and raises advance notices.
-- **Human vaults** — personal & team password vaults, shared to groups or individuals.
+- **Human vaults** — personal & team password vaults on one «Vaults» page, team vaults shared to groups or
+  individuals.
 
 ## What it is / is not
 
@@ -64,7 +65,8 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
   request), hashed at rest, rotatable/revocable, rate-limited, with advance-expiry notifications. Guessed
   tokens are throttled per client IP.
 - **AI agents acting for a user** — an agent token (issued by the user on «AI agent tokens») acts as that user
-  but only on tenant vaults that were explicitly opened to agents and put on the token's allowlist, with the
+  but only on vaults that were explicitly opened to agents (team vaults, or the user's own personal vaults) and
+  put on the token's allowlist, with the
   permissions ticked, optionally only from given networks. Every request re-checks the token, the user (not
   disabled, still a member), the vault and the user's grant; agent actions are audited as the agent. Tokens
   always expire, and disabling a user revokes them. With «Manage applications» (software operators only) a

@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Home</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Personal vaults</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Team vaults</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software secrets</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>App tokens</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Sign in</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>Register</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>Already have an account?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Sign in</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Personal vaults</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Your private vaults — encrypted and visible to you alone. Store logins, secure notes and other secrets.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Team vaults</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Vaults your organization shares — you decide per person who may read, edit or manage.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Software secrets</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>The values your applications read at runtime — API keys, connection strings and more, per application and environment. Pick the application on the left.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>App tokens</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Type</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Environment</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Error: </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Team vaults</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Your vaults</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Your vaults</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team vaults belong to the tenant and are shared with people via grants. You see the ones you own or were given access to. Sharing a vault lets a colleague read or edit its items.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Personal vaults are yours alone — nobody else can see them. Use them for your own logins, notes and secrets.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>No vaults yet.</value></data>
@@ -276,10 +269,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirm e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Your e-mail is confirmed. You can now sign in:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>This confirmation link is invalid or has expired.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Your private vaults for personal logins, secure notes and other secrets. They belong to you alone — encrypted so that nobody else, not even an administrator, can read them. Use them the way you would a personal password manager: store a login per website, reveal the password only when you need it, and organize items into folders.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Vaults owned by your organization (tenant) and shared with colleagues through access grants. Use them for credentials a team needs in common — shared service accounts, Wi-Fi keys, licence keys — where you decide per person who may read, edit or manage each vault. Sharing is explicit: a colleague sees only the vaults you grant them.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -296,12 +289,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>How does this work?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>Your private logins, secure notes and secrets — encrypted and visible to you alone; not even an administrator can read them. Like a personal password manager: for example a website login, a PIN or a licence key.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Shared vaults for your organization — you decide per person who may read, edit or manage. For credentials a team needs together: for example the Wi-Fi password, a shared service account or licence keys.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Values your applications read at runtime, instead of keeping them in config files — maintained per environment (Development to Production): for example an API key, a database connection string or a signing key. Changes take effect without redeploying your app.</value>
@@ -1186,5 +1173,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Only then can you issue an AI agent token for it — nobody else can, the vault stays private. Closing it stops every AI agent token for it at once.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Vaults</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Vaults</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Personal vaults belong to you alone; team vaults belong to your organisation and are shared person by person. Store logins, secure notes and other secrets.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Personal</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Between a personal and a team vault, move with «Move to:» in the open entry — so it never happens by accident.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Personal vaults for your own logins — visible to you alone. Team vaults for credentials a team needs together, such as the Wi-Fi password or a shared service account — you decide per person who may read, edit or manage.</value>
   </data>
 </root>

@@ -7,8 +7,8 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject KeywardUiOptions KeywardOptions
 
-@* Resolves a shareable deep link (/amkeyward/e/{base62 public id}) to a vault item and forwards to the right
-   vault page with the item opened. An unknown / inaccessible / malformed link falls back to the vault list —
+@* Resolves a shareable deep link (/amkeyward/e/{base62 public id}) to a vault item and forwards to the vaults
+   page with the item opened. An unknown / inaccessible / malformed link falls back to the vault list —
    never an error page (so a stale documentation link degrades gracefully). *@
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -23,10 +23,10 @@
     {
         var userId = CurrentUser.UserId;
 
-        // Malformed code or no user -> the neutral fallback (personal vault list).
+        // Malformed code or no user -> the neutral fallback (the vault list).
         if (userId is null || !Base62Guid.TryDecode(Code, out var publicId))
         {
-            Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
+            Nav.NavigateTo(KeywardRoutes.Vaults, replace: true);
             return;
         }
 
@@ -34,11 +34,10 @@
         if (link is null)
         {
             // Unknown link, or the user may not read it — indistinguishable on purpose (no existence leak).
-            Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
+            Nav.NavigateTo(KeywardRoutes.Vaults, replace: true);
             return;
         }
 
-        var page = link.IsTeamVault ? KeywardRoutes.TeamVaults : KeywardRoutes.PersonalVaults;
-        Nav.NavigateTo($"{page}?{KeywardRoutes.ItemQueryParam}={Code}", replace: true);
+        Nav.NavigateTo($"{KeywardRoutes.Vaults}?{KeywardRoutes.ItemQueryParam}={Code}", replace: true);
     }
 }

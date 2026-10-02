@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Accueil</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Coffres personnels</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Coffres d'équipe</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Secrets logiciels</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>Jetons d'app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Se connecter</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>S'inscrire</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>Vous avez déjà un compte ?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Se connecter</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Coffres personnels</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Vos coffres privés — chiffrés et visibles par vous seul. Stockez identifiants, notes sécurisées et autres secrets.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Coffres d'équipe</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Coffres partagés par votre organisation — vous décidez par personne qui peut lire, modifier ou gérer.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Secrets logiciels</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Les valeurs que vos applications lisent à l'exécution — clés API, chaînes de connexion et plus, par application et environnement. Choisissez l'application à gauche.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Jetons d'app</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Type</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Environnement</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Erreur : </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Coffres d'équipe</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Vos coffres</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Vos coffres</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Les coffres d'équipe appartiennent au locataire et sont partagés avec des personnes via des autorisations. Vous voyez ceux que vous possédez ou auxquels on vous a donné accès. Partager un coffre permet à un collègue de lire ou de modifier ses éléments.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Les coffres personnels n'appartiennent qu'à vous — personne d'autre ne peut les voir. Utilisez-les pour vos propres identifiants, notes et secrets.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>Pas encore de coffre.</value></data>
@@ -274,10 +267,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirmer l'e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Votre e-mail est confirmé. Vous pouvez maintenant vous connecter :</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Ce lien de confirmation est invalide ou a expiré.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Vos coffres privés pour vos identifiants personnels, vos notes sécurisées et vos autres secrets. Ils n'appartiennent qu'à vous — chiffrés de sorte que personne d'autre, pas même un administrateur, ne puisse les lire. Utilisez-les comme un gestionnaire de mots de passe personnel : enregistrez un identifiant par site web, ne révélez le mot de passe que lorsque vous en avez besoin et organisez les éléments en dossiers.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Coffres appartenant à votre organisation (locataire) et partagés avec des collègues via des autorisations d'accès. Utilisez-les pour les identifiants dont une équipe a besoin en commun — comptes de service partagés, clés Wi-Fi, clés de licence — où vous décidez, personne par personne, qui peut lire, modifier ou gérer chaque coffre. Le partage est explicite : un collègue ne voit que les coffres que vous lui accordez.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -294,12 +287,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>Comment ça marche ?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>Vos identifiants privés, notes sécurisées et secrets — chiffrés et visibles par vous seul ; même un administrateur ne peut pas les lire. Comme un gestionnaire de mots de passe personnel : par exemple un identifiant de site web, un code PIN ou une clé de licence.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Coffres partagés pour votre organisation — vous décidez par personne qui peut lire, modifier ou gérer. Pour les identifiants dont une équipe a besoin en commun : par exemple le mot de passe Wi-Fi, un compte de service partagé ou des clés de licence.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Valeurs que vos applications lisent à l'exécution, au lieu de les garder dans des fichiers de configuration — gérées par environnement (Development à Production) : par exemple une clé API, une chaîne de connexion de base de données ou une clé de signature. Les changements prennent effet sans redéployer votre application.</value>
@@ -1060,5 +1047,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Ce n'est qu'alors que vous pouvez émettre un jeton d'agent IA pour lui — personne d'autre, le coffre reste privé. Le fermer arrête aussitôt tout jeton d'agent IA pour ce coffre.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Coffres</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Coffres</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Les coffres personnels n'appartiennent qu'à vous ; les coffres d'équipe appartiennent à votre organisation et sont partagés personne par personne. Stockez identifiants, notes sécurisées et autres secrets.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Personnels</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Équipe</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Entre un coffre personnel et un coffre d'équipe, déplacez avec « Déplacer vers : » dans l'élément ouvert — ainsi cela n'arrive jamais par mégarde.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Coffres personnels pour vos propres identifiants — visibles par vous seul. Coffres d'équipe pour les identifiants dont une équipe a besoin en commun, comme le mot de passe Wi-Fi ou un compte de service partagé — vous décidez par personne qui peut lire, modifier ou gérer.</value>
   </data>
 </root>

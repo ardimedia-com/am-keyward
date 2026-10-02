@@ -404,35 +404,37 @@ public class VaultIntegrationTests
         }
 
         var userId = Guid.NewGuid();
-        using var scope = ScopeForUser(provider, userId);
+        var tenantId = Guid.NewGuid();
+        await AgentApiTests.SeedTenantAsync(provider, tenantId, userId);
+        using var scope = AgentApiTests.ScopeFor(provider, tenantId, userId);
         var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
 
-        // Two vaults, so the search demonstrably spans ALL of the user's vaults.
+        // A personal and a team vault, so the search demonstrably spans ALL of the user's vaults (decision T13 A).
         var vault1 = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "First"));
-        var vault2 = await vaults.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(userId, "Second"));
+        var vault2 = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(userId, tenantId, "Second"));
         await vaults.AddItemAsync(new AddVaultItemCommand(userId, vault1, null, ItemType.Login, "GitHub",
             LoginContent.ToJson("https://github.com", "octo-user@example.com", "hunter2-password", "work account")));
         await vaults.AddItemAsync(new AddVaultItemCommand(userId, vault2, null, ItemType.SecureNote, "Wifi",
             "the office wifi key is stored here"));
 
         // Matches by login username (field content, not the item name) …
-        var byUsername = await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "octo-user");
+        var byUsername = await vaults.SearchItemsAsync(userId, tenantId, "octo-user");
         Assert.HasCount(1, byUsername);
         Assert.AreEqual("Username", byUsername[0].MatchedField);
         Assert.AreEqual("First", byUsername[0].VaultName);
 
         // … by a secure note's value in the OTHER vault …
-        var byValue = await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "office wifi");
+        var byValue = await vaults.SearchItemsAsync(userId, tenantId, "office wifi");
         Assert.HasCount(1, byValue);
         Assert.AreEqual("Value", byValue[0].MatchedField);
         Assert.AreEqual("Second", byValue[0].VaultName);
 
         // … by item name; and NEVER by a login's password.
-        Assert.HasCount(1, await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "github"));
-        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "hunter2-password"));
+        Assert.HasCount(1, await vaults.SearchItemsAsync(userId, tenantId, "github"));
+        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, tenantId, "hunter2-password"));
 
         // Too-short queries return nothing instead of everything.
-        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, Guid.NewGuid(), teamVaults: false, "o"));
+        Assert.IsEmpty(await vaults.SearchItemsAsync(userId, tenantId, "o"));
     }
 
     private static ServiceProvider BuildProvider()

@@ -23,7 +23,7 @@ else if (vaults is null)
 }
 else
 {
-    @* Global search across ALL vaults of this page (personal / team): matches the item name and the
+    @* Global search across ALL vaults of the user (personal and team): matches the item name and the
        decrypted content fields (URL, username, note, value) — not login passwords. *@
     <div class="ws-search">
         <input value="@globalSearch" @oninput="OnSearchInputAsync" placeholder="@(Loc["Vault.Search.Placeholder"])" aria-label="@(Loc["Vault.Search.Placeholder"])" />
@@ -35,45 +35,22 @@ else
 
     <div class="workspace">
         @* ---------- Left: vault tree with nested folders ---------- *@
-        <KeywardTreePane Title="@(Team ? Loc["Vault.List.TitleTeam"] : Loc["Vault.List.TitlePersonal"])">
+        <KeywardTreePane Title="@Loc["Vault.List.Title"]">
 
             @if (vaults.Count > 8)
             {
                 <input @bind="vaultFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Filter"])" aria-label="@(Loc["Vault.Filter"])" style="margin:.25rem 0 .4rem;" />
             }
 
-            @foreach (var v in FilteredVaults)
-            {
-                <button class="tree-node @(v.Id == selectedVaultId && treeSel == "vault" ? "active" : "") @(dragOverKey == v.Id.ToString() ? "drag-over" : "")"
-                        title="@v.Name"
-                        @onclick="() => SelectVaultAsync(v.Id)"
-                        @ondragover:preventDefault="true" @ondragenter="() => dragOverKey = v.Id.ToString()" @ondragleave="() => dragOverKey = null"
-                        @ondrop="() => DropOnVaultAsync(v.Id)">
-                    <KeywardIcon Name="@(Team ? "users" : "lock")" /><span class="tree-label">@v.Name</span>
-                    @if (v.Id == selectedVaultId)
-                    {
-                        <span class="tree-count">@RootItemCount</span>
-                    }
-                    else
-                    {
-                        <span class="tree-count"><KeywardIcon Name="chevron-right" Size="13" /></span>
-                    }
-                </button>
-                @if (v.Id == selectedVaultId)
-                {
-                    @FolderTree(null, 1)
-                }
-            }
-
-            @if (vaults.Count == 0)
-            {
-                <p class="muted" style="font-size:.85rem; padding:.25rem .5rem;">@Loc["Vault.List.Empty"]</p>
-            }
+            @* Two groups, each vault marked by its owner: personal (yours alone) and team (the organisation's). *@
+            @VaultGroup(false)
+            @VaultGroup(true)
 
             <div class="tree-create">
-                <input @bind="newVaultName" @bind:event="oninput" placeholder="@(Team ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" aria-label="@(Team ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" />
+                <input @bind="newVaultName" @bind:event="oninput" placeholder="@(newVaultForTeam ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" aria-label="@(newVaultForTeam ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" />
                 <button class="btn-sm" @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))" title="@Loc["Vault.Create"]"><KeywardIcon Name="plus" /></button>
             </div>
+            @VaultKindSwitch
         </KeywardTreePane>
 
         @* ---------- Right: search results / explanation / areas / item list / item detail ---------- *@
@@ -122,7 +99,8 @@ else
             {
                 <div class="card">
                     <h3>@Loc["Vault.CreateCard.Title"]</h3>
-                    <p class="muted">@(Team ? Loc["Vault.CreateCard.DescTeam"] : Loc["Vault.CreateCard.DescPersonal"])</p>
+                    @VaultKindSwitch
+                    <p class="muted">@(newVaultForTeam ? Loc["Vault.CreateCard.DescTeam"] : Loc["Vault.CreateCard.DescPersonal"])</p>
                     <div class="row" style="margin:.25rem 0 .5rem;">
                         <span class="muted" style="font-size:.85rem;">@Loc["Vault.Suggest.Label"]</span>
                         @foreach (var suggestion in SuggestedNames)
@@ -133,7 +111,7 @@ else
                     @if (vaults.Count == 0)
                     {
                         <div class="empty-state">
-                            <KeywardIcon Name="@(Team ? "users" : "lock")" Size="28" />
+                            <KeywardIcon Name="@(newVaultForTeam ? "users" : "lock")" Size="28" />
                             <p>@Loc["Vault.List.Empty"]</p>
                             <button @onclick="CreateDefaultVaultAsync" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Default.Cta", DefaultVaultName]</button>
                         </div>
@@ -151,7 +129,7 @@ else
                    bordered tab area (KeywardTabBar's ChildContent mode). ---------- *@
                 <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)">
                 <TitleContent>
-                    <KeywardIcon Name="@(SelectedFolder is not null ? "folder" : Team ? "users" : "lock")" Size="18" />
+                    <KeywardIcon Name="@(SelectedFolder is not null ? "folder" : SelectedIsTeam ? "users" : "lock")" Size="18" />
                     <span class="kw-tab-area-name">@ContentTitle</span>
                 </TitleContent>
                 <ChildContent>
@@ -212,7 +190,7 @@ else
                                 <input @bind="vaultRenameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
                                 <button class="btn-ghost btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">@Loc["Common.Rename"]</button>
                             </div>
-                            @if (!Team)
+                            @if (!SelectedIsTeam)
                             {
                                 @* A personal vault opens to its owner's AI agent tokens only (decision T12 B); a team vault does it under «Share». *@
                                 <div class="agent-access">
@@ -242,7 +220,7 @@ else
                         </div>
                     </details>
 
-                    @if (Team)
+                    @if (SelectedIsTeam)
                     {
                         <details class="card section">
                             <summary><KeywardIcon Name="users" /> @Loc["Vault.Share.Title"]@(shares is { Count: > 0 } ? $" ({shares.Count})" : "")</summary>
@@ -430,7 +408,80 @@ else
     // than "not provisioned" — see KeywardNoAccount.
     private bool noAccount;
 
-    [Parameter] public bool Team { get; set; }
+    // Personal and team vaults side by side (decision T13 A). Ownership is unchanged: a personal vault is the user's
+    // (in every organisation, never reached by emergency access), a team vault the organisation's — so the selected
+    // vault, not the page, decides what is offered (sharing, export, the agent switch).
+    private IReadOnlyList<VaultSummary> personalVaults = [];
+    private IReadOnlyList<VaultSummary> teamVaults = [];
+    private HashSet<Guid> teamVaultIds = [];
+
+    private bool IsTeamVault(Guid vaultId) => teamVaultIds.Contains(vaultId);
+
+    private bool SelectedIsTeam => selectedVaultId is { } id && IsTeamVault(id);
+
+    // The kind a new vault gets: personal unless the user picks «Team».
+    private bool newVaultForTeam;
+
+    private RenderFragment VaultGroup(bool team) => __builder =>
+    {
+        var group = team ? teamVaults : personalVaults;
+        <div class="tree-group-label"><KeywardIcon Name="@(team ? "users" : "lock")" Size="13" />@(team ? Loc["Vault.Group.Team"] : Loc["Vault.Group.Personal"])</div>
+        @foreach (var v in Filter(group, vaultFilter, x => x.Name))
+        {
+            <button class="tree-node @(v.Id == selectedVaultId && treeSel == "vault" ? "active" : "") @(dragOverKey == v.Id.ToString() ? "drag-over" : "")"
+                    title="@v.Name"
+                    @onclick="() => SelectVaultAsync(v.Id)"
+                    @ondragover:preventDefault="true" @ondragenter="() => dragOverKey = v.Id.ToString()" @ondragleave="() => dragOverKey = null"
+                    @ondrop="() => DropOnVaultAsync(v.Id)">
+                <KeywardIcon Name="@(team ? "users" : "lock")" /><span class="tree-label">@v.Name</span>
+                @if (v.Id == selectedVaultId)
+                {
+                    <span class="tree-count">@RootItemCount</span>
+                }
+                else
+                {
+                    <span class="tree-count"><KeywardIcon Name="chevron-right" Size="13" /></span>
+                }
+            </button>
+            @if (v.Id == selectedVaultId)
+            {
+                @FolderTree(null, 1)
+            }
+        }
+        @if (group.Count == 0)
+        {
+            <p class="muted tree-group-empty">@Loc["Vault.List.Empty"]</p>
+        }
+    };
+
+    // Private or team, for the new vault; shown under the tree's name field and on the «New vault» card.
+    private RenderFragment VaultKindSwitch => __builder =>
+    {
+        <div class="vault-kind" role="group" aria-label="@Loc["Vault.CreateCard.Title"]">
+            <button type="button" class="@(newVaultForTeam ? null : "active")" aria-pressed="@(newVaultForTeam ? "false" : "true")" @onclick="() => newVaultForTeam = false"><KeywardIcon Name="lock" Size="13" />@Loc["Vault.Group.Personal"]</button>
+            <button type="button" class="@(newVaultForTeam ? "active" : null)" aria-pressed="@(newVaultForTeam ? "true" : "false")" @onclick="() => newVaultForTeam = true"><KeywardIcon Name="users" Size="13" />@Loc["Vault.Group.Team"]</button>
+        </div>
+    };
+
+    // Move targets grouped by owner, so moving into or out of a personal vault is never a surprise.
+    private RenderFragment MoveVaultOptions => __builder =>
+    {
+        <optgroup label="@Loc["Vault.Group.Personal"]">
+            @foreach (var v in personalVaults)
+            {
+                <option value="@v.Id">@v.Name</option>
+            }
+        </optgroup>
+        @if (teamVaults.Count > 0)
+        {
+            <optgroup label="@Loc["Vault.Group.Team"]">
+                @foreach (var v in teamVaults)
+                {
+                    <option value="@v.Id">@v.Name</option>
+                }
+            </optgroup>
+        }
+    };
 
     // Detail-pane tabs: «Einträge» (add + item list) vs «Tresor-Einstellungen» (the work areas). The item
     // list stays on the left; this only tabs the right detail pane.
@@ -471,7 +522,7 @@ else
     private string moveFolderId = "";
     private IReadOnlyList<VaultFolderSummary> moveFolders = [];
 
-    // global search (across all vaults of this page)
+    // global search (across all vaults of the user)
     private string globalSearch = "";
     private IReadOnlyList<VaultItemSearchHit>? searchHits;
     private CancellationTokenSource? searchCts;
@@ -503,7 +554,8 @@ else
     private Permission sharePermission = Permission.Read;
 
     // export (Edge/Chrome-compatible CSV as a data-URL download; team vaults: tenant admins only)
-    private bool canExport;
+    private bool canExportTeam;
+    private bool canExport => !SelectedIsTeam || canExportTeam;
     private string? exportDataUrl;
     private string exportFileName = "";
 
@@ -567,10 +619,7 @@ else
                         <span>@Loc["Vault.Select.Count", selectedItemIds.Count]</span>
                         <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
                         <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:12rem;">
-                            @foreach (var v in vaults!)
-                            {
-                                <option value="@v.Id">@v.Name</option>
-                            }
+                            @MoveVaultOptions
                         </select>
                         <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:12rem;">
                             <option value="">@Loc["Vault.Field.NoFolder"]</option>
@@ -700,10 +749,7 @@ else
             <div class="move-panel">
                 <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
                 <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:13rem;">
-                    @foreach (var v in vaults!)
-                    {
-                        <option value="@v.Id">@v.Name</option>
-                    }
+                    @MoveVaultOptions
                 </select>
                 <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:13rem;">
                     <option value="">@Loc["Vault.Field.NoFolder"]</option>
@@ -791,7 +837,7 @@ else
         await ReloadVaultsAsync();
         // Personal vaults are always exportable by their owner; team vaults only by tenant admins (the
         // same operator predicate that gates group management). The service enforces this again.
-        canExport = !Team || await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
+        canExportTeam = await GroupService.CanManageGroupsAsync(actorUserId.Value, tenantId);
         // A deep link (?item=<base62 public id>) opens that item straight away and picks its vault.
         if (await TryOpenLinkedItemAsync())
         {
@@ -828,9 +874,10 @@ else
     private async Task ReloadVaultsAsync()
     {
         if (actorUserId is null) return;
-        vaults = Team
-            ? await VaultService.ListSharedVaultsAsync(actorUserId.Value, tenantId)
-            : await VaultService.ListVaultsAsync(actorUserId.Value);
+        personalVaults = await VaultService.ListVaultsAsync(actorUserId.Value);
+        teamVaults = await VaultService.ListSharedVaultsAsync(actorUserId.Value, tenantId);
+        teamVaultIds = [.. teamVaults.Select(v => v.Id)];
+        vaults = [.. personalVaults, .. teamVaults];
     }
 
     private async Task SelectVaultAsync(Guid vaultId)
@@ -849,7 +896,7 @@ else
         ClearSelection();
         ResetItemForm();
         await ReloadContentsAsync();
-        if (Team)
+        if (IsTeamVault(vaultId))
         {
             shareCandidates = await VaultService.ListShareCandidatesAsync(actorUserId!.Value, tenantId);
             shareGroups = await GroupService.ListGroupsAsync(actorUserId!.Value, tenantId);
@@ -879,7 +926,7 @@ else
 
     private Task CreateVaultAsync() => RunAsync(async () =>
     {
-        var id = Team
+        var id = newVaultForTeam
             ? await VaultService.CreateTenantVaultAsync(new CreateTenantVaultCommand(actorUserId!.Value, tenantId, newVaultName))
             : await VaultService.CreatePersonalVaultAsync(new CreatePersonalVaultCommand(actorUserId!.Value, newVaultName));
         newVaultName = "";
@@ -889,7 +936,7 @@ else
     }, !string.IsNullOrWhiteSpace(newVaultName));
 
     // Localized name suggestions for new vaults (comma-separated in the resource, e.g. "Privat,Arbeit,…").
-    private string[] SuggestedNames => Loc[Team ? "Vault.Suggest.Team" : "Vault.Suggest.Personal"].Value.Split(',');
+    private string[] SuggestedNames => Loc[newVaultForTeam ? "Vault.Suggest.Team" : "Vault.Suggest.Personal"].Value.Split(',');
 
     // The one-click default vault offered in the empty state (first suggestion, e.g. "Privat" / "IT").
     private string DefaultVaultName => SuggestedNames[0];
@@ -1021,7 +1068,7 @@ else
         return null;
     }
 
-    private string CurrentPagePath => Team ? KeywardRoutes.TeamVaults : KeywardRoutes.PersonalVaults;
+    private static string CurrentPagePath => KeywardRoutes.Vaults;
 
     /// <summary>Points the address bar at the open item (<c>?item=&lt;code&gt;</c>) — or back at the bare list
     /// when none is open. Replaces the history entry so the back button doesn't step through every item.</summary>
@@ -1159,7 +1206,7 @@ else
         try
         {
             await Task.Delay(350, cts.Token);
-            searchHits = await VaultService.SearchItemsAsync(actorUserId!.Value, tenantId, Team, globalSearch, cts.Token);
+            searchHits = await VaultService.SearchItemsAsync(actorUserId!.Value, tenantId, globalSearch, cts.Token);
         }
         catch (OperationCanceledException)
         {
@@ -1253,6 +1300,17 @@ else
 
     private Task DropOnVaultAsync(Guid vaultId) => RunAsync(async () =>
     {
+        // Between a personal and a team vault only through the explicit «Move to» field: a drag must never hand a
+        // private entry to the organisation, or take one out of it, by accident.
+        if (IsTeamVault(vaultId) != SelectedIsTeam)
+        {
+            dragItemId = null;
+            dragFolderId = null;
+            dragOverKey = null;
+            status = (Loc["Vault.Move.CrossKind"], true);
+            return;
+        }
+
         if (dragFolderId is { } movedFolder)
         {
             dragFolderId = null;
@@ -1413,8 +1471,6 @@ else
         ItemType.ConnectionString => "layers",
         _ => "lock",
     };
-
-    private IEnumerable<VaultSummary> FilteredVaults => Filter(vaults, vaultFilter, v => v.Name);
 
     private IEnumerable<VaultItemSummary> FilteredItems
     {

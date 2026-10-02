@@ -182,7 +182,7 @@ public interface IVaultService
     /// name, and the decrypted content (login URL / username / note, or the value of other item types).
     /// Login passwords are deliberately NOT matched. Queries shorter than 2 characters return nothing.
     /// </summary>
-    Task<IReadOnlyList<VaultItemSearchHit>> SearchItemsAsync(Guid userId, Guid tenantId, bool teamVaults, string query, CancellationToken ct = default);
+    Task<IReadOnlyList<VaultItemSearchHit>> SearchItemsAsync(Guid userId, Guid tenantId, string query, CancellationToken ct = default);
 
     /// <summary>
     /// Items of the given vaults whose cleartext name contains <paramref name="query"/> (at least 2 characters,

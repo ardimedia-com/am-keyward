@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Start</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Persönliche Tresore</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Team-Tresore</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Software-Secrets</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>App-Tokens</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Anmelden</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>Registrieren</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>Bereits ein Konto?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Anmelden</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Persönliche Tresore</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Deine privaten Tresore — verschlüsselt und nur für dich sichtbar. Speichere Logins, sichere Notizen und andere Secrets.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Team-Tresore</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Tresore, die deine Organisation teilt — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Software-Secrets</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Die Werte, die deine Anwendungen zur Laufzeit lesen — API-Schlüssel, Connection-Strings und mehr, pro Applikation und Umgebung. Links wählst du die Applikation.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>App-Tokens</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Typ</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Umgebung</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Fehler: </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Team-Tresore</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Deine Tresore</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Deine Tresore</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Team-Tresore gehören dem Mandanten und werden über Berechtigungen mit Personen geteilt. Du siehst jene, die dir gehören oder auf die dir Zugriff gewährt wurde. Wenn du einen Tresor teilst, kann ein Kollege seine Einträge lesen oder bearbeiten.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Persönliche Tresore gehören nur dir — niemand sonst kann sie sehen. Verwende sie für deine eigenen Logins, Notizen und Secrets.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>Noch keine Tresore.</value></data>
@@ -276,10 +269,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>E-Mail bestätigen</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>Deine E-Mail ist bestätigt. Du kannst dich jetzt anmelden:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Dieser Bestätigungslink ist ungültig oder abgelaufen.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Deine privaten Tresore für persönliche Logins, sichere Notizen und andere Secrets. Sie gehören dir allein — verschlüsselt, sodass niemand sonst sie lesen kann, nicht einmal ein Administrator. Nutze sie wie einen persönlichen Passwortmanager: speichere pro Website ein Login, zeige das Passwort nur an, wenn du es brauchst, und ordne Einträge in Ordnern.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Tresore, die deinem Mandanten (deiner Organisation) gehören und über Berechtigungen mit Kollegen geteilt werden. Nutze sie für Zugangsdaten, die ein Team gemeinsam braucht — geteilte Service-Konten, WLAN-Schlüssel, Lizenzschlüssel — wobei du pro Person festlegst, wer jeden Tresor lesen, bearbeiten oder verwalten darf. Das Teilen ist explizit: Ein Kollege sieht nur die Tresore, die du ihm gewährst.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -296,12 +289,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>Wie funktioniert das?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>Deine privaten Logins, sicheren Notizen und Secrets — verschlüsselt und nur für dich sichtbar; nicht einmal ein Administrator kann sie lesen. Wie ein persönlicher Passwortmanager: zum Beispiel ein Website-Login, eine PIN oder ein Lizenzschlüssel.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Gemeinsame Tresore für deine Organisation — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf. Für Zugangsdaten, die ein Team gemeinsam braucht: zum Beispiel das WLAN-Passwort, ein geteiltes Service-Konto oder Lizenzschlüssel.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Werte, die deine Anwendungen zur Laufzeit lesen, statt sie in Konfigurationsdateien abzulegen — gepflegt pro Umgebung (Development bis Production): zum Beispiel ein API-Schlüssel, ein Datenbank-Connection-String oder ein Signierschlüssel. Änderungen wirken ohne erneutes Ausrollen deiner App.</value>
@@ -1186,5 +1173,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Erst dann kannst du ein AI-Agent-Token dafür ausstellen — niemand sonst, der Tresor bleibt privat. Schliessen stoppt sofort jedes AI-Agent-Token für diesen Tresor.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Tresore</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Tresore</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Persönliche Tresore gehören dir allein; Team-Tresore gehören deiner Organisation und werden gezielt pro Person geteilt. Speichere Logins, sichere Notizen und andere Secrets.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Persönlich</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Team</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Zwischen einem persönlichen und einem Team-Tresor verschiebst du mit «Verschieben nach:» im geöffneten Eintrag — so passiert es nie aus Versehen.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Persönliche Tresore für deine eigenen Logins — nur für dich sichtbar. Team-Tresore für Zugangsdaten, die ein Team gemeinsam braucht, etwa das WLAN-Passwort oder ein geteiltes Service-Konto — du bestimmst pro Person, wer lesen, bearbeiten oder verwalten darf.</value>
   </data>
 </root>

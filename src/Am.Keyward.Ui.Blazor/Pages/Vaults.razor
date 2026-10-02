@@ -1,10 +1,24 @@
 @page "/amkeyward/vaults"
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
-@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> Loc
 @inject KeywardUiOptions KeywardOptions
 
+@* One page for every vault (decision T13 A): personal vaults (the user's own, in every organisation, never reached by
+   emergency access) and team vaults (the organisation's, shared per person) side by side, each marked by its owner.
+   The ownership model is unchanged — only the page is shared. *@
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
-@code {
-    protected override void OnInitialized() => Nav.NavigateTo(KeywardRoutes.PersonalVaults, replace: true);
-}
+<KeywardUi Fill="true">
+    <div class="page-header">
+        <h1>@Loc["Page.Vaults.Title"]</h1>
+        <p>@Loc["Page.Vaults.Desc"]</p>
+        <details class="help">
+            <summary>@Loc["Common.HowItWorks"]</summary>
+            <div>@Loc["Vault.Help.Personal"]</div>
+            <div>@Loc["Vault.Help.Team"]</div>
+        </details>
+    </div>
+
+    <VaultWorkspace />
+</KeywardUi>

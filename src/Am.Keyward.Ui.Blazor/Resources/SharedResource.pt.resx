@@ -59,8 +59,6 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Nav.Home" xml:space="preserve"><value>Início</value></data>
-  <data name="Nav.PersonalVaults" xml:space="preserve"><value>Cofres pessoais</value></data>
-  <data name="Nav.TeamVaults" xml:space="preserve"><value>Cofres da equipa</value></data>
   <data name="Nav.SoftwareCredentials" xml:space="preserve"><value>Segredos de software</value></data>
   <data name="Nav.ClientTokens" xml:space="preserve"><value>Tokens de app</value></data>
   <data name="Nav.SignIn" xml:space="preserve"><value>Iniciar sessão</value></data>
@@ -89,10 +87,6 @@
   <data name="Register.Submit" xml:space="preserve"><value>Registar</value></data>
   <data name="Register.HaveAccount" xml:space="preserve"><value>Já tem uma conta?</value></data>
   <data name="Register.SignInLink" xml:space="preserve"><value>Iniciar sessão</value></data>
-  <data name="Page.Personal.Title" xml:space="preserve"><value>Cofres pessoais</value></data>
-  <data name="Page.Personal.Desc" xml:space="preserve"><value>Os teus cofres privados — cifrados e visíveis apenas para ti. Guarda logins, notas seguras e outros segredos.</value></data>
-  <data name="Page.Team.Title" xml:space="preserve"><value>Cofres da equipa</value></data>
-  <data name="Page.Team.Desc" xml:space="preserve"><value>Cofres partilhados pela tua organização — decides por pessoa quem pode ler, editar ou gerir.</value></data>
   <data name="Page.Secrets.Title" xml:space="preserve"><value>Segredos de software</value></data>
   <data name="Page.Secrets.Desc" xml:space="preserve"><value>Os valores que as tuas aplicações leem em tempo de execução — chaves de API, cadeias de ligação e mais, por aplicação e ambiente. Escolhe a aplicação à esquerda.</value></data>
   <data name="Page.Tokens.Title" xml:space="preserve"><value>Tokens de app</value></data>
@@ -122,8 +116,7 @@
   <data name="Common.Type" xml:space="preserve"><value>Tipo</value></data>
   <data name="Common.Environment" xml:space="preserve"><value>Ambiente</value></data>
   <data name="Common.Error" xml:space="preserve"><value>Erro: </value></data>
-  <data name="Vault.List.TitleTeam" xml:space="preserve"><value>Cofres da equipa</value></data>
-  <data name="Vault.List.TitlePersonal" xml:space="preserve"><value>Os seus cofres</value></data>
+  <data name="Vault.List.Title" xml:space="preserve"><value>Os seus cofres</value></data>
   <data name="Vault.List.DescTeam" xml:space="preserve"><value>Os cofres da equipa pertencem ao inquilino e são partilhados com pessoas através de permissões. Vê aqueles que possui ou aos quais lhe foi concedido acesso. Partilhar um cofre permite que um colega leia ou edite os respetivos itens.</value></data>
   <data name="Vault.List.DescPersonal" xml:space="preserve"><value>Os cofres pessoais são só seus — mais ninguém os pode ver. Utilize-os para os seus próprios inícios de sessão, notas e segredos.</value></data>
   <data name="Vault.List.Empty" xml:space="preserve"><value>Ainda não há cofres.</value></data>
@@ -274,10 +267,10 @@
   <data name="Confirm.Title" xml:space="preserve"><value>Confirmar e-mail</value></data>
   <data name="Confirm.Done" xml:space="preserve"><value>O seu e-mail está confirmado. Já pode iniciar sessão:</value></data>
   <data name="Confirm.Invalid" xml:space="preserve"><value>Este link de confirmação é inválido ou expirou.</value></data>
-  <data name="Page.Personal.Help" xml:space="preserve">
+  <data name="Vault.Help.Personal" xml:space="preserve">
     <value>Os seus cofres privados para inícios de sessão pessoais, notas seguras e outros segredos. Pertencem-lhe só a si — encriptados de forma a que mais ninguém, nem sequer um administrador, os possa ler. Utilize-os como utilizaria um gestor de palavras-passe pessoal: guarde um início de sessão por site, mostre a palavra-passe apenas quando precisar dela e organize os itens em pastas.</value>
   </data>
-  <data name="Page.Team.Help" xml:space="preserve">
+  <data name="Vault.Help.Team" xml:space="preserve">
     <value>Cofres pertencentes à sua organização (inquilino) e partilhados com colegas através de permissões de acesso. Utilize-os para credenciais de que uma equipa precisa em comum — contas de serviço partilhadas, chaves de Wi-Fi, chaves de licença — em que decide, por pessoa, quem pode ler, editar ou gerir cada cofre. A partilha é explícita: um colega só vê os cofres a que lhe concede acesso.</value>
   </data>
   <data name="Page.Secrets.Help" xml:space="preserve">
@@ -294,12 +287,6 @@
   </data>
   <data name="Common.HowItWorks" xml:space="preserve">
     <value>Como funciona?</value>
-  </data>
-  <data name="Home.Tile.Personal" xml:space="preserve">
-    <value>Os teus logins privados, notas seguras e segredos — cifrados e visíveis apenas para ti; nem mesmo um administrador os pode ler. Como um gestor de palavras-passe pessoal: por exemplo um login de um site, um PIN ou uma chave de licença.</value>
-  </data>
-  <data name="Home.Tile.Team" xml:space="preserve">
-    <value>Cofres partilhados para a tua organização — decides por pessoa quem pode ler, editar ou gerir. Para credenciais de que uma equipa precisa em conjunto: por exemplo a palavra-passe do Wi-Fi, uma conta de serviço partilhada ou chaves de licença.</value>
   </data>
   <data name="Home.Tile.Secrets" xml:space="preserve">
     <value>Valores que as tuas aplicações leem em tempo de execução, em vez de os manter em ficheiros de configuração — mantidos por ambiente (de Development a Production): por exemplo uma chave de API, uma cadeia de ligação à base de dados ou uma chave de assinatura. As alterações têm efeito sem reimplantar a aplicação.</value>
@@ -1060,5 +1047,26 @@
   </data>
   <data name="Vault.Agent.PersonalDesc" xml:space="preserve">
     <value>Só então pode emitir um token de agente de IA para ele — mais ninguém pode, o cofre continua privado. Fechá-lo para de imediato todos os tokens de agente de IA para este cofre.</value>
+  </data>
+  <data name="Page.Vaults.Title" xml:space="preserve">
+    <value>Cofres</value>
+  </data>
+  <data name="Nav.Vaults" xml:space="preserve">
+    <value>Cofres</value>
+  </data>
+  <data name="Page.Vaults.Desc" xml:space="preserve">
+    <value>Os cofres pessoais pertencem só a si; os cofres de equipa pertencem à sua organização e são partilhados pessoa a pessoa. Guarde logins, notas seguras e outros segredos.</value>
+  </data>
+  <data name="Vault.Group.Personal" xml:space="preserve">
+    <value>Pessoais</value>
+  </data>
+  <data name="Vault.Group.Team" xml:space="preserve">
+    <value>Equipa</value>
+  </data>
+  <data name="Vault.Move.CrossKind" xml:space="preserve">
+    <value>Entre um cofre pessoal e um de equipa, mova com «Mover para:» no item aberto — assim nunca acontece por engano.</value>
+  </data>
+  <data name="Home.Tile.Vaults" xml:space="preserve">
+    <value>Cofres pessoais para os seus próprios logins — visíveis só para si. Cofres de equipa para credenciais de que uma equipa precisa em conjunto, como a palavra-passe do Wi-Fi ou uma conta de serviço partilhada — decide por pessoa quem pode ler, editar ou gerir.</value>
   </data>
 </root>

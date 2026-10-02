@@ -1,20 +1,9 @@
 @page "/amkeyward/vaults/personal"
-@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @attribute [Authorize]
-@inject IStringLocalizer<SharedResource> Loc
-@inject KeywardUiOptions KeywardOptions
+@inject NavigationManager Nav
 
-<PageTitle>@KeywardOptions.ProductName</PageTitle>
-
-<KeywardUi Fill="true">
-    <div class="page-header">
-        <h1>@Loc["Page.Personal.Title"]</h1>
-        <p>@Loc["Page.Personal.Desc"]</p>
-        <details class="help">
-            <summary>@Loc["Common.HowItWorks"]</summary>
-            <div>@Loc["Page.Personal.Help"]</div>
-        </details>
-    </div>
-
-    <VaultWorkspace Team="false" />
-</KeywardUi>
+@* Former page of the personal vaults (before T13 A): forwards to the vaults page, keeping an ?item= deep link. *@
+@code {
+    protected override void OnInitialized() =>
+        Nav.NavigateTo(KeywardRoutes.Vaults + new Uri(Nav.Uri).Query, replace: true);
+}

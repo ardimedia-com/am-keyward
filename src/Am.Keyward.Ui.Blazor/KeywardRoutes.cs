@@ -11,9 +11,16 @@ public static class KeywardRoutes
     /// <summary>The route namespace every Keyward page sits under (mirrors the API's <c>/keyward</c> and the asset path).</summary>
     public const string Prefix = "/amkeyward";
 
-    public const string PersonalVaults = Prefix + "/vaults/personal";
-    public const string TeamVaults = Prefix + "/vaults/team";
+    /// <summary>The vaults page: personal and team vaults side by side, each marked by its owner (decision T13 A).</summary>
     public const string Vaults = Prefix + "/vaults";
+
+    /// <summary>Former page of the personal vaults; forwards to <see cref="Vaults"/> so old links keep working.</summary>
+    [Obsolete("Personal and team vaults share one page since 2026-10-02 (T13 A). Use Vaults.")]
+    public const string PersonalVaults = Prefix + "/vaults/personal";
+
+    /// <summary>Former page of the team vaults; forwards to <see cref="Vaults"/> so old links keep working.</summary>
+    [Obsolete("Personal and team vaults share one page since 2026-10-02 (T13 A). Use Vaults.")]
+    public const string TeamVaults = Prefix + "/vaults/team";
 
     /// <summary>Short, shareable deep link to a single vault item: <c>/amkeyward/e/{base62-public-id}</c>. The
     /// <see cref="EntryLink"/> page resolves it and forwards to the right vault page with the item opened.</summary>
