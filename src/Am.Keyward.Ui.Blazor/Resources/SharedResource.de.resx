@@ -1130,4 +1130,13 @@
   <data name="Email.AgentExpiry.Footer" xml:space="preserve">
     <value>Du erhältst diese Nachricht, weil du diesen AI-Agent-Token ausgestellt hast.</value>
   </data>
+  <data name="AgentTokens.Admin.Title" xml:space="preserve">
+    <value>Alle AI-Agent-Tokens der Organisation</value>
+  </data>
+  <data name="AgentTokens.Admin.Desc" xml:space="preserve">
+    <value>Nur für Administratoren sichtbar. Hier kannst du den Token einer beliebigen Person widerrufen — etwa bei einem verlorenen Computer oder wenn jemand gegangen ist —, aber für andere keinen ändern oder ausstellen.</value>
+  </data>
+  <data name="AgentTokens.Admin.Owner" xml:space="preserve">
+    <value>Besitzer</value>
+  </data>
 </root>

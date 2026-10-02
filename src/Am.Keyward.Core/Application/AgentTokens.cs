@@ -80,7 +80,13 @@ public sealed record AgentTokenSummary(
     DateTimeOffset? RevokedAt,
     bool IsActive);
 
-/// <summary>A user's own agent tokens. Every method acts only on tokens the given user issued.</summary>
+/// <summary>An agent token in the administrators' overview: the token and whose it is.</summary>
+public sealed record AgentTokenAdminSummary(AgentTokenSummary Token, Guid OwnerUserId, string OwnerName);
+
+/// <summary>
+/// A user's own agent tokens — every method acts only on tokens the given user issued — plus the tenant
+/// administrators' overview (see, revoke; never issue or change someone else's token).
+/// </summary>
 public interface IAgentTokenService
 {
     Task<IssuedAgentToken> IssueAsync(IssueAgentTokenCommand cmd, CancellationToken ct = default);
@@ -100,6 +106,15 @@ public interface IAgentTokenService
     /// <see cref="AgentTokenLifetime.Maximum"/>): the computer keeps working without a new setup. Returns the new expiry.
     /// </summary>
     Task<DateTimeOffset> ExtendAsync(Guid userId, Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt = null, CancellationToken ct = default);
+
+    /// <summary>Whether the user may see and revoke every agent token of the tenant (tenant admin or system admin).</summary>
+    Task<bool> CanAdministerAsync(Guid userId, Guid tenantId, CancellationToken ct = default);
+
+    /// <summary>Every agent token of the tenant with its owner, for its administrators.</summary>
+    Task<IReadOnlyList<AgentTokenAdminSummary>> ListForTenantAsync(Guid adminUserId, Guid tenantId, CancellationToken ct = default);
+
+    /// <summary>An administrator revokes someone's agent token (e.g. a lost computer, a person who left). Audited.</summary>
+    Task RevokeAsAdminAsync(Guid adminUserId, Guid tenantId, Guid tokenId, CancellationToken ct = default);
 }
 
 /// <summary>An authenticated agent token: who it acts as, in which tenant, with which scopes.</summary>

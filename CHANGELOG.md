@@ -12,6 +12,11 @@ All notable changes to this project are documented here, following
   (`IAgentTokenService.ExtendAsync`). The owner is reminded 30, 20 and 10 days ahead and then daily
   (`AgentTokenExpiryNotificationService`, `IKeywardAlertPresenter.NotifyAgentTokenExpiryAsync` — default does
   nothing, the shell sends a branded mail in six languages). Migration `AgentTokenExpiryNotice`.
+- **Administrators see every AI agent token of the organisation** (decision T11 A): a collapsible section on
+  «AI agent tokens», visible to tenant and system administrators only, lists each token with its owner,
+  permissions and expiry, and lets them revoke one (a lost computer, someone who left) — audited under the
+  administrator. They cannot edit or issue a token for someone else (`IAgentTokenService.CanAdministerAsync`,
+  `ListForTenantAsync`, `RevokeAsAdminAsync`).
 
 ### Changed
 

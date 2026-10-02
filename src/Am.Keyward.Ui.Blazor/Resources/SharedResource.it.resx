@@ -1004,4 +1004,13 @@
   <data name="Email.AgentExpiry.Footer" xml:space="preserve">
     <value>Ricevi questo messaggio perché hai emesso questo token agente IA.</value>
   </data>
+  <data name="AgentTokens.Admin.Title" xml:space="preserve">
+    <value>Tutti i token agente IA dell'organizzazione</value>
+  </data>
+  <data name="AgentTokens.Admin.Desc" xml:space="preserve">
+    <value>Visibile solo agli amministratori. Qui puoi revocare il token di chiunque — computer perso, persona che ha lasciato — ma non modificarne né emetterne per altri.</value>
+  </data>
+  <data name="AgentTokens.Admin.Owner" xml:space="preserve">
+    <value>Proprietario</value>
+  </data>
 </root>

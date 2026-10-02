@@ -160,6 +160,58 @@
                 }
             </section>
 
+            @* Administrators see every token of the organisation and can revoke one (a lost computer, someone who
+               left) — never change or issue one for someone else. *@
+            @if (canAdminister && adminTokens is not null)
+            {
+                <section class="card">
+                    <h3 class="section-heading">
+                        <button type="button" class="section-toggle" aria-expanded="@(showAdmin ? "true" : "false")" @onclick="() => showAdmin = !showAdmin">
+                            <KeywardIcon Name="@(showAdmin ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Admin.Title"] (@adminTokens.Count)
+                        </button>
+                    </h3>
+                    @if (showAdmin)
+                    {
+                        <p class="muted">@Loc["AgentTokens.Admin.Desc"]</p>
+                        <div class="list-rows">
+                            @foreach (var entry in adminTokens)
+                            {
+                                <div class="token-row">
+                                    <div class="token-main">
+                                        <KeywardIcon Name="key" Size="17" />
+                                        <span class="token-name">@entry.Token.Name</span>
+                                        <span class="badge @StatusClass(entry.Token)">@StatusLabel(entry.Token)</span>
+                                    </div>
+                                    <dl class="token-facts muted">
+                                        <dt>@Loc["AgentTokens.Admin.Owner"]</dt>
+                                        <dd>@entry.OwnerName</dd>
+                                        <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
+                                        <dd>@string.Join(", ", AllScopes.Where(sc => entry.Token.Scopes.HasFlag(sc)).Select(ScopeLabel))</dd>
+                                        <dt>@Loc["AgentTokens.Expires"]</dt>
+                                        <dd><LocalTime Utc="entry.Token.ExpiresAt" /></dd>
+                                    </dl>
+                                    @if (entry.Token.RevokedAt is null)
+                                    {
+                                        <div class="token-actions">
+                                            @if (adminConfirmRevokeId == entry.Token.Id)
+                                            {
+                                                <span>@Loc["AgentTokens.ConfirmRevoke", entry.Token.Name]</span>
+                                                <button class="btn-danger btn-sm" @onclick="() => AdminRevokeAsync(entry.Token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => adminConfirmRevokeId = null">@Loc["Common.Cancel"]</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn-danger btn-sm" @onclick="() => adminConfirmRevokeId = entry.Token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+
             @* What a token is for and how it reaches the assistant — the steps are the same on every computer; only the
                KEYWARD address differs, so it is filled in. *@
             <section class="card usage" id="usage">
@@ -385,6 +437,10 @@
 
     // Sections: the tokens are open, «How to use» and the issue form start closed («Edit» opens the form).
     private bool showTokens = true;
+    private bool showAdmin;
+    private bool canAdminister;
+    private IReadOnlyList<AgentTokenAdminSummary>? adminTokens;
+    private Guid? adminConfirmRevokeId;
     private bool showUsage;
     private bool showForm;
     private ElementReference nameInput;
@@ -430,6 +486,7 @@
         actorUserId = userId;
         tenantId = Workspace.TenantId;
         canManageApplications = await ProjectService.CanManageAsync(tenantId, actorUserId);
+        canAdminister = await AgentTokenService.CanAdministerAsync(actorUserId, tenantId);
         await ReloadAsync();
 
         refreshTimer = new PeriodicTimer(PendingRefresh);
@@ -477,6 +534,10 @@
         applications = (await ProjectService.ListAsync(tenantId)).OrderBy(a => a.Name).ToList();
         selectedApplications.IntersectWith(applications.Select(a => a.Id));
         tokens = await AgentTokenService.ListAsync(actorUserId, tenantId);
+        if (canAdminister)
+        {
+            adminTokens = await AgentTokenService.ListForTenantAsync(actorUserId, tenantId);
+        }
         pending = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
     }
 
@@ -625,6 +686,14 @@
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Extended", until.ToLocalTime().ToString("d")], false);
     }, extendDays is >= 1 && extendDays <= MaxDays);
+
+    private Task AdminRevokeAsync(Guid tokenId) => RunAsync(async () =>
+    {
+        await AgentTokenService.RevokeAsAdminAsync(actorUserId, tenantId, tokenId);
+        adminConfirmRevokeId = null;
+        await ReloadAsync();
+        status = (Loc["AgentTokens.Msg.Revoked"], false);
+    }, true);
 
     private Task RevokeAsync(Guid tokenId) => RunAsync(async () =>
     {

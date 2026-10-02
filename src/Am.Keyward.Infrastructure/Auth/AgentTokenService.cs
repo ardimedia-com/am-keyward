@@ -137,14 +137,77 @@ public sealed class AgentTokenService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        return tokens.Select(t => ToSummary(t, now)).ToList();
+    }
+
+    public async Task<bool> CanAdministerAsync(Guid userId, Guid tenantId, CancellationToken ct = default)
+    {
+        EnsureScope(userId, tenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await IsAdministratorAsync(db, userId, tenantId, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<AgentTokenAdminSummary>> ListForTenantAsync(Guid adminUserId, Guid tenantId, CancellationToken ct = default)
+    {
+        EnsureScope(adminUserId, tenantId);
+        var now = clock.UtcNow;
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureAdministratorAsync(db, adminUserId, tenantId, ct).ConfigureAwait(false);
+        var tokens = await db.AgentTokens.AsNoTracking()
+            .Include(t => t.AllowedVaults)
+            .Include(t => t.AllowedApplications)
+            .Where(t => t.TenantId == tenantId)
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var ownerIds = tokens.Select(t => t.UserId).Distinct().ToList();
+        var owners = await db.Users.AsNoTracking()
+            .Where(u => ownerIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName, ct)
+            .ConfigureAwait(false);
+
         return tokens
-            .Select(t => new AgentTokenSummary(
-                t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(),
-                t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllAgentVaults, t.AllApplications,
-                t.AllowedNetworks,
-                t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now)))
+            .Select(t => new AgentTokenAdminSummary(ToSummary(t, now), t.UserId, owners.GetValueOrDefault(t.UserId, "?")))
+            .OrderBy(s => s.OwnerName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(s => s.Token.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
     }
+
+    public async Task RevokeAsAdminAsync(Guid adminUserId, Guid tenantId, Guid tokenId, CancellationToken ct = default)
+    {
+        EnsureScope(adminUserId, tenantId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureAdministratorAsync(db, adminUserId, tenantId, ct).ConfigureAwait(false);
+        var token = await db.AgentTokens
+            .FirstOrDefaultAsync(t => t.Id == tokenId && t.TenantId == tenantId, ct)
+            .ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Agent token {tokenId} not found.");
+
+        token.Revoke(clock.UtcNow);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Revoke, ResourceType, token.Id, adminUserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    // Tenant admins and system admins oversee the tenant's agent tokens. Software managers do not: their role is
+    // the software side, not other people's access.
+    private static async Task<bool> IsAdministratorAsync(KeywardDbContext db, Guid userId, Guid tenantId, CancellationToken ct) =>
+        await db.Users.AnyAsync(u => u.Id == userId && u.IsSystemAdmin, ct).ConfigureAwait(false)
+        || await db.TenantMemberships.AnyAsync(m => m.TenantId == tenantId && m.UserId == userId && m.Role == TenantRole.TenantAdmin, ct).ConfigureAwait(false);
+
+    private static async Task EnsureAdministratorAsync(KeywardDbContext db, Guid userId, Guid tenantId, CancellationToken ct)
+    {
+        if (!await IsAdministratorAsync(db, userId, tenantId, ct).ConfigureAwait(false))
+        {
+            throw new UnauthorizedAccessException("Only a tenant administrator can see or revoke other people's agent tokens.");
+        }
+    }
+
+    private static AgentTokenSummary ToSummary(AgentToken t, DateTimeOffset now) => new(
+        t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(),
+        t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllAgentVaults, t.AllApplications,
+        t.AllowedNetworks,
+        t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now));
 
     public async Task<IssuedAgentToken> RotateAsync(Guid userId, Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt = null, CancellationToken ct = default)
     {

@@ -1004,4 +1004,13 @@
   <data name="Email.AgentExpiry.Footer" xml:space="preserve">
     <value>Vous recevez ce message car vous avez émis ce jeton d'agent IA.</value>
   </data>
+  <data name="AgentTokens.Admin.Title" xml:space="preserve">
+    <value>Tous les jetons d'agent IA de l'organisation</value>
+  </data>
+  <data name="AgentTokens.Admin.Desc" xml:space="preserve">
+    <value>Visible uniquement par les administrateurs. Ici, vous pouvez révoquer le jeton de n'importe qui — ordinateur perdu, personne partie — mais pas en modifier ni en émettre pour quelqu'un d'autre.</value>
+  </data>
+  <data name="AgentTokens.Admin.Owner" xml:space="preserve">
+    <value>Propriétaire</value>
+  </data>
 </root>
