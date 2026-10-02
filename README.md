@@ -63,7 +63,7 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 - **Token abuse** — software-client tokens are env-scoped (scope from the persisted token, never the
   request), hashed at rest, rotatable/revocable, rate-limited, with advance-expiry notifications. Guessed
   tokens are throttled per client IP.
-- **AI agents acting for a user** — an agent token (issued by the user on «Agent tokens») acts as that user
+- **AI agents acting for a user** — an agent token (issued by the user on «AI agent tokens») acts as that user
   but only on tenant vaults that were explicitly opened to agents and put on the token's allowlist, with the
   permissions ticked, optionally only from given networks. Every request re-checks the token, the user (not
   disabled, still a member), the vault and the user's grant; agent actions are audited as the agent. Tokens
@@ -303,7 +303,7 @@ local zone. Timestamps are stored in UTC and shown in the viewer's own local tim
 An agent token lets an assistant such as Claude Code work with vault entries **as you**, narrowed to the vaults and
 permissions you choose: list and search entries, read a Login's URL and user name, store new credentials (it hands
 you a link, never echoes the value) and update entries. To see a secret it must ask; you approve each request on
-«Agent tokens», and the MCP server `Am.Keyward.Mcp` (a .NET tool, `amkeyward-mcp`) copies the value to the Windows
+«AI agent tokens», and the MCP server `Am.Keyward.Mcp` (a .NET tool, `amkeyward-mcp`) copies the value to the Windows
 clipboard — never into the assistant's context.
 
 With the separate permission **«Manage applications»** the assistant also sets up an application for the

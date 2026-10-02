@@ -5,6 +5,16 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **«AI agent tokens» page reworked for end users**: renamed from «Agent tokens» in all six languages (also the
+  vault toggle, reveal mails and MCP messages); full width; three collapsible sections in the order «Your AI agent
+  tokens» (open), «How to use» and «Issue token» (closed; «Edit» opens it); plainer texts throughout; the vault
+  permissions sit under the vaults they apply to, in the order find → see URL and user name → create/change/move
+  → ask for a password; the network field explains its format. A freshly issued token comes into view with one
+  copyable PowerShell block (install, store — asks for the token, check, register); setup is described for any
+  AI agent, not only Claude Code.
+
 ## [0.25.0-preview] - 2026-10-01
 
 ### Added

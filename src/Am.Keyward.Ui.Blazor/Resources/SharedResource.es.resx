@@ -857,23 +857,23 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión sobre el esquema «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Se crea (seed) al arrancar la aplicación: reinicia y revisa el registro en busca de errores.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Comprueba los permisos del inicio de sesión (el seed se ejecuta al arrancar la aplicación).</value></data>
-  <data name="Nav.AgentTokens" xml:space="preserve"><value>Tokens de agente</value></data>
-  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Tokens de agente</value></data>
-  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens para asistentes de IA (como Claude Code) que trabajan con las entradas de las bóvedas en tu nombre. Un token actúa como tú, pero solo en las bóvedas que elijas y con los permisos que marques. Los valores que guarda nunca se le devuelven.</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Tokens de agente de IA</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Tokens de agente de IA</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Con un token de agente de IA, un agente de IA como Claude Code trabaja en KEYWARD en tu nombre — solo en las bóvedas y aplicaciones y con los permisos que elijas aquí. No puede leer contraseñas ni otros valores: si necesita uno, te da el enlace a la entrada. Solo tú ves tus tokens.</value></data>
   <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Emitir token</value></data>
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Emitir token</value></data>
-  <data name="AgentTokens.Name" xml:space="preserve"><value>Nombre (p. ej. el equipo donde se ejecuta el asistente)</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nombre — mejor el nombre del ordenador</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Bóvedas</value></data>
   <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Todavía no hay ninguna bóveda de equipo abierta a agentes. Quien administre una bóveda de equipo puede abrirla en «Compartir».</value></data>
-  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Permisos</value></data>
-  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Listar entradas (solo nombres)</value></data>
-  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Leer URL y nombre de usuario</value></data>
-  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Crear y modificar entradas</value></data>
-  <data name="AgentTokens.Days" xml:space="preserve"><value>Validez (días)</value></data>
-  <data name="AgentTokens.Networks" xml:space="preserve"><value>Redes permitidas (opcional, CIDR)</value></data>
-  <data name="AgentTokens.New" xml:space="preserve"><value>Copia el token ahora: solo se muestra una vez. Guárdalo en el Administrador de credenciales de Windows del equipo donde se ejecuta el asistente.</value></data>
-  <data name="AgentTokens.Existing" xml:space="preserve"><value>Tus tokens de agente</value></data>
-  <data name="AgentTokens.None" xml:space="preserve"><value>Todavía no tienes tokens de agente.</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>¿Qué puede hacer el agente en estas bóvedas?</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Buscar entradas (solo los nombres)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Ver URL y nombre de usuario</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Crear, cambiar y mover entradas</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Válido (días, como máximo 365)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Solo desde estas redes (opcional)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copia el token ahora — solo se muestra una vez.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Tus tokens de agente de IA</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Todavía no tienes tokens de agente de IA.</value></data>
   <data name="AgentTokens.Expires" xml:space="preserve"><value>Caduca</value></data>
   <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>cualquier red</value></data>
   <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Activo</value></data>
@@ -886,10 +886,10 @@
   <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Nuevo valor emitido; el anterior ya no funciona.</value></data>
   <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token revocado.</value></data>
   <data name="Vault.Agent.Allow" xml:space="preserve"><value>Abrir esta bóveda a los tokens de agente de IA</value></data>
-  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Solo entonces un miembro puede emitir un token de agente para ella, y solo con sus propios permisos. Cerrarla detiene de inmediato todos los tokens de agente; las personas conservan su acceso.</value></data>
-  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Bóveda abierta a los tokens de agente.</value></data>
-  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Bóveda cerrada a los tokens de agente.</value></data>
-  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Pedir ver un secreto (apruebas cada solicitud)</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Solo entonces un miembro puede emitir un token de agente de IA para ella, y solo con sus propios permisos. Cerrarla detiene de inmediato todos los tokens de agente de IA; las personas conservan su acceso.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Bóveda abierta a los tokens de agente de IA.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Bóveda cerrada a los tokens de agente de IA.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Pedir una contraseña — apruebas cada solicitud</value></data>
   <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Solicitudes de visualización</value></data>
   <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Un agente pide ver un secreto. Solo obtiene el valor si lo apruebas: una vez, en un minuto. El motivo es el propio texto del agente: decide por lo que sabes, no por lo que dice.</value></data>
   <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>por «{0}»</value></data>
@@ -903,11 +903,11 @@
   <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Valor</value></data>
   <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0}: un agente pide ver un secreto</value></data>
   <data name="Email.Reveal.Title" xml:space="preserve"><value>Un agente pide ver un secreto</value></data>
-  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Tu token de agente «{0}» pide ver el campo «{1}» de «{2}» en la bóveda «{3}». Solo tú puedes aprobarlo, hasta {4}.</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Tu token de agente de IA «{0}» pide ver el campo «{1}» de «{2}» en la bóveda «{3}». Solo tú puedes aprobarlo, hasta {4}.</value></data>
   <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>El agente da este motivo (su propio texto, sin verificar):</value></data>
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Si no esperabas esta solicitud, recházala y revoca el token.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Decidir ahora</value></data>
-  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Recibes este mensaje porque un token de agente que emitiste hizo la solicitud.</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Recibes este mensaje porque un token de agente de IA que emitiste hizo la solicitud.</value></data>
   <data name="AgentTokens.Applications" xml:space="preserve">
     <value>Aplicaciones</value>
   </data>
@@ -915,7 +915,7 @@
     <value>Gestionar aplicaciones</value>
   </data>
   <data name="AgentTokens.Applications.Desc" xml:space="preserve">
-    <value>Crear aplicaciones, entornos y claves, y establecer valores — solo escritura: el asistente nunca vuelve a leer un valor y no puede emitir tokens de cliente. Solo las aplicaciones marcadas aquí, más las que cree él mismo.</value>
+    <value>El agente puede crear aplicaciones, entornos y claves e introducir valores. No puede leer valores ni emitir tokens de cliente.</value>
   </data>
   <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
     <value>Puede crear aplicaciones nuevas</value>
@@ -927,45 +927,48 @@
     <value>Generar una contraseña segura</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>A continuación, en el ordenador donde se ejecuta el asistente — el tercer paso comprueba el token:</value>
+    <value>A continuación, ejecuta esto en PowerShell en el ordenador del agente. El segundo comando pide el token — pégalo ahí; el tercero muestra si todo funciona.</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
-    <value>Cómo usar un token de agente</value>
+    <value>Cómo usar un token de agente de IA</value>
   </data>
   <data name="AgentTokens.Usage.Intro" xml:space="preserve">
-    <value>Un token conecta un asistente de IA como Claude Code con KEYWARD mediante el servidor MCP «amkeyward-mcp», en el ordenador donde se ejecuta el asistente. Usos típicos: el asistente guarda datos de acceso recibidos por correo y te da el enlace; encuentra una entrada y te da su enlace para que copies tú el valor; con «Gestionar aplicaciones» crea una aplicación y sus claves para un programa, y tú introduces los valores. Nunca ve un valor salvo que apruebes cada solicitud.</value>
+    <value>Un agente de IA accede a KEYWARD mediante el pequeño programa «amkeyward-mcp» en tu ordenador. Lo configuras una vez por ordenador; después simplemente le dices al agente qué hacer.</value>
   </data>
   <data name="AgentTokens.Usage.Install" xml:space="preserve">
-    <value>Instala el servidor MCP (una vez por ordenador):</value>
+    <value>Instala el programa (una vez por ordenador):</value>
   </data>
   <data name="AgentTokens.Usage.Store" xml:space="preserve">
-    <value>Guarda el token en el Administrador de credenciales de Windows (pégalo cuando se pida):</value>
+    <value>Guarda el token de forma segura — pégalo cuando se pida:</value>
   </data>
   <data name="AgentTokens.Usage.Check" xml:space="preserve">
-    <value>Comprueba la conexión y los permisos del token:</value>
+    <value>Comprueba que todo funciona:</value>
   </data>
   <data name="AgentTokens.Usage.Register" xml:space="preserve">
-    <value>Añádelo a Claude Code:</value>
+    <value>Regístralo en el agente de IA — aquí para Claude Code (otros agentes: registra el programa «amkeyward-mcp» con Keyward__ServiceUri en su configuración MCP):</value>
   </data>
   <data name="AgentTokens.Usage.Ask" xml:space="preserve">
-    <value>Después pide al asistente con palabras normales, p. ej. «Guarda los datos de acceso de este correo en KEYWARD y dame el enlace» o «Crea las claves de mi aplicación de consola en Production».</value>
+    <value>Listo. Dile al agente qué hacer, p. ej. «Guarda los datos de acceso de este correo en KEYWARD y dame el enlace».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Dónde vale: una vez guardado, el token funciona en cada sesión de Claude Code de tu usuario de Windows en ese ordenador, en cada proyecto. Todas actúan como tú, con exactamente las bóvedas, aplicaciones y permisos marcados aquí — nada más, y solo mientras tú mismo tengas el acceso. Puedes cambiar lo marcado en cualquier momento con «Editar»; el token conserva su valor y no hay que volver a configurar nada. Usa un token por ordenador, ponle el nombre del ordenador y revócalo si el ordenador se pierde o se entrega a otra persona. Otros ordenadores, Claude Desktop y claude.ai necesitan su propia configuración.</value>
+    <value>El token vale para todos los agentes de IA de tu usuario de Windows en ese ordenador. Actúan como tú, pero solo con lo que marcaste — puedes cambiarlo en cualquier momento con «Editar». Si se pierde el ordenador, revoca el token.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
-    <value>Un token por ordenador: ponle el nombre del ordenador para poder revocar uno sin afectar a los demás — otro ordenador recibe su propio token. El token es para Claude Code en ese ordenador; Claude Desktop y claude.ai tienen su propia configuración MCP y se configuran por separado.</value>
+    <value>Un token por ordenador. Todos los agentes de IA de ese ordenador (Claude Code, VS Code, Claude Desktop …) lo comparten. Si se pierde un ordenador, revocas solo su token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Todas las bóvedas de equipo abiertas a agentes (también las futuras)</value>
+    <value>Todas las bóvedas de equipo abiertas a agentes de IA — también las futuras</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
-    <value>Todas las aplicaciones (también las futuras)</value>
+    <value>Todas las aplicaciones — también las futuras</value>
   </data>
   <data name="AgentTokens.Edit.Title" xml:space="preserve">
     <value>Cambiar el token «{0}»</value>
   </data>
   <data name="AgentTokens.Msg.Updated" xml:space="preserve">
     <value>Token cambiado. Sigue funcionando con su valor actual.</value>
+  </data>
+  <data name="AgentTokens.Networks.Help" xml:space="preserve">
+    <value>Vacío = desde cualquier lugar. Si no, rangos de red separados por comas, p. ej. 10.1.0.0/23 (= de 10.1.0.0 a 10.1.1.255).</value>
   </data>
 </root>

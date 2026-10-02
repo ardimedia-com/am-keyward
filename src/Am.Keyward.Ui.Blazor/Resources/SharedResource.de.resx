@@ -983,23 +983,23 @@
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve">
     <value>Rechte des Logins prüfen (der Seed läuft beim App-Start).</value>
   </data>
-  <data name="Nav.AgentTokens" xml:space="preserve"><value>Agent-Tokens</value></data>
-  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Agent-Tokens</value></data>
-  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Tokens für AI-Assistenten (z. B. Claude Code), die in deinem Namen mit Tresor-Einträgen arbeiten. Ein Token handelt als du, aber nur in den Tresoren, die du auswählst, und nur mit den Rechten, die du ankreuzt. Werte, die er speichert, bekommt er nie zurück.</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>AI-Agent-Tokens</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>AI-Agent-Tokens</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Mit einem AI-Agent-Token arbeitet ein AI-Agent wie Claude Code in deinem Namen in KEYWARD — nur in den Tresoren und Applikationen und mit den Rechten, die du hier wählst. Passwörter und andere Werte kann er nicht auslesen: Braucht er einen, gibt er dir den Link zum Eintrag. Deine Tokens siehst nur du.</value></data>
   <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Token ausstellen</value></data>
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Token ausstellen</value></data>
-  <data name="AgentTokens.Name" xml:space="preserve"><value>Name (z. B. der Computer, auf dem der Assistent läuft)</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Name — am besten der Name des Computers</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Tresore</value></data>
   <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Noch ist kein Team-Tresor für Agents geöffnet. Wer einen Team-Tresor verwaltet, kann ihn unter «Teilen» öffnen.</value></data>
-  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Rechte</value></data>
-  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Einträge auflisten (nur Namen)</value></data>
-  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>URL und Benutzername lesen</value></data>
-  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Einträge anlegen und ändern</value></data>
-  <data name="AgentTokens.Days" xml:space="preserve"><value>Gültig (Tage)</value></data>
-  <data name="AgentTokens.Networks" xml:space="preserve"><value>Erlaubte Netzwerke (optional, CIDR)</value></data>
-  <data name="AgentTokens.New" xml:space="preserve"><value>Kopiere den Token jetzt — er wird nur einmal angezeigt. Lege ihn in der Windows-Anmeldeinformationsverwaltung des Computers ab, auf dem der Assistent läuft.</value></data>
-  <data name="AgentTokens.Existing" xml:space="preserve"><value>Deine Agent-Tokens</value></data>
-  <data name="AgentTokens.None" xml:space="preserve"><value>Du hast noch keine Agent-Tokens.</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Was darf der Agent in diesen Tresoren?</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Einträge finden (nur die Namen)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>URL und Benutzername sehen</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Einträge anlegen, ändern und verschieben</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Gültig (Tage, höchstens 365)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Nur aus diesen Netzwerken (optional)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Kopiere den Token jetzt — er wird nur einmal angezeigt.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Deine AI-Agent-Tokens</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Du hast noch keine AI-Agent-Tokens.</value></data>
   <data name="AgentTokens.Expires" xml:space="preserve"><value>Läuft ab</value></data>
   <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>jedes Netzwerk</value></data>
   <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Aktiv</value></data>
@@ -1012,10 +1012,10 @@
   <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Neuer Wert ausgestellt; der bisherige funktioniert nicht mehr.</value></data>
   <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Token widerrufen.</value></data>
   <data name="Vault.Agent.Allow" xml:space="preserve"><value>Diesen Tresor für AI-Agent-Tokens öffnen</value></data>
-  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Erst dann kann ein Mitglied ein Agent-Token dafür ausstellen, und nur mit seinen eigenen Rechten. Schliessen stoppt sofort jedes Agent-Token; die Personen behalten ihren Zugriff.</value></data>
-  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Tresor für Agent-Tokens geöffnet.</value></data>
-  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Tresor für Agent-Tokens geschlossen.</value></data>
-  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Anzeigen eines Secrets anfragen (du gibst jede Anfrage frei)</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Erst dann kann ein Mitglied ein AI-Agent-Token dafür ausstellen, und nur mit seinen eigenen Rechten. Schliessen stoppt sofort jedes AI-Agent-Token; die Personen behalten ihren Zugriff.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Tresor für AI-Agent-Tokens geöffnet.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Tresor für AI-Agent-Tokens geschlossen.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Ein Passwort anfragen — du gibst jede Anfrage frei</value></data>
   <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Anzeige-Anfragen</value></data>
   <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Ein Agent möchte ein Secret sehen. Er bekommt den Wert nur, wenn du freigibst — einmal, innerhalb einer Minute. Die Begründung ist der eigene Text des Agents: Entscheide nach dem, was du weisst, nicht nach dem, was er schreibt.</value></data>
   <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>von «{0}»</value></data>
@@ -1029,11 +1029,11 @@
   <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Wert</value></data>
   <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0}: Ein Agent möchte ein Secret sehen</value></data>
   <data name="Email.Reveal.Title" xml:space="preserve"><value>Ein Agent möchte ein Secret sehen</value></data>
-  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Dein Agent-Token «{0}» möchte das Feld «{1}» von «{2}» im Tresor «{3}» sehen. Nur du kannst das freigeben, bis {4}.</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Dein AI-Agent-Token «{0}» möchte das Feld «{1}» von «{2}» im Tresor «{3}» sehen. Nur du kannst das freigeben, bis {4}.</value></data>
   <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>Der Agent gibt diese Begründung an (sein eigener Text, nicht geprüft):</value></data>
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Wenn du diese Anfrage nicht erwartet hast, lehne sie ab und widerrufe den Token.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Jetzt entscheiden</value></data>
-  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Du erhältst diese Nachricht, weil ein von dir ausgestellter Agent-Token die Anfrage gestellt hat.</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Du erhältst diese Nachricht, weil ein von dir ausgestellter AI-Agent-Token die Anfrage gestellt hat.</value></data>
   <data name="AgentTokens.Applications" xml:space="preserve">
     <value>Applikationen</value>
   </data>
@@ -1041,7 +1041,7 @@
     <value>Applikationen verwalten</value>
   </data>
   <data name="AgentTokens.Applications.Desc" xml:space="preserve">
-    <value>Applikationen, Umgebungen und Schlüssel anlegen und Werte setzen – nur schreibend: Der Assistent liest nie einen Wert zurück und kann keine Client-Tokens ausstellen. Nur die hier angekreuzten Applikationen und die, die er selbst anlegt.</value>
+    <value>Der Agent darf Applikationen, Umgebungen und Schlüssel anlegen und Werte eintragen. Werte auslesen und Client-Tokens ausstellen kann er nicht.</value>
   </data>
   <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
     <value>Darf neue Applikationen anlegen</value>
@@ -1053,45 +1053,48 @@
     <value>Starkes Passwort erzeugen</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Als Nächstes auf dem Computer, auf dem der Assistent läuft — der dritte Schritt prüft den Token:</value>
+    <value>So geht es weiter: Führe das in PowerShell auf dem Computer des Agenten aus. Der zweite Befehl fragt nach dem Token — füge ihn dort ein; der dritte zeigt, ob alles funktioniert.</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
-    <value>So verwendest du einen Agent-Token</value>
+    <value>So verwendest du einen AI-Agent-Token</value>
   </data>
   <data name="AgentTokens.Usage.Intro" xml:space="preserve">
-    <value>Ein Token verbindet einen KI-Assistenten wie Claude Code über den MCP-Server «amkeyward-mcp» mit KEYWARD, auf dem Computer, auf dem der Assistent läuft. Üblich ist: Der Assistent legt Zugangsdaten aus einer E-Mail ab und gibt dir den Link; er findet einen Eintrag und gibt dir dessen Link, damit du den Wert selbst kopierst; mit «Applikationen verwalten» legt er für ein Programm die Applikation und ihre Schlüssel an, und du fügst die Werte ein. Einen Wert sieht er nie, ausser du gibst jede Anfrage einzeln frei.</value>
+    <value>Ein AI-Agent erreicht KEYWARD über das kleine Programm «amkeyward-mcp» auf deinem Computer. Du richtest es einmal pro Computer ein; danach sagst du dem Agenten einfach, was er tun soll.</value>
   </data>
   <data name="AgentTokens.Usage.Install" xml:space="preserve">
-    <value>MCP-Server installieren (einmal pro Computer):</value>
+    <value>Programm installieren (einmal pro Computer):</value>
   </data>
   <data name="AgentTokens.Usage.Store" xml:space="preserve">
-    <value>Token in der Windows-Anmeldeinformationsverwaltung ablegen (einfügen, wenn danach gefragt wird):</value>
+    <value>Token sicher ablegen — einfügen, wenn danach gefragt wird:</value>
   </data>
   <data name="AgentTokens.Usage.Check" xml:space="preserve">
-    <value>Verbindung und Rechte des Tokens prüfen:</value>
+    <value>Prüfen, ob alles funktioniert:</value>
   </data>
   <data name="AgentTokens.Usage.Register" xml:space="preserve">
-    <value>In Claude Code eintragen:</value>
+    <value>Im AI-Agent eintragen — hier für Claude Code (andere Agents: Programm «amkeyward-mcp» mit Keyward__ServiceUri in den MCP-Einstellungen eintragen):</value>
   </data>
   <data name="AgentTokens.Usage.Ask" xml:space="preserve">
-    <value>Danach sagst du dem Assistenten in normalen Worten, was er tun soll, z. B. «Lege die Zugangsdaten aus dieser E-Mail in KEYWARD ab und gib mir den Link» oder «Lege für meine Konsolen-Applikation die Schlüssel in Production an».</value>
+    <value>Fertig. Sag dem Agenten, was er tun soll, z. B. «Lege die Zugangsdaten aus dieser E-Mail in KEYWARD ab und gib mir den Link».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Wo er gilt: Einmal abgelegt, gilt der Token in jeder Claude-Code-Sitzung deines Windows-Benutzers auf diesem Computer, in jedem Projekt. Alle handeln als du, mit genau den hier angekreuzten Tresoren, Applikationen und Rechten — nicht mehr, und nur solange du selbst den Zugriff hast. Was angekreuzt ist, kannst du jederzeit mit «Bearbeiten» ändern; der Token behält seinen Wert, nichts muss neu eingerichtet werden. Nimm einen Token pro Computer, benenne ihn nach dem Computer und widerrufe ihn, wenn der Computer verloren geht oder weitergegeben wird. Andere Computer, Claude Desktop und claude.ai brauchen eine eigene Einrichtung.</value>
+    <value>Der Token gilt für alle AI-Agents deines Windows-Benutzers auf diesem Computer. Sie handeln als du, aber nur mit dem, was du beim Token angekreuzt hast — ändern kannst du das jederzeit mit «Bearbeiten». Geht der Computer verloren, widerrufe den Token.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
-    <value>Ein Token pro Computer: Benenne ihn nach dem Computer, dann kannst du einen widerrufen, ohne die anderen zu treffen — ein anderer Computer bekommt seinen eigenen Token. Der Token ist für Claude Code auf diesem Computer; Claude Desktop und claude.ai haben ihre eigene MCP-Konfiguration und werden separat eingerichtet.</value>
+    <value>Ein Token pro Computer. Alle AI-Agents auf diesem Computer (Claude Code, VS Code, Claude Desktop …) nutzen ihn gemeinsam. Geht ein Computer verloren, widerrufst du nur seinen Token.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Alle für Agents geöffneten Team-Tresore (auch künftige)</value>
+    <value>Alle Team-Tresore, die für AI-Agents geöffnet sind — auch künftige</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
-    <value>Alle Applikationen (auch künftige)</value>
+    <value>Alle Applikationen — auch künftige</value>
   </data>
   <data name="AgentTokens.Edit.Title" xml:space="preserve">
     <value>Token «{0}» ändern</value>
   </data>
   <data name="AgentTokens.Msg.Updated" xml:space="preserve">
     <value>Token geändert. Er funktioniert mit seinem bisherigen Wert weiter.</value>
+  </data>
+  <data name="AgentTokens.Networks.Help" xml:space="preserve">
+    <value>Leer = von überall. Sonst Netzwerkbereiche, mit Komma getrennt, z. B. 10.1.0.0/23 (= 10.1.0.0 bis 10.1.1.255).</value>
   </data>
 </root>

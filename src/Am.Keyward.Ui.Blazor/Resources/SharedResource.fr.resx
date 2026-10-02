@@ -857,23 +857,23 @@
   <data name="Provisioning.Fix.SchemaUnreadable" xml:space="preserve"><value>Vérifiez les droits du compte sur le schéma «amkeyward».</value></data>
   <data name="Provisioning.Fix.TenantMissing" xml:space="preserve"><value>Il est créé (seed) au démarrage de l'application — redémarrez et vérifiez le journal.</value></data>
   <data name="Provisioning.Fix.TenantUnreadable" xml:space="preserve"><value>Vérifiez les droits du compte (le seed s'exécute au démarrage de l'application).</value></data>
-  <data name="Nav.AgentTokens" xml:space="preserve"><value>Jetons d'agent</value></data>
-  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Jetons d'agent</value></data>
-  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Jetons pour les assistants IA (comme Claude Code) qui travaillent avec les entrées des coffres en votre nom. Un jeton agit en votre nom, mais seulement dans les coffres choisis et avec les droits cochés. Les valeurs qu'il enregistre ne lui sont jamais renvoyées.</value></data>
+  <data name="Nav.AgentTokens" xml:space="preserve"><value>Jetons d'agent IA</value></data>
+  <data name="Page.AgentTokens.Title" xml:space="preserve"><value>Jetons d'agent IA</value></data>
+  <data name="Page.AgentTokens.Desc" xml:space="preserve"><value>Avec un jeton d'agent IA, un agent IA comme Claude Code travaille dans KEYWARD en votre nom — uniquement dans les coffres et applications et avec les droits que vous choisissez ici. Il ne peut pas lire les mots de passe ni les autres valeurs : s'il en a besoin, il vous donne le lien vers l'entrée. Vous seul voyez vos jetons.</value></data>
   <data name="AgentTokens.Issue.Title" xml:space="preserve"><value>Émettre un jeton</value></data>
   <data name="AgentTokens.Issue.Action" xml:space="preserve"><value>Émettre le jeton</value></data>
-  <data name="AgentTokens.Name" xml:space="preserve"><value>Nom (p. ex. l'ordinateur sur lequel tourne l'assistant)</value></data>
+  <data name="AgentTokens.Name" xml:space="preserve"><value>Nom — idéalement le nom de l'ordinateur</value></data>
   <data name="AgentTokens.Vaults" xml:space="preserve"><value>Coffres</value></data>
   <data name="AgentTokens.NoVaults" xml:space="preserve"><value>Aucun coffre d'équipe n'est encore ouvert aux agents. Une personne qui gère un coffre d'équipe peut l'ouvrir sous « Partager ».</value></data>
-  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Droits</value></data>
-  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Lister les entrées (noms seulement)</value></data>
-  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Lire l'URL et le nom d'utilisateur</value></data>
-  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Créer et modifier des entrées</value></data>
-  <data name="AgentTokens.Days" xml:space="preserve"><value>Validité (jours)</value></data>
-  <data name="AgentTokens.Networks" xml:space="preserve"><value>Réseaux autorisés (facultatif, CIDR)</value></data>
-  <data name="AgentTokens.New" xml:space="preserve"><value>Copiez le jeton maintenant — il n'est affiché qu'une seule fois. Enregistrez-le dans le Gestionnaire d'identification Windows de l'ordinateur où tourne l'assistant.</value></data>
-  <data name="AgentTokens.Existing" xml:space="preserve"><value>Vos jetons d'agent</value></data>
-  <data name="AgentTokens.None" xml:space="preserve"><value>Vous n'avez encore aucun jeton d'agent.</value></data>
+  <data name="AgentTokens.Scopes" xml:space="preserve"><value>Que peut faire l'agent dans ces coffres ?</value></data>
+  <data name="AgentTokens.Scope.VaultList" xml:space="preserve"><value>Trouver des entrées (noms seulement)</value></data>
+  <data name="AgentTokens.Scope.VaultRead" xml:space="preserve"><value>Voir l'URL et le nom d'utilisateur</value></data>
+  <data name="AgentTokens.Scope.VaultWrite" xml:space="preserve"><value>Créer, modifier et déplacer des entrées</value></data>
+  <data name="AgentTokens.Days" xml:space="preserve"><value>Valable (jours, 365 au plus)</value></data>
+  <data name="AgentTokens.Networks" xml:space="preserve"><value>Uniquement depuis ces réseaux (facultatif)</value></data>
+  <data name="AgentTokens.New" xml:space="preserve"><value>Copiez le jeton maintenant — il n'est affiché qu'une fois.</value></data>
+  <data name="AgentTokens.Existing" xml:space="preserve"><value>Vos jetons d'agent IA</value></data>
+  <data name="AgentTokens.None" xml:space="preserve"><value>Vous n'avez encore aucun jeton d'agent IA.</value></data>
   <data name="AgentTokens.Expires" xml:space="preserve"><value>Expire le</value></data>
   <data name="AgentTokens.AnyNetwork" xml:space="preserve"><value>tout réseau</value></data>
   <data name="AgentTokens.Status.Active" xml:space="preserve"><value>Actif</value></data>
@@ -886,10 +886,10 @@
   <data name="AgentTokens.Msg.Rotated" xml:space="preserve"><value>Nouvelle valeur émise ; l'ancienne ne fonctionne plus.</value></data>
   <data name="AgentTokens.Msg.Revoked" xml:space="preserve"><value>Jeton révoqué.</value></data>
   <data name="Vault.Agent.Allow" xml:space="preserve"><value>Ouvrir ce coffre aux jetons d'agent IA</value></data>
-  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Ce n'est qu'alors qu'un membre peut émettre un jeton d'agent pour ce coffre, et seulement avec ses propres droits. Le fermer arrête immédiatement tous les jetons d'agent ; les personnes gardent leur accès.</value></data>
-  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Coffre ouvert aux jetons d'agent.</value></data>
-  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Coffre fermé aux jetons d'agent.</value></data>
-  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Demander à voir un secret (vous approuvez chaque demande)</value></data>
+  <data name="Vault.Agent.Desc" xml:space="preserve"><value>Ce n'est qu'alors qu'un membre peut émettre un jeton d'agent IA pour ce coffre, et seulement avec ses propres droits. Le fermer arrête immédiatement tous les jetons d'agent IA ; les personnes gardent leur accès.</value></data>
+  <data name="Vault.Agent.Msg.Opened" xml:space="preserve"><value>Coffre ouvert aux jetons d'agent IA.</value></data>
+  <data name="Vault.Agent.Msg.Closed" xml:space="preserve"><value>Coffre fermé aux jetons d'agent IA.</value></data>
+  <data name="AgentTokens.Scope.VaultReveal" xml:space="preserve"><value>Demander un mot de passe — vous approuvez chaque demande</value></data>
   <data name="AgentTokens.Reveal.Title" xml:space="preserve"><value>Demandes d'affichage</value></data>
   <data name="AgentTokens.Reveal.Desc" xml:space="preserve"><value>Un agent demande à voir un secret. Il n'obtient la valeur que si vous approuvez — une seule fois, dans la minute. La raison est le texte de l'agent : décidez selon ce que vous savez, pas selon ce qu'il écrit.</value></data>
   <data name="AgentTokens.Reveal.By" xml:space="preserve"><value>par « {0} »</value></data>
@@ -903,11 +903,11 @@
   <data name="AgentTokens.Field.Value" xml:space="preserve"><value>Valeur</value></data>
   <data name="Email.Reveal.Subject" xml:space="preserve"><value>{0} : un agent demande à voir un secret</value></data>
   <data name="Email.Reveal.Title" xml:space="preserve"><value>Un agent demande à voir un secret</value></data>
-  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Votre jeton d'agent « {0} » demande à voir le champ « {1} » de « {2} » dans le coffre « {3} ». Vous seul pouvez l'approuver, jusqu'à {4}.</value></data>
+  <data name="Email.Reveal.Intro" xml:space="preserve"><value>Votre jeton d'agent IA « {0} » demande à voir le champ « {1} » de « {2} » dans le coffre « {3} ». Vous seul pouvez l'approuver, jusqu'à {4}.</value></data>
   <data name="Email.Reveal.ReasonLabel" xml:space="preserve"><value>L'agent donne cette raison (son propre texte, non vérifié) :</value></data>
   <data name="Email.Reveal.Outro" xml:space="preserve"><value>Si vous n'attendiez pas cette demande, refusez-la et révoquez le jeton.</value></data>
   <data name="Email.Reveal.Button" xml:space="preserve"><value>Décider maintenant</value></data>
-  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Vous recevez ce message car un jeton d'agent que vous avez émis a fait la demande.</value></data>
+  <data name="Email.Reveal.Footer" xml:space="preserve"><value>Vous recevez ce message car un jeton d'agent IA que vous avez émis a fait la demande.</value></data>
   <data name="AgentTokens.Applications" xml:space="preserve">
     <value>Applications</value>
   </data>
@@ -915,7 +915,7 @@
     <value>Gérer les applications</value>
   </data>
   <data name="AgentTokens.Applications.Desc" xml:space="preserve">
-    <value>Créer des applications, des environnements et des clés, et définir des valeurs — en écriture seule : l'assistant ne relit jamais une valeur et ne peut pas émettre de jetons client. Uniquement les applications cochées ici, plus celles qu'il crée lui-même.</value>
+    <value>L'agent peut créer des applications, des environnements et des clés et saisir des valeurs. Il ne peut ni lire des valeurs ni émettre de jetons client.</value>
   </data>
   <data name="AgentTokens.Applications.CreateNew" xml:space="preserve">
     <value>Peut créer de nouvelles applications</value>
@@ -927,45 +927,48 @@
     <value>Générer un mot de passe fort</value>
   </data>
   <data name="AgentTokens.Usage.Next" xml:space="preserve">
-    <value>Ensuite, sur l'ordinateur où tourne l'assistant — la troisième étape vérifie le jeton :</value>
+    <value>Ensuite, exécutez ceci dans PowerShell sur l'ordinateur de l'agent. La deuxième commande demande le jeton — collez-le à ce moment ; la troisième indique si tout fonctionne.</value>
   </data>
   <data name="AgentTokens.Usage.Title" xml:space="preserve">
-    <value>Utiliser un jeton d'agent</value>
+    <value>Utiliser un jeton d'agent IA</value>
   </data>
   <data name="AgentTokens.Usage.Intro" xml:space="preserve">
-    <value>Un jeton relie un assistant IA comme Claude Code à KEYWARD via le serveur MCP « amkeyward-mcp », sur l'ordinateur où tourne l'assistant. Usages typiques : l'assistant enregistre des accès reçus par e-mail et vous donne le lien ; il trouve une entrée et vous donne son lien pour que vous copiiez la valeur vous-même ; avec « Gérer les applications », il crée une application et ses clés pour un programme, et vous saisissez les valeurs. Il ne voit jamais une valeur, sauf si vous approuvez chaque demande.</value>
+    <value>Un agent IA accède à KEYWARD via le petit programme « amkeyward-mcp » sur votre ordinateur. Vous le configurez une fois par ordinateur ; ensuite, vous dites simplement à l'agent ce qu'il doit faire.</value>
   </data>
   <data name="AgentTokens.Usage.Install" xml:space="preserve">
-    <value>Installer le serveur MCP (une fois par ordinateur) :</value>
+    <value>Installer le programme (une fois par ordinateur) :</value>
   </data>
   <data name="AgentTokens.Usage.Store" xml:space="preserve">
-    <value>Enregistrer le jeton dans le Gestionnaire d'identification Windows (le coller lorsqu'il est demandé) :</value>
+    <value>Enregistrer le jeton en sécurité — le coller lorsqu'il est demandé :</value>
   </data>
   <data name="AgentTokens.Usage.Check" xml:space="preserve">
-    <value>Vérifier la connexion et les droits du jeton :</value>
+    <value>Vérifier que tout fonctionne :</value>
   </data>
   <data name="AgentTokens.Usage.Register" xml:space="preserve">
-    <value>L'ajouter à Claude Code :</value>
+    <value>Le déclarer dans l'agent IA — ici pour Claude Code (autres agents : déclarer le programme « amkeyward-mcp » avec Keyward__ServiceUri dans leurs réglages MCP) :</value>
   </data>
   <data name="AgentTokens.Usage.Ask" xml:space="preserve">
-    <value>Ensuite, demandez simplement à l'assistant, p. ex. « Enregistre les accès de cet e-mail dans KEYWARD et donne-moi le lien » ou « Crée les clés de mon application console en Production ».</value>
+    <value>Terminé. Dites à l'agent ce qu'il doit faire, p. ex. « Enregistre les accès de cet e-mail dans KEYWARD et donne-moi le lien ».</value>
   </data>
   <data name="AgentTokens.Usage.Scope" xml:space="preserve">
-    <value>Portée : une fois enregistré, le jeton fonctionne dans chaque session Claude Code de votre utilisateur Windows sur cet ordinateur, dans chaque projet. Toutes agissent en votre nom, avec exactement les coffres, applications et droits cochés ici — rien de plus, et seulement tant que vous avez vous-même l'accès. Vous pouvez modifier à tout moment ce qui est coché avec « Modifier » ; le jeton garde sa valeur, rien n'est à reconfigurer. Utilisez un jeton par ordinateur, nommez-le d'après l'ordinateur et révoquez-le si l'ordinateur est perdu ou cédé. Les autres ordinateurs, Claude Desktop et claude.ai doivent être configurés séparément.</value>
+    <value>Le jeton vaut pour tous les agents IA de votre utilisateur Windows sur cet ordinateur. Ils agissent en votre nom, mais uniquement avec ce que vous avez coché — modifiable à tout moment avec « Modifier ». Si l'ordinateur est perdu, révoquez le jeton.</value>
   </data>
   <data name="AgentTokens.Issue.Hint" xml:space="preserve">
-    <value>Un jeton par ordinateur : nommez-le d'après l'ordinateur pour pouvoir en révoquer un sans toucher aux autres — un autre ordinateur reçoit son propre jeton. Le jeton est destiné à Claude Code sur cet ordinateur ; Claude Desktop et claude.ai ont leur propre configuration MCP et se configurent séparément.</value>
+    <value>Un jeton par ordinateur. Tous les agents IA de cet ordinateur (Claude Code, VS Code, Claude Desktop …) le partagent. Si un ordinateur est perdu, vous ne révoquez que son jeton.</value>
   </data>
   <data name="AgentTokens.AllVaults" xml:space="preserve">
-    <value>Tous les coffres d'équipe ouverts aux agents (aussi les futurs)</value>
+    <value>Tous les coffres d'équipe ouverts aux agents IA — aussi les futurs</value>
   </data>
   <data name="AgentTokens.AllApplications" xml:space="preserve">
-    <value>Toutes les applications (aussi les futures)</value>
+    <value>Toutes les applications — aussi les futures</value>
   </data>
   <data name="AgentTokens.Edit.Title" xml:space="preserve">
     <value>Modifier le jeton « {0} »</value>
   </data>
   <data name="AgentTokens.Msg.Updated" xml:space="preserve">
     <value>Jeton modifié. Il continue de fonctionner avec sa valeur actuelle.</value>
+  </data>
+  <data name="AgentTokens.Networks.Help" xml:space="preserve">
+    <value>Vide = depuis partout. Sinon des plages réseau séparées par des virgules, p. ex. 10.1.0.0/23 (= 10.1.0.0 à 10.1.1.255).</value>
   </data>
 </root>

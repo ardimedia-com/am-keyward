@@ -158,7 +158,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         var request = result.Value!;
         return $"Reveal request {request.Id} is waiting for approval until {request.ExpiresAt:HH:mm} UTC. "
-            + "Ask the person to approve it in KEYWARD under «Agent tokens», then call consume_reveal with this id. "
+            + "Ask the person to approve it in KEYWARD under «AI agent tokens», then call consume_reveal with this id. "
             + $"Or the person opens the entry and copies the value there: {keyward.AbsoluteLink(request.ItemLink)}";
     }
 

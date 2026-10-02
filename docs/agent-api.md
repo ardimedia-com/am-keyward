@@ -31,7 +31,7 @@ Both can be limited to given networks.
 - **The entry link first.** Wherever an agent needs a value it hands the person the entry's deep link (every item
   and every reveal request carries it): the person opens the entry and copies the value there.
 - **Revealing a vault secret needs a human, every time.** An agent asks to see one field with a reason; the
-  token's user approves or rejects it on the «Agent tokens» page within 5 minutes; an approved value can be fetched
+  token's user approves or rejects it on the «AI agent tokens» page within 5 minutes; an approved value can be fetched
   **once**, within 60 seconds. The MCP server puts it on the Windows clipboard (excluded from clipboard history and
   cloud sync, cleared after 30 seconds) — never into the assistant's context. The reason is the agent's own text:
   decide on what you know, not on what it says. Application values cannot be revealed at all.
@@ -127,7 +127,7 @@ The API is part of `Am.Keyward.Api`. A host adds it next to the software-client 
    the same rule.
 5. **Alert presenter** — implement `IKeywardAlertPresenter.NotifyRevealRequestAsync` so users hear about a reveal
    request within its 5 minutes (a default that does nothing exists; without an implementation users must keep the
-   «Agent tokens» page open).
+   «AI agent tokens» page open).
 6. **Schema** — the host's usual `KeywardSchemaMigrator` run applies the migrations (`AgentTokens`, `RevealRequests`,
    `AgentApplicationManagement`, …).
 
@@ -215,7 +215,7 @@ Register it in Claude Code (the token is not part of the configuration):
 claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- amkeyward-mcp
 ```
 
-The «Agent tokens» page shows these commands filled in with its own address.
+The «AI agent tokens» page shows these commands filled in with its own address.
 
 **Several KEYWARD installations on one computer** (e.g. two companies' toolboxes): nothing about them is built into
 the tool. Each token is stored under its KEYWARD's address (`AmKeyward:Agent:<host>`), and each installation is its
