@@ -5,6 +5,12 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **An open entry shows two areas**: «Details» (type, folder, fields) and «Move» (target vault and folder). A login's
+  note runs below the password across the full width and wraps — with its line breaks — instead of being cut off.
+  The folder line says «(no folder)» instead of «—». The framed-area style is shared with «Sharing» (`ws-area`).
+
 ## [0.26.0-preview] - 2026-10-02
 
 ### Added

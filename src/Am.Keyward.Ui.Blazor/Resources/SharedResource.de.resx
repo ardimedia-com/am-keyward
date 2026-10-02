@@ -1198,4 +1198,7 @@
   <data name="Vault.Share.UsersArea" xml:space="preserve">
     <value>Benutzer</value>
   </data>
+  <data name="Vault.Item.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
 </root>

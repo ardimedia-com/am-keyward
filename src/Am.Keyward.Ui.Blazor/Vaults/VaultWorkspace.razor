@@ -226,8 +226,8 @@ else
                             <summary><KeywardIcon Name="users" /> @Loc["Vault.Share.Title"]@(shares is { Count: > 0 } ? $" ({shares.Count})" : "")</summary>
                             <div class="section-body">
                                 @* Two areas: who may use the vault (people and groups), then whether AI agent tokens may. *@
-                                <div class="share-area">
-                                    <h4 class="share-area-title"><KeywardIcon Name="users" Size="15" />@Loc["Vault.Share.UsersArea"]</h4>
+                                <div class="ws-area">
+                                    <h4 class="ws-area-title"><KeywardIcon Name="users" Size="15" />@Loc["Vault.Share.UsersArea"]</h4>
                                     <p class="muted">@Loc["Vault.Share.Desc"]</p>
                                     <p class="muted">@Loc["Vault.Share.Boundary"]</p>
                                     @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
@@ -294,8 +294,8 @@ else
                                         </table>
                                     }
                                 </div>
-                                <div class="share-area">
-                                    <h4 class="share-area-title"><KeywardIcon Name="key" Size="15" />@Loc["Nav.AgentTokens"]</h4>
+                                <div class="ws-area">
+                                    <h4 class="ws-area-title"><KeywardIcon Name="key" Size="15" />@Loc["Nav.AgentTokens"]</h4>
                                     <div class="agent-access">
                                         <label class="agent-access-toggle">
                                             <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
@@ -697,77 +697,85 @@ else
                     <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteItem = false">@Loc["Common.Cancel"]</button>
                 </div>
             }
-            <p class="muted" style="margin-top:.25rem;"><span class="badge">@TypeLabel(detail.Type)</span> @Loc["Vault.Items.InFolder"] @FolderName(detail.FolderId)</p>
+            @* Two areas: what the entry holds, then where it lives (move). *@
+            <div class="ws-area" style="margin-top:.75rem;">
+                <h4 class="ws-area-title"><KeywardIcon Name="@TypeIcon(detail.Type)" Size="15" />@Loc["Vault.Item.Details"]</h4>
+                <p class="muted" style="margin:0;"><span class="badge">@TypeLabel(detail.Type)</span> @Loc["Vault.Items.InFolder"] @(detail.FolderId is null ? Loc["Vault.Field.NoFolder"] : FolderName(detail.FolderId))</p>
 
-            @if (detail.Type == ItemType.Login)
-            {
-                var f = LoginContent.Parse(detail.Content);
-                <div class="detail-grid">
-                    <div class="detail-field">
-                        <label>@Loc["Vault.Field.Username"]</label>
-                        <div class="detail-value">
-                            <span class="grow">@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</span>
-                            @if (!string.IsNullOrWhiteSpace(f.Username))
-                            {
-                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("user", f.Username)'><KeywardIcon Name="@(copiedKey == "user" ? "check" : "copy")" Size="15" /></button>
-                            }
+                @if (detail.Type == ItemType.Login)
+                {
+                    var f = LoginContent.Parse(detail.Content);
+                    <div class="detail-grid">
+                        <div class="detail-field">
+                            <label>@Loc["Vault.Field.Username"]</label>
+                            <div class="detail-value">
+                                <span class="grow">@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</span>
+                                @if (!string.IsNullOrWhiteSpace(f.Username))
+                                {
+                                    <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("user", f.Username)'><KeywardIcon Name="@(copiedKey == "user" ? "check" : "copy")" Size="15" /></button>
+                                }
+                            </div>
+                        </div>
+                        <div class="detail-field">
+                            <label>@Loc["Vault.Field.Url"]</label>
+                            <div class="detail-value">
+                                <span class="grow">@(string.IsNullOrWhiteSpace(f.Url) ? "—" : f.Url)</span>
+                                @if (!string.IsNullOrWhiteSpace(f.Url))
+                                {
+                                    <a class="icon-btn" href="@f.Url" target="_blank" rel="noreferrer" title="@Loc["Common.Open"]"><KeywardIcon Name="external-link" Size="15" /></a>
+                                }
+                            </div>
+                        </div>
+                        <div class="detail-field">
+                            <label>@Loc["Vault.Field.Password"]</label>
+                            <div class="detail-value">
+                                <span class="grow"><code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code></span>
+                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
+                                @if (f.Password is { Length: > 0 })
+                                {
+                                    <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("pwd", f.Password)'><KeywardIcon Name="@(copiedKey == "pwd" ? "check" : "copy")" Size="15" /></button>
+                                }
+                            </div>
+                        </div>
+                        @* The note runs below the password across the full width and wraps, so all of it can be read. *@
+                        <div class="detail-field wide">
+                            <label>@Loc["Vault.Field.Note"]</label>
+                            <div class="detail-value multiline"><span class="grow">@(string.IsNullOrWhiteSpace(f.Note) ? "—" : f.Note)</span></div>
                         </div>
                     </div>
-                    <div class="detail-field">
-                        <label>@Loc["Vault.Field.Url"]</label>
-                        <div class="detail-value">
-                            <span class="grow">@(string.IsNullOrWhiteSpace(f.Url) ? "—" : f.Url)</span>
-                            @if (!string.IsNullOrWhiteSpace(f.Url))
-                            {
-                                <a class="icon-btn" href="@f.Url" target="_blank" rel="noreferrer" title="@Loc["Common.Open"]"><KeywardIcon Name="external-link" Size="15" /></a>
-                            }
+                }
+                else
+                {
+                    <div class="detail-grid">
+                        <div class="detail-field wide">
+                            <label>@Loc["Vault.Field.Value"]</label>
+                            <div class="detail-value">
+                                <span class="grow"><code>@(reveal ? detail.Content : "••••••••")</code></span>
+                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
+                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("value", detail.Content)'><KeywardIcon Name="@(copiedKey == "value" ? "check" : "copy")" Size="15" /></button>
+                            </div>
                         </div>
                     </div>
-                    <div class="detail-field">
-                        <label>@Loc["Vault.Field.Password"]</label>
-                        <div class="detail-value">
-                            <span class="grow"><code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code></span>
-                            <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
-                            @if (f.Password is { Length: > 0 })
-                            {
-                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("pwd", f.Password)'><KeywardIcon Name="@(copiedKey == "pwd" ? "check" : "copy")" Size="15" /></button>
-                            }
-                        </div>
-                    </div>
-                    <div class="detail-field">
-                        <label>@Loc["Vault.Field.Note"]</label>
-                        <div class="detail-value"><span class="grow">@(string.IsNullOrWhiteSpace(f.Note) ? "—" : f.Note)</span></div>
-                    </div>
-                </div>
-            }
-            else
-            {
-                <div class="detail-grid">
-                    <div class="detail-field wide">
-                        <label>@Loc["Vault.Field.Value"]</label>
-                        <div class="detail-value">
-                            <span class="grow"><code>@(reveal ? detail.Content : "••••••••")</code></span>
-                            <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
-                            <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("value", detail.Content)'><KeywardIcon Name="@(copiedKey == "value" ? "check" : "copy")" Size="15" /></button>
-                        </div>
-                    </div>
-                </div>
-            }
+                }
+            </div>
 
             @* Move to another folder — or another vault (re-encrypted there by the service). *@
-            <div class="move-panel">
-                <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
-                <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:13rem;">
-                    @MoveVaultOptions
-                </select>
-                <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:13rem;">
-                    <option value="">@Loc["Vault.Field.NoFolder"]</option>
-                    @foreach (var (folder, depth) in FlattenedMoveFolders())
-                    {
-                        <option value="@folder.Id">@(new string(' ', depth * 3))@folder.Name</option>
-                    }
-                </select>
-                <button class="btn-ghost btn-sm" @onclick="MoveCurrentAsync" disabled="@busy">@Loc["Vault.Move.Action"]</button>
+            <div class="ws-area">
+                <h4 class="ws-area-title"><KeywardIcon Name="folder" Size="15" />@Loc["Vault.Move.Action"]</h4>
+                <div class="move-panel">
+                    <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
+                    <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:13rem;">
+                        @MoveVaultOptions
+                    </select>
+                    <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:13rem;">
+                        <option value="">@Loc["Vault.Field.NoFolder"]</option>
+                        @foreach (var (folder, depth) in FlattenedMoveFolders())
+                        {
+                            <option value="@folder.Id">@(new string(' ', depth * 3))@folder.Name</option>
+                        }
+                    </select>
+                    <button class="btn-ghost btn-sm" @onclick="MoveCurrentAsync" disabled="@busy">@Loc["Vault.Move.Action"]</button>
+                </div>
             </div>
         </div>
     };

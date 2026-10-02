@@ -548,6 +548,9 @@
 }
 .keyward-ui ::deep .detail-value .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .keyward-ui ::deep .detail-value code { background: transparent; padding: 0; }
+/* Free text (a login's note): wraps and keeps its line breaks instead of being cut off with an ellipsis. */
+.keyward-ui ::deep .detail-value.multiline { align-items: flex-start; }
+.keyward-ui ::deep .detail-value.multiline .grow { overflow: visible; text-overflow: clip; white-space: pre-wrap; overflow-wrap: anywhere; }
 .keyward-ui ::deep .icon-btn,
 .keyward-ui ::deep button.icon-btn,
 .keyward-ui ::deep a.icon-btn {
