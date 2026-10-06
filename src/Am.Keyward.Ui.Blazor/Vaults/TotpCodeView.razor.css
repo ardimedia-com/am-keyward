@@ -1,0 +1,16 @@
+/* The one-time code: large monospaced digits, the remaining seconds beside them (warning colour at the end). */
+.totp-code {
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+}
+
+.totp-left {
+    margin-left: .6rem;
+    color: var(--kw-muted-text);
+    font-size: .8rem;
+}
+
+.totp-left.ending {
+    color: var(--kw-warning);
+}

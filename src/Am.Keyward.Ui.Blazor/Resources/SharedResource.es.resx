@@ -529,7 +529,7 @@
     <value>Exportar inicios de sesión</value>
   </data>
   <data name="Vault.Export.Desc" xml:space="preserve">
-    <value>Descarga las entradas LOGIN de esta caja fuerte como CSV compatible con navegadores (name, url, username, password, note) — reimportable aquí o en Microsoft Edge / Google Chrome. El archivo contiene las contraseñas en TEXTO PLANO: guárdalo de forma segura y elimínalo tras su uso. Los demás tipos de entrada (notas, valores) no forman parte de este formato.</value>
+    <value>Descarga las entradas LOGIN de esta caja fuerte como CSV compatible con navegadores (name, url, username, password, note) — reimportable aquí o en Microsoft Edge / Google Chrome. El archivo contiene las contraseñas en TEXTO PLANO: guárdalo de forma segura y elimínalo tras su uso. Los demás tipos de entrada (notas, valores) no forman parte de este formato. Tampoco se exportan las claves 2FA.</value>
   </data>
   <data name="Vault.Export.Create" xml:space="preserve">
     <value>Crear CSV</value>
@@ -1074,5 +1074,47 @@
   </data>
   <data name="Vault.Item.Details" xml:space="preserve">
     <value>Detalles</value>
+  </data>
+  <data name="Vault.Field.Totp" xml:space="preserve">
+    <value>Clave 2FA (TOTP)</value>
+  </data>
+  <data name="Vault.Field.TotpCode" xml:space="preserve">
+    <value>Código de un solo uso (2FA)</value>
+  </data>
+  <data name="Vault.Totp.Placeholder" xml:space="preserve">
+    <value>Clave o enlace otpauth://</value>
+  </data>
+  <data name="Vault.Totp.FromImage" xml:space="preserve">
+    <value>Leer el código QR de una imagen</value>
+  </data>
+  <data name="Vault.Totp.Help" xml:space="preserve">
+    <value>Opcional. Al activar la 2FA, el sitio muestra un código QR y normalmente una clave: pega aquí la clave — o una captura del código QR (Ctrl+V en este campo), o elígela como imagen.</value>
+  </data>
+  <data name="Vault.Totp.Valid" xml:space="preserve">
+    <value>Legible — código actual {0}.</value>
+  </data>
+  <data name="Vault.Totp.Invalid" xml:space="preserve">
+    <value>No es una clave 2FA: se compone de las letras A–Z y los dígitos 2–7, o es un enlace otpauth://.</value>
+  </data>
+  <data name="Vault.Totp.FromQr" xml:space="preserve">
+    <value>Clave 2FA tomada del código QR.</value>
+  </data>
+  <data name="Vault.Totp.NoQr" xml:space="preserve">
+    <value>No se encontró ningún código QR en la imagen — haz la captura de modo que se vea todo el código.</value>
+  </data>
+  <data name="Vault.Totp.QrNotTotp" xml:space="preserve">
+    <value>El código QR no contiene ninguna clave 2FA.</value>
+  </data>
+  <data name="Vault.Totp.SecondsLeft" xml:space="preserve">
+    <value>quedan {0} s</value>
+  </data>
+  <data name="Vault.Totp.Unreadable" xml:space="preserve">
+    <value>La clave 2FA guardada no se puede leer — introdúcela de nuevo.</value>
+  </data>
+  <data name="AgentTokens.Field.Totp" xml:space="preserve">
+    <value>código de un solo uso (2FA)</value>
+  </data>
+  <data name="AgentTokens.Scope.TotpCodes" xml:space="preserve">
+    <value>Obtener directamente los códigos de un solo uso (2FA) — cada uno queda registrado</value>
   </data>
 </root>

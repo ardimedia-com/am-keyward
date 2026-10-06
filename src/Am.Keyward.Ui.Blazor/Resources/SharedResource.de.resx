@@ -531,7 +531,7 @@
     <value>Logins exportieren</value>
   </data>
   <data name="Vault.Export.Desc" xml:space="preserve">
-    <value>Lädt die LOGIN-Einträge dieses Tresors als browser-kompatible CSV herunter (name, url, username, password, note) — wieder importierbar hier oder in Microsoft Edge / Google Chrome. Die Datei enthält die Passwörter im KLARTEXT: sicher aufbewahren und nach Gebrauch löschen. Andere Eintragstypen (Notizen, Werte) sind nicht Teil dieses Formats.</value>
+    <value>Lädt die LOGIN-Einträge dieses Tresors als browser-kompatible CSV herunter (name, url, username, password, note) — wieder importierbar hier oder in Microsoft Edge / Google Chrome. Die Datei enthält die Passwörter im KLARTEXT: sicher aufbewahren und nach Gebrauch löschen. Andere Eintragstypen (Notizen, Werte) sind nicht Teil dieses Formats. Auch 2FA-Schlüssel werden nicht exportiert.</value>
   </data>
   <data name="Vault.Export.Create" xml:space="preserve">
     <value>CSV erstellen</value>
@@ -1200,5 +1200,47 @@
   </data>
   <data name="Vault.Item.Details" xml:space="preserve">
     <value>Details</value>
+  </data>
+  <data name="Vault.Field.Totp" xml:space="preserve">
+    <value>2FA-Schlüssel (TOTP)</value>
+  </data>
+  <data name="Vault.Field.TotpCode" xml:space="preserve">
+    <value>Einmalcode (2FA)</value>
+  </data>
+  <data name="Vault.Totp.Placeholder" xml:space="preserve">
+    <value>Schlüssel oder otpauth://-Link</value>
+  </data>
+  <data name="Vault.Totp.FromImage" xml:space="preserve">
+    <value>QR-Code aus einem Bild lesen</value>
+  </data>
+  <data name="Vault.Totp.Help" xml:space="preserve">
+    <value>Optional. Beim Einschalten von 2FA zeigt die Website einen QR-Code und meist einen Schlüssel: Schlüssel hier einfügen — oder einen Screenshot des QR-Codes (Ctrl+V in diesem Feld) bzw. als Bild wählen.</value>
+  </data>
+  <data name="Vault.Totp.Valid" xml:space="preserve">
+    <value>Lesbar — aktueller Code {0}.</value>
+  </data>
+  <data name="Vault.Totp.Invalid" xml:space="preserve">
+    <value>Das ist kein 2FA-Schlüssel: Er besteht aus den Buchstaben A–Z und den Ziffern 2–7 oder ist ein otpauth://-Link.</value>
+  </data>
+  <data name="Vault.Totp.FromQr" xml:space="preserve">
+    <value>2FA-Schlüssel aus dem QR-Code übernommen.</value>
+  </data>
+  <data name="Vault.Totp.NoQr" xml:space="preserve">
+    <value>Kein QR-Code im Bild gefunden — den Screenshot so machen, dass der ganze Code sichtbar ist.</value>
+  </data>
+  <data name="Vault.Totp.QrNotTotp" xml:space="preserve">
+    <value>Der QR-Code enthält keinen 2FA-Schlüssel.</value>
+  </data>
+  <data name="Vault.Totp.SecondsLeft" xml:space="preserve">
+    <value>noch {0} s</value>
+  </data>
+  <data name="Vault.Totp.Unreadable" xml:space="preserve">
+    <value>Der gespeicherte 2FA-Schlüssel ist nicht lesbar — bitte neu eingeben.</value>
+  </data>
+  <data name="AgentTokens.Field.Totp" xml:space="preserve">
+    <value>Einmalcode (2FA)</value>
+  </data>
+  <data name="AgentTokens.Scope.TotpCodes" xml:space="preserve">
+    <value>Einmalcodes (2FA) direkt abrufen — jeder Abruf wird protokolliert</value>
   </data>
 </root>

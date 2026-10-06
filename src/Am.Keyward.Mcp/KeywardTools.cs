@@ -62,7 +62,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             : "No entry matches.";
     }
 
-    [McpServerTool(Name = "get_item", ReadOnly = true), Description("Shows one entry without its secret: name, type, link, version and — for a Login — URL and user name.")]
+    [McpServerTool(Name = "get_item", ReadOnly = true), Description("Shows one entry without its secret: name, type, link, version and — for a Login — URL, user name and whether it has a 2FA key (one-time codes).")]
     public async Task<string> GetItemAsync([Description("The entry id.")] Guid itemId, CancellationToken ct)
     {
         var result = await keyward.GetItemAsync(itemId, ct);
@@ -75,10 +75,11 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             .AppendLine($"Version: {item.VersionId}");
         if (item.Url is not null) text.AppendLine($"URL: {item.Url}");
         if (item.Username is not null) text.AppendLine($"User name: {item.Username}");
+        if (item.HasTotp) text.AppendLine("2FA: yes — one-time codes via get_totp_code (if permitted) or request_reveal with field Totp.");
         return text.ToString().TrimEnd();
     }
 
-    [McpServerTool(Name = "create_login"), Description("Stores a Login (URL, user name, password, note) in a vault. The password is never shown back; the answer is the entry link to give to the person.")]
+    [McpServerTool(Name = "create_login"), Description("Stores a Login (URL, user name, password, note and optionally its 2FA key) in a vault. Password and 2FA key are never shown back; the answer is the entry link to give to the person.")]
     public async Task<string> CreateLoginAsync(
         [Description("The vault id from list_vaults.")] Guid vaultId,
         [Description("Entry name, e.g. the service.")] string name,
@@ -87,9 +88,10 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         [Description("Password.")] string? password = null,
         [Description("Note, e.g. where the credential came from.")] string? note = null,
         [Description("Optional folder id from list_items.")] Guid? folderId = null,
+        [Description("2FA key: the secret (letters A–Z, digits 2–7) or the otpauth://totp/… link from the QR code a website shows when 2FA is switched on. Only if the person gave it to you for exactly this.")] string? totp = null,
         CancellationToken ct = default)
     {
-        var result = await keyward.CreateItemAsync(vaultId, new AgentCreateItemRequest("Login", name, folderId, url, username, password, note), ct);
+        var result = await keyward.CreateItemAsync(vaultId, new AgentCreateItemRequest("Login", name, folderId, url, username, password, note, Totp: totp), ct);
         return result.Ok ? Written("Stored", result.Value!) : result.Error!;
     }
 
@@ -116,6 +118,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         [Description("Login: new password.")] string? password = null,
         [Description("Login: new note.")] string? note = null,
         [Description("Other types: the new value.")] string? value = null,
+        [Description("Login: new 2FA key (secret or otpauth://totp/… link); an empty string removes it.")] string? totp = null,
         CancellationToken ct = default)
     {
         var version = versionId;
@@ -126,7 +129,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             version = current.Value!.VersionId;
         }
 
-        var result = await keyward.UpdateItemAsync(itemId, version.Value, new AgentUpdateItemRequest(name, url, username, password, note, value), ct);
+        var result = await keyward.UpdateItemAsync(itemId, version.Value, new AgentUpdateItemRequest(name, url, username, password, note, value, totp), ct);
         return result.Ok ? Written("Updated", result.Value!) : result.Error!;
     }
 
@@ -141,10 +144,10 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? Written("Moved", result.Value!) : result.Error!;
     }
 
-    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password' or 'Note' of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
+    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password', 'Note' or 'Totp' (the current one-time code, generated when it is copied) of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
     public async Task<string> RequestRevealAsync(
         [Description("The entry id.")] Guid itemId,
-        [Description("Password, Note or Value.")] string field,
+        [Description("Password, Note, Totp or Value.")] string field,
         [Description("Why the value is needed — shown to the person who decides.")] string reason,
         CancellationToken ct)
     {
@@ -187,8 +190,18 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         if (!result.Ok) return result.Error!;
 
         clipboard.CopyAndClearLater(result.Value!.Value, ClipboardLifetime);
-        return $"The {result.Value.Field.ToLowerInvariant()} is on the clipboard for {ClipboardLifetime.TotalSeconds:0} seconds. "
+        var what = result.Value.Field == "Totp" ? "one-time code" : result.Value.Field.ToLowerInvariant();
+        return $"The {what} is on the clipboard for {ClipboardLifetime.TotalSeconds:0} seconds. "
             + "Tell the person to paste it now; the value was not shared with you.";
+    }
+
+    [McpServerTool(Name = "get_totp_code"), Description("Returns the current one-time code (2FA) of a Login with a 2FA key, e.g. to finish a sign-in the person asked you to do. Needs the token permission «one-time codes»; every code is logged. Without it, use request_reveal with field Totp (the person approves, the code goes to the clipboard).")]
+    public async Task<string> GetTotpCodeAsync([Description("The entry id.")] Guid itemId, CancellationToken ct)
+    {
+        var result = await keyward.GetTotpCodeAsync(itemId, ct);
+        if (!result.Ok) return result.Error!;
+
+        return $"One-time code: {result.Value!.Code} (valid for {result.Value.SecondsLeft} more seconds).";
     }
 
     [McpServerTool(Name = "list_applications", ReadOnly = true), Description("Lists the KEYWARD applications (software-client API) this agent token may manage: environments, keys and per environment whether a value is set. Never a value.")]

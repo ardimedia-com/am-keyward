@@ -71,7 +71,7 @@
     cursor: not-allowed;
 }
 
-/* A field with a button beside its input (password: generate). */
+/* A field with a button beside its input (password: generate; 2FA key: QR code from an image). */
 .input-with-action {
     display: flex;
     align-items: center;
@@ -84,7 +84,8 @@
 }
 
 /* As tall as the input beside it, so the pair reads as one control. */
-.input-with-action button {
+.input-with-action button,
+.input-with-action .qr-pick {
     flex: none;
     align-self: stretch;
     padding: 0 .6rem;
@@ -218,4 +219,19 @@
     display: inline-flex;
     align-items: center;
     gap: .4rem;
+}
+
+/* The QR image picker looks like the other icon buttons; the file input inside it stays hidden. */
+.qr-pick {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.field-help {
+    font-size: .8rem;
+}
+
+.field-error {
+    color: var(--kw-danger);
 }

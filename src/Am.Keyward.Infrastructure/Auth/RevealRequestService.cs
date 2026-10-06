@@ -40,11 +40,11 @@ public sealed class RevealRequestService(
             .FirstOrDefaultAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {itemId} not found.");
 
-        var fits = item.Type == ItemType.Login ? field is RevealField.Password or RevealField.Note : field == RevealField.Value;
+        var fits = item.Type == ItemType.Login ? field is RevealField.Password or RevealField.Note or RevealField.Totp : field == RevealField.Value;
         if (!fits)
         {
             throw new ArgumentException(item.Type == ItemType.Login
-                ? "A Login reveals its password or its note."
+                ? "A Login reveals its password, its note or its current one-time code (Totp)."
                 : $"A {item.Type} reveals its value.");
         }
 

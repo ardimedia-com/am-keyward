@@ -4,7 +4,9 @@ namespace Am.Keyward.Core.Application;
 /// The browser password-export CSV format (Microsoft Edge / Google Chrome, header columns
 /// <c>name,url,username,password,note</c>). <see cref="Parse"/> reads such a file (extra/missing columns
 /// and quoted fields are tolerated) for the vault importer; <see cref="Write"/> produces one for the vault
-/// exporter — so an AM KEYWARD export can be re-imported here or into a browser, and vice versa.
+/// exporter — so an AM KEYWARD export can be re-imported here or into a browser, and vice versa. A 2FA column of a
+/// Bitwarden (<c>login_totp</c>) or 1Password (<c>otpauth</c>) export is read too; the browser format has none, so the
+/// export never carries a 2FA key.
 /// </summary>
 public static class EdgePasswordCsv
 {
@@ -22,12 +24,13 @@ public static class EdgePasswordCsv
         var userIdx = IndexOf(header, "username", "login", "email", "login_username");
         var pwdIdx = IndexOf(header, "password", "login_password");
         var noteIdx = IndexOf(header, "note", "notes", "comment");
+        var totpIdx = IndexOf(header, "totp", "login_totp", "otpauth", "one-time password");
 
         var result = new List<ImportedLogin>();
         for (var r = 1; r < rows.Count; r++)
         {
             var cols = rows[r];
-            var login = new ImportedLogin(Field(cols, nameIdx), Field(cols, urlIdx), Field(cols, userIdx), Field(cols, pwdIdx), Field(cols, noteIdx));
+            var login = new ImportedLogin(Field(cols, nameIdx), Field(cols, urlIdx), Field(cols, userIdx), Field(cols, pwdIdx), Field(cols, noteIdx), Field(cols, totpIdx));
             if (!(string.IsNullOrWhiteSpace(login.Name) && string.IsNullOrWhiteSpace(login.Url) && string.IsNullOrWhiteSpace(login.Username)))
             {
                 result.Add(login);

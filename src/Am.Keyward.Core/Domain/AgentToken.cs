@@ -24,6 +24,12 @@ public enum AgentScopes
     /// <see cref="AgentToken.AllowedApplications"/> and those the token created itself. Never app tokens.
     /// </summary>
     ManageApplications = 16,
+
+    /// <summary>
+    /// Receive the current one-time code of a Login with a 2FA key directly (decision T16 B) — off by default, each
+    /// code audited. Without it an agent gets a code only through an approved reveal request, onto the clipboard.
+    /// </summary>
+    TotpCodes = 32,
 }
 
 /// <summary>

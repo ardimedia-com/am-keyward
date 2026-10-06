@@ -106,7 +106,7 @@ public static class KeywardAgentApi
             return Results.Ok(new AgentItemResponse(
                 item.Id, item.VaultId, item.FolderId, item.Type.ToString(), item.Name,
                 $"{KeywardApiDefaults.EntryLinkPath}/{Base62Guid.Encode(item.PublicId)}",
-                item.VersionId, item.Url, item.Username));
+                item.VersionId, item.Url, item.Username, item.HasTotp));
         });
 
         // Create an item. Needs the write scope and Write on the vault; the value is never echoed.
@@ -158,7 +158,7 @@ public static class KeywardAgentApi
                     title: "Send If-Match with the item's version (the ETag of GET /items/{id}).");
             }
 
-            if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value))
+            if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value, body.Totp))
             {
                 return BadRequest($"A field exceeds {MaxFieldLength} characters.");
             }
@@ -166,7 +166,7 @@ public static class KeywardAgentApi
             try
             {
                 var reference = await vaults.PatchItemAsync(new PatchVaultItemCommand(
-                    UserId(user), itemId, expectedVersion, body.Name, body.Url, body.Username, body.Password, body.Note, body.Value), ct);
+                    UserId(user), itemId, expectedVersion, body.Name, body.Url, body.Username, body.Password, body.Note, body.Value, body.Totp), ct);
                 return Written(http, reference, StatusCodes.Status200OK);
             }
             catch (VaultItemVersionConflictException ex)
@@ -222,6 +222,35 @@ public static class KeywardAgentApi
             {
                 var state = await reveals.RequestAsync(tokenId, itemId, field, body.Reason ?? "", ct);
                 return Results.Accepted($"{DefaultPrefix}/reveal-requests/{state.Id}", ToResponse(state));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        });
+
+        // A Login's current one-time code, handed out directly (decision T16 B). Only with the permission «one-time
+        // codes», which is off by default; every code is audited. Without it: a reveal request for "Totp".
+        group.MapPost("/items/{itemId:guid}/totp-code", async (Guid itemId, HttpContext http, ClaimsPrincipal principal,
+            ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, IClock clock, CancellationToken ct) =>
+        {
+            var tokenId = TokenId(principal);
+            if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.TotpCodes, Permission.Read, ct))
+            {
+                return NotFound();
+            }
+
+            try
+            {
+                var code = await vaults.GenerateTotpCodeAsync(UserId(user), itemId, $"AI agent token {tokenId}: one-time code", ct);
+                if (code is null)
+                {
+                    return NotFound();
+                }
+
+                http.Response.Headers.CacheControl = "no-store";
+                var secondsLeft = (int)Math.Max(0, Math.Ceiling((code.ValidUntil - clock.UtcNow).TotalSeconds));
+                return Results.Ok(new AgentTotpCodeResponse(itemId, code.Code, code.ValidUntil, secondsLeft));
             }
             catch (ArgumentException ex)
             {
@@ -291,28 +320,38 @@ public static class KeywardAgentApi
             return false;
         }
 
-        if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value))
+        if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value, body.Totp))
         {
             error = $"A field exceeds {MaxFieldLength} characters.";
             return false;
         }
 
-        var loginFieldGiven = body.Url is not null || body.Username is not null || body.Password is not null || body.Note is not null;
+        var loginFieldGiven = body.Url is not null || body.Username is not null || body.Password is not null || body.Note is not null || body.Totp is not null;
         if (type == ItemType.Login)
         {
             if (body.Value is not null)
             {
-                error = "A Login takes url, username, password and note, not value.";
+                error = "A Login takes url, username, password, note and totp, not value.";
                 return false;
             }
 
-            content = LoginContent.ToJson(body.Url ?? "", body.Username ?? "", body.Password ?? "", body.Note ?? "");
+            try
+            {
+                content = LoginContent.ToJson(body.Url ?? "", body.Username ?? "", body.Password ?? "", body.Note ?? "", body.Totp ?? "");
+            }
+            catch (ArgumentException ex)
+            {
+                // An unreadable 2FA key: say why, store nothing.
+                error = ex.Message;
+                return false;
+            }
+
             return true;
         }
 
         if (loginFieldGiven || body.Value is null)
         {
-            error = $"A {type} takes value (and no url, username, password or note).";
+            error = $"A {type} takes value (and no url, username, password, note or totp).";
             return false;
         }
 

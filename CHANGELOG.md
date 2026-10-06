@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **One-time codes (2FA / TOTP) on Login entries** (decisions T15 A, T17 A): a Login can hold its 2FA key — the
+  Base32 secret or the `otpauth://totp/…` link — encrypted with the rest of its content and stored normalised
+  (`LoginContent.Fields.Totp`; entries without one read as before, no migration). The open entry shows the current
+  code with its remaining seconds and a copy button. The key is entered by typing or pasting it, or read from a
+  screenshot of the website's QR code (pasted with Ctrl+V into the field, or chosen as an image) — decoded in the
+  browser by jsQR 1.4.0 (Apache-2.0, vendored), so the picture never leaves it. Codes are computed by KEYWARD itself
+  (`Totp`, RFC 6238 with SHA-1/256/512, 6–8 digits; verified against the RFC test vectors). Import reads the 2FA
+  column of Bitwarden (`login_totp`) and 1Password (`otpauth`) exports; the browser-CSV export never carries a key.
+- **One-time codes for AI agents** (decision T16 A+B): `create_login` / `update_item` (API: `totp`) store a 2FA key
+  write-only; `get_item` reports `hasTotp`. A code comes through a reveal request for the new field `Totp` (approved
+  by the person, generated at that moment, copied to the clipboard) or — with the new token permission «Get one-time
+  codes» (`AgentScopes.TotpCodes`, off by default) — directly via `POST /items/{id}/totp-code` and the MCP tool
+  `get_totp_code`, each code audited (`VaultItemTotp`).
+
 ## [0.26.1-preview] - 2026-10-02
 
 ### Changed

@@ -59,7 +59,7 @@ public sealed record UpdateAgentTokenCommand(
 /// <summary>The scopes that work on vault items (as opposed to <see cref="AgentScopes.ManageApplications"/>).</summary>
 public static class AgentScopeGroups
 {
-    public const AgentScopes Vault = AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite | AgentScopes.VaultReveal;
+    public const AgentScopes Vault = AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite | AgentScopes.VaultReveal | AgentScopes.TotpCodes;
 }
 
 /// <summary>The plaintext token, shown exactly once.</summary>

@@ -45,10 +45,11 @@ public sealed record VaultItemLink(Guid ItemId, Guid VaultId, bool IsTeamVault);
 public sealed record VaultFolderSummary(Guid Id, string Name, DateTimeOffset CreatedAt, Guid? ParentFolderId = null);
 
 /// <summary>A login parsed from an import file (e.g. a Microsoft Edge / Chrome password export).</summary>
-public sealed record ImportedLogin(string Name, string Url, string Username, string Password, string Note);
+public sealed record ImportedLogin(string Name, string Url, string Username, string Password, string Note, string Totp = "");
 
 /// <summary>
-/// The structured content of a Login item: url / username / password / note, stored as JSON inside the
+/// The structured content of a Login item: url / username / password / note and the optional 2FA key (<see cref="Fields.Totp"/>,
+/// an <c>otpauth://totp/…</c> link — decision T15 A), stored as JSON inside the
 /// item's encrypted value (the item's Name is the cleartext title). Other item types store their content
 /// as-is. Keeping this in one place lets the UI and the importer compose/parse it identically.
 /// </summary>
@@ -56,10 +57,26 @@ public static class LoginContent
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public sealed record Fields(string Url, string Username, string Password, string Note);
+    /// <param name="Totp">The 2FA key as a normalised <c>otpauth://totp/…</c> link, or empty. Absent in entries stored
+    /// before 0.27 — they read as empty.</param>
+    public sealed record Fields(string Url, string Username, string Password, string Note, string Totp = "");
 
-    public static string ToJson(string url, string username, string password, string note) =>
-        JsonSerializer.Serialize(new Fields(url ?? "", username ?? "", password ?? "", note ?? ""), Json);
+    /// <summary>The JSON stored for a Login. A 2FA key (secret or otpauth link) is validated and normalised here, so
+    /// every writer — UI, import, agent — stores the same form; an invalid one throws <see cref="ArgumentException"/>.</summary>
+    public static string ToJson(string url, string username, string password, string note, string totp = "") =>
+        JsonSerializer.Serialize(
+            new Fields(url ?? "", username ?? "", password ?? "", note ?? "", string.IsNullOrWhiteSpace(totp) ? "" : Totp.Normalize(totp)),
+            Json);
+
+    /// <summary>Rejects Login content whose 2FA key cannot be read (for callers that pass ready-made JSON).</summary>
+    public static void EnsureValid(string? content)
+    {
+        var fields = Parse(content);
+        if (fields.Totp.Length > 0)
+        {
+            Totp.Parse(fields.Totp);
+        }
+    }
 
     public static Fields Parse(string? content)
     {
@@ -70,7 +87,8 @@ public static class LoginContent
 
         try
         {
-            return JsonSerializer.Deserialize<Fields>(content, Json) ?? new Fields("", "", "", "");
+            var fields = JsonSerializer.Deserialize<Fields>(content, Json) ?? new Fields("", "", "", "");
+            return fields with { Totp = fields.Totp ?? "" };
         }
         catch (JsonException)
         {
@@ -217,6 +235,13 @@ public interface IVaultService
     /// UI opens items through <see cref="GetItemAsync"/>. Null when the item has no value.
     /// </summary>
     Task<string?> RevealFieldAsync(Guid userId, Guid itemId, Domain.Agent.RevealField field, string reason, CancellationToken ct = default);
+
+    /// <summary>
+    /// The current one-time code of a Login with a 2FA key, audited as <c>Reveal</c> with <paramref name="reason"/>.
+    /// For AI agent tokens holding the permission «one-time codes» (decision T16 B). Null when the item has no value;
+    /// <see cref="ArgumentException"/> when it is no Login or has no 2FA key.
+    /// </summary>
+    Task<TotpCode?> GenerateTotpCodeAsync(Guid userId, Guid itemId, string reason, CancellationToken ct = default);
 }
 
 /// <summary>A search match across vaults; MatchedField names the field that matched ("Name", "Url",
@@ -242,7 +267,8 @@ public sealed record PatchVaultItemCommand(
     string? Username = null,
     string? Password = null,
     string? Note = null,
-    string? Value = null);
+    string? Value = null,
+    string? Totp = null);
 
 /// <summary>Identifies an item and its current value without carrying any of it.</summary>
 public sealed record VaultItemReference(Guid Id, Guid PublicId, Guid VersionId);
@@ -255,4 +281,5 @@ public sealed class VaultItemVersionConflictException(Guid itemId)
 }
 
 public sealed record VaultItemMetadata(
-    Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, Guid PublicId, Guid VersionId, string? Url, string? Username);
+    Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, Guid PublicId, Guid VersionId, string? Url, string? Username,
+    bool HasTotp = false);

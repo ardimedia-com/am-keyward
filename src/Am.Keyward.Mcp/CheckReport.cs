@@ -12,6 +12,7 @@ internal static class CheckReport
         ["VaultRead"] = "read URL and user name",
         ["VaultWrite"] = "create and update entries",
         ["VaultReveal"] = "ask to see a secret",
+        ["TotpCodes"] = "get one-time codes (2FA) directly",
         ["ManageApplications"] = "manage applications",
     };
 

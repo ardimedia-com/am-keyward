@@ -11,6 +11,12 @@ public enum RevealField
 
     /// <summary>The whole value of any other item type.</summary>
     Value,
+
+    /// <summary>
+    /// A Login's current one-time code (2FA, decision T16 A). Generated at the moment it is handed over — never the
+    /// 2FA key itself.
+    /// </summary>
+    Totp,
 }
 
 public enum RevealRequestStatus

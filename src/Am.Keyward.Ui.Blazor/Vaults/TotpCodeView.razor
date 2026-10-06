@@ -1,0 +1,50 @@
+@* The current one-time code of a Login's 2FA key, with the seconds it stays valid and a copy button. Its own
+   component so the once-a-second refresh re-renders only this field, not the whole vault workspace. *@
+@implements IDisposable
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> Loc
+
+<div class="detail-value">
+    @if (Current is { } code)
+    {
+        <span class="grow">
+            <code class="totp-code">@Grouped(code.Code)</code>
+            <span class="totp-left @(SecondsLeft(code) <= 5 ? "ending" : null)">@Loc["Vault.Totp.SecondsLeft", SecondsLeft(code)]</span>
+        </span>
+        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyAsync(code.Code)"><KeywardIcon Name="@(copied ? "check" : "copy")" Size="15" /></button>
+    }
+    else
+    {
+        <span class="grow muted">@Loc["Vault.Totp.Unreadable"]</span>
+    }
+</div>
+
+@code {
+    /// <summary>The stored 2FA key (an <c>otpauth://totp/…</c> link).</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    private Timer? timer;
+    private bool copied;
+
+    private TotpCode? Current => Totp.TryParse(Key, out var settings) ? Totp.Generate(settings!, DateTimeOffset.UtcNow) : null;
+
+    protected override void OnInitialized() =>
+        timer = new Timer(_ => InvokeAsync(StateHasChanged), null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
+    private static int SecondsLeft(TotpCode code) =>
+        (int)Math.Max(0, Math.Ceiling((code.ValidUntil - DateTimeOffset.UtcNow).TotalSeconds));
+
+    // «123 456» reads and types more easily than «123456»; the copy holds the plain digits.
+    private static string Grouped(string code) => code.Length == 6 ? $"{code[..3]} {code[3..]}" : code;
+
+    private async Task CopyAsync(string code)
+    {
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", code);
+        copied = true;
+        StateHasChanged();
+        await Task.Delay(1500);
+        copied = false;
+    }
+
+    public void Dispose() => timer?.Dispose();
+}

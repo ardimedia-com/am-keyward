@@ -15,7 +15,8 @@ It covers two halves equally:
   project & environment, fetched by your software via an API. Each value can carry a rotation date and a
   note on how a new one is obtained; the date is advisory (reads keep working) and raises advance notices.
 - **Human vaults** — personal & team password vaults on one «Vaults» page, team vaults shared to groups or
-  individuals.
+  individuals. A Login can hold its 2FA key (TOTP): KEYWARD shows the current one-time code, and the key can be read
+  from a screenshot of the website's QR code.
 
 ## What it is / is not
 

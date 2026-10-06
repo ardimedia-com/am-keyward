@@ -77,7 +77,8 @@ someone else.
 | List entries | `/vaults`, `/vaults/{id}/tree`, `/search` |
 | Read URL and user name | `GET /items/{id}` |
 | Create and update entries | `POST /vaults/{id}/items`, `PATCH /items/{id}`, `POST /items/{id}/move` |
-| Ask to see a secret | `POST /items/{id}/reveal-requests`, then consume after approval |
+| Ask to see a secret | `POST /items/{id}/reveal-requests`, then consume after approval — also a Login's one-time code (`Totp`) |
+| Get one-time codes (2FA) directly | `POST /items/{id}/totp-code` — off by default, each code audited (decision T16 B) |
 | Manage applications | `/applications…` below — never a value; app tokens read-only (metadata) |
 
 ## Endpoints
@@ -91,11 +92,12 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 | GET | `/vaults` | reachable vaults |
 | GET | `/vaults/{id}/tree` | folders, item names and types |
 | GET | `/search?q=` | by name, ≥ 2 characters, ≤ 100 hits |
-| GET | `/items/{id}` | name, type, folder, link, version (also the ETag); Login: URL and user name |
-| POST | `/vaults/{id}/items` | Login: `url`, `username`, `password`, `note`; other types: `value`. 201, no echo |
-| PATCH | `/items/{id}` | `If-Match: "<version>"` required (428 without, 412 when changed meanwhile); Login field by field, other types by `value` |
+| GET | `/items/{id}` | name, type, folder, link, version (also the ETag); Login: URL, user name and `hasTotp` |
+| POST | `/vaults/{id}/items` | Login: `url`, `username`, `password`, `note`, `totp` (2FA key: Base32 secret or `otpauth://totp/…` link, 400 with a reason if unreadable); other types: `value`. 201, no echo |
+| PATCH | `/items/{id}` | `If-Match: "<version>"` required (428 without, 412 when changed meanwhile); Login field by field (`"totp": ""` removes the key), other types by `value` |
 | POST | `/items/{id}/move` | `{ "vaultId", "folderId"? }` — another folder and/or another reachable vault (Write on both). 200 with link (unchanged) and version; across vaults the id changes |
-| POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Value", "reason": "…" }` → 202, pending |
+| POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Totp" \| "Value", "reason": "…" }` → 202, pending. `Totp`: the one-time code, generated when it is consumed |
+| POST | `/items/{id}/totp-code` | `{ "code", "validUntil", "secondsLeft" }` (`no-store`), audited as `VaultItemTotp`. Needs «Get one-time codes»; 404 without it, 400 when the Login has no 2FA key |
 | GET | `/reveal-requests/{id}` | status only: Pending, Approved, Rejected, Expired, Consumed |
 | POST | `/reveal-requests/{id}/consume` | the value, once (`Cache-Control: no-store`); otherwise 409 |
 | GET | `/applications` | reachable applications: name, environments, keys, per environment `valueSet` + `versionId`, `link`, `tokensLink`. 403 without the permission |
@@ -201,8 +203,13 @@ through the reverse proxy. The lines it needs, all in `Ardimedia.Com.Toolbox.Ui.
 A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
 
 - Vault tools: `list_vaults`, `list_items`, `search`, `get_item`, `create_login`, `create_item`, `update_item`,
-  `move_item`, `request_reveal`, `consume_reveal`. `get_item` and `request_reveal` hand out the entry link — usually
-  the simplest way: the person copies the value in KEYWARD.
+  `move_item`, `request_reveal`, `consume_reveal`, `get_totp_code`. `get_item` and `request_reveal` hand out the entry
+  link — usually the simplest way: the person copies the value in KEYWARD.
+- 2FA (decisions T15 A, T16 A+B): `create_login` / `update_item` take a Login's 2FA key (`totp`, write-only — never read
+  back); `get_item` says whether an entry has one. A one-time code comes either through `request_reveal` with field
+  `Totp` (the person approves, the code goes to the clipboard) or — with the token permission «Get one-time codes» —
+  directly from `get_totp_code`, each code audited. The permission is meant for an agent that signs in somewhere on
+  the person's behalf; it never gets the 2FA key itself.
 - Application tools: `list_applications`, `create_application`, `add_environment`, `create_secret_key` (a placeholder
   for a person to fill) and `set_secret_value` (write-only; its description tells the assistant never to take a value
   from the chat unless the user gave it for exactly this purpose), plus the read-only `list_app_tokens` and

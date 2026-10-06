@@ -54,6 +54,9 @@ internal sealed class KeywardAgentClient(HttpClient http)
     public Task<AgentResult<AgentRevealValueResponse>> ConsumeRevealAsync(Guid requestId, CancellationToken ct) =>
         SendAsync<AgentRevealValueResponse>(HttpMethod.Post, $"/reveal-requests/{requestId}/consume", null, null, ct);
 
+    public Task<AgentResult<AgentTotpCodeResponse>> GetTotpCodeAsync(Guid itemId, CancellationToken ct) =>
+        SendAsync<AgentTotpCodeResponse>(HttpMethod.Post, $"/items/{itemId}/totp-code", null, null, ct);
+
     public Task<AgentResult<AgentItemWrittenResponse>> MoveItemAsync(Guid itemId, AgentMoveItemRequest body, CancellationToken ct) =>
         SendAsync<AgentItemWrittenResponse>(HttpMethod.Post, $"/items/{itemId}/move", body, null, ct);
 

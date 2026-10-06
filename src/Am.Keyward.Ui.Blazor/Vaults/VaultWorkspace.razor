@@ -12,6 +12,7 @@
 @inject IJSRuntime JS
 @inject IKeywardNotifier Notifier
 @inject NavigationManager Nav
+@implements IAsyncDisposable
 
 @if (noAccount)
 {
@@ -149,7 +150,7 @@ else
                                     <div class="detail-grid">
                                         @ItemFormFields(true)
                                         <div class="row wide">
-                                            <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">@Loc["Common.Save"]</button>
+                                            <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName) || (fType == ItemType.Login && !TotpInputValid))">@Loc["Common.Save"]</button>
                                             <button class="btn-ghost" @onclick="BackToList">@Loc["Common.Cancel"]</button>
                                         </div>
                                     </div>
@@ -553,7 +554,20 @@ else
     private string fName = "";
     private ItemType fType = ItemType.Login;
     private string fFolderId = "";
-    private string fUrl = "", fUser = "", fPwd = "", fNote = "", fContent = "";
+    private string fUrl = "", fUser = "", fPwd = "", fNote = "", fContent = "", fTotp = "";
+
+    // The QR reader (VaultWorkspace.razor.js) and its document listeners, for the component's lifetime.
+    private IJSObjectReference? qrModule;
+    private IJSObjectReference? qrListener;
+    private DotNetObjectReference<VaultWorkspace>? selfRef;
+
+    // A 2FA key the form can store: empty, or readable (then its current code is shown as proof).
+    private bool TotpInputValid => string.IsNullOrWhiteSpace(fTotp) || Totp.TryParse(fTotp, out _);
+
+    private string TotpHelp =>
+        string.IsNullOrWhiteSpace(fTotp) ? Loc["Vault.Totp.Help"]
+        : Totp.TryParse(fTotp, out var settings) ? Loc["Vault.Totp.Valid", Totp.Generate(settings!, DateTimeOffset.UtcNow).Code]
+        : Loc["Vault.Totp.Invalid"];
 
     // sharing (team): principals are people or groups, encoded "u:{id}" / "g:{id}" in the select
     private IReadOnlyList<ShareCandidate> shareCandidates = [];
@@ -737,6 +751,14 @@ else
                                 }
                             </div>
                         </div>
+                        @if (f.Totp.Length > 0)
+                        {
+                            @* 2FA (decision T15 A): the current one-time code, refreshed every second; the key itself stays hidden. *@
+                            <div class="detail-field">
+                                <label>@Loc["Vault.Field.TotpCode"]</label>
+                                <TotpCodeView Key="@f.Totp" />
+                            </div>
+                        }
                         @* The note runs below the password across the full width and wraps, so all of it can be read. *@
                         <div class="detail-field wide">
                             <label>@Loc["Vault.Field.Note"]</label>
@@ -788,7 +810,7 @@ else
             <div class="detail-grid">
                 @ItemFormFields(false)
                 <div class="row wide">
-                    <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName))">@Loc["Common.Save"]</button>
+                    <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName) || (fType == ItemType.Login && !TotpInputValid))">@Loc["Common.Save"]</button>
                     <button class="btn-ghost" @onclick='() => itemMode = "view"'>@Loc["Common.Cancel"]</button>
                 </div>
             </div>
@@ -834,6 +856,19 @@ else
                             @onclick="() => fPwd = PasswordGenerator.Generate()"><KeywardIcon Name="dices" Size="15" /></button>
                 </div>
             </div>
+            @* 2FA key: the secret or the otpauth link — typed, pasted, or read from a QR screenshot (pasted here with
+               Ctrl+V or chosen as an image), decoded in the browser by VaultWorkspace.razor.js. *@
+            <div class="field" data-kw-qr>
+                <label for="kw-item-totp">@Loc["Vault.Field.Totp"]</label>
+                <div class="input-with-action">
+                    <input id="kw-item-totp" @bind="fTotp" @bind:event="oninput" autocomplete="off" spellcheck="false" placeholder="@(Loc["Vault.Totp.Placeholder"])" />
+                    <label class="icon-btn qr-pick" title="@Loc["Vault.Totp.FromImage"]" aria-label="@Loc["Vault.Totp.FromImage"]">
+                        <KeywardIcon Name="upload" Size="15" />
+                        <input type="file" accept="image/*" data-kw-qr-file hidden />
+                    </label>
+                </div>
+                <span class="field-help @(TotpInputValid ? "muted" : "field-error")">@TotpHelp</span>
+            </div>
             <div class="field"><label for="kw-item-note">@Loc["Vault.Field.Note"]</label><textarea id="kw-item-note" rows="2" @bind="fNote"></textarea></div>
         }
         else
@@ -841,6 +876,63 @@ else
             <div class="field wide"><label for="kw-item-content">@Loc["Vault.Field.ValueNote"]</label><textarea id="kw-item-content" rows="4" @bind="fContent" autocomplete="off" placeholder="@(Loc["Vault.Field.ValuePlaceholder"])"></textarea></div>
         }
     };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || noAccount)
+        {
+            return;
+        }
+
+        selfRef = DotNetObjectReference.Create(this);
+        qrModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/Vaults/VaultWorkspace.razor.js");
+        qrListener = await qrModule.InvokeAsync<IJSObjectReference>("listen", selfRef);
+    }
+
+    /// <summary>Called by the QR reader with the text of the QR code in a pasted or chosen image (null: none found).</summary>
+    [JSInvokable]
+    public Task OnQrDecodedAsync(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            status = (Loc["Vault.Totp.NoQr"], true);
+        }
+        else if (Totp.TryParse(text, out _))
+        {
+            fTotp = text.Trim();
+            Ok(Loc["Vault.Totp.FromQr"]);
+        }
+        else
+        {
+            status = (Loc["Vault.Totp.QrNotTotp"], true);
+        }
+
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (qrListener is not null)
+            {
+                await qrListener.InvokeVoidAsync("dispose");
+                await qrListener.DisposeAsync();
+            }
+
+            if (qrModule is not null)
+            {
+                await qrModule.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // The circuit is gone; the browser dropped the listeners with the page.
+        }
+
+        selfRef?.Dispose();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -1027,7 +1119,7 @@ else
 
     private void ResetItemForm()
     {
-        fName = ""; fType = ItemType.Login; fUrl = ""; fUser = ""; fPwd = ""; fNote = ""; fContent = "";
+        fName = ""; fType = ItemType.Login; fUrl = ""; fUser = ""; fPwd = ""; fNote = ""; fContent = ""; fTotp = "";
         fFolderId = SelectedFolder?.Id.ToString() ?? "";
     }
 
@@ -1123,7 +1215,7 @@ else
         if (d.Type == ItemType.Login)
         {
             var f = LoginContent.Parse(d.Content);
-            fUrl = f.Url; fUser = f.Username; fPwd = f.Password; fNote = f.Note;
+            fUrl = f.Url; fUser = f.Username; fPwd = f.Password; fNote = f.Note; fTotp = f.Totp;
         }
         else { fContent = d.Content; }
         itemMode = "edit";
@@ -1132,7 +1224,7 @@ else
     private Task SaveItemAsync() => RunAsync(async () =>
     {
         Guid? folderId = Guid.TryParse(fFolderId, out var fid) ? fid : null;
-        var content = fType == ItemType.Login ? LoginContent.ToJson(fUrl, fUser, fPwd, fNote) : fContent;
+        var content = fType == ItemType.Login ? LoginContent.ToJson(fUrl, fUser, fPwd, fNote, fTotp) : fContent;
         if (itemMode == "edit" && detail is not null)
         {
             await VaultService.UpdateItemAsync(new UpdateVaultItemCommand(actorUserId!.Value, detail.Id, fName, folderId, content));
@@ -1145,7 +1237,7 @@ else
         }
         await ReloadContentsAsync();
         BackToList();
-    }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(fName));
+    }, selectedVaultId is not null && !string.IsNullOrWhiteSpace(fName) && (fType != ItemType.Login || TotpInputValid));
 
     private Task DeleteCurrentItemAsync() => RunAsync(async () =>
     {

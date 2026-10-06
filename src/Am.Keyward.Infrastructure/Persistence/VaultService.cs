@@ -294,6 +294,10 @@ public sealed class VaultService(
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, ct).ConfigureAwait(false);
         await EnsureFolderInVaultAsync(db, cmd.FolderId, vault.Id, ct).ConfigureAwait(false);
+        if (cmd.Type == ItemType.Login)
+        {
+            LoginContent.EnsureValid(cmd.Content);
+        }
 
         var item = new VaultItem(
             Guid.NewGuid(), vault.Id, vault.TenantId, vault.OwnerUserId, cmd.FolderId, cmd.Type, cmd.Name, cmd.UserId, clock.UtcNow);
@@ -439,6 +443,10 @@ public sealed class VaultService(
             ?? throw new InvalidOperationException($"Item {cmd.ItemId} not found.");
         var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, item.VaultId, Permission.Write, ct).ConfigureAwait(false);
         await EnsureFolderInVaultAsync(db, cmd.FolderId, vault.Id, ct).ConfigureAwait(false);
+        if (item.Type == ItemType.Login)
+        {
+            LoginContent.EnsureValid(cmd.Content);
+        }
 
         item.Rename(cmd.Name);
         item.MoveToFolder(cmd.FolderId);
@@ -708,6 +716,7 @@ public sealed class VaultService(
         var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
 
         string? url = null, username = null;
+        var hasTotp = false;
         if (item.Type == ItemType.Login)
         {
             // Decrypted in memory only to lift the two non-secret fields; password and note never leave here.
@@ -716,12 +725,13 @@ public sealed class VaultService(
             var fields = LoginContent.Parse(Encoding.UTF8.GetString(await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false)));
             url = fields.Url;
             username = fields.Username;
+            hasTotp = fields.Totp.Length > 0;
 
             await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Read, "VaultItemMetadata", item.Id, userId), ct).ConfigureAwait(false);
             await db.SaveChangesAsync(ct).ConfigureAwait(false);
         }
 
-        return new VaultItemMetadata(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, item.PublicId, versionId, url, username);
+        return new VaultItemMetadata(item.Id, item.VaultId, item.FolderId, item.Type, item.Name, item.PublicId, versionId, url, username, hasTotp);
     }
 
     public async Task<VaultItemReference?> GetItemReferenceAsync(Guid userId, Guid itemId, CancellationToken ct = default)
@@ -758,15 +768,15 @@ public sealed class VaultService(
         }
 
         var isLogin = item.Type == ItemType.Login;
-        var loginFieldGiven = cmd.Url is not null || cmd.Username is not null || cmd.Password is not null || cmd.Note is not null;
+        var loginFieldGiven = cmd.Url is not null || cmd.Username is not null || cmd.Password is not null || cmd.Note is not null || cmd.Totp is not null;
         if (!isLogin && loginFieldGiven)
         {
-            throw new ArgumentException("Url, username, password and note apply to a Login only; set value instead.");
+            throw new ArgumentException("Url, username, password, note and totp apply to a Login only; set value instead.");
         }
 
         if (isLogin && cmd.Value is not null)
         {
-            throw new ArgumentException("A Login is changed field by field (url, username, password, note), not by value.");
+            throw new ArgumentException("A Login is changed field by field (url, username, password, note, totp), not by value.");
         }
 
         if (cmd.Name is null && !loginFieldGiven && cmd.Value is null)
@@ -790,7 +800,8 @@ public sealed class VaultService(
                 var currentAad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, current.Id, AlgVersion);
                 var fields = LoginContent.Parse(Encoding.UTF8.GetString(await backend.UnprotectAsync(current.Encrypted, currentAad, ct).ConfigureAwait(false)));
                 content = LoginContent.ToJson(
-                    cmd.Url ?? fields.Url, cmd.Username ?? fields.Username, cmd.Password ?? fields.Password, cmd.Note ?? fields.Note);
+                    cmd.Url ?? fields.Url, cmd.Username ?? fields.Username, cmd.Password ?? fields.Password, cmd.Note ?? fields.Note,
+                    cmd.Totp ?? fields.Totp);
             }
             else
             {
@@ -864,6 +875,7 @@ public sealed class VaultService(
         {
             (ItemType.Login, Core.Domain.Agent.RevealField.Password) => LoginContent.Parse(content).Password,
             (ItemType.Login, Core.Domain.Agent.RevealField.Note) => LoginContent.Parse(content).Note,
+            (ItemType.Login, Core.Domain.Agent.RevealField.Totp) => CurrentCode(content).Code,
             (not ItemType.Login, Core.Domain.Agent.RevealField.Value) => content,
             _ => throw new ArgumentException($"A {item.Type} has no field {field}."),
         };
@@ -872,6 +884,39 @@ public sealed class VaultService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return value;
     }
+
+    public async Task<TotpCode?> GenerateTotpCodeAsync(Guid userId, Guid itemId, string reason, CancellationToken ct = default)
+    {
+        EnsureUserScope(userId);
+
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var item = await db.VaultItems.Include(i => i.Versions)
+            .FirstOrDefaultAsync(i => i.Id == itemId, ct).ConfigureAwait(false);
+        if (item?.CurrentVersionId is not { } versionId)
+        {
+            return null;
+        }
+
+        var vault = await LoadAuthorizedVaultAsync(db, userId, item.VaultId, Permission.Read, ct).ConfigureAwait(false);
+        if (item.Type != ItemType.Login)
+        {
+            throw new ArgumentException($"A {item.Type} has no one-time code.");
+        }
+
+        var version = item.Versions.Single(v => v.Id == versionId);
+        var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, version.Id, AlgVersion);
+        var code = CurrentCode(Encoding.UTF8.GetString(await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false)));
+
+        await audit.AppendAsync(db, new AuditRequest(vault.TenantId, AuditAction.Reveal, "VaultItemTotp", item.Id, userId, reason), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return code;
+    }
+
+    // The code of a Login's 2FA key at this moment; the key itself never leaves the service.
+    private TotpCode CurrentCode(string loginContent) =>
+        LoginContent.Parse(loginContent).Totp is { Length: > 0 } key
+            ? Totp.Generate(key, clock.UtcNow)
+            : throw new ArgumentException("This login has no 2FA key.");
 
     public async Task<VaultItemLink?> ResolveItemLinkAsync(Guid userId, Guid publicId, CancellationToken ct = default)
     {
@@ -1041,7 +1086,8 @@ public sealed class VaultService(
 
             var versionId = Guid.NewGuid();
             var aad = Aad.ForVaultItemVersion(vault.TenantId, vault.OwnerType, vault.OwnerId, item.Id, versionId, AlgVersion);
-            var content = LoginContent.ToJson(login.Url, login.Username, login.Password, login.Note);
+            var content = LoginContent.ToJson(login.Url, login.Username, login.Password, login.Note,
+                Totp.TryParse(login.Totp, out _) ? login.Totp : "");
             var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(content), aad, ct).ConfigureAwait(false);
             item.AddVersion(versionId, encrypted, clock.UtcNow);
             db.VaultItems.Add(item);

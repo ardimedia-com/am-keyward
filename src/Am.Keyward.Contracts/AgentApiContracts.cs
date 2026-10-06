@@ -19,12 +19,13 @@ public sealed record AgentItemSummaryResponse(Guid Id, Guid VaultId, Guid? Folde
 /// <see cref="Url"/> and <see cref="Username"/> are set for a Login only.
 /// </summary>
 public sealed record AgentItemResponse(
-    Guid Id, Guid VaultId, Guid? FolderId, string Type, string Name, string Link, Guid VersionId, string? Url, string? Username);
+    Guid Id, Guid VaultId, Guid? FolderId, string Type, string Name, string Link, Guid VersionId, string? Url, string? Username,
+    bool HasTotp = false);
 
 /// <summary>
 /// Creates an item (<c>POST /vaults/{id}/items</c>). A Login takes <see cref="Url"/>, <see cref="Username"/>,
-/// <see cref="Password"/> and <see cref="Note"/>; every other type takes <see cref="Value"/>. The value is never
-/// echoed back.
+/// <see cref="Password"/>, <see cref="Note"/> and <see cref="Totp"/> (its 2FA key: the Base32 secret or the
+/// <c>otpauth://totp/…</c> link); every other type takes <see cref="Value"/>. The value is never echoed back.
 /// </summary>
 public sealed record AgentCreateItemRequest(
     string Type,
@@ -34,7 +35,8 @@ public sealed record AgentCreateItemRequest(
     string? Username = null,
     string? Password = null,
     string? Note = null,
-    string? Value = null);
+    string? Value = null,
+    string? Totp = null);
 
 /// <summary>
 /// Changes an item (<c>PATCH /items/{id}</c>, with <c>If-Match: "&lt;versionId&gt;"</c>). Omitted fields stay as
@@ -46,16 +48,24 @@ public sealed record AgentUpdateItemRequest(
     string? Username = null,
     string? Password = null,
     string? Note = null,
-    string? Value = null);
+    string? Value = null,
+    string? Totp = null);
 
 /// <summary>Result of a create or update: the item, its deep link and its new version (also the ETag).</summary>
 public sealed record AgentItemWrittenResponse(Guid Id, string Link, Guid VersionId);
 
 /// <summary>
-/// Asks to see one secret field (<c>POST /items/{id}/reveal-requests</c>): <c>"Password"</c> or <c>"Note"</c> of a
-/// Login, <c>"Value"</c> of any other type. The reason is shown to the human who decides.
+/// Asks to see one secret field (<c>POST /items/{id}/reveal-requests</c>): <c>"Password"</c>, <c>"Note"</c> or
+/// <c>"Totp"</c> (the current one-time code, generated when it is handed over) of a Login, <c>"Value"</c> of any
+/// other type. The reason is shown to the human who decides.
 /// </summary>
 public sealed record AgentRevealRequestBody(string Field, string Reason);
+
+/// <summary>
+/// A Login's current one-time code (<c>POST /items/{id}/totp-code</c>, permission <c>TotpCodes</c>): the code and
+/// when it stops being valid. Audited per call; never cached.
+/// </summary>
+public sealed record AgentTotpCodeResponse(Guid ItemId, string Code, DateTimeOffset ValidUntil, int SecondsLeft);
 
 /// <summary>
 /// Where a reveal request stands: <c>Pending</c> (waiting for the human, until <see cref="ExpiresAt"/>),
