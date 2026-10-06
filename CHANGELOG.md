@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.27.0-preview] - 2026-10-06
+
 ### Added
 
 - **One-time codes (2FA / TOTP) on Login entries** (decisions T15 A, T17 A): a Login can hold its 2FA key — the
