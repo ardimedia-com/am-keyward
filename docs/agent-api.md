@@ -219,27 +219,32 @@ It needs the **.NET 10 SDK** once per computer (`dotnet --version` shows 10 or h
 `winget install Microsoft.DotNet.SDK.10` on Windows, `brew install --cask dotnet-sdk` on macOS (or the installer from
 dotnet.microsoft.com/download), then open a new window. No .NET at all: see [Without .NET](#without-net).
 
-Windows (PowerShell):
+Windows (PowerShell). Install and update are the same command; every open AI agent session keeps an
+`amkeyward-mcp` running that locks its files («Access … is denied»), so end them first and restart the agents after:
 
 ```powershell
+Get-Process amkeyward-mcp -ErrorAction SilentlyContinue | Stop-Process
 dotnet tool install --global Am.Keyward.Mcp --prerelease
 amkeyward-mcp setup https://keyward.example.com   # paste the agent token; stored in the Windows Credential Manager
 $env:Keyward__ServiceUri = "https://keyward.example.com"
 amkeyward-mcp check                               # verifies the token and prints its permissions
-claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- amkeyward-mcp
+claude mcp add --env Keyward__ServiceUri=https://keyward.example.com --scope user amkeyward-keyward-example-com amkeyward-mcp
 ```
 
 macOS (Terminal) — the .NET tools folder is not on the PATH there, so the program is named by its path (which also
 lets the AI agent start it whatever PATH it runs with):
 
 ```sh
+pkill -x amkeyward-mcp
 dotnet tool install --global Am.Keyward.Mcp --prerelease
 ~/.dotnet/tools/amkeyward-mcp setup https://keyward.example.com   # stored in the macOS Keychain
 Keyward__ServiceUri=https://keyward.example.com ~/.dotnet/tools/amkeyward-mcp check
-claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- ~/.dotnet/tools/amkeyward-mcp
+claude mcp add --env Keyward__ServiceUri=https://keyward.example.com --scope user amkeyward-keyward-example-com ~/.dotnet/tools/amkeyward-mcp
 ```
 
-The token is not part of the MCP configuration. The «AI agent tokens» page shows these commands filled in with its own
+`claude mcp add` takes its options before the name and the program, without `--`: in PowerShell `claude` is a script
+(`claude.ps1`) and PowerShell swallows a bare `--` («missing required argument 'commandOrUrl'»). The token is not part
+of the MCP configuration. The «AI agent tokens» page shows these commands filled in with its own
 address, for Windows or macOS.
 
 **Several KEYWARD installations on one computer** (e.g. two companies' toolboxes): nothing about them is built into
@@ -281,7 +286,7 @@ $tag = (Invoke-RestMethod https://api.github.com/repos/ardimedia-com/am-keyward/
 $dir = "$env:LOCALAPPDATA\Programs\amkeyward-mcp"; New-Item -ItemType Directory -Force $dir | Out-Null
 Invoke-WebRequest "https://github.com/ardimedia-com/am-keyward/releases/download/$tag/amkeyward-mcp-win-x64.exe" -OutFile "$dir\amkeyward-mcp.exe"
 & "$dir\amkeyward-mcp.exe" setup https://keyward.example.com
-claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- "$dir\amkeyward-mcp.exe"
+claude mcp add --env Keyward__ServiceUri=https://keyward.example.com --scope user amkeyward-keyward-example-com "$dir\amkeyward-mcp.exe"
 ```
 
 macOS (Terminal; on an Intel Mac `osx-x64` instead of `osx-arm64`):
@@ -291,7 +296,7 @@ tag=$(curl -s https://api.github.com/repos/ardimedia-com/am-keyward/releases | g
 mkdir -p ~/.local/bin
 curl -sL "https://github.com/ardimedia-com/am-keyward/releases/download/$tag/amkeyward-mcp-osx-arm64.tar.gz" | tar -xz -C ~/.local/bin
 ~/.local/bin/amkeyward-mcp setup https://keyward.example.com
-claude mcp add amkeyward-keyward-example-com --scope user --env Keyward__ServiceUri=https://keyward.example.com -- ~/.local/bin/amkeyward-mcp
+claude mcp add --env Keyward__ServiceUri=https://keyward.example.com --scope user amkeyward-keyward-example-com ~/.local/bin/amkeyward-mcp
 ```
 
 The Windows programs are signed with Azure Artifact Signing once the signing identity is set up (until then they

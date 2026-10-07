@@ -923,7 +923,7 @@
     <value>Un agent IA accède à KEYWARD via le petit programme « amkeyward-mcp » sur votre ordinateur. Vous le configurez une fois par ordinateur ; ensuite, vous dites simplement à l'agent ce qu'il doit faire.</value>
   </data>
   <data name="AgentTokens.Usage.Install" xml:space="preserve">
-    <value>Installer le programme (une fois par ordinateur) :</value>
+    <value>Installer ou mettre à jour le programme (une fois par ordinateur). La commande arrête d'abord un amkeyward-mcp en cours — les agents IA ouverts perdent KEYWARD jusqu'à leur redémarrage :</value>
   </data>
   <data name="AgentTokens.Usage.Store" xml:space="preserve">
     <value>Enregistrer le jeton en sécurité — le coller lorsqu'il est demandé :</value>
@@ -1013,7 +1013,7 @@
     <value>Supprimer le jeton enregistré sur cet ordinateur :</value>
   </data>
   <data name="AgentTokens.Uninstall.Tool" xml:space="preserve">
-    <value>Désinstaller le programme — seulement si aucun autre KEYWARD ne l'utilise sur cet ordinateur :</value>
+    <value>Désinstaller le programme — seulement si aucun autre KEYWARD ne l'utilise sur cet ordinateur (un amkeyward-mcp en cours est d'abord arrêté) :</value>
   </data>
   <data name="AgentTokens.Uninstall.Revoke" xml:space="preserve">
     <value>Ici, sous « Vos jetons d'agent IA » : « Révoquer » le jeton — il cesse aussitôt de fonctionner partout. Ensuite, « Supprimer » le retire de la liste.</value>

@@ -923,7 +923,7 @@
     <value>Um agente de IA chega ao KEYWARD através do pequeno programa «amkeyward-mcp» no seu computador. Configura-o uma vez por computador; depois basta dizer ao agente o que fazer.</value>
   </data>
   <data name="AgentTokens.Usage.Install" xml:space="preserve">
-    <value>Instalar o programa (uma vez por computador):</value>
+    <value>Instalar ou atualizar o programa (uma vez por computador). O comando termina primeiro um amkeyward-mcp em execução — os agentes de IA abertos perdem o KEYWARD até os reiniciar:</value>
   </data>
   <data name="AgentTokens.Usage.Store" xml:space="preserve">
     <value>Guardar o token em segurança — colá-lo quando pedido:</value>
@@ -1013,7 +1013,7 @@
     <value>Apagar o token guardado neste computador:</value>
   </data>
   <data name="AgentTokens.Uninstall.Tool" xml:space="preserve">
-    <value>Desinstalar o programa — só se nenhum outro KEYWARD o usar neste computador:</value>
+    <value>Desinstalar o programa — só se nenhum outro KEYWARD o usar neste computador (um amkeyward-mcp em execução é terminado primeiro):</value>
   </data>
   <data name="AgentTokens.Uninstall.Revoke" xml:space="preserve">
     <value>Aqui, em «Os seus tokens de agente de IA»: «Revogar» o token — deixa de funcionar em todo o lado de imediato. Depois, «Eliminar» retira-o da lista.</value>

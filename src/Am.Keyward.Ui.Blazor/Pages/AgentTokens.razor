@@ -492,6 +492,12 @@
 
     private string Tool => mac ? "~/.dotnet/tools/amkeyward-mcp" : "amkeyward-mcp";
 
+    // Every open AI agent session keeps its own amkeyward-mcp running, which locks the program's files: an update or
+    // uninstall then fails with «Access … is denied». Ending them first is part of the command.
+    private string StopRunning => mac
+        ? "pkill -x amkeyward-mcp; "
+        : "Get-Process amkeyward-mcp -ErrorAction SilentlyContinue | Stop-Process; ";
+
     private string DotNetCommand => mac ? "brew install --cask dotnet-sdk" : "winget install Microsoft.DotNet.SDK.10";
 
     // The single-file program on GitHub Releases, for computers without .NET (decision T10 A).
@@ -499,12 +505,14 @@
 
     private IReadOnlyList<(string Label, string? Command)> UsageSteps =>
     [
-        (Loc["AgentTokens.Usage.Install"], "dotnet tool install --global Am.Keyward.Mcp --prerelease"),
+        (Loc["AgentTokens.Usage.Install"], $"{StopRunning}dotnet tool install --global Am.Keyward.Mcp --prerelease"),
         (Loc["AgentTokens.Usage.Store"], $"{Tool} setup {ServiceUri}"),
         (Loc["AgentTokens.Usage.Check"], mac
             ? $"Keyward__ServiceUri={ServiceUri} {Tool} check"
             : $"$env:Keyward__ServiceUri = \"{ServiceUri}\"; {Tool} check"),
-        (Loc["AgentTokens.Usage.Register"], $"claude mcp add {McpServerName} --scope user --env Keyward__ServiceUri={ServiceUri} -- {Tool}"),
+        // Options first, then name and program — no «--»: in PowerShell «claude» is a script (claude.ps1), and
+        // PowerShell swallows a bare «--», so the program would go missing («missing required argument»).
+        (Loc["AgentTokens.Usage.Register"], $"claude mcp add --env Keyward__ServiceUri={ServiceUri} --scope user {McpServerName} {Tool}"),
         (Loc["AgentTokens.Usage.Ask"], null),
     ];
 
@@ -513,7 +521,7 @@
     [
         (Loc["AgentTokens.Uninstall.Unregister", McpServerName], $"claude mcp remove {McpServerName} --scope user"),
         (Loc["AgentTokens.Uninstall.Forget"], $"{Tool} remove {ServiceUri}"),
-        (Loc["AgentTokens.Uninstall.Tool"], "dotnet tool uninstall --global Am.Keyward.Mcp"),
+        (Loc["AgentTokens.Uninstall.Tool"], $"{StopRunning}dotnet tool uninstall --global Am.Keyward.Mcp"),
         (Loc["AgentTokens.Uninstall.Revoke"], null),
     ];
     private Guid? confirmRevokeId;

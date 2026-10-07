@@ -5,6 +5,15 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **Setting up the MCP server from PowerShell failed at «register»** (`missing required argument 'commandOrUrl'`):
+  `claude` is a PowerShell script there, and PowerShell swallowed the `--` of `claude mcp add … -- amkeyward-mcp`.
+  «AI agent tokens» and the docs now give `claude mcp add --env Keyward__ServiceUri=… --scope user <name> amkeyward-mcp`,
+  which works in PowerShell, cmd and every Unix shell.
+- **Updating the MCP server failed while an AI agent was open** («Access … is denied»): each open session keeps its own
+  `amkeyward-mcp` running. The install/update and uninstall commands on «AI agent tokens» now end it first and say so.
+
 ## [0.27.0-preview] - 2026-10-06
 
 ### Added
