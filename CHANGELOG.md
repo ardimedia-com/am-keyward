@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.27.1-preview] - 2026-10-07
+
 ### Fixed
 
 - **Setting up the MCP server from PowerShell failed at «register»** (`missing required argument 'commandOrUrl'`):
