@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.27.2-preview] - 2026-10-11
+
 ### Changed
 
 - A revealed value (secure note, secret, key) is shown in a read-only text box over the full width — every line
