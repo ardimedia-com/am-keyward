@@ -5,6 +5,30 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Collapsible areas** (decision T87 A): the secondary areas of the KEYWARD pages fold away and remember, per
+  browser, whether they were open — AI agent tokens (your tokens, all tokens, how to use, remove again), break-glass
+  (new request, pending, history), groups (settings, add member, members), the vault settings tab (manage, share,
+  folders, import, export) and an entry's «Move», the statistics tab (requests, IPs, alerts) and «Add environment».
+  They start collapsed; a count in the title says when something inside waits — «2 pending» on reveal requests and
+  break-glass requests, «3 alert(s)» on access alerts. New component `KeywardArea` (`Title`, `Icon`, `Hint`,
+  `Notice` + `NoticeVariant`, `Actions`, `RememberKey`, `InitiallyOpen` — default collapsed —, `OpenAsync()`,
+  `Class`), modelled on am.ui's `AmArea` and stored under the same `am-area:` prefix.
+
+### Changed
+
+- The chevron of a collapsible area sits on the LEFT of its title and turns down when open (it used to sit on the
+  right). «Issue token» sits in the title line of «Your AI agent tokens» and opens the area with its form.
+- Reveal requests appear as an open area (they are there because something waits for a decision); the only area of
+  a view (application tokens, monitoring, environments, default environments) stays a plain card.
+- The break-glass lists, a group's members and the statistics lists no longer keep their heading pinned while the
+  rows scroll: as collapsible areas they take their content's height and the pane (on break-glass: the page)
+  scrolls. The vault item list, search results and the environments list keep the pinned heading.
+- Internal: the inline styles of the touched pages moved into scoped CSS (`Applications`, `BreakGlass`, `Groups`,
+  `StatisticsPanel`, `VaultWorkspace`); the former `details.section` styles and the agent-token section toggles are
+  gone.
+
 ## [0.27.2-preview] - 2026-10-11
 
 ### Changed

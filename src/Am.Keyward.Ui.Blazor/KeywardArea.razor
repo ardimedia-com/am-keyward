@@ -1,0 +1,186 @@
+@namespace Am.Keyward.Ui.Blazor
+@inject KeywardBrowserStorage Storage
+
+@* A collapsible, titled area — a card whose body opens on demand. Mirrors am.ui's AmArea (collapsible mode),
+   which this package cannot reference: it ships to nuget.org and stays self-contained. Styled against the
+   --kw-* tokens in KeywardArea.razor.css.
+
+   Renders as <details>/<summary>: no JavaScript is needed to open and close it, and it is keyboard- and
+   screen-reader-correct by construction. With RememberKey set, the open state is kept per browser in
+   localStorage under «am-area:<key>» (the same prefix AmArea uses).
+
+   The user's intent is read from the CLICK on the summary, never from the browser's toggle event: Chrome fires
+   `toggle` for every change of the open attribute, INCLUDING the one the renderer makes when it creates an open
+   <details>. A toggle-driven handler would count every mount of an open area as a user click and store it.
+   Enter/Space on the focused summary dispatch a click as well, so the keyboard path is covered. *@
+<details class="kw-area @Class" open="@renderedOpen">
+    <summary class="kw-area-summary" @onclick="OnSummaryClickAsync">
+        @* Drawn, not the native triangle: a flex summary generates no ::marker box. Decorative — <details>
+           already tells assistive technology whether it is open. Points right when closed, down when open. *@
+        <span class="kw-area-marker" aria-hidden="true"><KeywardIcon Name="chevron-right" Size="14" /></span>
+        @if (!string.IsNullOrEmpty(Icon))
+        {
+            <span class="kw-area-icon"><KeywardIcon Name="@Icon" Size="16" /></span>
+        }
+        <span class="kw-area-title">@Title</span>
+        @if (!string.IsNullOrWhiteSpace(Notice))
+        {
+            <span class="@NoticeClass">@Notice</span>
+        }
+        @if (!string.IsNullOrWhiteSpace(Hint))
+        {
+            <span class="kw-area-hint">@Hint</span>
+        }
+        @if (Actions is not null)
+        {
+            @* A click on an action neither records a toggle (stopPropagation) nor folds the area (preventDefault —
+               the summary's activation behaviour would otherwise toggle it). *@
+            <span class="kw-area-actions" @onclick:stopPropagation="true" @onclick:preventDefault="true">@Actions</span>
+        }
+    </summary>
+    <div class="kw-area-body">
+        @ChildContent
+    </div>
+</details>
+
+@code {
+    private const string StorageKeyPrefix = "am-area:";
+
+    /// <summary>The area's content.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Heading of the area — the summary line the user clicks to open or close it.</summary>
+    [Parameter, EditorRequired] public string? Title { get; set; }
+
+    /// <summary>One quiet line beside the title saying what the area is for.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>Name of a <see cref="KeywardIcon"/> shown before the title (e.g. <c>"settings"</c>).</summary>
+    [Parameter] public string? Icon { get; set; }
+
+    /// <summary>
+    /// A short state message beside the title — «2 pending», «3 alert(s)». Unlike <see cref="Hint"/> it is tinted
+    /// by <see cref="NoticeVariant"/>, and it sits in the summary, so a collapsed area still says that something
+    /// inside needs attention. Unset = nothing is shown.
+    /// </summary>
+    [Parameter] public string? Notice { get; set; }
+
+    /// <summary>What <see cref="Notice"/> means — decides its colour (the badge colours of the Keyward UI).</summary>
+    [Parameter] public KeywardAreaNoticeVariant NoticeVariant { get; set; } = KeywardAreaNoticeVariant.Warning;
+
+    /// <summary>
+    /// Controls at the right of the summary (e.g. «Issue token»). A click there neither opens nor closes the area;
+    /// an action that reveals something in the body calls <see cref="OpenAsync"/> first.
+    /// </summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+
+    /// <summary>
+    /// Whether the area starts open (a stored state for <see cref="RememberKey"/> wins). Default <c>false</c>: Keyward's
+    /// areas start collapsed (decision T87 A) — unlike am.ui's AmArea, whose default is open. Set it for an area that
+    /// appears because of something to act on (pending reveal requests).
+    /// </summary>
+    [Parameter] public bool InitiallyOpen { get; set; }
+
+    /// <summary>
+    /// Remember open/closed per browser under this key. Unset = the area always starts at <see cref="InitiallyOpen"/>.
+    /// Namespaced with «am-area:», so a short, speaking key is enough («keyward.vaults.import»).
+    /// </summary>
+    [Parameter] public string? RememberKey { get; set; }
+
+    /// <summary>Additional CSS class(es) for the root element (style them from the page via <c>::deep</c>).</summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>The LOGICAL open state — follows the user's clicks; what gets remembered.</summary>
+    private bool isOpen;
+
+    /// <summary>
+    /// The value BOUND to the <c>open</c> attribute — deliberately a separate field that changes only on the
+    /// stored-state restore and in <see cref="OpenAsync"/>. Blazor diffs render tree against render tree, so as long
+    /// as this field is stable no re-render patches the attribute: the BROWSER owns the open state and
+    /// <see cref="isOpen"/> only records it for <see cref="RememberKey"/>.
+    /// </summary>
+    private bool renderedOpen;
+
+    private bool stateRead;
+
+    protected override void OnInitialized()
+    {
+        isOpen = InitiallyOpen;
+        renderedOpen = InitiallyOpen;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The stored state is read ONCE, after the first render: localStorage is unreachable during prerendering,
+        // and re-reading it later would fight the user's own clicks.
+        if (!firstRender || stateRead || string.IsNullOrWhiteSpace(RememberKey))
+        {
+            return;
+        }
+
+        stateRead = true;
+
+        // Three-state: nothing stored (or storage unavailable) leaves InitiallyOpen standing.
+        if (await Storage.ReadStateAsync(StorageKey()) is { } stored && stored != isOpen)
+        {
+            isOpen = stored;
+            renderedOpen = stored;
+            StateHasChanged();
+        }
+    }
+
+    // The click precedes the summary's activation behaviour, so the DOM still shows the OLD state here and the
+    // user's intent is its opposite. <details> toggles itself; this only records what the user did. renderedOpen
+    // is deliberately NOT updated — the attribute stays unpatched, the browser owns the state.
+    private async Task OnSummaryClickAsync()
+    {
+        isOpen = !isOpen;
+
+        if (!string.IsNullOrWhiteSpace(RememberKey))
+        {
+            await Storage.WriteFlagAsync(StorageKey(), isOpen);
+        }
+    }
+
+    /// <summary>
+    /// Opens the area from code, as if the user had clicked it open — for an action that reveals something in the
+    /// body («Issue token» shows its form there). With <see cref="RememberKey"/> the open state is stored like a click.
+    /// </summary>
+    /// <remarks>
+    /// The <c>open</c> attribute is normally never patched (see <see cref="renderedOpen"/>). Opening is the one
+    /// deliberate patch, and it must reach the DOM even when the bound value is already <c>true</c> while the user
+    /// has closed the element in the browser: Blazor diffs tree against tree and would patch nothing. So the
+    /// attribute is first rendered absent, then present — two renders, two real patches.
+    /// </remarks>
+    public async Task OpenAsync()
+    {
+        // Already open as far as the user's clicks go: the DOM is open too, and the patch below would only make it
+        // flicker shut and open again (e.g. «Edit» clicked on a row inside the open area).
+        if (isOpen)
+        {
+            return;
+        }
+
+        if (renderedOpen)
+        {
+            renderedOpen = false;
+            StateHasChanged();
+
+            // Lets the pending render flush before the attribute comes back.
+            await Task.Yield();
+        }
+
+        isOpen = true;
+        renderedOpen = true;
+        StateHasChanged();
+
+        if (!string.IsNullOrWhiteSpace(RememberKey))
+        {
+            await Storage.WriteFlagAsync(StorageKey(), true);
+        }
+    }
+
+    private string StorageKey() => StorageKeyPrefix + RememberKey;
+
+    private string NoticeClass => $"kw-area-notice kw-area-notice-{NoticeVariant.ToString().ToLowerInvariant()}";
+}

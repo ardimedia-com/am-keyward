@@ -40,7 +40,7 @@ else
 
             @if (vaults.Count > 8)
             {
-                <input @bind="vaultFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Filter"])" aria-label="@(Loc["Vault.Filter"])" style="margin:.25rem 0 .4rem;" />
+                <input @bind="vaultFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Filter"])" aria-label="@(Loc["Vault.Filter"])" class="vault-filter" />
             }
 
             @* Two groups, each vault marked by its owner: personal (yours alone) and team (the organisation's). *@
@@ -60,10 +60,10 @@ else
             {
                 <div class="card list-card">
                     <div class="list-head">
-                        <h3 style="margin:0 0 .25rem;">@Loc["Vault.Search.Title"]</h3>
+                        <h3 class="search-title">@Loc["Vault.Search.Title"]</h3>
                         @if (searchHits is { Count: > 0 })
                         {
-                            <p class="muted" style="margin:0 0 .5rem;">@Loc["Vault.Search.Count", searchHits.Count]</p>
+                            <p class="muted search-count">@Loc["Vault.Search.Count", searchHits.Count]</p>
                         }
                     </div>
                     @if (searchHits is null)
@@ -102,8 +102,8 @@ else
                     <h3>@Loc["Vault.CreateCard.Title"]</h3>
                     @VaultKindSwitch
                     <p class="muted">@(newVaultForTeam ? Loc["Vault.CreateCard.DescTeam"] : Loc["Vault.CreateCard.DescPersonal"])</p>
-                    <div class="row" style="margin:.25rem 0 .5rem;">
-                        <span class="muted" style="font-size:.85rem;">@Loc["Vault.Suggest.Label"]</span>
+                    <div class="row name-suggestions">
+                        <span class="muted small-label">@Loc["Vault.Suggest.Label"]</span>
                         @foreach (var suggestion in SuggestedNames)
                         {
                             <button class="chip" @onclick="() => newVaultName = suggestion">@suggestion</button>
@@ -119,7 +119,7 @@ else
                     }
                     else
                     {
-                        <p class="muted" style="font-size:.85rem;">@Loc["Vault.SelectHint"]</p>
+                        <p class="muted select-hint">@Loc["Vault.SelectHint"]</p>
                     }
                 </div>
             }
@@ -146,7 +146,7 @@ else
                             @if (itemMode == "add")
                             {
                                 <div class="card">
-                                    <h3 style="margin-top:0;">@Loc["Vault.Items.Add"]</h3>
+                                    <h3>@Loc["Vault.Items.Add"]</h3>
                                     <div class="detail-grid">
                                         @ItemFormFields(true)
                                         <div class="row wide">
@@ -167,7 +167,7 @@ else
                             else
                             {
                                 <div class="card">
-                                    <div class="row" style="justify-content:flex-end;">
+                                    <div class="row add-row">
                                         <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
                                     </div>
                                     <div class="empty-state">
@@ -183,220 +183,205 @@ else
                 {
                 @if (treeSel == "vault")
                 {
-                    <details class="card section">
-                        <summary><KeywardIcon Name="settings" /> @Loc["Vault.Manage.Title"]</summary>
-                        <div class="section-body">
-                            <p class="muted">@Loc["Vault.Manage.Desc"]</p>
-                            <div class="row">
-                                <input @bind="vaultRenameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
-                                <button class="btn-ghost btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">@Loc["Common.Rename"]</button>
+                    <KeywardArea Title="@Loc["Vault.Manage.Title"]" Icon="settings" RememberKey="keyward.vaults.manage">
+                        <p class="muted">@Loc["Vault.Manage.Desc"]</p>
+                        <div class="row">
+                            <input class="input-medium" @bind="vaultRenameValue" aria-label="@(Loc["Common.Rename"])" />
+                            <button class="btn-ghost btn-sm" @onclick="RenameVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(vaultRenameValue))">@Loc["Common.Rename"]</button>
+                        </div>
+                        @if (!SelectedIsTeam)
+                        {
+                            @* A personal vault opens to its owner's AI agent tokens only (decision T12 B); a team vault does it under «Share». *@
+                            <div class="agent-access">
+                                <label class="agent-access-toggle">
+                                    <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
+                                    <span class="agent-access-text">
+                                        <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
+                                        <span class="muted">@Loc["Vault.Agent.PersonalDesc"]</span>
+                                    </span>
+                                </label>
                             </div>
-                            @if (!SelectedIsTeam)
+                        }
+                        <div class="danger-zone">
+                            @if (confirmDeleteVault)
                             {
-                                @* A personal vault opens to its owner's AI agent tokens only (decision T12 B); a team vault does it under «Share». *@
+                                <span>@Loc["Vault.ConfirmDelete"]</span>
+                                <div class="row confirm-actions">
+                                    <button class="btn-danger btn-sm" @onclick="DeleteVaultAsync" disabled="@busy">@Loc["Vault.ConfirmDeleteYes"]</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteVault = false">@Loc["Common.Cancel"]</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button class="btn-danger btn-sm" @onclick="() => confirmDeleteVault = true" disabled="@busy">@Loc["Vault.Delete"]</button>
+                            }
+                        </div>
+                    </KeywardArea>
+
+                    @if (SelectedIsTeam)
+                    {
+                        <KeywardArea Title="@ShareTitle" Icon="users" RememberKey="keyward.vaults.share">
+                            @* Two areas: who may use the vault (people and groups), then whether AI agent tokens may. *@
+                            <div class="ws-area">
+                                <h4 class="ws-area-title"><KeywardIcon Name="users" Size="15" />@Loc["Vault.Share.UsersArea"]</h4>
+                                <p class="muted">@Loc["Vault.Share.Desc"]</p>
+                                <p class="muted">@Loc["Vault.Share.Boundary"]</p>
+                                @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
+                                {
+                                    <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
+                                }
+                                else
+                                {
+                                    <div class="row share-row">
+                                        <select class="input-medium" @bind="sharePrincipalId" aria-label="@(Loc["Vault.Share.SelectUser"])">
+                                            <option value="">@Loc["Vault.Share.SelectUser"]</option>
+                                            @if (shareGroups.Count > 0)
+                                            {
+                                                <optgroup label="@Loc["Vault.Share.Groups"]">
+                                                    @foreach (var g in shareGroups)
+                                                    {
+                                                        <option value="g:@g.Id">@g.Name</option>
+                                                    }
+                                                </optgroup>
+                                            }
+                                            <optgroup label="@Loc["Vault.Share.People"]">
+                                                @foreach (var c in shareCandidates)
+                                                {
+                                                    <option value="u:@c.UserId">@c.DisplayName</option>
+                                                }
+                                            </optgroup>
+                                        </select>
+                                        <select class="input-small" @bind="sharePermission" aria-label="@(Loc["Vault.Share.Permission"])">
+                                            @foreach (var p in Enum.GetValues<Permission>())
+                                            {
+                                                <option value="@p">@PermissionLabel(p)</option>
+                                            }
+                                        </select>
+                                        <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(sharePrincipalId))">@Loc["Vault.Share.Action"]</button>
+                                    </div>
+                                }
+                                @if (shares is { Count: > 0 })
+                                {
+                                    <table>
+                                        <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th><th></th></tr></thead>
+                                        <tbody>
+                                            @foreach (var s in shares)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <span class="share-principal">
+                                                            <KeywardIcon Name="@(s.PrincipalType == PrincipalType.Group ? "users-round" : "users")" Size="14" />
+                                                            @s.DisplayName
+                                                            @if (s.PrincipalType == PrincipalType.Group)
+                                                            {
+                                                                <span class="badge">@Loc["Groups.Badge"]</span>
+                                                            }
+                                                        </span>
+                                                    </td>
+                                                    <td><span class="badge">@PermissionLabel(s.Permission)</span></td>
+                                                    <td>
+                                                        <div class="row-actions">
+                                                            <button class="btn-danger btn-sm" @onclick="() => RevokeShareAsync(s)" disabled="@busy">@Loc["Vault.Share.Revoke"]</button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                }
+                            </div>
+                            <div class="ws-area">
+                                <h4 class="ws-area-title"><KeywardIcon Name="key" Size="15" />@Loc["Nav.AgentTokens"]</h4>
                                 <div class="agent-access">
                                     <label class="agent-access-toggle">
                                         <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
                                         <span class="agent-access-text">
                                             <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
-                                            <span class="muted">@Loc["Vault.Agent.PersonalDesc"]</span>
+                                            <span class="muted">@Loc["Vault.Agent.Desc"]</span>
                                         </span>
                                     </label>
                                 </div>
-                            }
-                            <div class="danger-zone">
-                                @if (confirmDeleteVault)
-                                {
-                                    <span>@Loc["Vault.ConfirmDelete"]</span>
-                                    <div class="row" style="margin-top:.5rem;">
-                                        <button class="btn-danger btn-sm" @onclick="DeleteVaultAsync" disabled="@busy">@Loc["Vault.ConfirmDeleteYes"]</button>
-                                        <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteVault = false">@Loc["Common.Cancel"]</button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <button class="btn-danger btn-sm" @onclick="() => confirmDeleteVault = true" disabled="@busy">@Loc["Vault.Delete"]</button>
-                                }
                             </div>
-                        </div>
-                    </details>
-
-                    @if (SelectedIsTeam)
-                    {
-                        <details class="card section">
-                            <summary><KeywardIcon Name="users" /> @Loc["Vault.Share.Title"]@(shares is { Count: > 0 } ? $" ({shares.Count})" : "")</summary>
-                            <div class="section-body">
-                                @* Two areas: who may use the vault (people and groups), then whether AI agent tokens may. *@
-                                <div class="ws-area">
-                                    <h4 class="ws-area-title"><KeywardIcon Name="users" Size="15" />@Loc["Vault.Share.UsersArea"]</h4>
-                                    <p class="muted">@Loc["Vault.Share.Desc"]</p>
-                                    <p class="muted">@Loc["Vault.Share.Boundary"]</p>
-                                    @if (shareCandidates.Count == 0 && shareGroups.Count == 0)
-                                    {
-                                        <p class="muted">@Loc["Vault.Share.NoCandidates"]</p>
-                                    }
-                                    else
-                                    {
-                                        <div class="row" style="margin:.5rem 0;">
-                                            <select @bind="sharePrincipalId" aria-label="@(Loc["Vault.Share.SelectUser"])" style="max-width:16rem;">
-                                                <option value="">@Loc["Vault.Share.SelectUser"]</option>
-                                                @if (shareGroups.Count > 0)
-                                                {
-                                                    <optgroup label="@Loc["Vault.Share.Groups"]">
-                                                        @foreach (var g in shareGroups)
-                                                        {
-                                                            <option value="g:@g.Id">@g.Name</option>
-                                                        }
-                                                    </optgroup>
-                                                }
-                                                <optgroup label="@Loc["Vault.Share.People"]">
-                                                    @foreach (var c in shareCandidates)
-                                                    {
-                                                        <option value="u:@c.UserId">@c.DisplayName</option>
-                                                    }
-                                                </optgroup>
-                                            </select>
-                                            <select @bind="sharePermission" aria-label="@(Loc["Vault.Share.Permission"])" style="max-width:10rem;">
-                                                @foreach (var p in Enum.GetValues<Permission>())
-                                                {
-                                                    <option value="@p">@PermissionLabel(p)</option>
-                                                }
-                                            </select>
-                                            <button @onclick="ShareAsync" disabled="@(busy || string.IsNullOrEmpty(sharePrincipalId))">@Loc["Vault.Share.Action"]</button>
-                                        </div>
-                                    }
-                                    @if (shares is { Count: > 0 })
-                                    {
-                                        <table>
-                                            <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th><th></th></tr></thead>
-                                            <tbody>
-                                                @foreach (var s in shares)
-                                                {
-                                                    <tr>
-                                                        <td>
-                                                            <span class="share-principal">
-                                                                <KeywardIcon Name="@(s.PrincipalType == PrincipalType.Group ? "users-round" : "users")" Size="14" />
-                                                                @s.DisplayName
-                                                                @if (s.PrincipalType == PrincipalType.Group)
-                                                                {
-                                                                    <span class="badge">@Loc["Groups.Badge"]</span>
-                                                                }
-                                                            </span>
-                                                        </td>
-                                                        <td><span class="badge">@PermissionLabel(s.Permission)</span></td>
-                                                        <td>
-                                                            <div class="row-actions">
-                                                                <button class="btn-danger btn-sm" @onclick="() => RevokeShareAsync(s)" disabled="@busy">@Loc["Vault.Share.Revoke"]</button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                }
-                                            </tbody>
-                                        </table>
-                                    }
-                                </div>
-                                <div class="ws-area">
-                                    <h4 class="ws-area-title"><KeywardIcon Name="key" Size="15" />@Loc["Nav.AgentTokens"]</h4>
-                                    <div class="agent-access">
-                                        <label class="agent-access-toggle">
-                                            <input type="checkbox" checked="@SelectedVaultAgentAccess" @onchange="SetAgentAccessAsync" disabled="@busy" />
-                                            <span class="agent-access-text">
-                                                <span class="agent-access-title">@Loc["Vault.Agent.Allow"]</span>
-                                                <span class="muted">@Loc["Vault.Agent.Desc"]</span>
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </details>
+                        </KeywardArea>
                     }
 
                 }
 
-                <details class="card section">
-                    <summary><KeywardIcon Name="folder" /> @(SelectedFolder is not null ? Loc["Vault.Folders.Properties"] : Loc["Vault.Folders.Title"])</summary>
-                    <div class="section-body">
-                        @if (SelectedFolder is { } current)
-                        {
-                            @* Only the folder the user is on: rename it, add a subfolder, or delete it. *@
-                            <div class="field" style="max-width:24rem;">
-                                <label for="kw-folder-rename">@Loc["Common.Name"]</label>
-                                <span class="row">
-                                    <input id="kw-folder-rename" @bind="folderRenameValue" />
-                                    <button class="btn-ghost btn-sm" @onclick="() => RenameFolderAsync(current.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(folderRenameValue))">@Loc["Common.Rename"]</button>
-                                </span>
-                            </div>
-                            <div class="field" style="max-width:24rem;">
-                                <label for="kw-folder-sub">@Loc["Vault.Folders.NewSub"]</label>
-                                <span class="row">
-                                    <input id="kw-folder-sub" @bind="newFolderName" />
-                                    <button class="btn-ghost btn-sm" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">@Loc["Vault.Folders.Add"]</button>
-                                </span>
-                            </div>
-                            <div class="danger-zone">
-                                @if (confirmDeleteFolderId == current.Id)
-                                {
-                                    <span>@Loc["Vault.Folders.ConfirmDelete"]</span>
-                                    <div class="row" style="margin-top:.5rem;">
-                                        <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(current.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
-                                        <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = null">@Loc["Common.Cancel"]</button>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <button class="btn-danger btn-sm" @onclick="() => confirmDeleteFolderId = current.Id" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <p class="muted">@Loc["Vault.Folders.Desc"]</p>
-                            <div class="row">
-                                <input @bind="newFolderName" placeholder="@(Loc["Vault.Folders.NewName"])" aria-label="@(Loc["Vault.Folders.NewName"])" style="max-width:14rem;" />
+                <KeywardArea Title="@FoldersTitle" Icon="folder" RememberKey="keyward.vaults.folders">
+                    @if (SelectedFolder is { } current)
+                    {
+                        @* Only the folder the user is on: rename it, add a subfolder, or delete it. *@
+                        <div class="field folder-field">
+                            <label for="kw-folder-rename">@Loc["Common.Name"]</label>
+                            <span class="row">
+                                <input id="kw-folder-rename" @bind="folderRenameValue" />
+                                <button class="btn-ghost btn-sm" @onclick="() => RenameFolderAsync(current.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(folderRenameValue))">@Loc["Common.Rename"]</button>
+                            </span>
+                        </div>
+                        <div class="field folder-field">
+                            <label for="kw-folder-sub">@Loc["Vault.Folders.NewSub"]</label>
+                            <span class="row">
+                                <input id="kw-folder-sub" @bind="newFolderName" />
                                 <button class="btn-ghost btn-sm" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">@Loc["Vault.Folders.Add"]</button>
-                            </div>
-                        }
-                    </div>
-                </details>
+                            </span>
+                        </div>
+                        <div class="danger-zone">
+                            @if (confirmDeleteFolderId == current.Id)
+                            {
+                                <span>@Loc["Vault.Folders.ConfirmDelete"]</span>
+                                <div class="row confirm-actions">
+                                    <button class="btn-danger btn-sm" @onclick="() => DeleteFolderAsync(current.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteFolderId = null">@Loc["Common.Cancel"]</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button class="btn-danger btn-sm" @onclick="() => confirmDeleteFolderId = current.Id" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="muted">@Loc["Vault.Folders.Desc"]</p>
+                        <div class="row">
+                            <input @bind="newFolderName" placeholder="@(Loc["Vault.Folders.NewName"])" aria-label="@(Loc["Vault.Folders.NewName"])" class="input-narrow" />
+                            <button class="btn-ghost btn-sm" @onclick="AddFolderAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newFolderName))">@Loc["Vault.Folders.Add"]</button>
+                        </div>
+                    }
+                </KeywardArea>
 
-                <details class="card section">
-                    <summary><KeywardIcon Name="upload" /> @Loc["Vault.Import.Title"]</summary>
-                    <div class="section-body">
-                        <p class="muted">@Loc["Vault.Import.Desc"]</p>
-                        @* A bare <InputFile> renders the BROWSER's own control — «Choose File / No file
-                           chosen» in the browser's language, unstyleable, and no hint that a file can be
-                           dropped. The real input is stretched transparently over the zone instead, so a
-                           click AND a drop both hit it natively — no JavaScript. It stays a real, focusable
-                           form control (transparent, never display:none), so the accessibility semantics
-                           are unchanged.
-                           This is deliberately Keyward's OWN control rather than am.ui's AmFileDrop: this
-                           package ships to nuget.org, and pulling in an am-private UI library would make it
-                           unrestorable for anyone outside. *@
-                        <label class="kw-file-drop">
-                            <InputFile class="kw-file-drop-input" OnChange="OnImportFileAsync"
-                                       accept=".csv" disabled="@busy"
-                                       aria-label="@Loc["Vault.Import.Drop"]" title="" />
-                            <KeywardIcon Name="upload" />
-                            <span>@Loc["Vault.Import.Drop"]</span>
-                        </label>
-                    </div>
-                </details>
+                <KeywardArea Title="@Loc["Vault.Import.Title"]" Icon="upload" RememberKey="keyward.vaults.import">
+                    <p class="muted">@Loc["Vault.Import.Desc"]</p>
+                    @* A bare <InputFile> renders the BROWSER's own control — «Choose File / No file
+                       chosen» in the browser's language, unstyleable, and no hint that a file can be
+                       dropped. The real input is stretched transparently over the zone instead, so a
+                       click AND a drop both hit it natively — no JavaScript. It stays a real, focusable
+                       form control (transparent, never display:none), so the accessibility semantics
+                       are unchanged.
+                       This is deliberately Keyward's OWN control rather than am.ui's AmFileDrop: this
+                       package ships to nuget.org, and pulling in an am-private UI library would make it
+                       unrestorable for anyone outside. *@
+                    <label class="kw-file-drop">
+                        <InputFile class="kw-file-drop-input" OnChange="OnImportFileAsync"
+                                   accept=".csv" disabled="@busy"
+                                   aria-label="@Loc["Vault.Import.Drop"]" title="" />
+                        <KeywardIcon Name="upload" />
+                        <span>@Loc["Vault.Import.Drop"]</span>
+                    </label>
+                </KeywardArea>
 
                 @if (treeSel == "vault" && canExport)
                 {
-                    <details class="card section">
-                        <summary><KeywardIcon Name="download" /> @Loc["Vault.Export.Title"]</summary>
-                        <div class="section-body">
-                            <p class="muted">@Loc["Vault.Export.Desc"]</p>
-                            <div class="row">
-                                <button class="btn-ghost btn-sm" @onclick="PrepareExportAsync" disabled="@busy">@Loc["Vault.Export.Create"]</button>
-                                @if (exportDataUrl is not null)
-                                {
-                                    <a class="btn btn-sm" download="@exportFileName" href="@exportDataUrl"><KeywardIcon Name="download" />@Loc["Vault.Export.Download"]</a>
-                                }
-                            </div>
+                    <KeywardArea Title="@Loc["Vault.Export.Title"]" Icon="download" RememberKey="keyward.vaults.export">
+                        <p class="muted">@Loc["Vault.Export.Desc"]</p>
+                        <div class="row">
+                            <button class="btn-ghost btn-sm" @onclick="PrepareExportAsync" disabled="@busy">@Loc["Vault.Export.Create"]</button>
+                            @if (exportDataUrl is not null)
+                            {
+                                <a class="btn btn-sm" download="@exportFileName" href="@exportDataUrl"><KeywardIcon Name="download" />@Loc["Vault.Export.Download"]</a>
+                            }
                         </div>
-                    </details>
+                    </KeywardArea>
                 }
 
                 }
@@ -602,6 +587,12 @@ else
     private VaultFolderSummary? SelectedFolder =>
         Guid.TryParse(treeSel, out var fid) ? folders.FirstOrDefault(f => f.Id == fid) : null;
 
+    // «Share (n)»: the number of grants once there are any.
+    private string ShareTitle => shares is { Count: > 0 } ? $"{Loc["Vault.Share.Title"]} ({shares.Count})" : Loc["Vault.Share.Title"];
+
+    // On a folder the area edits THAT folder; on the vault it creates top-level folders.
+    private string FoldersTitle => SelectedFolder is not null ? Loc["Vault.Folders.Properties"] : Loc["Vault.Folders.Title"];
+
     // The list heading: "Vault" or "Vault · Folder".
     private string ContentTitle => SelectedFolder is { } folder ? $"{SelectedVaultName} · {folder.Name}" : SelectedVaultName;
 
@@ -631,20 +622,20 @@ else
             <div class="list-head">
                 @* The vault/folder itself is named by the tab area's title row — this card only says what
                    the list holds. *@
-                <h3 style="margin:0;">@Loc["Vault.Items.Title"]</h3>
+                <h3 class="list-title">@Loc["Vault.Items.Title"]</h3>
                 @if (DirectItemCount > 5)
                 {
-                    <input @bind="itemFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Items.Filter"])" aria-label="@(Loc["Vault.Items.Filter"])" style="max-width:18rem; margin:.5rem 0 0;" />
+                    <input @bind="itemFilter" @bind:event="oninput" placeholder="@(Loc["Vault.Items.Filter"])" aria-label="@(Loc["Vault.Items.Filter"])" class="item-filter" />
                 }
                 @if (selectedItemIds.Count > 0)
                 {
                     <div class="bulk-bar">
                         <span>@Loc["Vault.Select.Count", selectedItemIds.Count]</span>
-                        <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
-                        <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:12rem;">
+                        <span class="muted small-label">@Loc["Vault.Move.Label"]</span>
+                        <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="bulk-select">
                             @MoveVaultOptions
                         </select>
-                        <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:12rem;">
+                        <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" class="bulk-select">
                             <option value="">@Loc["Vault.Field.NoFolder"]</option>
                             @foreach (var (folder, depth) in FlattenedMoveFolders())
                             {
@@ -693,9 +684,9 @@ else
     // next clicked entry (owner layout 2026-07-21).
     private RenderFragment ItemDetailCard => __builder =>
     {
-        <div class="card">
-            <div class="row" style="justify-content:space-between;">
-                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="@TypeIcon(detail!.Type)" Size="18" />@detail.Name</h3>
+        <div class="card item-detail">
+            <div class="row item-detail-head">
+                <h3 class="item-detail-title"><KeywardIcon Name="@TypeIcon(detail!.Type)" Size="18" />@detail.Name</h3>
                 <div class="row">
                     <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
                     <button class="icon-btn" title="@Loc["Vault.CopyLink"]" @onclick="CopyItemLinkAsync"><KeywardIcon Name="@(copiedKey == "link" ? "check" : "link")" Size="15" /></button>
@@ -705,16 +696,17 @@ else
             </div>
             @if (confirmDeleteItem)
             {
-                <div class="notice notice-error" style="margin-top:.5rem;">
+                <div class="notice notice-error">
                     @Loc["Vault.ConfirmDeleteItem"]
-                    <button class="btn-danger btn-sm" style="margin-left:.5rem;" @onclick="DeleteCurrentItemAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                    <button class="btn-danger btn-sm item-confirm-yes" @onclick="DeleteCurrentItemAsync" disabled="@busy">@Loc["Common.Yes"]</button>
                     <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteItem = false">@Loc["Common.Cancel"]</button>
                 </div>
             }
-            @* Two areas: what the entry holds, then where it lives (move). *@
-            <div class="ws-area" style="margin-top:.75rem;">
+            @* Two areas: what the entry holds (the selection itself — always shown), then where it lives (move, a
+               collapsible area). *@
+            <div class="ws-area item-details">
                 <h4 class="ws-area-title"><KeywardIcon Name="@TypeIcon(detail.Type)" Size="15" />@Loc["Vault.Item.Details"]</h4>
-                <p class="muted" style="margin:0;"><span class="badge">@TypeLabel(detail.Type)</span> @Loc["Vault.Items.InFolder"] @(detail.FolderId is null ? Loc["Vault.Field.NoFolder"] : FolderName(detail.FolderId))</p>
+                <p class="muted item-kind"><span class="badge">@TypeLabel(detail.Type)</span> @Loc["Vault.Items.InFolder"] @(detail.FolderId is null ? Loc["Vault.Field.NoFolder"] : FolderName(detail.FolderId))</p>
 
                 @if (detail.Type == ItemType.Login)
                 {
@@ -792,14 +784,13 @@ else
             </div>
 
             @* Move to another folder — or another vault (re-encrypted there by the service). *@
-            <div class="ws-area">
-                <h4 class="ws-area-title"><KeywardIcon Name="folder" Size="15" />@Loc["Vault.Move.Action"]</h4>
+            <KeywardArea Title="@Loc["Vault.Move.Action"]" Icon="folder" Class="item-move" RememberKey="keyward.vaults.item-move">
                 <div class="move-panel">
-                    <span class="muted" style="font-size:.85rem;">@Loc["Vault.Move.Label"]</span>
-                    <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" style="max-width:13rem;">
+                    <span class="muted small-label">@Loc["Vault.Move.Label"]</span>
+                    <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="move-select">
                         @MoveVaultOptions
                     </select>
-                    <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" style="max-width:13rem;">
+                    <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" class="move-select">
                         <option value="">@Loc["Vault.Field.NoFolder"]</option>
                         @foreach (var (folder, depth) in FlattenedMoveFolders())
                         {
@@ -808,7 +799,7 @@ else
                     </select>
                     <button class="btn-ghost btn-sm" @onclick="MoveCurrentAsync" disabled="@busy">@Loc["Vault.Move.Action"]</button>
                 </div>
-            </div>
+            </KeywardArea>
         </div>
     };
 
@@ -816,7 +807,7 @@ else
     private RenderFragment ItemEditCard => __builder =>
     {
         <div class="card">
-            <h3 style="margin-top:0;">@Loc["Vault.Items.EditNamed", fName]</h3>
+            <h3>@Loc["Vault.Items.EditNamed", fName]</h3>
             <div class="detail-grid">
                 @ItemFormFields(false)
                 <div class="row wide">

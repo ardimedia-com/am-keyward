@@ -1,0 +1,132 @@
+/* KeywardArea — a collapsible, titled card. Mirrors am.ui's AmArea (collapsible mode) on the --kw-* tokens, so the
+   host themes it; scoped CSS, so it travels in the RCL bundle with no wiring in the consumer. The frame matches
+   Keyward's .card (surface, border, radius, shadow). */
+
+.kw-area {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--kw-surface, #fff);
+    color: var(--kw-text, #1c2024);
+    border: 1px solid var(--kw-border, #e3e6ea);
+    border-radius: var(--kw-radius, 8px);
+    box-shadow: var(--kw-shadow, none);
+    /* Fill mode (KeywardUi Fill="true") lays a pane out as a flex column: an area takes exactly its content's
+       height there — collapsed it is just its summary line — and never grows or shrinks; the pane scrolls. */
+    flex: none;
+}
+
+.kw-area + .kw-area {
+    margin-top: 1rem;
+}
+
+/* The summary IS the heading: chevron, optional icon, title, notice, hint — and the actions at the right end.
+   Wraps, so the actions take a line of their own when everything does not fit side by side. */
+.kw-area-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .55rem;
+    row-gap: .4rem;
+    padding: .85rem 1.25rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.kw-area-summary::-webkit-details-marker {
+    display: none;
+}
+
+.kw-area-summary:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--kw-primary, #4f46e5) 45%, transparent);
+    outline-offset: -2px;
+    border-radius: var(--kw-radius, 8px);
+}
+
+/* The affordance is drawn: a flex summary generates no ::marker box, so the native triangle cannot appear.
+   Closed points right, open points down — the direction every disclosure control uses. */
+.kw-area-marker {
+    display: inline-flex;
+    flex: none;
+    color: var(--kw-muted-text, #6b7280);
+    transition: transform 150ms ease;
+}
+
+.kw-area[open] > .kw-area-summary > .kw-area-marker {
+    transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .kw-area-marker {
+        transition: none;
+    }
+}
+
+.kw-area-icon {
+    display: inline-flex;
+    flex: none;
+    color: var(--kw-muted-text, #6b7280);
+}
+
+.kw-area-title {
+    font-size: .95rem;
+    font-weight: 600;
+    color: var(--kw-text, #1c2024);
+}
+
+.kw-area-hint {
+    font-size: .8rem;
+    font-weight: 400;
+    color: var(--kw-muted-text, #6b7280);
+}
+
+/* A state message in the title — a pill in the colours of Keyward's badges, so «2 pending» reads the same as a
+   status badge in a list. */
+.kw-area-notice {
+    display: inline-flex;
+    align-items: center;
+    padding: .05rem .5rem;
+    border: 1px solid var(--kw-border, #e3e6ea);
+    border-radius: 999px;
+    background: var(--kw-muted, #f1f3f5);
+    color: var(--kw-muted-text, #6b7280);
+    font-size: .75rem;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.kw-area-notice-success {
+    background: color-mix(in srgb, var(--kw-success, #15803d) 12%, transparent);
+    color: var(--kw-success, #15803d);
+    border-color: color-mix(in srgb, var(--kw-success, #15803d) 30%, transparent);
+}
+
+.kw-area-notice-warning {
+    background: color-mix(in srgb, var(--kw-warning, #b45309) 14%, transparent);
+    color: var(--kw-warning, #b45309);
+    border-color: color-mix(in srgb, var(--kw-warning, #b45309) 30%, transparent);
+}
+
+.kw-area-notice-danger {
+    background: color-mix(in srgb, var(--kw-danger, #b91c1c) 12%, transparent);
+    color: var(--kw-danger, #b91c1c);
+    border-color: color-mix(in srgb, var(--kw-danger, #b91c1c) 30%, transparent);
+}
+
+.kw-area-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .4rem;
+    max-width: 100%;
+    margin-left: auto;
+    cursor: default;
+}
+
+.kw-area-body {
+    padding: .9rem 1.25rem 1.25rem;
+    border-top: 1px solid var(--kw-border, #e3e6ea);
+}

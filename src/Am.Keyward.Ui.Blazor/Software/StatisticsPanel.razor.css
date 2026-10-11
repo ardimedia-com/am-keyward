@@ -15,3 +15,27 @@
 .kw-bar-empty {
     background: var(--kw-border, #e3e6ea);
 }
+
+/* A token row wraps its facts and bars under the name on a narrow pane. */
+.token-row {
+    flex-wrap: wrap;
+}
+
+/* Last access, first/last seen, alert time: quieter and smaller than the row's own meta text. */
+.row-fact {
+    font-size: .78rem;
+}
+
+.row-total {
+    min-width: 4.5rem;
+    text-align: right;
+}
+
+/* Two classes, so they outweigh the shared code / .list-row-name rules of KeywardUi.razor.css. */
+.list-row .ip-address {
+    font-size: .85rem;
+}
+
+.list-row .list-row-name.alert-text {
+    font-weight: 400;
+}

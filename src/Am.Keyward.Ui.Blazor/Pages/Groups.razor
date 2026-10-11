@@ -41,7 +41,7 @@
 
                 @if (groups.Count == 0)
                 {
-                    <p class="muted" style="font-size:.85rem; padding:.25rem .5rem;">@Loc["Groups.Empty"]</p>
+                    <p class="muted tree-empty">@Loc["Groups.Empty"]</p>
                 }
 
                 @if (canManageGroups)
@@ -69,7 +69,7 @@
                         }
                         else
                         {
-                            <p class="muted" style="font-size:.85rem;">@Loc["Groups.SelectHint"]</p>
+                            <p class="muted select-hint">@Loc["Groups.SelectHint"]</p>
                         }
                     </div>
                 }
@@ -77,62 +77,53 @@
                 {
                     @if (canManageGroups)
                     {
-                        <details class="card section">
-                            <summary><KeywardIcon Name="settings" /> @Loc["Groups.Settings.Title"]</summary>
-                            <div class="section-body">
-                                <p class="muted">@Loc["Groups.Settings.Desc"]</p>
-                                <div class="row">
-                                    <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
-                                    <button class="btn-ghost btn-sm" @onclick="RenameGroupAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
-                                </div>
-                                <div class="danger-zone">
-                                    @if (confirmDelete)
-                                    {
-                                        <span>@Loc["Groups.ConfirmDelete", selected.Name]</span>
-                                        <div class="row" style="margin-top:.5rem;">
-                                            <button class="btn-danger btn-sm" @onclick="DeleteGroupAsync" disabled="@busy">@Loc["Common.Yes"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["Groups.Delete"]</button>
-                                    }
-                                </div>
+                        <KeywardArea Title="@Loc["Groups.Settings.Title"]" Icon="settings" RememberKey="keyward.groups.settings">
+                            <p class="muted">@Loc["Groups.Settings.Desc"]</p>
+                            <div class="row">
+                                <input class="rename-input" @bind="renameValue" aria-label="@(Loc["Common.Rename"])" />
+                                <button class="btn-ghost btn-sm" @onclick="RenameGroupAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
                             </div>
-                        </details>
+                            <div class="danger-zone">
+                                @if (confirmDelete)
+                                {
+                                    <span>@Loc["Groups.ConfirmDelete", selected.Name]</span>
+                                    <div class="row confirm-actions">
+                                        <button class="btn-danger btn-sm" @onclick="DeleteGroupAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                                        <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["Groups.Delete"]</button>
+                                }
+                            </div>
+                        </KeywardArea>
                     }
 
                     @if (CanManageMembers)
                     {
-                        <details class="card section">
-                            <summary><KeywardIcon Name="plus" /> @Loc["Groups.AddMember.Title"]</summary>
-                            <div class="section-body">
-                                <p class="muted">@Loc["Groups.Members.Desc"]</p>
-                                <div class="row">
-                                    <select @bind="addUserId" aria-label="@(Loc["Groups.Members.SelectUser"])" style="max-width:16rem;">
-                                        <option value="">@Loc["Groups.Members.SelectUser"]</option>
-                                        @foreach (var c in candidates.Where(c => members?.All(m => m.UserId != c.UserId) ?? true))
-                                        {
-                                            <option value="@c.UserId">@c.DisplayName</option>
-                                        }
-                                    </select>
-                                    <select @bind="addRole" aria-label="@(Loc["Groups.Role"])" style="max-width:10rem;">
-                                        @foreach (var r in Enum.GetValues<GroupRole>())
-                                        {
-                                            <option value="@r">@Loc[$"GroupRole.{r}"]</option>
-                                        }
-                                    </select>
-                                    <button class="btn-ghost btn-sm" @onclick="AddMemberAsync" disabled="@(busy || string.IsNullOrEmpty(addUserId))">@Loc["Groups.Members.Add"]</button>
-                                </div>
+                        <KeywardArea Title="@Loc["Groups.AddMember.Title"]" Icon="plus" RememberKey="keyward.groups.add-member">
+                            <p class="muted">@Loc["Groups.Members.Desc"]</p>
+                            <div class="row">
+                                <select class="user-select" @bind="addUserId" aria-label="@(Loc["Groups.Members.SelectUser"])">
+                                    <option value="">@Loc["Groups.Members.SelectUser"]</option>
+                                    @foreach (var c in candidates.Where(c => members?.All(m => m.UserId != c.UserId) ?? true))
+                                    {
+                                        <option value="@c.UserId">@c.DisplayName</option>
+                                    }
+                                </select>
+                                <select class="role-select" @bind="addRole" aria-label="@(Loc["Groups.Role"])">
+                                    @foreach (var r in Enum.GetValues<GroupRole>())
+                                    {
+                                        <option value="@r">@Loc[$"GroupRole.{r}"]</option>
+                                    }
+                                </select>
+                                <button class="btn-ghost btn-sm" @onclick="AddMemberAsync" disabled="@(busy || string.IsNullOrEmpty(addUserId))">@Loc["Groups.Members.Add"]</button>
                             </div>
-                        </details>
+                        </KeywardArea>
                     }
 
-                    <div class="card list-card">
-                        <div class="list-head">
-                            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="users-round" Size="18" />@selected.Name · @Loc["Groups.Members.Title"]</h3>
-                        </div>
+                    <KeywardArea Title="@MembersTitle" Icon="users-round" RememberKey="keyward.groups.members">
                         @if (members is null)
                         {
                             <p class="muted">@Loc["Common.Loading"]</p>
@@ -149,7 +140,7 @@
                             <div class="list-rows">
                                 @foreach (var m in members)
                                 {
-                                    <div class="list-row" style="cursor:default;">
+                                    <div class="list-row list-row-static">
                                         <KeywardIcon Name="users" Size="17" />
                                         <span class="list-row-name">@m.DisplayName</span>
                                         <span class="list-row-meta">
@@ -171,7 +162,7 @@
                                 }
                             </div>
                         }
-                    </div>
+                    </KeywardArea>
                 }
 
                 @if (status is not null)
@@ -210,6 +201,9 @@
     private GroupSummary? SelectedGroup => groups?.FirstOrDefault(g => g.Id == selectedGroupId);
 
     // Tenant admins manage everything; a group's own admins manage its members.
+    // The member list's title names the selected group.
+    private string MembersTitle => $"{SelectedGroup?.Name} · {Loc["Groups.Members.Title"]}";
+
     private bool CanManageMembers => canManageGroups || SelectedGroup?.MyRole == GroupRole.Admin;
 
     protected override async Task OnInitializedAsync()

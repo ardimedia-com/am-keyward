@@ -1,0 +1,11 @@
+/* Break-glass page. Layout only; colours come from the --kw-* tokens. */
+
+.vault-select {
+    max-width: 20rem;
+}
+
+/* The reason takes the row's free width beside the submit button, up to a readable line length. */
+.reason-input {
+    flex: 1;
+    max-width: 32rem;
+}

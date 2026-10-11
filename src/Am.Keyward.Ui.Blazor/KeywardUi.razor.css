@@ -362,7 +362,9 @@
 .keyward-ui.kw-fill ::deep .ws-main > * { flex-shrink: 0; }
 
 /* Item list: heading + filter stay pinned, ONLY the rows scroll. The card fills the remaining pane
-   height; with areas above it keeps a sensible minimum and the pane scrolls to it. */
+   height; with areas above it keeps a sensible minimum and the pane scrolls to it.
+   A collapsible KeywardArea is never a .list-card: it declares flex:none itself (KeywardArea.razor.css), so a
+   collapsed one shrinks to its summary line and an open one takes its content's height while the pane scrolls. */
 .keyward-ui.kw-fill ::deep .list-card {
     flex: 1 1 auto;
     min-height: 22rem;
@@ -510,6 +512,8 @@
     cursor: pointer;
     text-align: left;
 }
+/* A row that only displays (no click action) — a <div> row, without the pointer cursor of a clickable one. */
+.keyward-ui ::deep div.list-row.list-row-static { cursor: default; }
 .keyward-ui ::deep div.list-row:last-child,
 .keyward-ui ::deep button.list-row:last-child { border-bottom: none; }
 .keyward-ui ::deep button.list-row:hover { background: var(--kw-muted); border-color: var(--kw-border); }
@@ -613,38 +617,6 @@
 /* Back-navigation row above a detail view */
 .keyward-ui ::deep .back-row { margin-bottom: .75rem; }
 
-/* Collapsible secondary section (a card whose body opens on demand) */
-.keyward-ui ::deep details.section { padding: 0; }
-.keyward-ui ::deep details.section > summary {
-    display: flex;
-    align-items: center;
-    gap: .55rem;
-    padding: .85rem 1.25rem;
-    font-size: .95rem;
-    font-weight: 600;
-    color: var(--kw-text);
-    cursor: pointer;
-    list-style: none;
-    user-select: none;
-}
-.keyward-ui ::deep details.section > summary::-webkit-details-marker { display: none; }
-.keyward-ui ::deep details.section > summary::after {
-    content: "";
-    margin-left: auto;
-    width: .45rem;
-    height: .45rem;
-    border-right: 2px solid var(--kw-muted-text);
-    border-bottom: 2px solid var(--kw-muted-text);
-    transform: rotate(45deg);
-    transition: transform .15s ease;
-}
-.keyward-ui ::deep details.section[open] > summary::after { transform: rotate(-135deg); }
-.keyward-ui ::deep details.section > summary .kw-icon { color: var(--kw-muted-text); }
-.keyward-ui ::deep details.section > .section-body {
-    padding: .9rem 1.25rem 1.25rem;
-    border-top: 1px solid var(--kw-border);
-}
-
 /* Collapsible "How does this work?" help under a page header */
 .keyward-ui ::deep details.help { margin-top: .4rem; }
 .keyward-ui ::deep details.help > summary {
@@ -701,15 +673,12 @@
     background: color-mix(in srgb, var(--kw-primary) 8%, transparent);
 }
 
-/* Move panel in the item detail (target vault + folder) */
+/* Move panel in the item detail (target vault + folder), inside its collapsible «Move» area */
 .keyward-ui ::deep .move-panel {
     display: flex;
     align-items: center;
     gap: .5rem;
     flex-wrap: wrap;
-    margin-top: 1rem;
-    padding-top: .9rem;
-    border-top: 1px solid var(--kw-border);
 }
 
 /* Danger zone inside a settings section */

@@ -110,6 +110,7 @@
   <data name="Common.Hide" xml:space="preserve"><value>Masquer</value></data>
   <data name="Common.Pane.Collapse" xml:space="preserve"><value>Réduire la liste</value></data>
   <data name="Common.Pane.Expand" xml:space="preserve"><value>Développer la liste</value></data>
+  <data name="Common.Area.Pending" xml:space="preserve"><value>{0} en attente</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Oui</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Nom</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
@@ -663,6 +664,7 @@
   <data name="Stats.Ips.Empty" xml:space="preserve"><value>Aucun accès enregistré pour l'instant.</value></data>
   <data name="Stats.Ips.Seen" xml:space="preserve"><value>vue la première fois {0} · la dernière fois {1}</value></data>
   <data name="Stats.Alerts.Title" xml:space="preserve"><value>Alertes d'accès</value></data>
+  <data name="Stats.Alerts.Notice" xml:space="preserve"><value>{0} alerte(s)</value></data>
   <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Signaux basés sur des règles : un jeton utilisé depuis une IP jamais vue, ou de nouveau utilisé après un long silence. Si une alerte est inattendue, révoquez ou faites tourner le jeton.</value></data>
   <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Aucune alerte — aucun schéma d'accès inhabituel.</value></data>
   <data name="Stats.Alert.NewIp" xml:space="preserve"><value>Nouvelle IP</value></data>

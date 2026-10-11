@@ -362,9 +362,11 @@ them (see the reference shell's `js/keyward-theme.js`) — with no toggling you 
 vault/application pages use `<KeywardUi Fill="true">`: in a plain layout they render with a normal page
 scroll; for the pinned header + independently scrolling panes, make your content container a fixed-height
 flex column and add `.your-content:has(> .keyward-ui.kw-fill) { overflow: hidden; display: flex;
-flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). To pin the UI language, add
-`UseRequestLocalization` with your supported cultures; without it the pages follow the server culture
-(en/de/fr/it/es/pt ship built in). The feature routes are the `/amkeyward/*` namespace; use the
+flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). Secondary areas (settings,
+sharing, import/export, statistics, …) are collapsible `KeywardArea`s: they start collapsed and remember their
+open state per browser in localStorage (`am-area:keyward.…` keys, the prefix am.ui's `AmArea` uses as well). To
+pin the UI language, add `UseRequestLocalization` with your supported cultures; without it the pages follow
+the server culture (en/de/fr/it/es/pt ship built in). The feature routes are the `/amkeyward/*` namespace; use the
 `KeywardRoutes` constants for links.
 
 ### Database & migrations

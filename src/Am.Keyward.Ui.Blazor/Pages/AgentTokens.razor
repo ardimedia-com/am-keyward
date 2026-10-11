@@ -58,294 +58,243 @@
 
             @* Pending reveal requests of this user's agents. Only this user can decide them, and they expire within
                minutes, so the list refreshes itself while the page is open. The reason is the agent's own text:
-               Razor encodes it, so it is shown as plain text. *@
+               Razor encodes it, so it is shown as plain text. The area appears BECAUSE something waits for a
+               decision, so it starts open and is not remembered (decision T87 Q3 B). *@
             @if (pending is { Count: > 0 })
             {
-                <section class="card reveal-requests" aria-live="polite">
-                    <h3>@Loc["AgentTokens.Reveal.Title"] (@pending.Count)</h3>
+                <KeywardArea Title="@Loc["AgentTokens.Reveal.Title"]" Class="reveal-requests" InitiallyOpen="true"
+                             Notice="@Loc["Common.Area.Pending", pending.Count]">
                     <p class="muted">@Loc["AgentTokens.Reveal.Desc"]</p>
-                    @foreach (var request in pending)
-                    {
-                        <div class="reveal-row">
-                            <div class="token-main">
-                                <KeywardIcon Name="eye" Size="17" />
-                                @* The person can also open the entry and copy the value there instead of approving. *@
-                                <a class="token-name" href="@KeywardRoutes.EntryLinkFor(Base62Guid.Encode(request.ItemPublicId))">@request.ItemName</a>
-                                <span class="badge">@FieldLabel(request.Field)</span>
+                    <div aria-live="polite">
+                        @foreach (var request in pending)
+                        {
+                            <div class="reveal-row">
+                                <div class="token-main">
+                                    <KeywardIcon Name="eye" Size="17" />
+                                    @* The person can also open the entry and copy the value there instead of approving. *@
+                                    <a class="token-name" href="@KeywardRoutes.EntryLinkFor(Base62Guid.Encode(request.ItemPublicId))">@request.ItemName</a>
+                                    <span class="badge">@FieldLabel(request.Field)</span>
+                                </div>
+                                <div class="token-facts muted">
+                                    <span>@request.VaultName</span>
+                                    <span>@Loc["AgentTokens.Reveal.By", request.TokenName]</span>
+                                    <span>@Loc["AgentTokens.Reveal.Until"] <LocalTime Utc="request.ExpiresAt" /></span>
+                                </div>
+                                <blockquote class="reveal-reason">@request.Reason</blockquote>
+                                <div class="token-actions">
+                                    <button class="btn-sm" @onclick="() => ApproveAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Approve"]</button>
+                                    <button class="btn-danger btn-sm" @onclick="() => RejectAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Reject"]</button>
+                                </div>
                             </div>
-                            <div class="token-facts muted">
-                                <span>@request.VaultName</span>
-                                <span>@Loc["AgentTokens.Reveal.By", request.TokenName]</span>
-                                <span>@Loc["AgentTokens.Reveal.Until"] <LocalTime Utc="request.ExpiresAt" /></span>
-                            </div>
-                            <blockquote class="reveal-reason">@request.Reason</blockquote>
-                            <div class="token-actions">
-                                <button class="btn-sm" @onclick="() => ApproveAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Approve"]</button>
-                                <button class="btn-danger btn-sm" @onclick="() => RejectAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Reject"]</button>
-                            </div>
-                        </div>
-                    }
-                </section>
+                        }
+                    </div>
+                </KeywardArea>
             }
 
-            @* The user's tokens: the list, or — while a token is issued or edited — the form in its place. *@
-            <section class="card">
-                <div class="section-head">
-                    <h3 class="section-heading">
-                        <button type="button" class="section-toggle" aria-expanded="@(showTokens ? "true" : "false")" @onclick="() => showTokens = !showTokens">
-                            <KeywardIcon Name="@(showTokens ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Existing"] (@tokens.Count)
-                        </button>
-                    </h3>
+            @* The user's tokens: the list, or — while a token is issued or edited — the form in its place. «Issue token»
+               sits in the summary; it and «Edit» open the area first, since the form appears in its body. *@
+            <KeywardArea @ref="tokensArea" Title="@TokensTitle" RememberKey="keyward.agent-tokens.tokens">
+                <Actions>
                     @if (!showForm)
                     {
                         <button class="btn-sm" @onclick="StartIssueAsync" disabled="@busy"><KeywardIcon Name="plus" />@Loc["AgentTokens.Issue.Title"]</button>
                     }
-                </div>
-                @if (showTokens && showForm)
-                {
-                    <div class="issue-form" id="token-form">
-                        <h4 class="form-title">@(editingTokenId is null ? Loc["AgentTokens.Issue.Title"] : Loc["AgentTokens.Edit.Title", name])</h4>
-                        <label class="field">
-                            <span>@Loc["AgentTokens.Name"]</span>
-                            <input @ref="nameInput" @bind="name" @bind:event="oninput" maxlength="256" />
-                        </label>
-                        <p class="muted issue-hint">@Loc["AgentTokens.Issue.Hint"]</p>
-
-                        @* Always offered: «all vaults … also future ones» needs no open vault yet — it reaches each vault as
-                           soon as it is opened to AI agents. *@
-                        <fieldset class="field">
-                            <legend>@Loc["AgentTokens.Vaults"]</legend>
-                            <label class="choice">
-                                <input type="checkbox" @bind="allAgentVaults" />
-                                @Loc["AgentTokens.AllVaults"]
-                            </label>
-                            @if (!allAgentVaults && openVaults.Count == 0)
-                            {
-                                <p class="muted choice-hint">@Loc["AgentTokens.NoVaults"]</p>
-                            }
-                            else if (!allAgentVaults)
-                            {
-                                @foreach (var vault in openVaults)
-                                {
-                                    <label class="choice">
-                                        <input type="checkbox" checked="@selectedVaults.Contains(vault.Id)" @onchange="e => Toggle(selectedVaults, vault.Id, e)" />
-                                        @vault.Name
-                                    </label>
-                                }
-                            }
-
-
-                            @* The vault permissions apply to these vaults only — hence indented under them. *@
-                            <p class="choice-group-title">@Loc["AgentTokens.Scopes"]</p>
-                            <div class="choice-group">
-                                @foreach (var scope in OfferedScopes)
-                                {
-                                    <label class="choice">
-                                        <input type="checkbox" checked="@selectedScopes.HasFlag(scope)" @onchange="e => ToggleScope(scope, e)" />
-                                        @ScopeLabel(scope)
-                                    </label>
-                                }
-                            </div>
-                        </fieldset>
-
-                        @* Offered only to a user who may manage the software side; unticked by default and separate from
-                           the vault permissions. *@
-                        @if (canManageApplications)
-                        {
-                            <fieldset class="field">
-                                <legend>@Loc["AgentTokens.Applications"]</legend>
-                                <label class="choice choice-described">
-                                    <input type="checkbox" checked="@ManagesApplications" @onchange="e => ToggleScope(AgentScopes.ManageApplications, e)" />
-                                    <span class="choice-text">
-                                        <span>@ScopeLabel(AgentScopes.ManageApplications)</span>
-                                        <span class="muted">@Loc["AgentTokens.Applications.Desc"]</span>
-                                    </span>
-                                </label>
-                                @if (ManagesApplications)
-                                {
-                                    <div class="choice-group">
-                                        <label class="choice">
-                                            <input type="checkbox" @bind="allApplications" />
-                                            @Loc["AgentTokens.AllApplications"]
-                                        </label>
-                                        @if (!allApplications)
-                                        {
-                                            @foreach (var application in applications!)
-                                            {
-                                                <label class="choice">
-                                                    <input type="checkbox" checked="@selectedApplications.Contains(application.Id)" @onchange="e => Toggle(selectedApplications, application.Id, e)" />
-                                                    @application.Name
-                                                </label>
-                                            }
-                                        }
-                                        <label class="choice">
-                                            <input type="checkbox" @bind="mayCreateApplications" />
-                                            @Loc["AgentTokens.Applications.CreateNew"]
-                                        </label>
-                                    </div>
-                                }
-                            </fieldset>
-                        }
-
-                        <div class="field-pair @(editingTokenId is null ? "" : "single")">
-                            @* The validity is set at issue; «New value» starts a fresh one. *@
-                            @if (editingTokenId is null)
-                            {
-                                <label class="field">
-                                    <span>@Loc["AgentTokens.Days"]</span>
-                                    <input type="number" min="1" max="@MaxDays" @bind="days" />
-                                </label>
-                            }
-                            <label class="field">
-                                <span>@Loc["AgentTokens.Networks"]</span>
-                                <input @bind="networks" placeholder="10.1.0.0/23, 192.168.113.0/24" />
-                                <span class="muted field-help">@Loc["AgentTokens.Networks.Help"]</span>
-                            </label>
-                        </div>
-
-                        <div class="form-actions">
-                            @if (editingTokenId is null)
-                            {
-                                <button @onclick="IssueAsync" disabled="@(busy || !CanIssue)"><KeywardIcon Name="plus" />@Loc["AgentTokens.Issue.Action"]</button>
-                            }
-                            else
-                            {
-                                <button @onclick="SaveEditAsync" disabled="@(busy || !CanIssue)">@Loc["Common.Save"]</button>
-                            }
-                            <button class="btn-ghost" @onclick="CloseForm" disabled="@busy">@Loc["Common.Cancel"]</button>
-                        </div>
-                    </div>
-                }
-                else if (showTokens && tokens.Count == 0)
-                {
-                    <p class="muted">@Loc["AgentTokens.None"]</p>
-                }
-                else if (showTokens)
-                {
-                    <div class="list-rows">
-                        @foreach (var token in tokens)
-                        {
-                            <div class="token-row">
-                                <div class="token-main">
-                                    <KeywardIcon Name="key" Size="17" />
-                                    <span class="token-name">@token.Name</span>
-                                    <span class="badge @StatusClass(token)">@StatusLabel(token)</span>
-                                </div>
-                                @* One labelled line per fact, indented under the token name. *@
-                                <dl class="token-facts muted">
-                                    @if (token.AllAgentVaults || token.VaultIds.Count > 0)
-                                    {
-                                        <dt>@Loc["AgentTokens.Vaults"]</dt>
-                                        <dd>@(token.AllAgentVaults ? Loc["AgentTokens.AllVaults"] : string.Join(", ", token.VaultIds.Select(VaultName)))</dd>
-                                        <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
-                                        <dd>@string.Join(", ", OfferedScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</dd>
-                                    }
-                                    @if (token.Scopes.HasFlag(AgentScopes.ManageApplications))
-                                    {
-                                        <dt>@Loc["AgentTokens.Applications"]</dt>
-                                        <dd>@ApplicationsFact(token)</dd>
-                                    }
-                                    <dt>@Loc["AgentTokens.Facts.Networks"]</dt>
-                                    <dd>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</dd>
-                                    <dt>@Loc["AgentTokens.Expires"]</dt>
-                                    <dd><LocalTime Utc="token.ExpiresAt" /></dd>
-                                </dl>
-                                @if (!token.IsActive && extendTokenId != token.Id)
-                                {
-                                    @* A token that no longer works can leave the list; a working one is revoked first. *@
-                                    <div class="token-actions">
-                                        @if (confirmDeleteId == token.Id)
-                                        {
-                                            <span>@Loc["AgentTokens.ConfirmDelete", token.Name]</span>
-                                            <button class="btn-danger btn-sm" @onclick="() => DeleteAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">@Loc["Common.Cancel"]</button>
-                                        }
-                                        else
-                                        {
-                                            @if (token.RevokedAt is null)
-                                            {
-                                                <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
-                                            }
-                                            <button class="btn-danger btn-sm" @onclick="() => confirmDeleteId = token.Id" disabled="@busy">@Loc["Common.Delete"]</button>
-                                        }
-                                    </div>
-                                }
-                                @if (token.RevokedAt is null && (token.IsActive || extendTokenId == token.Id))
-                                {
-                                    <div class="token-actions">
-                                        @if (confirmRevokeId == token.Id)
-                                        {
-                                            <span>@Loc["AgentTokens.ConfirmRevoke", token.Name]</span>
-                                            <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => confirmRevokeId = null">@Loc["Common.Cancel"]</button>
-                                        }
-                                        else if (extendTokenId == token.Id)
-                                        {
-                                            @* A new validity on the same value: the computer keeps working without a new setup. *@
-                                            <label class="extend-days">
-                                                <span>@Loc["AgentTokens.Extend.Days"]</span>
-                                                <input type="number" min="1" max="@MaxDays" @bind="extendDays" />
-                                            </label>
-                                            <button class="btn-sm" @onclick="() => ExtendAsync(token.Id)" disabled="@(busy || extendDays is < 1 || extendDays > MaxDays)">@Loc["AgentTokens.Extend"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => extendTokenId = null">@Loc["Common.Cancel"]</button>
-                                        }
-                                        else
-                                        {
-                                            <button class="btn-ghost btn-sm" @onclick="() => StartEditAsync(token)" disabled="@busy">@Loc["Common.Edit"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
-                                            <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["AgentTokens.Rotate"]</button>
-                                            <button class="btn-danger btn-sm" @onclick="() => confirmRevokeId = token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
-                                        }
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                }
-            </section>
-
-            @* Administrators see every token of the organisation and can revoke one (a lost computer, someone who
-               left) — never change or issue one for someone else. *@
-            @if (canAdminister && adminTokens is not null)
-            {
-                <section class="card">
-                    <h3 class="section-heading">
-                        <button type="button" class="section-toggle" aria-expanded="@(showAdmin ? "true" : "false")" @onclick="() => showAdmin = !showAdmin">
-                            <KeywardIcon Name="@(showAdmin ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Admin.Title"] (@adminTokens.Count)
-                        </button>
-                    </h3>
-                    @if (showAdmin)
+                </Actions>
+                <ChildContent>
+                    @if (showForm)
                     {
-                        <p class="muted">@Loc["AgentTokens.Admin.Desc"]</p>
+                        <div class="issue-form" id="token-form">
+                            <h4 class="form-title">@(editingTokenId is null ? Loc["AgentTokens.Issue.Title"] : Loc["AgentTokens.Edit.Title", name])</h4>
+                            <label class="field">
+                                <span>@Loc["AgentTokens.Name"]</span>
+                                <input @ref="nameInput" @bind="name" @bind:event="oninput" maxlength="256" />
+                            </label>
+                            <p class="muted issue-hint">@Loc["AgentTokens.Issue.Hint"]</p>
+
+                            @* Always offered: «all vaults … also future ones» needs no open vault yet — it reaches each vault as
+                               soon as it is opened to AI agents. *@
+                            <fieldset class="field">
+                                <legend>@Loc["AgentTokens.Vaults"]</legend>
+                                <label class="choice">
+                                    <input type="checkbox" @bind="allAgentVaults" />
+                                    @Loc["AgentTokens.AllVaults"]
+                                </label>
+                                @if (!allAgentVaults && openVaults.Count == 0)
+                                {
+                                    <p class="muted choice-hint">@Loc["AgentTokens.NoVaults"]</p>
+                                }
+                                else if (!allAgentVaults)
+                                {
+                                    @foreach (var vault in openVaults)
+                                    {
+                                        <label class="choice">
+                                            <input type="checkbox" checked="@selectedVaults.Contains(vault.Id)" @onchange="e => Toggle(selectedVaults, vault.Id, e)" />
+                                            @vault.Name
+                                        </label>
+                                    }
+                                }
+
+
+                                @* The vault permissions apply to these vaults only — hence indented under them. *@
+                                <p class="choice-group-title">@Loc["AgentTokens.Scopes"]</p>
+                                <div class="choice-group">
+                                    @foreach (var scope in OfferedScopes)
+                                    {
+                                        <label class="choice">
+                                            <input type="checkbox" checked="@selectedScopes.HasFlag(scope)" @onchange="e => ToggleScope(scope, e)" />
+                                            @ScopeLabel(scope)
+                                        </label>
+                                    }
+                                </div>
+                            </fieldset>
+
+                            @* Offered only to a user who may manage the software side; unticked by default and separate from
+                               the vault permissions. *@
+                            @if (canManageApplications)
+                            {
+                                <fieldset class="field">
+                                    <legend>@Loc["AgentTokens.Applications"]</legend>
+                                    <label class="choice choice-described">
+                                        <input type="checkbox" checked="@ManagesApplications" @onchange="e => ToggleScope(AgentScopes.ManageApplications, e)" />
+                                        <span class="choice-text">
+                                            <span>@ScopeLabel(AgentScopes.ManageApplications)</span>
+                                            <span class="muted">@Loc["AgentTokens.Applications.Desc"]</span>
+                                        </span>
+                                    </label>
+                                    @if (ManagesApplications)
+                                    {
+                                        <div class="choice-group">
+                                            <label class="choice">
+                                                <input type="checkbox" @bind="allApplications" />
+                                                @Loc["AgentTokens.AllApplications"]
+                                            </label>
+                                            @if (!allApplications)
+                                            {
+                                                @foreach (var application in applications!)
+                                                {
+                                                    <label class="choice">
+                                                        <input type="checkbox" checked="@selectedApplications.Contains(application.Id)" @onchange="e => Toggle(selectedApplications, application.Id, e)" />
+                                                        @application.Name
+                                                    </label>
+                                                }
+                                            }
+                                            <label class="choice">
+                                                <input type="checkbox" @bind="mayCreateApplications" />
+                                                @Loc["AgentTokens.Applications.CreateNew"]
+                                            </label>
+                                        </div>
+                                    }
+                                </fieldset>
+                            }
+
+                            <div class="field-pair @(editingTokenId is null ? "" : "single")">
+                                @* The validity is set at issue; «New value» starts a fresh one. *@
+                                @if (editingTokenId is null)
+                                {
+                                    <label class="field">
+                                        <span>@Loc["AgentTokens.Days"]</span>
+                                        <input type="number" min="1" max="@MaxDays" @bind="days" />
+                                    </label>
+                                }
+                                <label class="field">
+                                    <span>@Loc["AgentTokens.Networks"]</span>
+                                    <input @bind="networks" placeholder="10.1.0.0/23, 192.168.113.0/24" />
+                                    <span class="muted field-help">@Loc["AgentTokens.Networks.Help"]</span>
+                                </label>
+                            </div>
+
+                            <div class="form-actions">
+                                @if (editingTokenId is null)
+                                {
+                                    <button @onclick="IssueAsync" disabled="@(busy || !CanIssue)"><KeywardIcon Name="plus" />@Loc["AgentTokens.Issue.Action"]</button>
+                                }
+                                else
+                                {
+                                    <button @onclick="SaveEditAsync" disabled="@(busy || !CanIssue)">@Loc["Common.Save"]</button>
+                                }
+                                <button class="btn-ghost" @onclick="CloseForm" disabled="@busy">@Loc["Common.Cancel"]</button>
+                            </div>
+                        </div>
+                    }
+                    else if (tokens.Count == 0)
+                    {
+                        <p class="muted">@Loc["AgentTokens.None"]</p>
+                    }
+                    else
+                    {
                         <div class="list-rows">
-                            @foreach (var entry in adminTokens)
+                            @foreach (var token in tokens)
                             {
                                 <div class="token-row">
                                     <div class="token-main">
                                         <KeywardIcon Name="key" Size="17" />
-                                        <span class="token-name">@entry.Token.Name</span>
-                                        <span class="badge @StatusClass(entry.Token)">@StatusLabel(entry.Token)</span>
+                                        <span class="token-name">@token.Name</span>
+                                        <span class="badge @StatusClass(token)">@StatusLabel(token)</span>
                                     </div>
+                                    @* One labelled line per fact, indented under the token name. *@
                                     <dl class="token-facts muted">
-                                        <dt>@Loc["AgentTokens.Admin.Owner"]</dt>
-                                        <dd>@entry.OwnerName</dd>
-                                        <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
-                                        <dd>@string.Join(", ", AllScopes.Where(sc => entry.Token.Scopes.HasFlag(sc)).Select(ScopeLabel))</dd>
+                                        @if (token.AllAgentVaults || token.VaultIds.Count > 0)
+                                        {
+                                            <dt>@Loc["AgentTokens.Vaults"]</dt>
+                                            <dd>@(token.AllAgentVaults ? Loc["AgentTokens.AllVaults"] : string.Join(", ", token.VaultIds.Select(VaultName)))</dd>
+                                            <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
+                                            <dd>@string.Join(", ", OfferedScopes.Where(s => token.Scopes.HasFlag(s)).Select(ScopeLabel))</dd>
+                                        }
+                                        @if (token.Scopes.HasFlag(AgentScopes.ManageApplications))
+                                        {
+                                            <dt>@Loc["AgentTokens.Applications"]</dt>
+                                            <dd>@ApplicationsFact(token)</dd>
+                                        }
+                                        <dt>@Loc["AgentTokens.Facts.Networks"]</dt>
+                                        <dd>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</dd>
                                         <dt>@Loc["AgentTokens.Expires"]</dt>
-                                        <dd><LocalTime Utc="entry.Token.ExpiresAt" /></dd>
+                                        <dd><LocalTime Utc="token.ExpiresAt" /></dd>
                                     </dl>
-                                    @if (entry.Token.RevokedAt is null)
+                                    @if (!token.IsActive && extendTokenId != token.Id)
                                     {
+                                        @* A token that no longer works can leave the list; a working one is revoked first. *@
                                         <div class="token-actions">
-                                            @if (adminConfirmRevokeId == entry.Token.Id)
+                                            @if (confirmDeleteId == token.Id)
                                             {
-                                                <span>@Loc["AgentTokens.ConfirmRevoke", entry.Token.Name]</span>
-                                                <button class="btn-danger btn-sm" @onclick="() => AdminRevokeAsync(entry.Token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
-                                                <button class="btn-ghost btn-sm" @onclick="() => adminConfirmRevokeId = null">@Loc["Common.Cancel"]</button>
+                                                <span>@Loc["AgentTokens.ConfirmDelete", token.Name]</span>
+                                                <button class="btn-danger btn-sm" @onclick="() => DeleteAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">@Loc["Common.Cancel"]</button>
                                             }
                                             else
                                             {
-                                                <button class="btn-danger btn-sm" @onclick="() => adminConfirmRevokeId = entry.Token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
+                                                @if (token.RevokedAt is null)
+                                                {
+                                                    <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
+                                                }
+                                                <button class="btn-danger btn-sm" @onclick="() => confirmDeleteId = token.Id" disabled="@busy">@Loc["Common.Delete"]</button>
+                                            }
+                                        </div>
+                                    }
+                                    @if (token.RevokedAt is null && (token.IsActive || extendTokenId == token.Id))
+                                    {
+                                        <div class="token-actions">
+                                            @if (confirmRevokeId == token.Id)
+                                            {
+                                                <span>@Loc["AgentTokens.ConfirmRevoke", token.Name]</span>
+                                                <button class="btn-danger btn-sm" @onclick="() => RevokeAsync(token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => confirmRevokeId = null">@Loc["Common.Cancel"]</button>
+                                            }
+                                            else if (extendTokenId == token.Id)
+                                            {
+                                                @* A new validity on the same value: the computer keeps working without a new setup. *@
+                                                <label class="extend-days">
+                                                    <span>@Loc["AgentTokens.Extend.Days"]</span>
+                                                    <input type="number" min="1" max="@MaxDays" @bind="extendDays" />
+                                                </label>
+                                                <button class="btn-sm" @onclick="() => ExtendAsync(token.Id)" disabled="@(busy || extendDays is < 1 || extendDays > MaxDays)">@Loc["AgentTokens.Extend"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => extendTokenId = null">@Loc["Common.Cancel"]</button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn-ghost btn-sm" @onclick="() => StartEditAsync(token)" disabled="@busy">@Loc["Common.Edit"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => StartExtend(token.Id)" disabled="@busy">@Loc["AgentTokens.Extend"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => RotateAsync(token.Id)" disabled="@busy">@Loc["AgentTokens.Rotate"]</button>
+                                                <button class="btn-danger btn-sm" @onclick="() => confirmRevokeId = token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
                                             }
                                         </div>
                                     }
@@ -353,42 +302,70 @@
                             }
                         </div>
                     }
-                </section>
+                </ChildContent>
+            </KeywardArea>
+
+            @* Administrators see every token of the organisation and can revoke one (a lost computer, someone who
+               left) — never change or issue one for someone else. *@
+            @if (canAdminister && adminTokens is not null)
+            {
+                <KeywardArea Title="@AdminTitle" RememberKey="keyward.agent-tokens.admin">
+                    <p class="muted">@Loc["AgentTokens.Admin.Desc"]</p>
+                    <div class="list-rows">
+                        @foreach (var entry in adminTokens)
+                        {
+                            <div class="token-row">
+                                <div class="token-main">
+                                    <KeywardIcon Name="key" Size="17" />
+                                    <span class="token-name">@entry.Token.Name</span>
+                                    <span class="badge @StatusClass(entry.Token)">@StatusLabel(entry.Token)</span>
+                                </div>
+                                <dl class="token-facts muted">
+                                    <dt>@Loc["AgentTokens.Admin.Owner"]</dt>
+                                    <dd>@entry.OwnerName</dd>
+                                    <dt>@Loc["AgentTokens.Facts.Permissions"]</dt>
+                                    <dd>@string.Join(", ", AllScopes.Where(sc => entry.Token.Scopes.HasFlag(sc)).Select(ScopeLabel))</dd>
+                                    <dt>@Loc["AgentTokens.Expires"]</dt>
+                                    <dd><LocalTime Utc="entry.Token.ExpiresAt" /></dd>
+                                </dl>
+                                @if (entry.Token.RevokedAt is null)
+                                {
+                                    <div class="token-actions">
+                                        @if (adminConfirmRevokeId == entry.Token.Id)
+                                        {
+                                            <span>@Loc["AgentTokens.ConfirmRevoke", entry.Token.Name]</span>
+                                            <button class="btn-danger btn-sm" @onclick="() => AdminRevokeAsync(entry.Token.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
+                                            <button class="btn-ghost btn-sm" @onclick="() => adminConfirmRevokeId = null">@Loc["Common.Cancel"]</button>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-danger btn-sm" @onclick="() => adminConfirmRevokeId = entry.Token.Id" disabled="@busy">@Loc["AgentTokens.Revoke"]</button>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </KeywardArea>
             }
 
             @* What a token is for and how it reaches the assistant — the steps are the same on every computer; only the
                KEYWARD address differs, so it is filled in. *@
-            <section class="card usage" id="usage">
-                <h3 class="section-heading">
-                    <button type="button" class="section-toggle" aria-expanded="@(showUsage ? "true" : "false")" @onclick="() => showUsage = !showUsage">
-                        <KeywardIcon Name="@(showUsage ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Usage.Title"]
-                    </button>
-                </h3>
-                @if (showUsage)
-                {
-                    <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
-                    <p class="muted">@Loc["AgentTokens.Usage.Scope"]</p>
-                    @OsSwitch
-                    @DotNetPrerequisite
-                    @StepList(UsageSteps)
-                }
-            </section>
+            <KeywardArea Title="@Loc["AgentTokens.Usage.Title"]" RememberKey="keyward.agent-tokens.usage">
+                <p class="muted">@Loc["AgentTokens.Usage.Intro"]</p>
+                <p class="muted">@Loc["AgentTokens.Usage.Scope"]</p>
+                @OsSwitch
+                @DotNetPrerequisite
+                @StepList(UsageSteps)
+            </KeywardArea>
 
             @* The way back: what was set up on a computer, removed in reverse, and the token revoked and deleted here. *@
-            <section class="card usage" id="uninstall">
-                <h3 class="section-heading">
-                    <button type="button" class="section-toggle" aria-expanded="@(showUninstall ? "true" : "false")" @onclick="() => showUninstall = !showUninstall">
-                        <KeywardIcon Name="@(showUninstall ? "chevron-down" : "chevron-right")" Size="16" />@Loc["AgentTokens.Uninstall.Title"]
-                    </button>
-                </h3>
-                @if (showUninstall)
-                {
-                    <p class="muted">@Loc["AgentTokens.Uninstall.Intro"]</p>
-                    @OsSwitch
-                    @StepList(UninstallSteps)
-                    <p class="muted">@Loc["AgentTokens.Uninstall.Lost"]</p>
-                }
-            </section>
+            <KeywardArea Title="@Loc["AgentTokens.Uninstall.Title"]" RememberKey="keyward.agent-tokens.uninstall">
+                <p class="muted">@Loc["AgentTokens.Uninstall.Intro"]</p>
+                @OsSwitch
+                @StepList(UninstallSteps)
+                <p class="muted">@Loc["AgentTokens.Uninstall.Lost"]</p>
+            </KeywardArea>
 
             @if (status is not null)
             {
@@ -532,15 +509,12 @@
     // Edit mode: the form above changes an existing token instead of issuing one; the token value stays.
     private Guid? editingTokenId;
 
-    // Sections: the tokens are open, «How to use» and «Remove» start closed. Inside «Your AI agent tokens» the form
-    // («Issue token», «Edit») replaces the list while it is open.
-    private bool showTokens = true;
-    private bool showAdmin;
+    // Areas (KeywardArea) start collapsed and remember their state per browser. Inside «Your AI agent tokens» the
+    // form («Issue token», «Edit») replaces the list while it is open; opening the form opens the area.
+    private KeywardArea? tokensArea;
     private bool canAdminister;
     private IReadOnlyList<AgentTokenAdminSummary>? adminTokens;
     private Guid? adminConfirmRevokeId;
-    private bool showUsage;
-    private bool showUninstall;
     private bool showForm;
     private ElementReference nameInput;
     private ElementReference issuedCopyButton;
@@ -719,8 +693,8 @@
     {
         ResetForm();
         showForm = true;
-        showTokens = true;
         status = null;
+        await OpenTokensAreaAsync();
         StateHasChanged();
         await Task.Yield();
         await nameInput.FocusAsync();
@@ -730,7 +704,6 @@
     {
         editingTokenId = token.Id;
         showForm = true;
-        showTokens = true;
         name = token.Name;
         networks = token.AllowedNetworks;
         selectedScopes = token.Scopes;
@@ -742,11 +715,19 @@
         selectedApplications.Clear();
         selectedApplications.UnionWith(token.ApplicationIds);
         status = null;
+        await OpenTokensAreaAsync();
         // The form renders on the next pass; focusing its name then brings it into view.
         StateHasChanged();
         await Task.Yield();
         await nameInput.FocusAsync();
     }
+
+    // The form renders inside the tokens area, which may be collapsed.
+    private Task OpenTokensAreaAsync() => tokensArea?.OpenAsync() ?? Task.CompletedTask;
+
+    private string TokensTitle => $"{Loc["AgentTokens.Existing"]} ({tokens?.Count ?? 0})";
+
+    private string AdminTitle => $"{Loc["AgentTokens.Admin.Title"]} ({adminTokens?.Count ?? 0})";
 
     private Task SaveEditAsync() => RunAsync(async () =>
     {

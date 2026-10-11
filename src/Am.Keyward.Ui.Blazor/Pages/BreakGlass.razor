@@ -16,8 +16,9 @@
    approver) consumes the approved grant within its validity window — which materializes a regular Manage
    access grant for the requester on the target team vault (visible in the vault's ACL, revocable after the
    recovery). Every transition is written to the tamper-evident audit chain AND the out-of-band hash-chained
-   sink file. Management page: like Groups it is NOT in KeywardNav — the host places it in its admin nav. *@
-<KeywardUi Fill="true">
+   sink file. Management page: like Groups it is NOT in KeywardNav — the host places it in its admin nav.
+   No Fill mode: the three collapsible areas take their content's height and the page scrolls as a whole. *@
+<KeywardUi>
     <div class="page-header">
         <h1>@Loc["Page.BreakGlass.Title"]</h1>
         <p>@Loc["Page.BreakGlass.Desc"]</p>
@@ -39,35 +40,30 @@
     else
     {
         @* ---------- New request ---------- *@
-        <details class="card section">
-            <summary><KeywardIcon Name="shield" /> @Loc["BreakGlass.Request.Title"]</summary>
-            <div class="section-body">
-                <p class="muted">@Loc["BreakGlass.Request.Desc"]</p>
-                <div class="row">
-                    <select @bind="requestVaultId" aria-label="@(Loc["BreakGlass.SelectVault"])" style="max-width:20rem;">
-                        <option value="">@Loc["BreakGlass.SelectVault"]</option>
-                        @foreach (var v in targetVaults)
-                        {
-                            <option value="@v.VaultId">@v.Name</option>
-                        }
-                    </select>
-                </div>
-                <div class="row">
-                    <input @bind="requestReason" @bind:event="oninput" placeholder="@(Loc["BreakGlass.Reason.Placeholder"])"
-                           aria-label="@(Loc["BreakGlass.Reason.Placeholder"])" style="max-width:32rem; flex:1;" />
-                    <button class="btn-sm" @onclick="RequestAsync"
-                            disabled="@(busy || string.IsNullOrEmpty(requestVaultId) || string.IsNullOrWhiteSpace(requestReason))">
-                        @Loc["BreakGlass.Request.Submit"]
-                    </button>
-                </div>
+        <KeywardArea Title="@Loc["BreakGlass.Request.Title"]" Icon="shield" RememberKey="keyward.breakglass.request">
+            <p class="muted">@Loc["BreakGlass.Request.Desc"]</p>
+            <div class="row">
+                <select class="vault-select" @bind="requestVaultId" aria-label="@(Loc["BreakGlass.SelectVault"])">
+                    <option value="">@Loc["BreakGlass.SelectVault"]</option>
+                    @foreach (var v in targetVaults)
+                    {
+                        <option value="@v.VaultId">@v.Name</option>
+                    }
+                </select>
             </div>
-        </details>
+            <div class="row">
+                <input class="reason-input" @bind="requestReason" @bind:event="oninput" placeholder="@(Loc["BreakGlass.Reason.Placeholder"])"
+                       aria-label="@(Loc["BreakGlass.Reason.Placeholder"])" />
+                <button class="btn-sm" @onclick="RequestAsync"
+                        disabled="@(busy || string.IsNullOrEmpty(requestVaultId) || string.IsNullOrWhiteSpace(requestReason))">
+                    @Loc["BreakGlass.Request.Submit"]
+                </button>
+            </div>
+        </KeywardArea>
 
-        @* ---------- Pending requests (dual control) ---------- *@
-        <div class="card list-card">
-            <div class="list-head">
-                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="shield" Size="18" />@Loc["BreakGlass.Pending.Title"]</h3>
-            </div>
+        @* ---------- Pending requests (dual control) — the count shows on the collapsed area too ---------- *@
+        <KeywardArea Title="@Loc["BreakGlass.Pending.Title"]" Icon="shield" RememberKey="keyward.breakglass.pending"
+                     Notice="@(Pending.Count > 0 ? Loc["Common.Area.Pending", Pending.Count].Value : null)">
             @if (Pending.Count == 0)
             {
                 <div class="empty-state">
@@ -80,7 +76,7 @@
                 <div class="list-rows">
                     @foreach (var g in Pending)
                     {
-                        <div class="list-row" style="cursor:default;">
+                        <div class="list-row list-row-static">
                             <KeywardIcon Name="lock" Size="17" />
                             <span class="list-row-name">@TargetLabel(g)</span>
                             <span class="list-row-meta">
@@ -100,13 +96,10 @@
                     }
                 </div>
             }
-        </div>
+        </KeywardArea>
 
         @* ---------- History (all states; consume action on usable grants) ---------- *@
-        <div class="card list-card">
-            <div class="list-head">
-                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="shield" Size="18" />@Loc["BreakGlass.History.Title"]</h3>
-            </div>
+        <KeywardArea Title="@Loc["BreakGlass.History.Title"]" Icon="shield" RememberKey="keyward.breakglass.history">
             @if (NonPending.Count == 0)
             {
                 <div class="empty-state">
@@ -119,7 +112,7 @@
                 <div class="list-rows">
                     @foreach (var g in NonPending)
                     {
-                        <div class="list-row" style="cursor:default;">
+                        <div class="list-row list-row-static">
                             <KeywardIcon Name="lock" Size="17" />
                             <span class="list-row-name">@TargetLabel(g)</span>
                             <span class="list-row-meta">
@@ -135,7 +128,7 @@
                     }
                 </div>
             }
-        </div>
+        </KeywardArea>
 
         @if (status is not null)
         {

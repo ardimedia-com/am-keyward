@@ -110,6 +110,7 @@
   <data name="Common.Hide" xml:space="preserve"><value>Ocultar</value></data>
   <data name="Common.Pane.Collapse" xml:space="preserve"><value>Contraer la lista</value></data>
   <data name="Common.Pane.Expand" xml:space="preserve"><value>Expandir la lista</value></data>
+  <data name="Common.Area.Pending" xml:space="preserve"><value>{0} pendiente(s)</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Sí</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Nombre</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Nota</value></data>
@@ -663,6 +664,7 @@
   <data name="Stats.Ips.Empty" xml:space="preserve"><value>Aún no hay accesos registrados.</value></data>
   <data name="Stats.Ips.Seen" xml:space="preserve"><value>vista por primera vez {0} · por última vez {1}</value></data>
   <data name="Stats.Alerts.Title" xml:space="preserve"><value>Alertas de acceso</value></data>
+  <data name="Stats.Alerts.Notice" xml:space="preserve"><value>{0} alerta(s)</value></data>
   <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Señales basadas en reglas: un token usado desde una IP nunca vista, o de nuevo en uso tras un largo silencio. Si una alerta es inesperada, revoca o rota el token.</value></data>
   <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Sin alertas — ningún patrón de acceso inusual.</value></data>
   <data name="Stats.Alert.NewIp" xml:space="preserve"><value>IP nueva</value></data>

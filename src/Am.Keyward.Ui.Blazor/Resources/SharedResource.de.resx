@@ -110,6 +110,7 @@
   <data name="Common.Hide" xml:space="preserve"><value>Verbergen</value></data>
   <data name="Common.Pane.Collapse" xml:space="preserve"><value>Liste einklappen</value></data>
   <data name="Common.Pane.Expand" xml:space="preserve"><value>Liste ausklappen</value></data>
+  <data name="Common.Area.Pending" xml:space="preserve"><value>{0} offen</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Ja</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Notiz</value></data>
@@ -665,6 +666,7 @@
   <data name="Stats.Ips.Empty" xml:space="preserve"><value>Noch keine Zugriffe aufgezeichnet.</value></data>
   <data name="Stats.Ips.Seen" xml:space="preserve"><value>zuerst gesehen {0} · zuletzt {1}</value></data>
   <data name="Stats.Alerts.Title" xml:space="preserve"><value>Zugriffs-Warnungen</value></data>
+  <data name="Stats.Alerts.Notice" xml:space="preserve"><value>{0} Warnung(en)</value></data>
   <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Regelbasierte Signale: ein Token wurde von einer nie gesehenen IP verwendet oder ist nach langer Stille wieder aktiv. Ist eine Warnung unerwartet, widerrufe oder rotiere den Token.</value></data>
   <data name="Stats.Alerts.Empty" xml:space="preserve"><value>Keine Warnungen — keine ungewöhnlichen Zugriffsmuster.</value></data>
   <data name="Stats.Alert.NewIp" xml:space="preserve"><value>Neue IP</value></data>

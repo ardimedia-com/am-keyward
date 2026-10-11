@@ -53,7 +53,7 @@
 
                 @if (apps.Count == 0)
                 {
-                    <p class="muted" style="font-size:.85rem; padding:.25rem .5rem;">@Loc["App.Empty"]</p>
+                    <p class="muted tree-empty">@Loc["App.Empty"]</p>
                 }
 
                 @if (canManage)
@@ -89,7 +89,7 @@
                         }
                         else
                         {
-                            <p class="muted" style="font-size:.85rem;">@Loc["App.SelectHint"]</p>
+                            <p class="muted select-hint">@Loc["App.SelectHint"]</p>
                         }
                     </div>
                 }
@@ -98,37 +98,36 @@
                     @* The Umgebungen content renders in both worlds — inside the tab area for managers, bare
                        for a read-only user (no tab bar) — so it lives in ONE local fragment. *@
                     RenderFragment environmentsArea = @<text>
-                        <div class="card list-card">
+                        @* The only titled area of this view, so it stays a plain card (decision T87 Q3 B); the
+                           «add» form inside it is a collapsible area of its own. *@
+                        <div class="card list-card env-list">
                             @if (canManage)
                             {
-                                <details class="card section" style="margin-bottom:.75rem;">
-                                    <summary><KeywardIcon Name="plus" /> @Loc["Secret.Envs.Add"]</summary>
-                                    <div class="section-body">
-                                        <div class="row">
-                                            <input @bind="newEnvName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
-                                            <button @onclick="AddEnvAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newEnvName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
-                                        </div>
+                                <KeywardArea Title="@Loc["Secret.Envs.Add"]" Icon="plus" Class="env-add" RememberKey="keyward.applications.environments-add">
+                                    <div class="row">
+                                        <input class="env-name-input" @bind="newEnvName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" />
+                                        <button @onclick="AddEnvAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newEnvName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
                                     </div>
-                                </details>
+                                </KeywardArea>
                             }
                             <div class="list-head">
-                                <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="layers" Size="18" />@Loc["Secret.Envs.Title"]</h3>
+                                <h3 class="list-title"><KeywardIcon Name="layers" Size="18" />@Loc["Secret.Envs.Title"]</h3>
                             </div>
-                            <p class="muted" style="margin:.25rem 0 .5rem;">@Loc["Secret.Envs.Desc"]</p>
+                            <p class="muted env-desc">@Loc["Secret.Envs.Desc"]</p>
                             @if (environments is null)
                             {
                                 <p class="muted">@Loc["Common.Loading"]</p>
                             }
                             else
                             {
-                                <div class="list-rows" style="margin:.5rem 0;">
+                                <div class="list-rows">
                                     @foreach (var env in environments)
                                     {
-                                        <div class="list-row" style="cursor:default;">
+                                        <div class="list-row list-row-static">
                                             <KeywardIcon Name="layers" Size="17" />
                                             @if (renamingEnvId == env.Id)
                                             {
-                                                <input @bind="renameEnvValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
+                                                <input class="env-rename-input" @bind="renameEnvValue" aria-label="@(Loc["Common.Rename"])" />
                                                 <button class="btn-sm" @onclick="() => RenameEnvAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameEnvValue))">@Loc["Common.Save"]</button>
                                                 <button class="btn-ghost btn-sm" @onclick="() => renamingEnvId = null">@Loc["Common.Cancel"]</button>
                                             }
@@ -146,9 +145,9 @@
                                         </div>
                                         @if (confirmDeleteEnvId == env.Id)
                                         {
-                                            <div class="notice notice-error" style="margin:.25rem 0;">
+                                            <div class="notice notice-error env-confirm">
                                                 @Loc["Secret.Envs.ConfirmDelete", env.Name]
-                                                <div class="row" style="margin-top:.5rem;">
+                                                <div class="row confirm-actions">
                                                     <button class="btn-danger btn-sm" @onclick="() => DeleteEnvAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
                                                     <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteEnvId = null">@Loc["Common.Cancel"]</button>
                                                 </div>
@@ -174,26 +173,24 @@
                                 @* No name heading here — the tab area's title row above the bar already
                                    names the application (and carries the counts). *@
                                 <div class="card">
-                                    <div class="section-body" style="padding:0;">
-                                        <p class="muted">@Loc["App.Settings.Desc"]</p>
-                                        <div class="row">
-                                            <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:16rem;" />
-                                            <button class="btn-ghost btn-sm" @onclick="RenameAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
-                                        </div>
-                                        <div class="danger-zone">
-                                            @if (confirmDelete)
-                                            {
-                                                <span>@Loc["App.ConfirmDelete", selected.Name]</span>
-                                                <div class="row" style="margin-top:.5rem;">
-                                                    <button class="btn-danger btn-sm" @onclick="DeleteAppAsync" disabled="@busy">@Loc["Common.Yes"]</button>
-                                                    <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["App.Delete"]</button>
-                                            }
-                                        </div>
+                                    <p class="muted">@Loc["App.Settings.Desc"]</p>
+                                    <div class="row">
+                                        <input class="app-rename-input" @bind="renameValue" aria-label="@(Loc["Common.Rename"])" />
+                                        <button class="btn-ghost btn-sm" @onclick="RenameAppAsync" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Rename"]</button>
+                                    </div>
+                                    <div class="danger-zone">
+                                        @if (confirmDelete)
+                                        {
+                                            <span>@Loc["App.ConfirmDelete", selected.Name]</span>
+                                            <div class="row confirm-actions">
+                                                <button class="btn-danger btn-sm" @onclick="DeleteAppAsync" disabled="@busy">@Loc["Common.Yes"]</button>
+                                                <button class="btn-ghost btn-sm" @onclick="() => confirmDelete = false">@Loc["Common.Cancel"]</button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <button class="btn-danger btn-sm" @onclick="() => confirmDelete = true" disabled="@busy">@Loc["App.Delete"]</button>
+                                        }
                                     </div>
                                 </div>
                             }

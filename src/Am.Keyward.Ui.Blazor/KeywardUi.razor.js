@@ -8,14 +8,25 @@ export function getTimeZoneOffsetMinutes() {
     return new Date().getTimezoneOffset();
 }
 
-// Small on/off UI preferences that must survive a page reload (the collapsed state of the tree pane).
-// localStorage can throw (private mode, blocked storage), so both sides swallow — a lost preference is
-// never worth breaking a page over.
+// Small on/off UI preferences that must survive a page reload (the collapsed state of the tree pane, the
+// open state of a KeywardArea). localStorage can throw (private mode, blocked storage), so every side
+// swallows — a lost preference is never worth breaking a page over.
 export function readFlag(key) {
     try {
         return window.localStorage.getItem(key) === "1";
     } catch {
         return false;
+    }
+}
+
+// Three-state read for a preference whose default is not "off" (an area that may start open): true / false
+// when stored, null when nothing is stored or storage is unavailable — then the caller's default stands.
+export function readState(key) {
+    try {
+        const value = window.localStorage.getItem(key);
+        return value === "1" ? true : value === "0" ? false : null;
+    } catch {
+        return null;
     }
 }
 

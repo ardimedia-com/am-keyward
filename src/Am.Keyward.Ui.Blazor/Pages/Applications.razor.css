@@ -1,0 +1,47 @@
+/* Applications page. Layout only; colours come from the --kw-* tokens. Selectors that must outweigh the shared
+   element rules of KeywardUi.razor.css (.keyward-ui ::deep h3 / p / .notice) carry a second class. */
+
+/* «No applications yet» inside the tree pane. */
+.tree-empty {
+    padding: .25rem .5rem;
+    font-size: .85rem;
+}
+
+.select-hint {
+    font-size: .85rem;
+}
+
+.app-rename-input,
+.env-name-input {
+    max-width: 16rem;
+}
+
+.env-rename-input {
+    max-width: 14rem;
+}
+
+/* The «add environment» area sits at the top of the environments card. It is a KeywardArea (a child component),
+   so it is reached with ::deep. */
+.env-list ::deep .env-add {
+    margin-bottom: .75rem;
+}
+
+.list-head .list-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+}
+
+/* The gap above the rows lives here: in fill mode the shared .list-card rules zero the rows' own top margin. */
+.env-list .env-desc {
+    margin: .25rem 0 1rem;
+}
+
+div.notice.env-confirm {
+    margin: .25rem 0;
+}
+
+.confirm-actions {
+    margin-top: .5rem;
+}

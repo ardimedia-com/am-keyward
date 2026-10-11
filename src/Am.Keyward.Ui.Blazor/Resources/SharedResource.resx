@@ -110,6 +110,7 @@
   <data name="Common.Hide" xml:space="preserve"><value>Hide</value></data>
   <data name="Common.Pane.Collapse" xml:space="preserve"><value>Collapse list</value></data>
   <data name="Common.Pane.Expand" xml:space="preserve"><value>Expand list</value></data>
+  <data name="Common.Area.Pending" xml:space="preserve"><value>{0} pending</value></data>
   <data name="Common.Yes" xml:space="preserve"><value>Yes</value></data>
   <data name="Common.Name" xml:space="preserve"><value>Name</value></data>
   <data name="Common.Note" xml:space="preserve"><value>Note</value></data>
@@ -665,6 +666,7 @@
   <data name="Stats.Ips.Empty" xml:space="preserve"><value>No accesses recorded yet.</value></data>
   <data name="Stats.Ips.Seen" xml:space="preserve"><value>first seen {0} · last seen {1}</value></data>
   <data name="Stats.Alerts.Title" xml:space="preserve"><value>Access alerts</value></data>
+  <data name="Stats.Alerts.Notice" xml:space="preserve"><value>{0} alert(s)</value></data>
   <data name="Stats.Alerts.Desc" xml:space="preserve"><value>Rule-based signals: a token used from a never-seen IP, or used again after a long silence. If an alert is unexpected, revoke or rotate the token.</value></data>
   <data name="Stats.Alerts.Empty" xml:space="preserve"><value>No alerts — no unusual access patterns.</value></data>
   <data name="Stats.Alert.NewIp" xml:space="preserve"><value>New IP</value></data>

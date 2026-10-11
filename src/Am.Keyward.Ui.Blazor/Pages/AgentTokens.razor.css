@@ -19,52 +19,6 @@
     overflow-wrap: anywhere;
 }
 
-/* Collapsible section headings: the whole heading is the toggle. Scoped under .agent-tokens so it wins over the
-   library's general button look. */
-.section-heading {
-    margin: 0;
-}
-
-.agent-tokens .section-toggle {
-    display: flex;
-    align-items: center;
-    gap: .45rem;
-    width: 100%;
-    padding: 0;
-    border: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: pointer;
-}
-
-.agent-tokens .section-toggle:hover {
-    background: none;
-    color: inherit;
-}
-
-.agent-tokens .section-heading + *,
-.agent-tokens .section-head + * {
-    margin-top: .75rem;
-}
-
-/* «Your AI agent tokens»: the toggle takes the row, the «Issue token» button sits at its end. */
-.section-head {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-}
-
-.section-head .section-heading {
-    flex: 1;
-    min-width: 0;
-}
-
-.agent-tokens .section-head .section-heading + * {
-    margin-top: 0;
-}
-
 .form-title {
     margin: 0 0 .25rem;
     font-size: 1rem;
@@ -317,8 +271,9 @@
     color: var(--kw-muted-text);
 }
 
-/* Pending reveal requests: the one place a human decides whether an agent may see a secret. */
-.reveal-requests {
+/* Pending reveal requests: the one place a human decides whether an agent may see a secret. The area is a
+   KeywardArea (a child component), so its frame is reached with ::deep. */
+.agent-tokens ::deep .reveal-requests {
     border-color: var(--kw-warning);
 }
 

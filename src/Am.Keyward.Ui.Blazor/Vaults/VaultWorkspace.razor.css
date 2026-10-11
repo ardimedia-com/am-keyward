@@ -180,7 +180,7 @@
     display: none;
 }
 
-/* Framed areas inside a card: «Sharing» (people, then AI agent tokens) and an entry (details, then move). */
+/* Framed areas inside a card: «Sharing» (people, then AI agent tokens) and an entry's details. */
 .ws-area {
     padding: .8rem .9rem;
     border: 1px solid var(--kw-border);
@@ -197,12 +197,6 @@
     gap: .4rem;
     margin: 0 0 .4rem;
     font-size: .95rem;
-}
-
-.ws-area .move-panel {
-    margin: 0;
-    padding: 0;
-    border: 0;
 }
 
 .ws-area .detail-grid {
@@ -234,4 +228,105 @@
 
 .field-error {
     color: var(--kw-danger);
+}
+
+/* Tree pane: the vault filter shown once there are many vaults. */
+.vault-filter {
+    margin: .25rem 0 .4rem;
+}
+
+/* Search results and the item list: heading lines of the pinned list head. Two classes, so they outweigh the
+   shared h3 / p margins of KeywardUi.razor.css. */
+.list-head .search-title {
+    margin: 0 0 .25rem;
+}
+
+.list-head .search-count {
+    margin: 0 0 .5rem;
+}
+
+.list-head .list-title {
+    margin: 0;
+}
+
+.item-filter {
+    max-width: 18rem;
+    margin: .5rem 0 0;
+}
+
+/* «Create a vault» card: the clickable name suggestions. */
+.name-suggestions {
+    margin: .25rem 0 .5rem;
+}
+
+.small-label,
+.select-hint {
+    font-size: .85rem;
+}
+
+.add-row {
+    justify-content: flex-end;
+}
+
+.confirm-actions {
+    margin-top: .5rem;
+}
+
+.share-row {
+    margin: .5rem 0;
+}
+
+.folder-field {
+    max-width: 24rem;
+}
+
+.input-small {
+    max-width: 10rem;
+}
+
+.input-narrow {
+    max-width: 14rem;
+}
+
+.input-medium {
+    max-width: 16rem;
+}
+
+.bulk-select {
+    max-width: 12rem;
+}
+
+.move-select {
+    max-width: 13rem;
+}
+
+/* The selected entry: name and actions on one line, then «Details» (always shown) and «Move» (collapsible). */
+.item-detail-head {
+    justify-content: space-between;
+}
+
+.item-detail-head .item-detail-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin: 0;
+}
+
+.item-confirm-yes {
+    margin-left: .5rem;
+}
+
+.ws-area.item-details {
+    margin-top: .75rem;
+}
+
+.ws-area .item-kind {
+    margin: 0;
+}
+
+/* «Move» is a KeywardArea (a child component), reached with ::deep: inside the entry's card it sits flat beside
+   «Details», like a framed area rather than a raised card. */
+.item-detail ::deep .item-move {
+    margin-top: .9rem;
+    box-shadow: none;
 }
