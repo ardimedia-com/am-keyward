@@ -5,6 +5,11 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- A revealed value (secure note, secret, key) is shown in a read-only text box over the full width — every line
+  visible, line breaks kept (recovery codes, key files). It used to be one line that cut the rest off.
+
 ## [0.27.1-preview] - 2026-10-07
 
 ### Fixed

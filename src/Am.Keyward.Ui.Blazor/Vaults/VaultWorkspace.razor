@@ -771,8 +771,18 @@ else
                     <div class="detail-grid">
                         <div class="detail-field wide">
                             <label>@Loc["Vault.Field.Value"]</label>
-                            <div class="detail-value">
-                                <span class="grow"><code>@(reveal ? detail.Content : "••••••••")</code></span>
+                            @* Revealed as a read-only text box: a value with several lines (recovery codes, a key file) stays
+                               readable in full, line breaks included — the single line used to cut it off. *@
+                            <div class="detail-value @(reveal ? "multiline" : string.Empty)">
+                                @if (reveal)
+                                {
+                                    <textarea class="grow detail-text" readonly spellcheck="false" aria-label="@Loc["Vault.Field.Value"]"
+                                              rows="@(ValueRows(detail.Content))" value="@detail.Content"></textarea>
+                                }
+                                else
+                                {
+                                    <span class="grow"><code>••••••••</code></span>
+                                }
                                 <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
                                 <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("value", detail.Content)'><KeywardIcon Name="@(copiedKey == "value" ? "check" : "copy")" Size="15" /></button>
                             </div>
@@ -1348,6 +1358,9 @@ else
         "Note" => Loc["Vault.Field.Note"],
         _ => Loc["Vault.Field.Value"],
     };
+
+    /// <summary>Rows of the revealed value's text box: one per line, at least 2, at most 16 (then it scrolls).</summary>
+    private static int ValueRows(string? value) => Math.Clamp((value ?? string.Empty).Split('\n').Length, 2, 16);
 
     /// <summary>Copies a secret to the clipboard and shows a short "copied" check on that field's button.</summary>
     private async Task CopyAsync(string key, string value)
