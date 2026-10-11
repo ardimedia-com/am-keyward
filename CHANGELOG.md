@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.28.0-preview] - 2026-10-11
+
 ### Added
 
 - **Collapsible areas** (decision T87 A): the secondary areas of the KEYWARD pages fold away and remember, per
