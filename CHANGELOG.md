@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.29.0-preview] - 2026-10-12
+
 ### Added
 
 - **The software-client API can be limited to networks** (`Keyward:Client:AllowedNetworks`, option
