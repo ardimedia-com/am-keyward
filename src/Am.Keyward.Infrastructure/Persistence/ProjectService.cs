@@ -173,7 +173,7 @@ public sealed class ProjectService(
         SoftwareOperatorGuard.IsOperatorAsync(db, tenantId, actorUserId, ct);
 
     private Task EnsureOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
-        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser, actor,
             "Managing applications requires the tenant-admin or software-manager role.", ct);
 
     private void EnsureTenantScope(Guid requestedTenantId)

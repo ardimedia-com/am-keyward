@@ -120,6 +120,8 @@ crypto, audit, vaults, tokens, break-glass and monitoring:
 // choose (outside the database and outside any folder a deploy replaces), created on first run:
 //   var (kek, kekId, created) = DpapiKekFile.LoadOrCreate(@"C:\ProgramData\<Company>\<App>\keyward");
 // `created` is your cue to log the "back it up offline" warning once — see the escrow note below.
+// Each call narrows the folder and kek.bin to SYSTEM, Administrators and the app's own identity (inheritance off);
+// pass a logger — DpapiKekFile.LoadOrCreate(dir, logger) — to hear about it when the process may not do that.
 var keywardConn = builder.Configuration.GetConnectionString("Keyward")!;
 var (kek, kekId) = LoadKekFromYourProvider();
 builder.Services.AddKeyward(keywardConn, kek, kekId);
@@ -265,7 +267,8 @@ token) needs the service registration, the rate-limiter middleware AND the endpo
 don't exist otherwise:
 
 ```csharp
-builder.Services.AddKeywardSoftwareClientApi();  // "Keyward.SoftwareClient" scheme + rate-limiter policy
+builder.Services.AddKeywardSoftwareClientApi(o => // "Keyward.SoftwareClient" scheme + rate-limiter policy
+    o.AllowedNetworks = builder.Configuration[KeywardSoftwareClientApiOptions.AllowedNetworksConfigurationKey]);
 // ...
 app.UseRateLimiter();                            // the mapped group requires the middleware — BEFORE auth
 app.UseAuthentication();
@@ -281,7 +284,21 @@ middleware, so a limiter after it only sees requests that already cost a token l
 limiter, failed token authentications are throttled per client IP (20 per 5 minutes by default, tunable via
 `AddKeywardSoftwareClientApi(o => { o.FailedAuthenticationLimit = …; o.FailedAuthenticationWindow = …; })`).
 The management API checks the software-operator role (tenant admin, software manager or system admin) for
-every mutation, whatever policy you pass.
+every mutation and for every read of application data (key list, values), whatever policy you pass.
+
+**Limit the client API to the networks of your applications.** `Keyward:Client:AllowedNetworks` (the option
+`KeywardSoftwareClientApiOptions.AllowedNetworks`, a comma-separated CIDR list such as `10.1.0.0/23, 10.8.0.0/24`)
+is checked before any token lookup — callers from elsewhere get 403 with an empty body, with or without a token.
+It is evaluated on `Connection.RemoteIpAddress`, so behind a reverse proxy configure `ForwardedHeaders` with that
+proxy as a known proxy and keep the proxy's network out of the list (a list that contains a known proxy is rejected).
+Without the setting the API answers every network, as before, and a warning is logged at startup; an unusable
+value is logged as an error and the API refuses everyone until it is corrected — it never stops the host. The agent
+API has the same option (`Keyward:Agent:AllowedNetworks`), see [agent API](docs/agent-api.md).
+
+**Code that runs without a signed-in user** (seeding, background jobs) and calls the software-operator services
+(applications, environments, application data, app tokens, monitoring) must declare itself first:
+`scope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetSystemActor();` — a scope with neither a user nor
+that declaration is refused. `KeywardMachineSecrets` does this itself for its startup overlay.
 
 With the client API mapped, Keyward also records **access statistics** per app token (last access + IP,
 requests per day, seen IPs) and derives rule-based **access alerts** (never-seen IP, active again after a

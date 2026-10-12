@@ -5,6 +5,60 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **The software-client API can be limited to networks** (`Keyward:Client:AllowedNetworks`, option
+  `KeywardSoftwareClientApiOptions.AllowedNetworks`, comma-separated CIDR list). It is checked in the app-token
+  authentication before the token: a caller from elsewhere gets 403 with an empty body, with or without a token — no
+  token lookup, no token statistics, no failed-authentication count. Evaluated on `Connection.RemoteIpAddress` after
+  `UseForwardedHeaders`. Without the setting the API stays open to every network as before, and a startup warning
+  says so. Hosts that filtered the client API themselves (e.g. a `KeywardClientNetworkFilter` in the host) can drop
+  that filter and pass the setting to `AddKeywardSoftwareClientApi` instead.
+- `KeywardSoftwareClientApiOptions.AllowedNetworksConfigurationKey` / `KeywardAgentApiOptions.AllowedNetworksConfigurationKey`
+  (`Keyward:Client:AllowedNetworks` / `Keyward:Agent:AllowedNetworks`); `SoftwareClientNetworkPolicy` and
+  `AgentNetworkPolicy.Parse` (never throw; an unusable value yields a policy that refuses everyone), with the shared
+  base `KeywardNetworkPolicy`.
+- `DpapiKekFile.LoadOrCreate(directory, logger)` and `DpapiKekFile.TryRestrictAccess(directory, out problem)`.
+- `IActorScopeSetter.SetSystemActor()` (extension): declares a scope without a user a trusted system caller.
+- `DpapiKekEscrow.MinimumPassphraseLength` (20) and `DpapiKekEscrow.TooShort(passphrase)`.
+
+### Changed
+
+- **BREAKING:** the software-operator services (applications, environments, application data, app tokens,
+  heartbeat monitoring) refuse a call that has **neither a user nor an explicit system declaration** — a missing user
+  is no longer taken as a trusted system call. Code that calls them without a signed-in user (seeding, background
+  jobs) must first call `IActorScopeSetter.SetSystemActor()` in its scope. `KeywardMachineSecrets` does this itself
+  for its startup overlay (when its scope has no user), so `ardimedia.com.toolbox` and `bvd.li.toolbox` need no
+  change. `SoftwareClientTokenService`, `TokenAccessMonitorService` and `KeywardMachineSecrets` take an additional
+  constructor dependency (resolved by DI).
+- A malformed `Keyward:Agent:AllowedNetworks` no longer stops the host at startup: it is logged as an error and the
+  agent API refuses every caller (403) until it is corrected. The same holds for the new client setting.
+- From outside the allowed networks the agent API now answers 403 also to a request without an `Authorization`
+  header (it was 401).
+- A network list that contains a known reverse proxy (`ForwardedHeadersOptions.KnownProxies`) is rejected (agent and
+  client API) — every request that proxy forwards from the internet would pass otherwise.
+- The network-setting error names the API and setting it belongs to (it used to say «agent API» for any value).
+
+### Security
+
+- **Application data is readable only by software operators**: `ISoftwareSecretService.ListSecretsAsync` and
+  `GetSecretAsync` — the latter decrypts every environment — now require a tenant admin, software manager or system
+  admin, like every change does. Before, any member of the tenant passed; the UI hid the panel, but any new path
+  would have exposed every application secret.
+- **The KEK file is readable only by this installation**: `DpapiKekFile.LoadOrCreate` narrows the KEK folder and
+  `kek.bin` to SYSTEM, BUILTIN\Administrators and the process identity, with inheritance off, when it creates the key
+  and — repairing older installations — every time it loads it. A folder under `%ProgramData%` inherited
+  `BUILTIN\Users: Read`, so any local process (a neighbouring app pool) could read the local-machine DPAPI blob and
+  unprotect the KEK. Explicit grants to individual accounts (a second installation sharing the KEK under its own
+  identity) are kept; grants to groups are removed. Two installations that share one KEK under DIFFERENT identities
+  only through the inherited Users rule lose that access — run them under one identity, or grant the second identity
+  on the folder explicitly. When the process may not change the rules, the key still loads and a warning is logged.
+  No DPAPI entropy is added (it would live where a local process can read it too, and require migrating every file).
+- **Escrow passphrases need at least 20 characters**: `--keyward-export-kek` and `DpapiKekEscrow.Wrap` refuse a
+  shorter one with a clear message. Importing an older escrow blob is unaffected.
+- The software-client API can be restricted to networks (see Added); a leaked app token is then useless from
+  elsewhere.
+
 ## [0.28.0-preview] - 2026-10-11
 
 ### Added

@@ -129,7 +129,10 @@ The API is part of `Am.Keyward.Api`. A host adds it next to the software-client 
 3. **Map** — `app.MapKeywardAgentApi();` — only when `AllowedNetworks` is set, so the API is never exposed by
    accident.
 4. **Networks** — `AllowedNetworks` is a comma-separated CIDR list (LAN, internal Wi-Fi, VPN pools). Callers from
-   elsewhere get 403 before any token is looked up. The check uses the address the host sees: **behind a reverse
+   elsewhere get 403 (with or without a token) before any token is looked up. An unusable value — not CIDR, a bare
+   address without `/32`, or a list containing a known reverse proxy — no longer stops the host: it is logged as
+   an error at startup and the API refuses everyone until it is corrected. The software-client API has the same
+   option (`Keyward:Client:AllowedNetworks`, see [software-client API](software-client-api.md)). The check uses the address the host sees: **behind a reverse
    proxy every internet request arrives with the proxy address**, so keep that address outside the list, and resolve
    the real client address with `ForwardedHeaders` trusted from that known proxy only. The per-token networks follow
    the same rule.

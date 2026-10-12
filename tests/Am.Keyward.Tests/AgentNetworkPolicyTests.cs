@@ -41,10 +41,14 @@ public class AgentNetworkPolicyTests
 
         var token = await IssueAsync(app.Services, tenantId, owner, vault, AgentScopes.VaultList);
 
-        async Task<HttpStatusCode> PingFrom(string? ip, string bearer)
+        async Task<HttpStatusCode> PingFrom(string? ip, string? bearer)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, "/keyward/api/v1/agent/ping");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            if (bearer is not null)
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            }
+
             if (ip is not null)
             {
                 request.Headers.Add(TestClientIpHeader, ip);
@@ -62,6 +66,41 @@ public class AgentNetworkPolicyTests
         // From outside, even a guessed token is refused as a network matter (403, not 401) — no token is looked up.
         Assert.AreEqual(HttpStatusCode.Forbidden, await PingFrom("172.16.0.93", "amkwa_000000000000_" + new string('0', 64)));
         Assert.AreEqual(HttpStatusCode.Unauthorized, await PingFrom("10.1.0.26", "amkwa_000000000000_" + new string('0', 64)));
+
+        // Without any header it is still a network matter from outside (403), and an authentication matter inside (401).
+        Assert.AreEqual(HttpStatusCode.Forbidden, await PingFrom("172.16.0.93", null));
+        Assert.AreEqual(HttpStatusCode.Unauthorized, await PingFrom("10.1.0.26", null));
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task A_malformed_setting_refuses_everyone_instead_of_stopping_the_host()
+    {
+        // A bare address without a prefix — before, AgentNetworkPolicy threw while the host was being built.
+        await using var app = await StartAsync(agentOptions: o => o.AllowedNetworks = "10.1.0.0/23, 10.1.0.5");
+        if (app is null)
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var owner = Guid.NewGuid();
+        await SeedTenantAsync(app.Services, tenantId, owner);
+        Guid vault;
+        using (var scope = ScopeFor(app.Services, tenantId, owner))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            vault = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "Integrations"));
+            await vaults.SetAgentAccessAsync(owner, vault, allowed: true);
+        }
+
+        var token = await IssueAsync(app.Services, tenantId, owner, vault, AgentScopes.VaultList);
+        var request = new HttpRequestMessage(HttpMethod.Get, "/keyward/api/v1/agent/ping");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add(TestClientIpHeader, "10.1.0.26");
+
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await app.GetTestClient().SendAsync(request)).StatusCode, "Fail closed: even the intended LAN is refused.");
+        StringAssert.Contains(app.Services.GetRequiredService<AgentNetworkPolicy>().Error, "agent API");
     }
 
     [TestMethod, TestCategory("Unit")]
@@ -76,6 +115,11 @@ public class AgentNetworkPolicyTests
         Assert.IsFalse(open.IsRestricted);
         Assert.IsTrue(open.Allows(null));
 
+        // The strict constructor still throws; Parse (what AddKeywardAgentApi uses) never does and fails closed.
         Assert.ThrowsExactly<ArgumentException>(() => new AgentNetworkPolicy("10.1.0.0/23, lan"));
+        var broken = AgentNetworkPolicy.Parse("10.1.0.0/23, lan");
+        Assert.IsFalse(broken.IsValid);
+        Assert.IsFalse(broken.Allows(IPAddress.Parse("10.1.0.26")));
+        StringAssert.Contains(broken.Error, KeywardAgentApiOptions.AllowedNetworksConfigurationKey);
     }
 }

@@ -57,6 +57,17 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        var clientAddress = Context.Connection.RemoteIpAddress;
+
+        // The host-wide network restriction comes first — before the header is even looked at: from elsewhere every
+        // request is refused with 403 (with or without a token), no token is looked up, and the attempt does not
+        // count against the failed-authentication throttle. An unusable setting refuses everyone (fail closed).
+        if (!networkPolicy.Allows(clientAddress))
+        {
+            Context.Items[OutsideAllowedNetworks] = true;
+            return AuthenticateResult.Fail("The agent API is not available from this network.");
+        }
+
         if (!Request.Headers.TryGetValue("Authorization", out var header))
         {
             return AuthenticateResult.NoResult();
@@ -66,16 +77,6 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         if (!raw.StartsWith(BearerPrefix, StringComparison.OrdinalIgnoreCase))
         {
             return AuthenticateResult.NoResult();
-        }
-
-        var clientAddress = Context.Connection.RemoteIpAddress;
-
-        // The host-wide network restriction comes first: from elsewhere no token is looked up at all, and the
-        // attempt does not count against the failed-authentication throttle.
-        if (!networkPolicy.Allows(clientAddress))
-        {
-            Context.Items[OutsideAllowedNetworks] = true;
-            return AuthenticateResult.Fail("The agent API is not available from this network.");
         }
 
         var clientIp = clientAddress?.ToString();

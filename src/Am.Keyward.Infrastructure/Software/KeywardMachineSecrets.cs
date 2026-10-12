@@ -35,6 +35,9 @@ public sealed class KeywardMachineSecrets(
     IProjectService projects,
     IKeywardWorkspaceContext workspace,
     ITenantScopeSetter tenantScope,
+    ICurrentUser currentUser,
+    ICurrentActor currentActor,
+    IActorScopeSetter actorScope,
     IOptions<KeywardMachineSecretsOptions> options,
     IKeywardHostEnvironment environment,
     ILogger<KeywardMachineSecrets> logger)
@@ -105,6 +108,7 @@ public sealed class KeywardMachineSecrets(
         {
             Guid tenantId = workspace.TenantId;
             tenantScope.SetTenant(tenantId);
+            this.DeclareSystemCallerWhenUnattended();
 
             if (await this.ResolveProjectIdAsync(tenantId, cancellationToken).ConfigureAwait(false) is not { } projectId)
             {
@@ -155,6 +159,20 @@ public sealed class KeywardMachineSecrets(
     #endregion
 
     #region Private Methods
+
+    /// <summary>
+    /// Listing an application's keys is a software-operator operation, and it refuses a scope with neither a user
+    /// nor an explicit system declaration. The overlay normally runs in a startup scope or a background worker with
+    /// no user — the host reading its OWN configuration — so such a scope is declared a system caller here. A scope
+    /// that serves a user (or a token) keeps its principal and is checked as that principal.
+    /// </summary>
+    private void DeclareSystemCallerWhenUnattended()
+    {
+        if (currentUser.UserId is null && currentActor.Kind is null)
+        {
+            actorScope.SetSystemActor();
+        }
+    }
 
     private async Task<Guid?> ResolveProjectIdAsync(Guid tenantId, CancellationToken cancellationToken)
     {

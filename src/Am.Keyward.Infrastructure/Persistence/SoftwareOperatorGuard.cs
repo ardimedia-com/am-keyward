@@ -26,16 +26,29 @@ internal static class SoftwareOperatorGuard
     /// <summary>
     /// Throws unless the acting user is a software operator. The actor is the explicit
     /// <paramref name="actorUserId"/>, else the ambient <see cref="ICurrentUser"/>: an HTTP caller that omits the
-    /// actor is still checked as the signed-in user. Only a call with NO user at all — seeding and background
-    /// jobs, which run without a request — is treated as a trusted system caller.
+    /// actor is still checked as the signed-in user. A call with NO user at all passes only when the scope was
+    /// explicitly declared a system caller (<see cref="ActorScopeSetterExtensions.SetSystemActor"/>: seeding,
+    /// background jobs, a host's startup reads) — otherwise it is refused. Fail closed: a missing user is never
+    /// taken as permission, so a new code path that forgets to establish the user cannot open the management surface.
     /// </summary>
     public static async Task EnsureOperatorAsync(
-        KeywardDbContext db, Guid tenantId, Guid? actorUserId, ICurrentUser currentUser, string deniedMessage, CancellationToken ct)
+        KeywardDbContext db,
+        Guid tenantId,
+        Guid? actorUserId,
+        ICurrentUser currentUser,
+        ICurrentActor currentActor,
+        string deniedMessage,
+        CancellationToken ct)
     {
         var actor = actorUserId ?? currentUser.UserId;
         if (actor is null)
         {
-            return;
+            if (currentActor.Kind == ActorKind.System)
+            {
+                return;
+            }
+
+            throw new UnauthorizedAccessException(deniedMessage);
         }
 
         if (!await IsOperatorAsync(db, tenantId, actor, ct).ConfigureAwait(false))

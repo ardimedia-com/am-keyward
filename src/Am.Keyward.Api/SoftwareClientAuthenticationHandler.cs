@@ -15,6 +15,12 @@ namespace Am.Keyward.Api;
 /// server-authoritatively from the token (so the query filter and row-level security apply) and the
 /// token's (tenant, project, environment) scope is exposed as claims for the endpoints to read. The client
 /// never supplies tenant/project/environment — those come only from the token record.
+/// <para>
+/// Before anything else the caller's network is checked (<see cref="SoftwareClientNetworkPolicy"/>,
+/// <see cref="KeywardSoftwareClientApiOptions.AllowedNetworks"/>): from outside the allowed networks the request is
+/// refused with 403 and an empty body — no token is looked up, nothing is recorded in the token statistics, and the
+/// attempt does not count against the failed-authentication throttle.
+/// </para>
 /// </summary>
 public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -32,6 +38,10 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
     private readonly IActorScopeSetter actorScope;
     private readonly ITokenAccessRecorder accessRecorder;
     private readonly FailedAuthenticationThrottle failedAttempts;
+    private readonly SoftwareClientNetworkPolicy networkPolicy;
+
+    // Marks a request refused for its network, so the challenge answers 403 instead of 401.
+    private const string OutsideAllowedNetworks = "Keyward.SoftwareClient.OutsideAllowedNetworks";
 
     public SoftwareClientAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -41,9 +51,11 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
         ITenantScopeSetter tenantScope,
         IActorScopeSetter actorScope,
         ITokenAccessRecorder accessRecorder,
-        FailedAuthenticationThrottle failedAttempts)
+        FailedAuthenticationThrottle failedAttempts,
+        SoftwareClientNetworkPolicy networkPolicy)
         : base(options, logger, encoder)
     {
+        this.networkPolicy = networkPolicy;
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
         this.actorScope = actorScope;
@@ -53,6 +65,15 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        // The host-wide network restriction comes first, as on the agent API: from elsewhere every request is
+        // refused with 403 (with or without a token). Without a setting every network passes (backward compatible);
+        // an unusable setting refuses everyone (fail closed).
+        if (!networkPolicy.Allows(Context.Connection.RemoteIpAddress))
+        {
+            Context.Items[OutsideAllowedNetworks] = true;
+            return AuthenticateResult.Fail("The software-client API is not available from this network.");
+        }
+
         if (!Request.Headers.TryGetValue("Authorization", out var header))
         {
             return AuthenticateResult.NoResult();
@@ -102,5 +123,16 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
         return AuthenticateResult.Success(ticket);
+    }
+
+    protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+    {
+        if (Context.Items.ContainsKey(OutsideAllowedNetworks))
+        {
+            Response.StatusCode = Microsoft.AspNetCore.Http.StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        }
+
+        return base.HandleChallengeAsync(properties);
     }
 }

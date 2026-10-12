@@ -149,9 +149,12 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
 // Software-client token authentication + per-token rate limiting (read API). The library registers the
 // Keyward.SoftwareClient scheme, its authorization policy AND the per-token rate-limiter policy, so the host
 // only adds the middleware (app.UseRateLimiter, below). Pass a lambda to AddKeywardSoftwareClientApi to tune
-// the limits.
-builder.Services.AddKeywardSoftwareClientApi();
-builder.Services.AddKeywardAgentApi();          // Keyward.Agent scheme + per-token rate limiter
+// the limits. AllowedNetworks narrows each API to the networks its callers live in (CIDR list, checked before any
+// token lookup; others get 403). Unset, the client API is open to every network (a startup warning says so).
+builder.Services.AddKeywardSoftwareClientApi(o =>
+    o.AllowedNetworks = builder.Configuration[KeywardSoftwareClientApiOptions.AllowedNetworksConfigurationKey]);
+builder.Services.AddKeywardAgentApi(o =>         // Keyward.Agent scheme + per-token rate limiter
+    o.AllowedNetworks = builder.Configuration[KeywardAgentApiOptions.AllowedNetworksConfigurationKey]);
 
 // The management API requires a signed-in admin (cookie scheme); the system-admin policy additionally
 // requires the Keyward system-admin claim (used to gate the admin user-management UI + endpoints).

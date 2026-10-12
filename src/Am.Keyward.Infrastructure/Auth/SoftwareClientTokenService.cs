@@ -19,7 +19,8 @@ public sealed class SoftwareClientTokenService(
     IClock clock,
     ICurrentTenant tenant,
     DbAuditSink audit,
-    ICurrentUser currentUser) : ISoftwareClientTokenService
+    ICurrentUser currentUser,
+    ICurrentActor actor) : ISoftwareClientTokenService
 {
     private const string ResourceType = "SoftwareClientToken";
     public async Task<IssuedSoftwareClientToken> IssueAsync(IssueSoftwareClientTokenCommand cmd, CancellationToken ct = default)
@@ -195,7 +196,7 @@ public sealed class SoftwareClientTokenService(
     // user could mint a credential; this closes that gap.) CreatePending is intentionally NOT gated here — it
     // is an internal building block invoked by ProjectService/SoftwareSecretService, which already gate.
     private Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
-        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser, actor,
             "Managing client tokens requires the tenant-admin or software-manager role.", ct);
 
     private static Task<SoftwareClientToken?> FindAsync(KeywardDbContext db, Guid tenantId, Guid tokenId, CancellationToken ct) =>

@@ -245,12 +245,71 @@ public class ProjectServiceTests
                 tokens.IssueAsync(new IssueSoftwareClientTokenCommand(tenantId, appId, "Production", "sneaky", null, null)));
         }
 
-        // Without any user in scope (seeding, background jobs) the call is a trusted system call.
+        // Without any user in scope the call is refused: a missing user is not permission (fail closed) ...
+        using (var anonymousScope = provider.CreateScope())
+        {
+            anonymousScope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() =>
+                anonymousScope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
+                    .StoreAsync(new StoreSoftwareSecretCommand(tenantId, appId, "Production", "Api:Key", "v1", null)));
+        }
+
+        // ... unless the scope is explicitly declared a system caller (seeding, background jobs).
         using (var systemScope = provider.CreateScope())
         {
             systemScope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            systemScope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetSystemActor();
             await systemScope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
                 .StoreAsync(new StoreSoftwareSecretCommand(tenantId, appId, "Production", "Api:Key", "v1", null));
+        }
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Management_reads_of_application_data_require_a_software_operator()
+    {
+        await using var provider = BuildProvider();
+        if (!await CanConnectAsync(provider))
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var tenantId = Guid.NewGuid();
+        var admin = Guid.NewGuid();
+        var member = Guid.NewGuid();
+        await SeedTenantAsync(provider, tenantId, (admin, TenantRole.TenantAdmin), (member, TenantRole.Member));
+
+        Guid appId;
+        using (var scope = ScopeFor(provider, admin, tenantId))
+        {
+            appId = await scope.ServiceProvider.GetRequiredService<IProjectService>().CreateAsync(tenantId, "read-guarded", admin);
+            await scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>()
+                .StoreAsync(new StoreSoftwareSecretCommand(tenantId, appId, "Production", "Db:Password", "s3cret", admin));
+        }
+
+        // The operator sees the list and the decrypted values.
+        using (var scope = ScopeFor(provider, admin, tenantId))
+        {
+            var secrets = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            Assert.HasCount(1, await secrets.ListSecretsAsync(tenantId, appId));
+            var detail = await secrets.GetSecretAsync(tenantId, appId, "Db:Password");
+            Assert.AreEqual("s3cret", detail!.Environments.Single(v => v.Environment == "Production").Value);
+        }
+
+        // A plain tenant member does not — neither the key list nor (above all) the decrypted values.
+        using (var scope = ScopeFor(provider, member, tenantId))
+        {
+            var secrets = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() => secrets.ListSecretsAsync(tenantId, appId));
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() => secrets.GetSecretAsync(tenantId, appId, "Db:Password"));
+        }
+
+        // Nor does a scope without any user that was not declared a system caller.
+        using (var scope = provider.CreateScope())
+        {
+            scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+            var secrets = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
+            await Assert.ThrowsExactlyAsync<UnauthorizedAccessException>(() => secrets.GetSecretAsync(tenantId, appId, "Db:Password"));
         }
     }
 

@@ -44,6 +44,9 @@ ones it leaves to the operator and the user:
   failed authentication, re-checked against the user and their role on every request, and restrictable to
   networks. **Operator:** expose `/keyward/api/v1/agent` only to internal networks (`AllowedNetworks`) and make sure
   a reverse proxy's address is never among them; keep the token in the Windows Credential Manager, not in files.
+- **A stolen app (software-client) token.** Hashed at rest, environment-scoped, rotatable, rate-limited, throttled on
+  failed authentication. **Operator:** set `Keyward:Client:AllowedNetworks` to the networks of the deployed
+  applications, so a leaked token is useless from anywhere else (without it the host logs a startup warning).
 - **Lost updates.** Every change to an existing value needs the version the agent saw (`If-Match`); a concurrent
   change answers 412.
 

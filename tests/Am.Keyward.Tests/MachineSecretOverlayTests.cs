@@ -106,6 +106,9 @@ public class MachineSecretOverlayTests
             projects,
             workspace,
             Substitute.For<ITenantScopeSetter>(),
+            Substitute.For<ICurrentUser>(),
+            Substitute.For<ICurrentActor>(),
+            Substitute.For<IActorScopeSetter>(),
             Options.Create(new KeywardMachineSecretsOptions { ApplicationName = Application }),
             environment,
             NullLogger<KeywardMachineSecrets>.Instance);

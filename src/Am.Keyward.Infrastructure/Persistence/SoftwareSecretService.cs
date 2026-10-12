@@ -107,10 +107,13 @@ public sealed class SoftwareSecretService(
     }
 
     // Managing the software side (environments AND per-environment data/secrets) requires a system admin,
-    // a tenant admin, OR a software manager. NOTE: this gates the mutation paths only — the token-
-    // authenticated client READ paths (ReadAsync/ReadAllAsync) stay tenant-scoped (the token is the auth).
+    // a tenant admin, OR a software manager. It gates the mutation paths AND the management read paths
+    // (ListSecretsAsync / GetSecretAsync — the latter decrypts every environment), so a tenant member who is
+    // not an operator sees no application data even through a path the UI does not render. The token-
+    // authenticated client READ paths (ReadAsync/ReadAllAsync of ISoftwareSecretReader) stay tenant-scoped:
+    // the token is the authorization there.
     private Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
-        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser, actor,
             "Managing application data requires the tenant-admin or software-manager role.", ct);
 
     public async Task AddEnvironmentAsync(Guid tenantId, Guid projectId, string name, Guid? actorUserId, CancellationToken ct = default)
@@ -348,6 +351,7 @@ public sealed class SoftwareSecretService(
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId: null, ct).ConfigureAwait(false);
         var envs = await db.RuntimeEnvironments
             .Where(e => e.ProjectId == projectId)
             .ToListAsync(ct)
@@ -381,6 +385,7 @@ public sealed class SoftwareSecretService(
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId: null, ct).ConfigureAwait(false);
         var secretKey = SecretKey.Create(key);
         var environments = await db.RuntimeEnvironments
             .Where(e => e.ProjectId == projectId)

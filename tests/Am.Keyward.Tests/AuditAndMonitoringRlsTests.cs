@@ -138,6 +138,7 @@ public class AuditAndMonitoringRlsTests
     {
         using var scope = provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+        scope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetSystemActor();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
         db.Tenants.Add(new Tenant(tenantId, "system", isSystemTenant: true, DateTimeOffset.UtcNow));
         var project = new Project(projectId, tenantId, OwnerType.Tenant, tenantId, "p", DateTimeOffset.UtcNow);

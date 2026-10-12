@@ -12,6 +12,22 @@ Base path: `/keyward/api/v1`. Authentication: `Authorization: Bearer <token>`. R
 per token, and failed authentications are throttled per client IP (after 20 failures in 5 minutes the IP is
 refused until the window resets).
 
+**Networks.** A host can limit the API to the networks its applications run in — `Keyward:Client:AllowedNetworks`,
+a comma-separated CIDR list (`10.1.0.0/23, 10.8.0.0/24`), bound to `KeywardSoftwareClientApiOptions.AllowedNetworks`:
+
+```csharp
+builder.Services.AddKeywardSoftwareClientApi(o =>
+    o.AllowedNetworks = builder.Configuration[KeywardSoftwareClientApiOptions.AllowedNetworksConfigurationKey]);
+```
+
+It is checked before the token: a caller from elsewhere gets **403 with an empty body** (with or without a
+token), no token is looked up, nothing counts in the token statistics or against the failed-authentication
+throttle. The address is `Connection.RemoteIpAddress` after `UseForwardedHeaders` — behind a reverse proxy, trust
+that proxy as a known proxy and keep its network out of the list; a list that contains a known proxy
+(`ForwardedHeadersOptions.KnownProxies`) is rejected. Without the setting the API stays open to every network (as
+before) and the host logs a startup warning. An unusable value (not CIDR, a bare address without `/32`, a proxy
+inside) is logged as an error and the API answers 403 to everyone until it is corrected; the host still starts.
+
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/secrets` | All current key/value pairs for the token's environment (bulk load) |
@@ -188,6 +204,8 @@ watcher of everything else.
 - Tokens carry no secret material at rest — only a SHA-256 hash and a non-secret lookup prefix are stored.
 - The token determines the tenant scope server-side; reads are additionally constrained by the database
   row-level-security policy (see [database logins](database-logins.md)).
+- Reading application data through the management surface (key list, decrypted values of every environment)
+  requires a software operator (tenant admin, software manager or system admin), like every change does.
 - The management API above requires a signed-in admin (the host's authorization policy), and the route's
   `{tenantId}` is verified against the signed-in user's tenant membership — non-members get 403 (system
   admins count as members of every tenant).

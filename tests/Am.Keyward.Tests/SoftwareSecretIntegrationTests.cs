@@ -26,6 +26,8 @@ public class SoftwareSecretIntegrationTests
     {
         var scope = provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
+        // No signed-in user: a trusted system caller, declared explicitly (operator operations fail closed otherwise).
+        scope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetSystemActor();
         return scope;
     }
 

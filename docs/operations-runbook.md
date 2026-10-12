@@ -38,6 +38,17 @@ or a single leaked backup yields plaintext.
    resolves under an available KEK. If it reports unresolvable envelopes, you restored a database newer
    than your KEK store (or destroyed a KEK version too early) — fix the KEK store before going live.
 
+**Key file access (Windows, `DpapiKekFile`).** Local-machine DPAPI lets any process on the server unprotect
+`kek.bin` once it can read it. The app therefore narrows the KEK folder and the file to SYSTEM, Administrators and
+its own identity (inheritance off) every time it loads the key; explicit grants to individual accounts (e.g. a
+second installation that shares the KEK under its own app-pool identity) are kept, grants to groups (Users,
+IIS_IUSRS, …) are removed. If it may not change the rules — a folder an administrator created, e.g. by
+`--keyward-import-kek` — it logs a warning: narrow the folder by hand once. Two installations sharing one KEK
+should run under the same identity, or the second one needs an explicit grant on the folder.
+
+**Escrow passphrase.** `--keyward-export-kek` requires a passphrase of at least 20 characters
+(`DpapiKekEscrow.MinimumPassphraseLength`) — it alone protects the escrow blob. Older blobs still import.
+
 **KEK backup is special:** keep it offline and split (e.g. Shamir), and **rehearse the restore** — an
 untested KEK backup is not a backup. Schedule a periodic backup-verify drill.
 

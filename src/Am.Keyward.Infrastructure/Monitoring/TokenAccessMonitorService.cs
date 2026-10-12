@@ -22,7 +22,8 @@ public sealed class TokenAccessMonitorService(
     ICurrentTenant tenant,
     DbAuditSink audit,
     IOptions<MonitoringOptions> options,
-    ICurrentUser currentUser) : ITokenAccessMonitorService
+    ICurrentUser currentUser,
+    ICurrentActor actor) : ITokenAccessMonitorService
 {
     private const string ResourceType = "TokenAccessMonitor";
 
@@ -155,7 +156,7 @@ public sealed class TokenAccessMonitorService(
 
     // Same operator predicate as token/application management: system admin, software manager or tenant admin.
     private Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
-        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser,
+        SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser, actor,
             "Managing heartbeat monitoring requires the tenant-admin or software-manager role.", ct);
 
     private void EnsureTenantScope(Guid requestedTenantId)

@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Api;
 
@@ -30,6 +32,20 @@ public sealed class KeywardSoftwareClientApiOptions
 
     /// <summary>Fixed-window length for <see cref="FailedAuthenticationLimit"/>. Default 5 minutes.</summary>
     public TimeSpan FailedAuthenticationWindow { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>The configuration key a host conventionally binds <see cref="AllowedNetworks"/> from.</summary>
+    public const string AllowedNetworksConfigurationKey = "Keyward:Client:AllowedNetworks";
+
+    /// <summary>
+    /// Comma-separated CIDR networks the software-client API accepts calls from (e.g. <c>10.1.0.0/23, 10.8.0.0/24</c>),
+    /// conventionally bound from <see cref="AllowedNetworksConfigurationKey"/>. Checked before any token lookup; other
+    /// callers get 403 with an empty body. Empty means any network — kept for backward compatibility, with a warning
+    /// at startup. An unusable value (not CIDR, or containing a known reverse proxy) is logged as an error and the
+    /// API refuses EVERY caller until it is corrected. Checked against <c>Connection.RemoteIpAddress</c>: behind a
+    /// reverse proxy, resolve the real client with forwarded headers from that known proxy, and keep the proxy's
+    /// network out of this list.
+    /// </summary>
+    public string? AllowedNetworks { get; set; }
 }
 
 public static class ServiceCollectionExtensions
@@ -47,6 +63,11 @@ public static class ServiceCollectionExtensions
     /// authorization middleware, so a limiter placed after it only ever sees requests that already cost a
     /// token lookup. Guessed tokens are additionally throttled per client IP (<see cref="FailedAuthenticationThrottle"/>).
     /// </para>
+    /// <para>
+    /// Set <see cref="KeywardSoftwareClientApiOptions.AllowedNetworks"/> (conventionally from
+    /// <c>Keyward:Client:AllowedNetworks</c>) so only the networks of the deployed applications reach the token check;
+    /// without it the API answers every network and a warning is logged at startup.
+    /// </para>
     /// </summary>
     public static IServiceCollection AddKeywardSoftwareClientApi(
         this IServiceCollection services, Action<KeywardSoftwareClientApiOptions>? configure = null)
@@ -55,6 +76,8 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.TryAddSingleton(new FailedAuthenticationThrottle(options));
+        services.AddSingleton(sp => SoftwareClientNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp)));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, KeywardNetworkPolicyStartupLog<SoftwareClientNetworkPolicy>>());
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, SoftwareClientAuthenticationHandler>(
@@ -105,7 +128,11 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.TryAddSingleton(new FailedAuthenticationThrottle(options.FailedAuthenticationLimit, options.FailedAuthenticationWindow));
-        services.AddSingleton(new AgentNetworkPolicy(options.AllowedNetworks));
+
+        // Never throws: a malformed setting (a typo, a bare address without /32) must not take the
+        // whole host down. It yields a policy that refuses every caller, and the startup log names the error.
+        services.AddSingleton(sp => AgentNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp)));
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, KeywardNetworkPolicyStartupLog<AgentNetworkPolicy>>());
 
         services.AddAuthentication()
             .AddScheme<AuthenticationSchemeOptions, AgentAuthenticationHandler>(AgentAuthenticationHandler.SchemeName, _ => { });
@@ -138,6 +165,10 @@ public static class ServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>The host's trusted reverse proxies (<c>ForwardedHeadersOptions.KnownProxies</c>), which must stay outside any allowed network.</summary>
+    private static IEnumerable<System.Net.IPAddress> KnownProxies(IServiceProvider services) =>
+        services.GetService<IOptions<ForwardedHeadersOptions>>()?.Value.KnownProxies ?? [];
 }
 
 /// <summary>Tuning for the agent API.</summary>
@@ -158,11 +189,17 @@ public sealed class KeywardAgentApiOptions
     /// <summary>Default 5 minutes.</summary>
     public TimeSpan FailedAuthenticationWindow { get; set; } = TimeSpan.FromMinutes(5);
 
+    /// <summary>The configuration key a host conventionally binds <see cref="AllowedNetworks"/> from.</summary>
+    public const string AllowedNetworksConfigurationKey = "Keyward:Agent:AllowedNetworks";
+
     /// <summary>
-    /// Comma-separated CIDR networks the agent API accepts calls from (e.g. <c>10.1.0.0/23, 10.8.0.0/24</c>); empty
-    /// means any network. Checked before any token lookup; other callers get 403. Checked against the address the
-    /// host sees: behind a reverse proxy, keep the proxy address OUT of these networks (or resolve the real client
-    /// address with forwarded headers from that known proxy), otherwise everything it forwards passes.
+    /// Comma-separated CIDR networks the agent API accepts calls from (e.g. <c>10.1.0.0/23, 10.8.0.0/24</c>),
+    /// conventionally bound from <see cref="AllowedNetworksConfigurationKey"/>; empty means any network. Checked before
+    /// any token lookup; other callers get 403. An unusable value (not CIDR, or containing a known reverse proxy) is
+    /// logged as an error at startup and the API refuses EVERY caller until it is corrected — it no longer stops the
+    /// host. Checked against the address the host sees: behind a reverse proxy, keep the proxy address OUT of these
+    /// networks (or resolve the real client address with forwarded headers from that known proxy), otherwise
+    /// everything it forwards passes.
     /// </summary>
     public string? AllowedNetworks { get; set; }
 }

@@ -30,10 +30,30 @@ public interface ICurrentActor
     Guid? TokenId { get; }
 }
 
-/// <summary>Sets the acting principal kind and token. Called ONLY at the host edge (token authentication handlers).</summary>
+/// <summary>
+/// Sets the acting principal kind and token. Called at the host edge (token authentication handlers) and by code
+/// that runs WITHOUT a principal and must say so (<see cref="ActorScopeSetterExtensions.SetSystemActor"/>).
+/// </summary>
 public interface IActorScopeSetter
 {
     void SetActor(ActorKind kind, Guid? tokenId);
+}
+
+/// <summary>Convenience for <see cref="IActorScopeSetter"/>.</summary>
+public static class ActorScopeSetterExtensions
+{
+    /// <summary>
+    /// Declares the current scope a trusted SYSTEM caller (<see cref="ActorKind.System"/>, no token): seeding,
+    /// background jobs, maintenance, a host's own startup reads. Software-operator operations (applications,
+    /// environments, application data, app tokens, monitoring) refuse a call that has neither a user nor this
+    /// explicit declaration — a missing user is not taken as permission. Call it only in a scope that serves no
+    /// user request, and never from code a user can trigger.
+    /// </summary>
+    public static void SetSystemActor(this IActorScopeSetter setter)
+    {
+        ArgumentNullException.ThrowIfNull(setter);
+        setter.SetActor(ActorKind.System, tokenId: null);
+    }
 }
 
 /// <summary>The active tenant for this request/session (null = personal context). Server-authoritative.</summary>

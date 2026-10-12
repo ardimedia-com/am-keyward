@@ -48,6 +48,16 @@ public static class DpapiKekEscrow
     private const int TagSize = 16;     // AES-GCM standard
     private const int WrapKeySize = 32; // AES-256
 
+    /// <summary>
+    /// Minimum length of an escrow passphrase, in characters. The blob is not machine-bound — that is its point —
+    /// so its passphrase is the ONLY thing standing between whoever holds the blob (plus a database copy) and every
+    /// stored secret, offline and without a rate limit. PBKDF2 slows each guess down but cannot rescue a short
+    /// passphrase; 20 characters (e.g. five random words, or a generated password) puts it out of reach. Enforced
+    /// when a blob is CREATED (<see cref="Wrap"/>, the export command) — never when one is opened, so an escrow
+    /// made before this minimum existed still imports.
+    /// </summary>
+    public const int MinimumPassphraseLength = 20;
+
     /// <summary>The command-line switch that exports the escrow blob.</summary>
     public const string ExportSwitch = "--keyward-export-kek";
 
@@ -111,9 +121,9 @@ public static class DpapiKekEscrow
     public static string Wrap(byte[] kek, string passphrase)
     {
         ArgumentNullException.ThrowIfNull(kek);
-        if (string.IsNullOrEmpty(passphrase))
+        if (TooShort(passphrase))
         {
-            throw new ArgumentException("A passphrase is required.", nameof(passphrase));
+            throw new ArgumentException(PassphraseTooShortMessage, nameof(passphrase));
         }
 
         byte[] salt = RandomNumberGenerator.GetBytes(SaltSize);
@@ -132,6 +142,13 @@ public static class DpapiKekEscrow
         byte[] payload = [.. salt, .. nonce, .. tag, .. cipher];
         return BlobPrefix + Convert.ToBase64String(payload);
     }
+
+    /// <summary>Whether <paramref name="passphrase"/> is too short to protect an escrow blob (<see cref="MinimumPassphraseLength"/>).</summary>
+    public static bool TooShort(string? passphrase) => (passphrase?.Length ?? 0) < MinimumPassphraseLength;
+
+    private static string PassphraseTooShortMessage =>
+        $"The passphrase must be at least {MinimumPassphraseLength} characters long — it alone protects the escrow blob "
+        + "(e.g. five random words, or a generated password).";
 
     /// <summary>
     /// Reverses <see cref="Wrap"/>. Throws when the blob is malformed or the passphrase is wrong (AES-GCM
@@ -199,7 +216,13 @@ public static class DpapiKekEscrow
 
         // Asked twice: a mistyped passphrase would produce an escrow nobody can ever open — and it would only
         // be discovered on the day it is needed.
-        string passphrase = ReadPassphrase("Passphrase for the escrow blob: ");
+        string passphrase = ReadPassphrase($"Passphrase for the escrow blob (at least {MinimumPassphraseLength} characters): ");
+        if (TooShort(passphrase))
+        {
+            // Refused before the confirmation prompt, so nobody types a weak passphrase twice for nothing.
+            throw new InvalidOperationException($"{PassphraseTooShortMessage} Nothing was exported.");
+        }
+
         string confirmation = ReadPassphrase("Repeat the passphrase: ");
         if (!string.Equals(passphrase, confirmation, StringComparison.Ordinal))
         {
@@ -246,6 +269,15 @@ public static class DpapiKekEscrow
         Console.WriteLine();
         Console.WriteLine($"Imported. KEK fingerprint: {fingerprint}");
         Console.WriteLine($"Written (DPAPI, this machine): {path}");
+
+
+        // Deliberately NOT narrowed here: the import runs as an administrator, not as the app's identity, and
+        // narrowing to "this process" would lock the app out of its own key. The app narrows the folder when it
+        // loads the key (DpapiKekFile.LoadOrCreate) — if it may: it may not change the rules of a folder an
+        // administrator created, so say what to do.
+        Console.WriteLine("Access: the app narrows this folder to SYSTEM, Administrators and its own identity when it starts.");
+        Console.WriteLine("If the folder was created just now (by this command), the app is not its owner and cannot do");
+        Console.WriteLine("that — then narrow it by hand: inheritance off, SYSTEM + Administrators + the app's identity only.");
         Console.WriteLine("Compare the fingerprint with the one printed at export — they must be identical.");
     }
 
