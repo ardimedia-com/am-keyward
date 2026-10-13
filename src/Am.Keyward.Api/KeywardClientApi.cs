@@ -33,12 +33,23 @@ public static class KeywardClientApi
             return Results.Ok(all.ToDictionary(kv => kv.Key, kv => kv.Value));
         });
 
-        // Single secret by key.
+        // Single secret by key. A 404 says why — an unknown key or no value in this environment — as `reason`
+        // (KeywardApiDefaults.UnknownKeyReason / NoValueReason), so a script can fail with the cause.
         group.MapGet("/secrets/{**key}", async (string key, ClaimsPrincipal user, ISoftwareSecretReader reader, CancellationToken ct) =>
         {
             var (tenantId, projectId, environmentId) = ReadScope(user);
-            var value = await reader.ReadAsync(tenantId, projectId, environmentId, key, ct);
-            return value is null ? Results.NotFound() : Results.Ok(new SecretResponse(key, value));
+            var audit = user.HasClaim(SoftwareClientAuthenticationHandler.AuditReadsClaim, "true");
+            var outcome = await reader.ReadOneAsync(tenantId, projectId, environmentId, key, audit, ct);
+            return outcome.Status switch
+            {
+                SecretReadStatus.Found => Results.Ok(new SecretResponse(key, outcome.Value!)),
+                SecretReadStatus.NoValue => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                    title: "The key has no value in this environment.",
+                    extensions: new Dictionary<string, object?> { ["reason"] = KeywardApiDefaults.NoValueReason }),
+                _ => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+                    title: "The application has no such key.",
+                    extensions: new Dictionary<string, object?> { ["reason"] = KeywardApiDefaults.UnknownKeyReason }),
+            };
         });
 
         // Explicit heartbeat. Reaching this line means the token authenticated, and the authentication

@@ -2,7 +2,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
 
-namespace Am.Keyward.Mcp;
+namespace Am.Keyward.Client;
 
 /// <summary>
 /// A generic password in the user's macOS login keychain (service = the entry name, account = the macOS user). The
@@ -11,7 +11,7 @@ namespace Am.Keyward.Mcp;
 /// API — deprecated in favour of SecItem*, but still supported and far simpler to call without CoreFoundation glue.
 /// </summary>
 [SupportedOSPlatform("macos")]
-internal sealed class MacKeychainStore(string service) : ITokenStore
+public sealed class MacKeychainStore(string service) : IKeywardCredentialStore
 {
     private const int ErrSecItemNotFound = -25300;
     private const int ErrSecDuplicateItem = -25299;

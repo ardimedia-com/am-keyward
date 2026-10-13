@@ -12,7 +12,8 @@ public sealed record IssueSoftwareClientTokenCommand(
     string Name,
     DateTimeOffset? ExpiresAt,
     Guid? ActorUserId,
-    string Note = "");
+    string Note = "",
+    bool AuditReads = false);
 
 /// <summary>
 /// The result of issuing or rotating a token. <see cref="Token"/> is the plaintext, returned exactly
@@ -67,7 +68,8 @@ public sealed record SoftwareClientTokenInfo(
     bool IsActive,
     bool HasSecret,
     DateTimeOffset? LastAccessAt,
-    string? LastAccessIp);
+    string? LastAccessIp,
+    bool AuditReads = false);
 
 /// <summary>Management of software-client tokens (issue / rotate / revoke / list).</summary>
 public interface ISoftwareClientTokenService
@@ -86,6 +88,9 @@ public interface ISoftwareClientTokenService
     /// <summary>Updates a token's name and note (does not change its secret, scope or expiry).</summary>
     Task UpdateAsync(Guid tenantId, Guid tokenId, string name, string note, Guid? actorUserId, CancellationToken ct = default);
 
+    /// <summary>Switches the audit of every single-key read with this token on or off (see <c>SoftwareClientToken.AuditReads</c>). Audited.</summary>
+    Task SetAuditReadsAsync(Guid tenantId, Guid tokenId, bool auditReads, Guid? actorUserId, CancellationToken ct = default);
+
     Task RevokeAsync(Guid tenantId, Guid tokenId, Guid? actorUserId, CancellationToken ct = default);
 
     /// <summary>Undoes a revocation — the token's existing secret authenticates again (expiry unchanged).</summary>
@@ -98,7 +103,22 @@ public interface ISoftwareClientTokenService
 }
 
 /// <summary>The scope a presented software-client token resolves to (server-authoritative, from the record).</summary>
-public sealed record SoftwareClientPrincipal(Guid TokenId, Guid TenantId, Guid ProjectId, Guid EnvironmentId);
+public sealed record SoftwareClientPrincipal(Guid TokenId, Guid TenantId, Guid ProjectId, Guid EnvironmentId, bool AuditReads = false);
+
+/// <summary>Why a single-key client read found nothing, or that it found the value.</summary>
+public enum SecretReadStatus
+{
+    Found,
+
+    /// <summary>The application has no key of that name.</summary>
+    UnknownKey,
+
+    /// <summary>The key exists, but holds no value in the token's environment.</summary>
+    NoValue,
+}
+
+/// <summary>The outcome of a single-key client read: the value when <see cref="Status"/> is <see cref="SecretReadStatus.Found"/>.</summary>
+public sealed record SecretReadOutcome(SecretReadStatus Status, string? Value);
 
 /// <summary>Authenticates a presented software-client token, returning its scope or null when invalid.</summary>
 public interface ISoftwareClientAuthenticator
@@ -115,6 +135,12 @@ public interface ISoftwareSecretReader
 {
     /// <summary>One secret. Recorded in the read statistics, not as an audit entry.</summary>
     Task<string?> ReadAsync(Guid tenantId, Guid projectId, Guid environmentId, string key, CancellationToken ct = default);
+
+    /// <summary>
+    /// One secret with the reason when there is none (unknown key / no value in this environment). Recorded in the
+    /// read statistics; with <paramref name="auditRead"/> also as an audit entry (tokens with «audit every read»).
+    /// </summary>
+    Task<SecretReadOutcome> ReadOneAsync(Guid tenantId, Guid projectId, Guid environmentId, string key, bool auditRead, CancellationToken ct = default);
 
     /// <summary>All current key/value pairs for the environment (the IConfiguration bulk-load case). One audit entry per load.</summary>
     Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(Guid tenantId, Guid projectId, Guid environmentId, CancellationToken ct = default);

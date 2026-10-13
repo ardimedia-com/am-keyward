@@ -52,6 +52,16 @@ public sealed class SoftwareClientToken
     /// <summary>The client IP observed on the most recent access (as seen by the server; proxy-dependent).</summary>
     public string? LastAccessIp { get; private set; }
 
+    /// <summary>
+    /// Whether every single-key read with this token is written to the audit chain (decision T23 A) — meant for
+    /// tokens of scripts and tools (`keyward`), where «who read it, when» matters and the volume is small. Off for
+    /// applications: their reads stay in the read statistics, so the chain lock is not taken on their hot path.
+    /// A bulk read is audited either way.
+    /// </summary>
+    public bool AuditReads { get; private set; }
+
+    public void SetAuditReads(bool auditReads) => AuditReads = auditReads;
+
     /// <summary>Records the latest observed access (called by the statistics flush, not per request).</summary>
     public void RecordAccess(DateTimeOffset at, string? ip)
     {

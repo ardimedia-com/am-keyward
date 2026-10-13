@@ -1,0 +1,8 @@
+/* «Log every read»: the checkbox and its explanation on one line, the whole line clickable. */
+.token-audit-reads {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    font-size: .9rem;
+    cursor: pointer;
+}

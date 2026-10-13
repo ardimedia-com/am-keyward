@@ -1245,4 +1245,10 @@
   <data name="AgentTokens.Scope.TotpCodes" xml:space="preserve">
     <value>Einmalcodes (2FA) direkt abrufen — jeder Abruf wird protokolliert</value>
   </data>
+  <data name="Token.AuditReads" xml:space="preserve">
+    <value>Jeden Lesezugriff im Audit-Protokoll festhalten</value>
+  </data>
+  <data name="Token.AuditReads.Hint" xml:space="preserve">
+    <value>für Skripte und Werkzeuge (keyward); bei Applikationen, die oft lesen, ausgeschaltet lassen</value>
+  </data>
 </root>

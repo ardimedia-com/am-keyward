@@ -3,8 +3,8 @@ name: Release
 # Tag-driven release. Push a v* tag (e.g. v0.1.0-preview) on a release-prep commit that has already promoted
 # the matching "## [<version>]" CHANGELOG section. The job builds + tests, packs the libraries and pushes
 # them to nuget.org via Trusted Publishing (OIDC — no long-lived API key), then publishes a GitHub Release
-# whose notes ARE that CHANGELOG section. A second job attaches the MCP server as one self-contained program per
-# platform (amkeyward-mcp-<rid>) to that release.
+# whose notes ARE that CHANGELOG section. A second job attaches the MCP server and the keyward command line as one
+# self-contained program per platform (amkeyward-mcp-<rid>, keyward-<rid>) to that release.
 # Setup (once): create a Trusted Publishing policy on nuget.org for this repo + workflow, and set the repo
 # Actions variable NUGET_USER to the nuget.org account username that owns the policy. No secret needed.
 on:
@@ -103,8 +103,8 @@ jobs:
             "${NOTES_ARG[@]}" \
             $IS_PRERELEASE
 
-  # The MCP server as one self-contained program per platform, attached to the GitHub Release — for computers
-  # without the .NET SDK (decision T10 A). macOS builds on a macOS runner: only there does the SDK sign the
+  # The MCP server (amkeyward-mcp) and the command line for scripts (keyward, decision T19 A) as one self-contained
+  # program per platform, attached to the GitHub Release — for computers without the .NET SDK (decision T10 A). macOS builds on a macOS runner: only there does the SDK sign the
   # program (ad hoc), without which Apple Silicon refuses to start it.
   #
   # Windows programs are Authenticode-signed with Azure Artifact Signing (decision T14 A, the Ardimedia standard —
@@ -117,7 +117,7 @@ jobs:
   #   - repository secrets AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID and variables
   #     ARTIFACT_SIGNING_ENDPOINT (e.g. https://weu.codesigning.azure.net/), ARTIFACT_SIGNING_ACCOUNT,
   #     ARTIFACT_SIGNING_PROFILE.
-  mcp-binaries:
+  binaries:
     needs: release
     environment: code-signing
     strategy:
@@ -137,19 +137,23 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      - name: Publish amkeyward-mcp (${{ matrix.rid }})
+      - name: Publish amkeyward-mcp and keyward (${{ matrix.rid }})
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          dotnet publish src/Am.Keyward.Mcp -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version="$VERSION" -o publish
           mkdir -p sign dist
-          case "${{ matrix.rid }}" in
-            win-*)
-              mv publish/Am.Keyward.Mcp.exe "sign/amkeyward-mcp-${{ matrix.rid }}.exe" ;;
-            *)
-              mv publish/Am.Keyward.Mcp publish/amkeyward-mcp
-              chmod +x publish/amkeyward-mcp ;;
-          esac
+          # project:program — each published into its own folder, so the two never share one output.
+          for pair in Am.Keyward.Mcp:amkeyward-mcp Am.Keyward.Cli:keyward; do
+            PROJECT="${pair%%:*}"; PROGRAM="${pair##*:}"
+            dotnet publish "src/$PROJECT" -c Release -r ${{ matrix.rid }} --self-contained -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version="$VERSION" -o "publish/$PROGRAM"
+            case "${{ matrix.rid }}" in
+              win-*)
+                mv "publish/$PROGRAM/$PROJECT.exe" "sign/$PROGRAM-${{ matrix.rid }}.exe" ;;
+              *)
+                mv "publish/$PROGRAM/$PROJECT" "publish/$PROGRAM/$PROGRAM"
+                chmod +x "publish/$PROGRAM/$PROGRAM" ;;
+            esac
+          done
 
       - name: Azure login (OIDC, for signing)
         if: startsWith(matrix.rid, 'win-') && vars.ARTIFACT_SIGNING_ACCOUNT != ''
@@ -159,7 +163,7 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Sign amkeyward-mcp (Azure Artifact Signing)
+      - name: Sign amkeyward-mcp and keyward (Azure Artifact Signing)
         if: startsWith(matrix.rid, 'win-') && vars.ARTIFACT_SIGNING_ACCOUNT != ''
         uses: azure/artifact-signing-action@v2
         with:
@@ -187,14 +191,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          case "${{ matrix.rid }}" in
-            win-*)
-              ASSET="amkeyward-mcp-${{ matrix.rid }}.exe"
-              mv "sign/$ASSET" "dist/$ASSET" ;;
-            *)
-              # A tar keeps the executable bit; the program inside is called amkeyward-mcp.
-              ASSET="amkeyward-mcp-${{ matrix.rid }}.tar.gz"
-              tar -czf "dist/$ASSET" -C publish amkeyward-mcp ;;
-          esac
-          (cd dist && if command -v sha256sum >/dev/null; then sha256sum "$ASSET"; else shasum -a 256 "$ASSET"; fi > "$ASSET.sha256")
+          for PROGRAM in amkeyward-mcp keyward; do
+            case "${{ matrix.rid }}" in
+              win-*)
+                ASSET="$PROGRAM-${{ matrix.rid }}.exe"
+                mv "sign/$ASSET" "dist/$ASSET" ;;
+              *)
+                # A tar keeps the executable bit; the program inside is called amkeyward-mcp / keyward.
+                ASSET="$PROGRAM-${{ matrix.rid }}.tar.gz"
+                tar -czf "dist/$ASSET" -C "publish/$PROGRAM" "$PROGRAM" ;;
+            esac
+            (cd dist && if command -v sha256sum >/dev/null; then sha256sum "$ASSET"; else shasum -a 256 "$ASSET"; fi > "$ASSET.sha256")
+          done
           gh release upload "$GITHUB_REF_NAME" dist/* --clobber

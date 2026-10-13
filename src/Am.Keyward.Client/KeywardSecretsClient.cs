@@ -73,6 +73,52 @@ public sealed class KeywardSecretsClient(HttpClient httpClient) : IDisposable
     }
 
     /// <summary>
+    /// One secret with the reason when there is none — for callers that must say why (a script, the `keyward` CLI):
+    /// unknown key, no value in this environment, token rejected or expired (401), caller's network not allowed
+    /// (403). Other failures (server error, unreachable) throw <see cref="HttpRequestException"/>.
+    /// </summary>
+    public async Task<KeywardSecretLookup> LookupAsync(string key, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        var escaped = Uri.EscapeDataString(key).Replace("%2F", "/", StringComparison.OrdinalIgnoreCase);
+        using var response = await httpClient.GetAsync($"secrets/{escaped}", cancellationToken);
+        switch (response.StatusCode)
+        {
+            case HttpStatusCode.OK:
+                var secret = await response.Content.ReadFromJsonAsync<SecretResponse>(cancellationToken);
+                return new KeywardSecretLookup(KeywardSecretLookupStatus.Found, secret?.Value);
+            case HttpStatusCode.Unauthorized:
+                return new KeywardSecretLookup(KeywardSecretLookupStatus.TokenRejected, null);
+            case HttpStatusCode.Forbidden:
+                return new KeywardSecretLookup(KeywardSecretLookupStatus.NetworkNotAllowed, null);
+            case HttpStatusCode.NotFound:
+                // Servers before 0.30 send a bare 404; it can only mean «no value» or «no such key».
+                var reason = await ReadReasonAsync(response, cancellationToken);
+                return new KeywardSecretLookup(
+                    reason == KeywardApiDefaults.NoValueReason ? KeywardSecretLookupStatus.NoValue : KeywardSecretLookupStatus.UnknownKey,
+                    null);
+            default:
+                response.EnsureSuccessStatusCode();
+                throw new HttpRequestException($"Unexpected response {(int)response.StatusCode}.", null, response.StatusCode);
+        }
+    }
+
+    private static async Task<string?> ReadReasonAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var document = await System.Text.Json.JsonDocument.ParseAsync(
+                await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            return document.RootElement.TryGetProperty("reason", out var reason) ? reason.GetString() : null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>
     /// Explicit heartbeat: authenticates the token without reading a secret, which counts as a token
     /// access and feeds the server's statistics and heartbeat monitoring. Two uses: a long-running service
     /// that reads its secrets only at startup pings periodically, and a scheduled job pings at the END of a

@@ -1245,4 +1245,10 @@
   <data name="AgentTokens.Scope.TotpCodes" xml:space="preserve">
     <value>Get one-time codes (2FA) directly — each one is logged</value>
   </data>
+  <data name="Token.AuditReads" xml:space="preserve">
+    <value>Log every read in the audit trail</value>
+  </data>
+  <data name="Token.AuditReads.Hint" xml:space="preserve">
+    <value>for scripts and tools (keyward); leave it off for applications that read often</value>
+  </data>
 </root>

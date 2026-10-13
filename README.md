@@ -333,6 +333,16 @@ paste the values. It sets a value itself only when it legitimately holds it, wri
 one. App tokens stay with you: the assistant can neither issue, show nor revoke them. Setup, endpoints and the
 checklist for enabling the API on a host: [docs/agent-api.md](docs/agent-api.md).
 
+## Scripts and tools (keyward command line)
+
+`keyward` (`Am.Keyward.Cli` — a .NET tool, or a single program file per platform on the GitHub Releases) reads
+secrets for scripts, scheduled tasks and MCP servers with an **app token** per consumer application, kept in the
+Windows Credential Manager or the macOS Keychain: `keyward get ops:Prtg:ApiToken` prints one value,
+`keyward run --env PRTG_TOKEN=ops:Prtg:ApiToken -- prtg-mcp` starts one program with values in its environment,
+`keyward headers` feeds Claude Code's `headersHelper`, and `keyward powershell install` adds a read-only PowerShell
+SecretManagement vault. `keyward import` moves a plain-text secrets file into application keys from a mapping an AI
+agent may write — the values never pass through the agent. Details: [docs/keyward-cli.md](docs/keyward-cli.md).
+
 ## Consuming secrets from a deployed application (Am.Keyward.Client)
 
 The consumer side of the software-client API is one line in the deployed application's `Program.cs` — no
@@ -460,6 +470,8 @@ via Integrated Security.
 End-user & operator documentation lives in [`docs/`](docs/) and grows as features ship:
 
 - [Software-client API](docs/software-client-api.md) — how a deployed app fetches its secrets with a token.
+- [keyward command line](docs/keyward-cli.md) — secrets for scripts, scheduled tasks, MCP servers and PowerShell
+  with an app token in the Credential Manager / Keychain; import of a plain-text secrets file.
 - [Agent API and MCP server](docs/agent-api.md) — let an AI assistant store and find vault entries as you, with
   every secret reveal approved by you and sent to the clipboard only, and set up applications for the
   software-client API write-only; includes the checklist for enabling the API on a host.

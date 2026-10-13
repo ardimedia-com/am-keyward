@@ -23,4 +23,10 @@ public static class KeywardApiDefaults
     /// its keys and values, <c>&amp;tab=tokens</c> its app tokens.
     /// </summary>
     public const string ApplicationsPath = "/amkeyward/applications";
+
+    /// <summary>`reason` of a 404 from <c>GET /secrets/{key}</c>: the application has no such key.</summary>
+    public const string UnknownKeyReason = "unknown-key";
+
+    /// <summary>`reason` of a 404 from <c>GET /secrets/{key}</c>: the key holds no value in the token's environment.</summary>
+    public const string NoValueReason = "no-value";
 }

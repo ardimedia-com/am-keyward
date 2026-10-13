@@ -5,6 +5,42 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **`keyward` — the command line for scripts and tools** (`Am.Keyward.Cli`, a .NET tool; also one self-contained
+  program per platform on the GitHub Release, `keyward-<rid>`). It reads secrets through the software-client API
+  with an app token per profile, kept in the Windows Credential Manager or the macOS Keychain
+  (`AmKeyward:App:<profile>`; `KEYWARD_PROFILE_<NAME>_TOKEN` / `_SERVICE` where there is no store): `login` (checks
+  the token, refuses agent tokens), `logout`, `profiles`, `get`, `keys`, `run` (values in one program's environment),
+  `headers` (JSON for Claude Code's `headersHelper`), `env`, and stable exit codes (3 no profile, 4 token rejected,
+  5 network not allowed, 6 unknown key, 7 no value, 8 unreachable). No local cache. See
+  [docs/keyward-cli.md](docs/keyward-cli.md).
+- **`keyward import`**: moves a plain-text secrets file into application keys from a mapping file (one regular
+  expression per value, must match exactly one line) — the values never pass through an AI agent. Writes through
+  the agent API with the stored agent token; keeps existing values unless `--overwrite`; `--dry-run` shows lengths only.
+- **PowerShell SecretManagement vault** `Am.Keyward.SecretManagement` (read-only), installed by
+  `keyward powershell install`, plus `Get-KeywardSecret` (`-Field username|password|token`, `-AsCredential`) for
+  credentials stored as typed keys.
+- **Audit every read per app token**: the token flag *Log every read in the audit trail* (`AuditReads`, in the token
+  detail) writes an audit entry for each single-key read of the software-client API — meant for the tokens of
+  scripts and tools. `SoftwareClientTokenInfo.AuditReads`, `IssueSoftwareClientTokenCommand.AuditReads`,
+  `ISoftwareClientTokenService.SetAuditReadsAsync`. Migration `SoftwareClientTokenAuditReads` (column
+  `SoftwareClientTokens.AuditReads`, default off).
+- The software-client API's 404 for `GET /secrets/{key}` carries a `reason`: `unknown-key` or `no-value`
+  (`KeywardApiDefaults.UnknownKeyReason` / `NoValueReason`). `KeywardSecretsClient.LookupAsync(key)` returns a
+  `KeywardSecretLookup` that tells these apart from a rejected token (401) and a refused network (403).
+- `Am.Keyward.Client`: `IKeywardCredentialStore`, `KeywardCredentialStore` (`AgentTarget`, `AppProfileTarget`,
+  `For`), `WindowsCredentialStore`, `MacKeychainStore` and `KeywardTokenInput` — the OS credential stores
+  `amkeyward-mcp` used, now shared with `keyward`.
+
+### Changed
+
+- **BREAKING:** `ISoftwareSecretReader` has a new member `ReadOneAsync(…, bool auditRead, …)` returning a
+  `SecretReadOutcome` (`Found` / `UnknownKey` / `NoValue`), and `ISoftwareClientTokenService` a new member
+  `SetAuditReadsAsync`; only custom implementations of these interfaces must add them.
+- `amkeyward-mcp` takes its credential store from `Am.Keyward.Client` (no change in where tokens are stored).
+- The GitHub Release job `mcp-binaries` is now `binaries` and attaches `keyward-<rid>` next to `amkeyward-mcp-<rid>`.
+
 ## [0.29.0-preview] - 2026-10-12
 
 ### Added

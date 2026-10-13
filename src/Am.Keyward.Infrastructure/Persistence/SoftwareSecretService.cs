@@ -265,7 +265,11 @@ public sealed class SoftwareSecretService(
     // --- ISoftwareSecretReader: the software-client read path (environment fixed by the token) ---
 
     public async Task<string?> ReadAsync(
-        Guid tenantId, Guid projectId, Guid environmentId, string key, CancellationToken ct = default)
+        Guid tenantId, Guid projectId, Guid environmentId, string key, CancellationToken ct = default) =>
+        (await ReadOneAsync(tenantId, projectId, environmentId, key, auditRead: false, ct).ConfigureAwait(false)).Value;
+
+    public async Task<SecretReadOutcome> ReadOneAsync(
+        Guid tenantId, Guid projectId, Guid environmentId, string key, bool auditRead, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
         await EnsureAuthorizedAsync(projectId, Permission.Read, ct).ConfigureAwait(false);
@@ -278,22 +282,34 @@ public sealed class SoftwareSecretService(
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
             .ConfigureAwait(false);
 
-        var value = secret?.Values.FirstOrDefault(v => v.EnvironmentId == environmentId);
-        if (secret is null || value?.CurrentVersionId is null)
+        if (secret is null)
         {
-            return null;
+            return new SecretReadOutcome(SecretReadStatus.UnknownKey, null);
+        }
+
+        var value = secret.Values.FirstOrDefault(v => v.EnvironmentId == environmentId);
+        if (value?.CurrentVersionId is null)
+        {
+            return new SecretReadOutcome(SecretReadStatus.NoValue, null);
         }
 
         var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
             .ConfigureAwait(false);
 
-        // A single-key client read is evidenced by the read statistics (per secret, environment and day), not
-        // by an audit entry: one entry per read would serialise every client read of the tenant on the audit
-        // chain lock, together with every UI change, and grow the chain without bound. The bulk load below
-        // still writes one audit entry per load.
+        // A single-key client read of an APPLICATION is evidenced by the read statistics (per secret, environment
+        // and day), not by an audit entry: one entry per read would serialise every client read of the tenant on
+        // the audit chain lock, together with every UI change, and grow the chain without bound. The bulk load
+        // below still writes one audit entry per load. A token with «audit every read» (scripts, `keyward`) is the
+        // exception — low volume, and «who read it, when» is the point (T23 A).
         readStatistics.Record(tenantId, secret.Id, environmentId, SecretReadSource.Client);
+        if (auditRead)
+        {
+            await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Read, "SoftwareSecret", secret.Id, ActorUserId: null), ct)
+                .ConfigureAwait(false);
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
 
-        return plaintext;
+        return new SecretReadOutcome(SecretReadStatus.Found, plaintext);
     }
 
     public async Task<IReadOnlyList<KeyValuePair<string, string>>> ReadAllAsync(

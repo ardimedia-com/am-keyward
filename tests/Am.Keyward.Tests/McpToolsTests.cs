@@ -169,16 +169,16 @@ public class McpToolsTests
         }
 
         // Nothing about the installations is built in: the target comes from the address the user configures.
-        Assert.AreEqual("AmKeyward:Agent:toolbox.bvd.li", TokenStore.TargetFor(new Uri("https://toolbox.bvd.li")));
-        Assert.AreEqual("AmKeyward:Agent:toolbox.ardimedia.com", TokenStore.TargetFor(new Uri("https://Toolbox.Ardimedia.com/")));
-        Assert.AreEqual("AmKeyward:Agent:keyward.example.com:8443", TokenStore.TargetFor(new Uri("https://keyward.example.com:8443/x")));
+        Assert.AreEqual("AmKeyward:Agent:toolbox.bvd.li", Am.Keyward.Client.KeywardCredentialStore.AgentTarget(new Uri("https://toolbox.bvd.li")));
+        Assert.AreEqual("AmKeyward:Agent:toolbox.ardimedia.com", Am.Keyward.Client.KeywardCredentialStore.AgentTarget(new Uri("https://Toolbox.Ardimedia.com/")));
+        Assert.AreEqual("AmKeyward:Agent:keyward.example.com:8443", Am.Keyward.Client.KeywardCredentialStore.AgentTarget(new Uri("https://keyward.example.com:8443/x")));
     }
 
     [TestMethod, TestCategory("Unit")]
     public void Setup_confirms_a_pasted_token_without_showing_its_secret()
     {
-        Assert.AreEqual("amkwa_1fc78941e51b_****", KeywardMcpHost.MaskToken("amkwa_1fc78941e51b_7a50919007cb73e76444ed98524836613ea73ab427b769f2b0f85b2d74c2e631"));
-        Assert.AreEqual("****", KeywardMcpHost.MaskToken("amkwa_garbled"));
+        Assert.AreEqual("amkwa_1fc78941e51b_****", Am.Keyward.Client.KeywardTokenInput.Mask("amkwa_1fc78941e51b_7a50919007cb73e76444ed98524836613ea73ab427b769f2b0f85b2d74c2e631"));
+        Assert.AreEqual("****", Am.Keyward.Client.KeywardTokenInput.Mask("amkwa_garbled"));
     }
 
     [TestMethod, TestCategory("Unit")]

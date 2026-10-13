@@ -46,6 +46,7 @@ public sealed class SoftwareClientTokenService(
         var token = new SoftwareClientToken(
             Guid.NewGuid(), cmd.TenantId, cmd.ProjectId, environment.Id, name,
             generated.Prefix, generated.Hash, cmd.ActorUserId, clock.UtcNow, cmd.ExpiresAt, cmd.Note);
+        token.SetAuditReads(cmd.AuditReads);
 
         db.SoftwareClientTokens.Add(token);
         await AuditAsync(db, cmd.TenantId, AuditAction.Create, token.Id, cmd.ActorUserId, ct).ConfigureAwait(false);
@@ -171,7 +172,7 @@ public sealed class SoftwareClientTokenService(
             .Select(t => new SoftwareClientTokenInfo(
                 t.Id, t.ProjectId, t.EnvironmentId, t.Name, t.Note, t.TokenPrefix,
                 t.CreatedAt, t.ExpiresAt, t.LastRotatedAt, t.RevokedAt, t.IsActive(now), t.HasSecret,
-                t.LastAccessAt, t.LastAccessIp))
+                t.LastAccessAt, t.LastAccessIp, t.AuditReads))
             .ToList();
     }
 
@@ -187,6 +188,20 @@ public sealed class SoftwareClientTokenService(
         await EnsureNameFreeAsync(db, tenantId, token.ProjectId, name, exceptTokenId: tokenId, ct).ConfigureAwait(false);
 
         token.UpdateDetails(name, note);
+        await AuditAsync(db, tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task SetAuditReadsAsync(Guid tenantId, Guid tokenId, bool auditReads, Guid? actorUserId, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
+
+        var token = await FindAsync(db, tenantId, tokenId, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+
+        token.SetAuditReads(auditReads);
         await AuditAsync(db, tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }

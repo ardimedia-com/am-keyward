@@ -9,6 +9,9 @@ the implementation).
 - [Operations & KEK/DR runbook](operations-runbook.md) — key custody, backup/restore order, KEK rotation
   and compromise response, monitoring/health endpoints, break-glass, GDPR erasure.
 - [Software-client API](software-client-api.md) — how a deployed app fetches its secrets with a token.
+- [keyward command line](keyward-cli.md) — secrets for scripts, scheduled tasks, MCP servers and PowerShell
+  (SecretManagement vault) with an app token kept in the Credential Manager / Keychain; moving a plain-text secrets
+  file into Keyward without the values passing through an AI agent.
 - [Agent API and MCP server](agent-api.md) — AI assistants working as a user: vault entries, and setting up
   applications for the software-client API (write-only, never app tokens); enabling it on a host.
 - [Database logins](database-logins.md) — the optional least-privilege runtime login: what the split does and

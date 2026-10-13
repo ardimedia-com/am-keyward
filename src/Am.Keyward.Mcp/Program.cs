@@ -1,3 +1,4 @@
+using Am.Keyward.Client;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -90,8 +91,8 @@ internal static class KeywardMcpHost
 
     // The token stored for this KEYWARD, else the single token of versions before 0.24, else the environment variable.
     private static string? ReadToken(Uri serviceUri) =>
-        TokenStore.For(TokenStore.TargetFor(serviceUri))?.Read() is { Length: > 0 } stored ? stored
-        : TokenStore.For(TokenStore.LegacyTarget)?.Read() is { Length: > 0 } legacy ? legacy
+        KeywardCredentialStore.For(KeywardCredentialStore.AgentTarget(serviceUri))?.Read() is { Length: > 0 } stored ? stored
+        : KeywardCredentialStore.For(KeywardCredentialStore.LegacyAgentTarget)?.Read() is { Length: > 0 } legacy ? legacy
         : new EnvironmentTokenStore().Read();
 
     private static int Setup(string? serviceUri)
@@ -102,14 +103,14 @@ internal static class KeywardMcpHost
             return 1;
         }
 
-        if (TokenStore.For(TokenStore.TargetFor(address)) is not { } store)
+        if (KeywardCredentialStore.For(KeywardCredentialStore.AgentTarget(address)) is not { } store)
         {
             Console.Error.WriteLine($"There is no credential store here (Windows or macOS); set {EnvironmentTokenStore.Variable} instead.");
             return 1;
         }
 
         Console.Error.Write("Paste the agent token (shown as *) and press Enter: ");
-        var token = ReadHidden();
+        var token = KeywardTokenInput.ReadHidden();
         Console.Error.WriteLine();
         if (!token.StartsWith("amkwa_", StringComparison.Ordinal))
         {
@@ -118,10 +119,10 @@ internal static class KeywardMcpHost
         }
 
         // Confirms what arrived without showing the secret: the public prefix (the middle segment) and the length.
-        Console.Error.WriteLine($"Received {MaskToken(token)} ({token.Length} characters).");
+        Console.Error.WriteLine($"Received {KeywardTokenInput.Mask(token)} ({token.Length} characters).");
 
         store.Write(token);
-        Console.Error.WriteLine($"Stored in {store.Place} as «{TokenStore.TargetFor(address)}» (for {address.GetLeftPart(UriPartial.Authority)}). Run 'amkeyward-mcp check' to verify it.");
+        Console.Error.WriteLine($"Stored in {store.Place} as «{KeywardCredentialStore.AgentTarget(address)}» (for {address.GetLeftPart(UriPartial.Authority)}). Run 'amkeyward-mcp check' to verify it.");
         return 0;
     }
 
@@ -136,53 +137,17 @@ internal static class KeywardMcpHost
             return 1;
         }
 
-        if (TokenStore.For(TokenStore.TargetFor(address)) is not { } store)
+        if (KeywardCredentialStore.For(KeywardCredentialStore.AgentTarget(address)) is not { } store)
         {
             Console.Error.WriteLine($"Nothing is stored here; unset {EnvironmentTokenStore.Variable} instead.");
             return 1;
         }
 
         var removed = store.Delete();
-        var legacyRemoved = TokenStore.For(TokenStore.LegacyTarget)!.Delete();
+        var legacyRemoved = KeywardCredentialStore.For(KeywardCredentialStore.LegacyAgentTarget)!.Delete();
         Console.Error.WriteLine(removed || legacyRemoved
             ? $"Removed the stored token for {address.GetLeftPart(UriPartial.Authority)} from {store.Place}. Revoke it on «AI agent tokens» so it stops working everywhere."
             : $"No token was stored for {address.GetLeftPart(UriPartial.Authority)} on this computer.");
         return 0;
-    }
-
-    /// <summary><c>amkwa_&lt;prefix&gt;_****</c>: the prefix is a non-secret lookup handle, the rest stays hidden.</summary>
-    internal static string MaskToken(string token)
-    {
-        var parts = token.Split('_');
-        return parts.Length >= 3 ? $"{parts[0]}_{parts[1]}_****" : "****";
-    }
-
-    private static string ReadHidden()
-    {
-        var chars = new List<char>();
-        while (true)
-        {
-            // One «*» per character, so a paste is visibly received; the characters themselves are never echoed.
-            var key = Console.ReadKey(intercept: true);
-            if (key.Key == ConsoleKey.Enter) break;
-            if (key.Key == ConsoleKey.Backspace)
-            {
-                if (chars.Count > 0)
-                {
-                    chars.RemoveAt(chars.Count - 1);
-                    Console.Error.Write("\b \b");
-                }
-
-                continue;
-            }
-
-            if (!char.IsControl(key.KeyChar))
-            {
-                chars.Add(key.KeyChar);
-                Console.Error.Write('*');
-            }
-        }
-
-        return new string([.. chars]).Trim();
     }
 }

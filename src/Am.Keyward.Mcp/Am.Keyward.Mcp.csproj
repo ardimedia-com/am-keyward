@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
+    <!-- The credential store (Windows Credential Manager, macOS Keychain) is shared with the `keyward` CLI. -->
+    <ProjectReference Include="..\Am.Keyward.Client\Am.Keyward.Client.csproj" />
   </ItemGroup>
 
   <ItemGroup>

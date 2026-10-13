@@ -140,6 +140,13 @@ else
                                     else { <text>—</text> }
                                 </span></div>
                             </div>
+                            @* T23 A: tokens of scripts and tools put every single read into the audit trail. *@
+                            <div class="detail-field wide">
+                                <label class="token-audit-reads">
+                                    <input type="checkbox" checked="@token.AuditReads" @onchange="e => SetAuditReadsAsync(token.Id, e.Value is true)" disabled="@busy" />
+                                    <span>@Loc["Token.AuditReads"] <span class="muted">— @Loc["Token.AuditReads.Hint"]</span></span>
+                                </label>
+                            </div>
                         </div>
 
                         @if (issuedToken is not null && issuedForTokenId == token.Id)
@@ -357,6 +364,13 @@ else
         await RefreshAsync();
         status = (Loc["Token.Msg.Updated"], false);
     }, selectedTokenId is not null && !string.IsNullOrWhiteSpace(editName));
+
+    private Task SetAuditReadsAsync(Guid tokenId, bool auditReads) => RunAsync(async () =>
+    {
+        await TokenService.SetAuditReadsAsync(TenantId, tokenId, auditReads, ActorUserId);
+        await RefreshAsync();
+        status = (Loc["Token.Msg.Updated"], false);
+    }, true);
 
     private Task DeleteAsync(Guid tokenId) => RunAsync(async () =>
     {

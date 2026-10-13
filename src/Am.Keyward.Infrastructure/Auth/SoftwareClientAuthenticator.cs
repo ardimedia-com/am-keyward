@@ -41,7 +41,7 @@ public sealed class SoftwareClientAuthenticator(IDbContextFactory<KeywardDbConte
             Encoding.ASCII.GetBytes(candidate.TokenHash));
 
         return matches
-            ? new SoftwareClientPrincipal(candidate.Id, candidate.TenantId, candidate.ProjectId, candidate.EnvironmentId)
+            ? new SoftwareClientPrincipal(candidate.Id, candidate.TenantId, candidate.ProjectId, candidate.EnvironmentId, candidate.AuditReads)
             : null;
     }
 }

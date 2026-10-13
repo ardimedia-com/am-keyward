@@ -1119,4 +1119,10 @@
   <data name="AgentTokens.Scope.TotpCodes" xml:space="preserve">
     <value>Obtener directamente los códigos de un solo uso (2FA) — cada uno queda registrado</value>
   </data>
+  <data name="Token.AuditReads" xml:space="preserve">
+    <value>Registrar cada lectura en el registro de auditoría</value>
+  </data>
+  <data name="Token.AuditReads.Hint" xml:space="preserve">
+    <value>para scripts y herramientas (keyward); déjalo desactivado en aplicaciones que leen a menudo</value>
+  </data>
 </root>

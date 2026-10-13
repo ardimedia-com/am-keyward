@@ -36,6 +36,14 @@ inside) is logged as an error and the API answers 403 to everyone until it is co
 `GET /secrets` returns a flat JSON object (`{ "Section:Key": "value", ... }`) shaped for binding into
 .NET `IConfiguration`.
 
+`GET /secrets/{key}` answers **404** as a problem document whose extension `reason` says why:
+`unknown-key` (the application has no such key) or `no-value` (the key exists, but has no value in the token's
+environment) — constants `KeywardApiDefaults.UnknownKeyReason` / `NoValueReason`; `KeywardSecretsClient.LookupAsync`
+maps them (and 401/403) to `KeywardSecretLookupStatus`. A single read is recorded in the token's access statistics;
+when the token has **«Log every read in the audit trail»** (`AuditReads`) it also writes an audit entry with the key —
+meant for the tokens of scripts and tools ([keyward](keyward-cli.md)), not for applications that read often. A bulk
+read always writes one audit entry.
+
 ## .NET client — `Am.Keyward.Client`
 
 .NET applications should not hand-roll these HTTP calls: the `Am.Keyward.Client` package wraps them as a

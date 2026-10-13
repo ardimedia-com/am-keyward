@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net10.0 like amkeyward-mcp: the credential stores (Windows, macOS) are guarded per platform; elsewhere the
+         token comes from an environment variable. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Am.Keyward.Cli</RootNamespace>
+
+    <!-- Shipped as a .NET tool and, like amkeyward-mcp, as one self-contained program per platform (release.yml). -->
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>keyward</ToolCommandName>
+    <Description>AM KEYWARD — command line for scripts and tools (decisions T18–T23): reads secrets through the software-client API with an app token kept in the Windows Credential Manager or the macOS Keychain. `keyward get` prints one value, `keyward run` starts a program with values as environment variables, `keyward headers` feeds Claude Code's headersHelper, `keyward import` moves a plain-text secrets file into Keyward without the values passing through an AI agent, and `keyward powershell install` adds a PowerShell SecretManagement vault.</Description>
+    <PackageTags>$(PackageTags);cli;secrets;powershell</PackageTags>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Am.Keyward.Client\Am.Keyward.Client.csproj" />
+    <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The PowerShell SecretManagement extension vault, written out by `keyward powershell install`. -->
+    <EmbeddedResource Include="PowerShell\**\*" LogicalName="PowerShell/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Am.Keyward.Tests" />
+  </ItemGroup>
+
+</Project>

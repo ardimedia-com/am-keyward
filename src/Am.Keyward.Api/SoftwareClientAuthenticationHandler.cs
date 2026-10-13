@@ -31,6 +31,9 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
     public const string ProjectIdClaim = "keyward:project_id";
     public const string EnvironmentIdClaim = "keyward:environment_id";
 
+    /// <summary>Present ("true") when the token audits every single-key read (<c>SoftwareClientToken.AuditReads</c>).</summary>
+    public const string AuditReadsClaim = "keyward:audit_reads";
+
     private const string BearerPrefix = "Bearer ";
 
     private readonly ISoftwareClientAuthenticator authenticator;
@@ -119,6 +122,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
             new Claim(TenantIdClaim, principal.TenantId.ToString()),
             new Claim(ProjectIdClaim, principal.ProjectId.ToString()),
             new Claim(EnvironmentIdClaim, principal.EnvironmentId.ToString()),
+            .. principal.AuditReads ? [new Claim(AuditReadsClaim, "true")] : Array.Empty<Claim>(),
         ], SchemeName);
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
