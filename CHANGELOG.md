@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.31.0-preview] - 2026-10-13
+
 ### Added
 
 - **What runs out soon, for agents** (phase 2a, decision T29 A): agent API `GET /expiring?days=30` and MCP tool

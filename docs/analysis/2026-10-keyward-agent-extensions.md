@@ -6,7 +6,7 @@ migration or deployment is part of it.
 Implementation state: **phase 1 is built** (released in 0.30.0-preview, 2026-10-13) — `keyward` with `login`, `logout`, `profiles`,
 `get`, `keys`, `run`, `headers`, `env`, `import` and `powershell install`; the SecretManagement vault and
 `Get-KeywardSecret`; per-read audit (`AuditReads`) and the 404 reasons. User documentation:
-[docs/keyward-cli.md](../keyward-cli.md). **Phase 2a is built** (unreleased): `GET /expiring` / `list_expiring` and
+[docs/keyward-cli.md](../keyward-cli.md). **Phase 2a is built** (released in 0.31.0-preview): `GET /expiring` / `list_expiring` and
 `PUT …/rotation` / `set_rotation` ([docs/agent-api.md](../agent-api.md)). Phases 2b, 3 and 4 are not started.
 
 ## Summary
