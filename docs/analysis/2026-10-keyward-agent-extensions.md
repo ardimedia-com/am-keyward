@@ -17,7 +17,7 @@ Recommended order — security gain first:
 
 | Phase | What | Effort | Removes |
 |---|---|---|---|
-| 1 | `amkeyward-mcp` commands `login`, `get`, `run`, `headers` and a PowerShell SecretManagement vault on top | M + S | plain-text secret files, bearer tokens in MCP configs, regex parsing |
+| 1 | `keyward` CLI (`login`, `get`, `run`, `headers`) and a PowerShell SecretManagement vault on top | M + S | plain-text secret files, bearer tokens in MCP configs, regex parsing |
 | 2 | Expiry on vault entries, one `expiring` list across everything, notices, MCP `list_expiring` | M | expiry tracking by hand |
 | 3 | «Used by» on entries and keys, declared plus observed, shown on rotation | S–M | forgotten consumers after a rotation |
 | 4 | Linked copies between installations — metadata first, push replication only if needed | S (L) | silent drift between installations |
@@ -63,19 +63,21 @@ already ships `amkeyward-mcp` as a .NET tool and as single-file programs per pla
 **Missing.** A command-line program for people and scripts; a way to keep an *app* token (not an agent token) in
 the operating system's store; a reference syntax; process launching.
 
-**Design (T19 B).** The commands join the existing program **`amkeyward-mcp`** (already a .NET tool and single-file
-program per platform, already holding the credential store): next to `setup`/`check`/`remove` for the *agent*
-token come `login`/`logout`/`profiles` for *app-token profiles* and `get`/`run`/`headers`/`env` to use them. One
-program to install and update; the PowerShell vault calls it.
+**Design (T19 A).** A new .NET tool and single-file program **`keyward`** (`Am.Keyward.Cli`) for people, scripts
+and servers; `amkeyward-mcp` stays the agents' program. The credential store moves from `Am.Keyward.Mcp` into a small
+shared package, so both programs and the PowerShell vault use one implementation. Kept apart because they serve
+different token kinds (an agent token acts as a person, an app token is a machine), because a server running
+scheduled tasks needs no MCP server, and because every open agent session locks `amkeyward-mcp`'s files — updates of
+the scripts' program must not depend on closing all agents.
 
 | Command | Does |
 |---|---|
-| `amkeyward-mcp login <profile> --service https://keyward.example.com` | asks for an app token (masked), checks it with `/ping`, stores it as `AmKeyward:App:<host>:<profile>` |
-| `amkeyward-mcp logout <profile>` / `amkeyward-mcp profiles` | removes / lists stored profiles (never values) |
-| `amkeyward-mcp get <profile>:<key> [--json]` | prints one value to stdout — for a script that captures it |
-| `amkeyward-mcp run --env NAME=<profile>:<key> [--env …] [--all <profile> [--prefix P_]] -- <program> [args]` | resolves the values, starts the program with them as environment variables, passes its exit code through |
-| `amkeyward-mcp headers --set "Authorization=Bearer {<profile>:<key>}"` | prints the JSON object Claude Code's `headersHelper` expects |
-| `amkeyward-mcp env <profile> [--shell powershell\|sh]` | prints assignments for the current shell session — least preferred, see security |
+| `keyward login <profile> --service https://keyward.example.com` | asks for an app token (masked), checks it with `/ping`, stores it as `AmKeyward:App:<host>:<profile>` |
+| `keyward logout <profile>` / `keyward profiles` | removes / lists stored profiles (never values) |
+| `keyward get <profile>:<key> [--json]` | prints one value to stdout — for a script that captures it |
+| `keyward run --env NAME=<profile>:<key> [--env …] [--all <profile> [--prefix P_]] -- <program> [args]` | resolves the values, starts the program with them as environment variables, passes its exit code through |
+| `keyward headers --set "Authorization=Bearer {<profile>:<key>}"` | prints the JSON object Claude Code's `headersHelper` expects |
+| `keyward env <profile> [--shell powershell\|sh]` | prints assignments for the current shell session — least preferred, see security |
 
 A profile is an installation plus one app token; the token already fixes application and environment, so a
 reference is just `profile:key` (e.g. `ops:Prtg:ApiToken`). Values never appear on a command line.
@@ -88,11 +90,11 @@ MCP configuration examples (user scope, no secret in the file):
     "mail-relay": {
       "type": "http",
       "url": "https://relay.example.com/mcp",
-      "headersHelper": "amkeyward-mcp headers --set \"Authorization=Bearer {mcp:MailRelay:Token}\""
+      "headersHelper": "keyward headers --set \"Authorization=Bearer {mcp:MailRelay:Token}\""
     },
     "some-stdio-server": {
       "type": "stdio",
-      "command": "amkeyward-mcp",
+      "command": "keyward",
       "args": ["run", "--env", "API_KEY=mcp:SomeService:ApiKey", "--", "some-server"]
     }
   }
@@ -108,19 +110,19 @@ MCP configuration examples (user scope, no secret in the file):
   inherited by everything the child starts), in its memory, and on stdout for `get`/`headers` (the caller decides
   where it goes). Never on disk, never in a command line, never in Keyward's logs. `keyward env` keeps values in a
   whole shell session — offered for interactive work only.
-- *The launcher and agents.* `amkeyward-mcp run -- claude` would put the values into Claude Code's own environment, and
+- *The launcher and agents.* `keyward run -- claude` would put the values into Claude Code's own environment, and
   any agent with a shell tool could print them: that is a reveal without approval. So: **never wrap the agent
   host**; wrap the single MCP server (stdio) or use `headersHelper` (HTTP), so only that server's process holds the
   value.
 - *Same OS user.* On a workstation an agent runs as the person; whatever app token the person's scripts can use
-  from the Credential Manager, the agent can use too (`amkeyward-mcp get`). That is acceptable for a small «workstation»
+  from the Credential Manager, the agent can use too (`keyward get`). That is acceptable for a small «workstation»
   application; unattended production scripts belong on servers under a dedicated service account, whose Credential
   Manager the interactive user (and the agent) cannot read.
 - *Audit.* Today a single-key client read is recorded in the statistics, not in the audit chain. For CLI tokens a
   per-read audit entry is affordable (low volume) and worth it — see T23.
 - *Revocation.* Immediate: the next `get`/`run`/`headers` fails; `headersHelper` is re-run by Claude Code on 401/403.
 
-**Effort M.** No new package or pipeline: `amkeyward-mcp` already ships as a .NET tool and as single-file programs.
+**Effort M.** Plus a small shared package for the credential store and one more tool and program in the release pipeline.
 
 ### 2.2 PowerShell: replace the parsing of plain-text files
 
@@ -140,7 +142,7 @@ $token = Get-Secret -Vault KeywardOps -Name 'Prtg:ApiToken' -AsPlainText
 $cred  = Get-KeywardSecret -Profile ops -Name Prtg -AsCredential     # reads Prtg:Username + Prtg:Password
 ```
 
-- The vault is a thin script module over `amkeyward-mcp get --json` (no second HTTP client, no second credential store).
+- The vault is a thin script module over `keyward get --json` (no second HTTP client, no second credential store).
 - **Typed keys instead of parsing**: a credential becomes `Name:Username` / `Name:Password` / `Name:ApiToken` keys —
   the `Section:Key` form applications already use. A changed layout in a text file can no longer turn a username into
   a password.
@@ -232,10 +234,10 @@ than a handful of credentials really need to stay identical.
 
 ## 3. Phased plan
 
-1. **Phase 1 — no more plain-text secrets (most security gain).** `amkeyward-mcp` commands (`login`, `get`, `run`,
-   `headers`, `profiles`); SecretManagement vault and `Get-KeywardSecret`; per-read audit for
+1. **Phase 1 — no more plain-text secrets (most security gain).** Extract the credential store; `keyward` (`login`,
+   `get`, `run`, `headers`, `profiles`); SecretManagement vault and `Get-KeywardSecret`; per-read audit for
    CLI tokens; docs. Then migrate: one application per consumer group, scripts to `Get-Secret`, MCP configs to
-   `headersHelper` / `amkeyward-mcp run`, delete the plain-text file. Prerequisite for the client API: set
+   `headersHelper` / `keyward run`, delete the plain-text file. Prerequisite for the client API: set
    `Keyward:Client:AllowedNetworks` on both installations.
 2. **Phase 2 — expiry.** Vault-entry expiry (migration), notices, `GET /expiring`, `list_expiring`, rotation fields
    in the agent API. Then enter the known expiry dates once.
@@ -244,13 +246,14 @@ than a handful of credentials really need to stay identical.
 
 ## 4. Decisions (2026-10-13)
 
-All taken as recommended, except **T19: B** — the commands go into `amkeyward-mcp`, no separate `keyward` tool.
+All taken as recommended. T19 was first answered B (commands in `amkeyward-mcp`) and changed to **A** the same day,
+after comparing install, update locking and server use.
 
 | Code | Question | Options | Decision |
 |---|---|---|---|
 | T18 | How do scripts and MCP configurations read secrets? | A software-client API with an app token per consumer application / B a new agent-token scope «inject» / C both | **A** — the machine path exists, is scoped and observable; agent tokens act as a person |
-| T19 | Where does the CLI live? | A new tool `keyward` (`Am.Keyward.Cli`), credential store shared with `amkeyward-mcp` / B more subcommands in `amkeyward-mcp` | **B** — one program to install and update |
-| T20 | May the launcher wrap an AI agent host (`amkeyward-mcp run -- claude`)? | A no — wrap single MCP servers or use `headersHelper`; documented / B allowed | **A** — otherwise the agent can print the values |
+| T19 | Where does the CLI live? | A new tool `keyward` (`Am.Keyward.Cli`), credential store shared with `amkeyward-mcp` / B more subcommands in `amkeyward-mcp` | **A** (first B, changed the same day) — separate token kinds, no MCP server on servers, updates independent of open agent sessions |
+| T20 | May the launcher wrap an AI agent host (`keyward run -- claude`)? | A no — wrap single MCP servers or use `headersHelper`; documented / B allowed | **A** — otherwise the agent can print the values |
 | T21 | PowerShell surface | A SecretManagement extension vault + thin `Get-KeywardSecret` / B own module only | **A** — the documented PowerShell mechanism |
 | T22 | Local cache of values | A none / B DPAPI-protected cache with a short TTL | **A** — one request per run is cheap; a cache is one more copy |
 | T23 | Audit of single-key reads by CLI tokens | A audit entry per read (token flag) / B statistics only, as today | **A** — low volume, high value for «who read it» |
@@ -265,7 +268,7 @@ All taken as recommended, except **T19: B** — the commands go into `amkeyward-
 |---|---|---|---|
 | T28 | A credential used by machines *and* people | A one home: the application key; the vault entry only links to it / B a binding: an application key reads through to a vault-entry field / C two copies, kept in step by hand | **A**, B only on demand |
 | T29 | Expiry order | A use value expiry now (machine credentials as application values), then a small agent-API phase, vault-entry expiry after / B vault-entry expiry first | **A** |
-| T30 | Migrating plain-text files | A local `amkeyward-mcp import` with an explicit mapping file / B an agent reads the file and stores the values via MCP | **A** |
+| T30 | Migrating plain-text files | A local `keyward import` with an explicit mapping file / B an agent reads the file and stores the values via MCP | **A** |
 
 ## 5. Second pass (2026-10-13) — gaps and adjustments
 
@@ -307,7 +310,7 @@ Section 2.2 suggests an agent does most of the migration with `set_secret_value`
 model's context and the MCP transcript — exactly what Keyward otherwise avoids. Better: a local command
 
 ```
-amkeyward-mcp import --profile-agent <host> --mapping secrets-map.json --source SECRETS.local.md [--dry-run]
+keyward import --profile-agent <host> --mapping secrets-map.json --source <plain-text secrets file> [--dry-run]
 ```
 
 - The **mapping file** (no values) names, per source line or block, the target application, key and environment. An
@@ -325,7 +328,7 @@ consumers that hold a **copy**: a value pasted into a third-party system, a sche
 deployed configuration that cannot read Keyward. Phase 3 therefore gets smaller with every consumer phase 1 moves, and
 the rotation checklist should show observed readers as «updates itself» and only the declared ones as «to do».
 
-### 5.5 `headersHelper` — facts that shape `amkeyward-mcp headers`
+### 5.5 `headersHelper` — facts that shape `keyward headers`
 
 From the current Claude Code MCP documentation:
 
@@ -335,13 +338,13 @@ From the current Claude Code MCP documentation:
   like credentials — so Keyward-backed servers belong in the **user** scope;
 - `${VAR}` expansion covers `command`, `args`, `env`, `url`, `headers` — not `headersHelper` itself.
 
-Consequences for the CLI: `amkeyward-mcp headers` must answer well inside 10 s (own HTTP timeout around 5 s), write errors
+Consequences for the CLI: `keyward headers` must answer well inside 10 s (own HTTP timeout around 5 s), write errors
 to stderr only, and fail closed — if Keyward is unreachable, the MCP server does not connect, which is the right
 behaviour.
 
 ### 5.6 Error contract instead of a bare 401
 
-Problem 2 (a check failing with HTTP 401 after a format change) is as much about diagnosis as about parsing. `amkeyward-mcp
+Problem 2 (a check failing with HTTP 401 after a format change) is as much about diagnosis as about parsing. `keyward
 get` / `run` / `headers` and `Get-KeywardSecret` should fail with distinct exit codes and one-line messages: no profile
 stored, token rejected or expired, network not allowed (403), key unknown, no value in this environment. A script then
 fails with the reason, not with the downstream system's 401.
@@ -351,7 +354,7 @@ fails with the reason, not with the downstream system's 401.
 | Phase | What | Effort |
 |---|---|---|
 | 0 | No code: expiry dates on existing application values; client-API network list on every installation; rule «one home» (T28) | — |
-| 1 | `amkeyward-mcp` commands (`login`, `get`, `run`, `headers`, `import`) + PowerShell vault, error contract, per-read audit | M + S |
+| 1 | `keyward` CLI (`login`, `get`, `run`, `headers`, `import`) + PowerShell vault, error contract, per-read audit | M + S |
 | 2a | `list_expiring`, `set_rotation` over existing expiry data | S |
 | 2b | Vault-entry expiry (migration) | M |
 | 3 | «Used by» for copies, rotation checklist | S |
