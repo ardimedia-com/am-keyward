@@ -35,6 +35,28 @@ public sealed record AgentApplicationStatisticsView(
     IReadOnlyList<TokenAccessIpInfo> Addresses,
     IReadOnlyList<TokenAccessAlertInfo> Alerts);
 
+/// <summary>What <see cref="AgentExpiringEntry"/> is due: a value's rotation date, or an app token's expiry.</summary>
+public enum AgentExpiringKind
+{
+    SecretValue,
+    AppToken,
+}
+
+/// <summary>
+/// One date coming up in a reachable application: a value's advisory rotation date (<see cref="Name"/> is its key;
+/// overdue ones included, because the value is still in use) or an active app token's expiry (<see cref="Name"/> is
+/// the token's name). Metadata only, never a value or a token.
+/// </summary>
+public sealed record AgentExpiringEntry(
+    AgentExpiringKind Kind,
+    DateTimeOffset DueAt,
+    Guid ApplicationId,
+    string Application,
+    string Environment,
+    string Name,
+    bool ValueSet,
+    string Note);
+
 /// <summary>The token may not manage applications at all: permission not granted, token no longer valid, or its user may no longer manage the software side.</summary>
 public sealed class AgentApplicationsNotPermittedException()
     : UnauthorizedAccessException("This agent token may not manage applications.");
@@ -111,4 +133,20 @@ public interface IAgentApplicationService
 
     /// <summary>The application's app-token access statistics over the last <paramref name="days"/> days (1–90).</summary>
     Task<AgentApplicationStatisticsView> GetStatisticsAsync(Guid tokenId, Guid applicationId, int days, CancellationToken ct = default);
+
+    /// <summary>
+    /// Rotation dates and app-token expiries due within <paramref name="days"/> days (1–365) across the reachable
+    /// applications, soonest first; values already overdue are included.
+    /// </summary>
+    Task<IReadOnlyList<AgentExpiringEntry>> ListExpiringAsync(Guid tokenId, int days, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sets the advisory rotation date and/or note of one key in one environment (the same metadata a person keeps on
+    /// the applications page; it never touches the value). <paramref name="rotateBy"/> sets the date (valid through
+    /// that day), <paramref name="clearRotateBy"/> removes it, neither keeps it; a null <paramref name="note"/> keeps
+    /// the note, an empty one clears it. Returns the environment's state afterwards.
+    /// </summary>
+    Task<AgentSecretValueState> SetRotationAsync(
+        Guid tokenId, Guid applicationId, string key, string environment, DateOnly? rotateBy, bool clearRotateBy, string? note,
+        CancellationToken ct = default);
 }

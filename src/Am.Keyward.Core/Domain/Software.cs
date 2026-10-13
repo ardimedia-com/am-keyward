@@ -286,6 +286,13 @@ public sealed class SecretValue
         Note = note?.Trim() ?? string.Empty;
     }
 
+    /// <summary>
+    /// A rotation date as the stored expiry: valid through the END of that day (23:59:59 UTC). The notice schedule
+    /// counts whole days, so anchoring at the day's last second keeps «due today» from reading as «overdue» all day.
+    /// The UI and the agent API both convert through here.
+    /// </summary>
+    public static DateTimeOffset EndOfDay(DateOnly date) => new(date.ToDateTime(new TimeOnly(23, 59, 59)), TimeSpan.Zero);
+
     /// <summary>Records that an expiry notice was sent for this days-left bucket (dedupe).</summary>
     public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
 

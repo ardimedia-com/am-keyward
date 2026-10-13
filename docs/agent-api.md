@@ -110,6 +110,8 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 | POST | `/applications/{id}/environments` | `{ "name" }` → 201 |
 | POST | `/applications/{id}/secrets` | `{ "key", "environment"?, "value"? }` → 201. Without `value` a placeholder «not set»; with one, `environment` is required. No echo; ETag = version |
 | PUT | `/applications/{id}/secrets/{key}` | `{ "environment", "value" }` with `If-Match: "<versionId>"`, or `If-None-Match: *` while the environment holds no value. 428 without, 412 when changed meanwhile. 200 with version and link, no echo |
+| PUT | `/applications/{id}/secrets/{key}/rotation` | `{ "environment", "rotateBy"?, "clearRotateBy"?, "note"? }` — the advisory rotation date (`yyyy-MM-dd`, valid through that day; notices 30/20/10 days ahead, then daily) and/or the rotation note; what is left out stays. Never touches the value, no precondition. 200 with the environment's state |
+| GET | `/expiring?days=30` | what runs out within 1–365 days, soonest first: rotation dates (overdue ones included) and active app-token expiries in the reachable applications, and the user's own active agent tokens. Per entry `kind` (SecretValue/AppToken/AgentToken), `dueAt`, `daysLeft` (calendar days, 0 = today, negative = overdue), names, `note`, `link`. Without «Manage applications» only the agent tokens (`applicationsIncluded: false`) |
 | PATCH | `/applications/{id}/secrets/{key}` | `{ "key" }` rename — only a key this token created that holds no value |
 | DELETE | `/applications/{id}/secrets/{key}` | 204 — same condition |
 
@@ -217,6 +219,10 @@ A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
   for a person to fill) and `set_secret_value` (write-only; its description tells the assistant never to take a value
   from the chat unless the user gave it for exactly this purpose), plus the read-only `list_app_tokens` and
   `get_app_statistics`. Every answer carries the UI link.
+- Expiry: `list_expiring(days)` lists what runs out soon — rotation dates, app tokens, your own agent tokens — with the
+  link where a person renews it; `set_rotation(applicationId, key, environment, rotateBy, note)` keeps a value's
+  rotation date (`none` removes it) and note. The note is visible to every agent that reaches the application: it
+  says where a new value comes from, never the value.
 
 It needs the **.NET 10 SDK** once per computer (`dotnet --version` shows 10 or higher). Without it:
 `winget install Microsoft.DotNet.SDK.10` on Windows, `brew install --cask dotnet-sdk` on macOS (or the installer from

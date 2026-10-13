@@ -39,5 +39,5 @@ public static class KeywardRoutes
     public const string BreakGlass = Prefix + "/breakglass";
 
     /// <summary>The signed-in user's own agent tokens (AI assistants acting on their behalf).</summary>
-    public const string AgentTokens = Prefix + "/agent-tokens";
+    public const string AgentTokens = Am.Keyward.Contracts.KeywardApiDefaults.AgentTokensPath;
 }

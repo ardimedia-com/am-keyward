@@ -5,6 +5,23 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **What runs out soon, for agents** (phase 2a, decision T29 A): agent API `GET /expiring?days=30` and MCP tool
+  `list_expiring` — rotation dates of application values (overdue ones included), active app-token expiries in the
+  reachable applications, and the user's own active agent tokens, soonest first, each with the page where a person
+  renews it. Without «Manage applications» only the agent tokens are listed.
+- **Rotation dates through the agent API**: `PUT /applications/{id}/secrets/{key}/rotation` and MCP tool
+  `set_rotation` set or clear a value's advisory rotation date and its note (what is left out stays), the same
+  metadata as on the applications page; the value is never touched. `IAgentApplicationService.ListExpiringAsync` /
+  `SetRotationAsync`, `AgentSetRotationRequest`, `AgentExpiringResponse`, `KeywardApiDefaults.AgentTokensPath`,
+  `SecretValue.EndOfDay`.
+
+### Changed
+
+- **BREAKING:** `IAgentApplicationService` has two new members (`ListExpiringAsync`, `SetRotationAsync`); only a
+  custom implementation must add them.
+
 ## [0.30.0-preview] - 2026-10-13
 
 ### Added

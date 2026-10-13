@@ -309,6 +309,97 @@ public class AgentApplicationApiTests
     }
 
     [TestMethod, TestCategory("Integration")]
+    public async Task Rotation_dates_are_set_without_touching_values_and_expiring_lists_what_runs_out()
+    {
+        await using var app = await StartAsync();
+        if (app is null)
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var (tenantId, manager, _) = await SeedAsync(app.Services);
+        var (token, _) = await IssueAsync(app.Services, tenantId, manager, create: true);
+        var client = Client(app, token);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var created = await client.SendAsync(Post($"{Base}/applications", new AgentCreateApplicationRequest("Ops.Expiry", ["Production", "Staging"])));
+        var application = (await created.Content.ReadFromJsonAsync<AgentApplicationResponse>())!;
+        var written = await client.SendAsync(Post($"{Base}/applications/{application.Id}/secrets", new AgentCreateSecretRequest(ApiSecret, "Production", "value-1")));
+        var versionBefore = (await written.Content.ReadFromJsonAsync<AgentSecretWrittenResponse>())!.VersionId;
+        await client.SendAsync(Post($"{Base}/applications/{application.Id}/secrets", new AgentCreateSecretRequest(ApiKey)));
+        var rotation = $"{Base}/applications/{application.Id}/secrets/{Uri.EscapeDataString(ApiSecret)}/rotation";
+
+        // Date and note; the value and its version stay as they were.
+        var set = await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production", today.AddDays(10), Note: "Developer portal → Apps"));
+        Assert.AreEqual(HttpStatusCode.OK, set.StatusCode, await set.Content.ReadAsStringAsync());
+        var state = (await set.Content.ReadFromJsonAsync<AgentSecretValueStateResponse>())!;
+        Assert.AreEqual(new DateTimeOffset(today.AddDays(10).ToDateTime(new TimeOnly(23, 59, 59)), TimeSpan.Zero), state.RotateBy);
+        Assert.AreEqual("Developer portal → Apps", state.RotationNote);
+        Assert.AreEqual(versionBefore, state.VersionId);
+        Assert.IsTrue(state.ValueSet);
+
+        // A note alone keeps the date; clearing the date keeps the note.
+        state = (await (await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production", Note: "Portal, then Apps"))).Content.ReadFromJsonAsync<AgentSecretValueStateResponse>())!;
+        Assert.IsNotNull(state.RotateBy);
+        Assert.AreEqual("Portal, then Apps", state.RotationNote);
+        state = (await (await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production", ClearRotateBy: true))).Content.ReadFromJsonAsync<AgentSecretValueStateResponse>())!;
+        Assert.IsNull(state.RotateBy);
+        Assert.AreEqual("Portal, then Apps", state.RotationNote);
+        await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production", today.AddDays(10)));
+
+        // Nothing to change, both set and clear, an unknown environment or key: refused, nothing written.
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Production", today, ClearRotateBy: true))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync(rotation, new AgentSetRotationRequest("Nowhere", today))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.NotFound, (await client.PutAsJsonAsync(
+            $"{Base}/applications/{application.Id}/secrets/No:Such/rotation", new AgentSetRotationRequest("Production", today))).StatusCode);
+
+        // An overdue date on a key that holds no value yet in Staging.
+        Assert.AreEqual(HttpStatusCode.OK, (await client.PutAsJsonAsync(
+            $"{Base}/applications/{application.Id}/secrets/{Uri.EscapeDataString(ApiKey)}/rotation", new AgentSetRotationRequest("Staging", today.AddDays(-3)))).StatusCode);
+
+        // An app token running out in 5 days, one in 100 days.
+        using (var scope = ScopeFor(app.Services, tenantId, manager))
+        {
+            var clientTokens = scope.ServiceProvider.GetRequiredService<ISoftwareClientTokenService>();
+            await clientTokens.IssueAsync(new IssueSoftwareClientTokenCommand(tenantId, application.Id, "Production", "prod-soon", DateTimeOffset.UtcNow.AddDays(5), manager));
+            await clientTokens.IssueAsync(new IssueSoftwareClientTokenCommand(tenantId, application.Id, "Production", "prod-later", DateTimeOffset.UtcNow.AddDays(100), manager));
+        }
+
+        // Another token's application with a dated value is out of reach and stays out of the list.
+        var (otherToken, _) = await IssueAsync(app.Services, tenantId, manager, create: true);
+        var other = Client(app, otherToken);
+        var foreign = (await (await other.SendAsync(Post($"{Base}/applications", new AgentCreateApplicationRequest("Ops.Foreign", ["Production"])))).Content.ReadFromJsonAsync<AgentApplicationResponse>())!;
+        await other.SendAsync(Post($"{Base}/applications/{foreign.Id}/secrets", new AgentCreateSecretRequest(ApiSecret, "Production", "value-2")));
+        await other.PutAsJsonAsync($"{Base}/applications/{foreign.Id}/secrets/{Uri.EscapeDataString(ApiSecret)}/rotation", new AgentSetRotationRequest("Production", today.AddDays(2)));
+
+        var expiring = (await client.GetFromJsonAsync<AgentExpiringResponse>($"{Base}/expiring?days=30"))!;
+        Assert.IsTrue(expiring.ApplicationsIncluded);
+        CollectionAssert.AreEqual(
+            new[] { $"SecretValue {ApiKey} Staging", $"AppToken prod-soon Production", $"SecretValue {ApiSecret} Production" },
+            expiring.Entries.Select(e => $"{e.Kind} {e.Name} {e.Environment}").ToArray());
+        var overdue = expiring.Entries[0];
+        Assert.AreEqual(-3, overdue.DaysLeft);
+        Assert.IsFalse(overdue.ValueSet);
+        Assert.AreEqual($"/amkeyward/applications?app={application.Id}&tab=data", overdue.Link);
+        Assert.AreEqual($"/amkeyward/applications?app={application.Id}&tab=tokens", expiring.Entries[1].Link);
+        Assert.AreEqual(10, expiring.Entries[2].DaysLeft);
+
+        // A year ahead adds the later app token and the agent's own token (90 days by default).
+        var year = (await client.GetFromJsonAsync<AgentExpiringResponse>($"{Base}/expiring?days=365"))!;
+        Assert.IsTrue(year.Entries.Any(e => e.Kind == "AppToken" && e.Name == "prod-later"));
+        Assert.IsTrue(year.Entries.Any(e => e.Kind == "AgentToken" && e.Link == "/amkeyward/agent-tokens"));
+        Assert.AreEqual(HttpStatusCode.BadRequest, (await client.GetAsync($"{Base}/expiring?days=0")).StatusCode);
+
+        // Without the right to manage applications only the own agent tokens remain.
+        await SetSoftwareManagerAsync(app.Services, tenantId, manager, isManager: false);
+        var withoutApplications = (await client.GetFromJsonAsync<AgentExpiringResponse>($"{Base}/expiring?days=365"))!;
+        Assert.IsFalse(withoutApplications.ApplicationsIncluded);
+        Assert.IsTrue(withoutApplications.Entries.All(e => e.Kind == "AgentToken"));
+    }
+
+    [TestMethod, TestCategory("Integration")]
     public async Task Network_restriction_applies_to_the_application_endpoints()
     {
         await using var app = await StartAsync(agentOptions: o => o.AllowedNetworks = "10.1.0.0/23");

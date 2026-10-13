@@ -156,6 +156,54 @@ internal static class KeywardAgentApplicationsApi
                     view.Alerts.Select(a => new AgentAccessAlertResponse(a.TokenId, a.Kind.ToString(), a.IpAddress, a.CreatedAt)).ToList()));
             }));
 
+        // Advisory rotation metadata of one key in one environment — never the value, and no precondition needed:
+        // it changes no version.
+        group.MapPut("/applications/{applicationId:guid}/secrets/{key}/rotation", (Guid applicationId, string key, AgentSetRotationRequest body,
+            ClaimsPrincipal principal, IAgentApplicationService applications, CancellationToken ct) =>
+            Guarded(collection: false, async () =>
+            {
+                var state = await applications.SetRotationAsync(
+                    KeywardAgentApi.TokenId(principal), applicationId, key, body.Environment ?? "", body.RotateBy, body.ClearRotateBy, body.Note, ct);
+                return Results.Ok(new AgentSecretValueStateResponse(state.Environment, state.ValueSet, state.VersionId, state.RotateBy, state.RotationNote));
+            }));
+
+        // What runs out soon. The application part needs «Manage applications»; without it the answer still lists the
+        // user's own agent tokens, so any agent can warn about its own expiry.
+        group.MapGet("/expiring", async (int? days, ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant, IClock clock,
+            IAgentApplicationService applications, IAgentTokenService tokens, CancellationToken ct) =>
+        {
+            var window = days ?? 30;
+            if (window is < 1 or > 365)
+            {
+                return BadRequest("days must be between 1 and 365.");
+            }
+
+            var now = clock.UtcNow;
+            var entries = new List<AgentExpiringEntryResponse>();
+            var applicationsIncluded = true;
+            try
+            {
+                entries.AddRange((await applications.ListExpiringAsync(KeywardAgentApi.TokenId(principal), window, ct)).Select(e =>
+                    new AgentExpiringEntryResponse(
+                        e.Kind.ToString(), e.DueAt, CalendarDaysLeft(now, e.DueAt), e.Name, e.ApplicationId, e.Application, e.Environment,
+                        e.Kind == AgentExpiringKind.SecretValue ? e.ValueSet : null, e.Note,
+                        e.Kind == AgentExpiringKind.SecretValue ? DataLink(e.ApplicationId) : $"{ApplicationLink(e.ApplicationId)}&tab=tokens")));
+            }
+            catch (AgentApplicationsNotPermittedException)
+            {
+                applicationsIncluded = false;
+            }
+
+            var own = await tokens.ListAsync(KeywardAgentApi.UserId(user), KeywardAgentApi.TenantId(tenant), ct);
+            entries.AddRange(own
+                .Where(t => t.IsActive && t.ExpiresAt <= now.AddDays(window))
+                .Select(t => new AgentExpiringEntryResponse(
+                    "AgentToken", t.ExpiresAt, CalendarDaysLeft(now, t.ExpiresAt), t.Name, null, null, null, null, "",
+                    KeywardApiDefaults.AgentTokensPath)));
+
+            return Results.Ok(new AgentExpiringResponse(window, applicationsIncluded, [.. entries.OrderBy(e => e.DueAt)]));
+        });
+
         group.MapPatch("/applications/{applicationId:guid}/secrets/{key}", (Guid applicationId, string key, AgentRenameSecretRequest body,
             ClaimsPrincipal principal, IAgentApplicationService applications, CancellationToken ct) =>
             Guarded(collection: false, async () =>
@@ -213,6 +261,11 @@ internal static class KeywardAgentApplicationsApi
             return KeywardAgentApi.NotFound();
         }
     }
+
+    // Calendar days (UTC) as a person counts them: a rotation date 10 days ahead is «in 10 days», today is 0, the past is
+    // negative. (The notice schedule counts differently — ceiling of the remaining time — which suits the mails, not a list.)
+    private static int CalendarDaysLeft(DateTimeOffset now, DateTimeOffset dueAt) =>
+        DateOnly.FromDateTime(dueAt.UtcDateTime).DayNumber - DateOnly.FromDateTime(now.UtcDateTime).DayNumber;
 
     private static bool TryReadPrecondition(HttpContext http, out SecretValuePrecondition precondition)
     {

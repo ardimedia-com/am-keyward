@@ -310,6 +310,77 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return text.Length == 0 ? "No access recorded." : text.ToString().TrimEnd();
     }
 
+    [McpServerTool(Name = "list_expiring", ReadOnly = true), Description("Lists what runs out within the next days, soonest first: rotation dates of application values (overdue ones included), app-token expiries, and your own agent tokens. Each line has the link where a person renews it. Never a value.")]
+    public async Task<string> ListExpiringAsync(
+        [Description("How many days ahead (1–365).")] int days = 30,
+        CancellationToken ct = default)
+    {
+        var result = await keyward.ListExpiringAsync(days, ct);
+        if (!result.Ok) return result.Error!;
+
+        var expiring = result.Value!;
+        var text = new StringBuilder();
+        foreach (var entry in expiring.Entries)
+        {
+            var when = entry.DaysLeft switch
+            {
+                < 0 => $"OVERDUE since {entry.DueAt:yyyy-MM-dd}",
+                0 => $"{entry.DueAt:yyyy-MM-dd} (today)",
+                1 => $"{entry.DueAt:yyyy-MM-dd} (tomorrow)",
+                _ => $"{entry.DueAt:yyyy-MM-dd} (in {entry.DaysLeft} days)",
+            };
+            var what = entry.Kind switch
+            {
+                "SecretValue" => $"value {entry.Name} of {entry.Application} [{entry.Environment}]{(entry.ValueSet == false ? " (no value yet)" : "")}",
+                "AppToken" => $"app token «{entry.Name}» of {entry.Application} [{entry.Environment}]",
+                _ => $"your agent token «{entry.Name}»",
+            };
+            text.AppendLine($"{when}  {what}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $"  [note: {entry.Note}]")}  {keyward.AbsoluteLink(entry.Link)}");
+        }
+
+        if (text.Length == 0)
+        {
+            text.AppendLine($"Nothing runs out within {expiring.Days} days.");
+        }
+
+        if (!expiring.ApplicationsIncluded)
+        {
+            text.AppendLine("Applications are not included: this agent token may not manage applications.");
+        }
+
+        return text.ToString().TrimEnd();
+    }
+
+    [McpServerTool(Name = "set_rotation"), Description("Sets when a value of an application key must be renewed (advisory: it never blocks a read; KEYWARD sends notices 30/20/10 days ahead, then daily) and/or the rotation note — how a new value is obtained. Never put a secret into the note: every agent that reaches the application sees it. The value itself is not touched.")]
+    public async Task<string> SetRotationAsync(
+        [Description("The application id from list_applications.")] Guid applicationId,
+        [Description("The configuration key, e.g. SwissPost:ClientSecret.")] string key,
+        [Description("The environment, e.g. Production.")] string environment,
+        [Description("Renew by this date (yyyy-MM-dd), or \"none\" to remove the date. Omit to keep the current date.")] string? rotateBy = null,
+        [Description("Rotation note, e.g. where a new value is issued; an empty string removes it. Omit to keep the current note.")] string? note = null,
+        CancellationToken ct = default)
+    {
+        DateOnly? date = null;
+        var clear = string.Equals(rotateBy?.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+        if (rotateBy is not null && !clear)
+        {
+            if (!DateOnly.TryParseExact(rotateBy.Trim(), "yyyy-MM-dd", out var parsed))
+            {
+                return $"«{rotateBy}» is not a date; write yyyy-MM-dd, or none to remove the date.";
+            }
+
+            date = parsed;
+        }
+
+        var result = await keyward.SetRotationAsync(applicationId, key, new AgentSetRotationRequest(environment, date, clear, note), ct);
+        if (!result.Ok) return result.Error!;
+
+        var state = result.Value!;
+        return $"{key} [{state.Environment}]: "
+            + (state.RotateBy is { } due ? $"renew by {due:yyyy-MM-dd}" : "no rotation date")
+            + (string.IsNullOrWhiteSpace(state.RotationNote) ? ", no note." : $", note: {state.RotationNote}");
+    }
+
     // Names, environments and «set / not set» only — the API never sends a value, and neither does this text.
     private string Describe(AgentApplicationResponse application)
     {

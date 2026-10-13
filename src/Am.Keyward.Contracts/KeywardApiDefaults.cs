@@ -24,6 +24,9 @@ public static class KeywardApiDefaults
     /// </summary>
     public const string ApplicationsPath = "/amkeyward/applications";
 
+    /// <summary>Path of the signed-in user's own agent tokens page on the Keyward host.</summary>
+    public const string AgentTokensPath = "/amkeyward/agent-tokens";
+
     /// <summary>`reason` of a 404 from <c>GET /secrets/{key}</c>: the application has no such key.</summary>
     public const string UnknownKeyReason = "unknown-key";
 

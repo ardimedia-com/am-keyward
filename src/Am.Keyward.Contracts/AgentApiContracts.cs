@@ -177,5 +177,37 @@ public sealed record AgentSetSecretValueRequest(string Environment, string Value
 /// <summary>Renames a key the token created and that holds no value (<c>PATCH /applications/{id}/secrets/{key}</c>).</summary>
 public sealed record AgentRenameSecretRequest(string Key);
 
+/// <summary>
+/// Sets the advisory rotation date and/or note of a key in one environment
+/// (<c>PUT /applications/{id}/secrets/{key}/rotation</c>). <see cref="RotateBy"/> sets the date (valid through that
+/// day), <see cref="ClearRotateBy"/> removes it, neither keeps it; a null <see cref="Note"/> keeps the note, an empty
+/// one clears it. The note is visible to every agent that reaches the application: never put a secret into it.
+/// </summary>
+public sealed record AgentSetRotationRequest(string Environment, DateOnly? RotateBy = null, bool ClearRotateBy = false, string? Note = null);
+
+/// <summary>
+/// Dates coming up within <see cref="Days"/> days (<c>GET /expiring?days=30</c>), soonest first: values' rotation
+/// dates (overdue ones included) and active app tokens' expiries in the reachable applications — those only when the
+/// token may manage applications (<see cref="ApplicationsIncluded"/>) — and the user's own active agent tokens.
+/// </summary>
+public sealed record AgentExpiringResponse(int Days, bool ApplicationsIncluded, IReadOnlyList<AgentExpiringEntryResponse> Entries);
+
+/// <summary>
+/// One date: <see cref="Kind"/> is SecretValue (<see cref="Name"/> = the key), AppToken or AgentToken
+/// (<see cref="Name"/> = the token's name). <see cref="DaysLeft"/> counts calendar days (UTC): 0 = due today, negative =
+/// overdue. <see cref="Link"/> is the page where a person renews it. Metadata only.
+/// </summary>
+public sealed record AgentExpiringEntryResponse(
+    string Kind,
+    DateTimeOffset DueAt,
+    int DaysLeft,
+    string Name,
+    Guid? ApplicationId,
+    string? Application,
+    string? Environment,
+    bool? ValueSet,
+    string Note,
+    string Link);
+
 /// <summary>Result of creating a key or setting a value: never the value, only whether one is set, its version (also the ETag) and the UI link.</summary>
 public sealed record AgentSecretWrittenResponse(Guid ApplicationId, string Key, string? Environment, bool ValueSet, Guid? VersionId, string Link);

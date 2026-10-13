@@ -197,6 +197,104 @@ public sealed class AgentApplicationService(
         return view;
     }
 
+    public async Task<IReadOnlyList<AgentExpiringEntry>> ListExpiringAsync(Guid tokenId, int days, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(days, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(days, 365);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var reach = await ReachAsync(db, tokenId, ct).ConfigureAwait(false);
+        var ids = reach.ApplicationIds.ToList();
+        var now = clock.UtcNow;
+        var until = now.AddDays(days);
+
+        var applications = await db.Projects.AsNoTracking()
+            .Where(p => ids.Contains(p.Id))
+            .Select(p => new { p.Id, p.Name })
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct)
+            .ConfigureAwait(false);
+        var environments = (await db.RuntimeEnvironments.AsNoTracking()
+                .Where(e => ids.Contains(e.ProjectId))
+                .Select(e => new { e.Id, e.Name })
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .ToDictionary(e => e.Id, e => e.Name.Value);
+
+        // Overdue values stay in the list: an advisory date never blocks a read, so the old value is still in use.
+        var values = await (
+                from v in db.SecretValues.AsNoTracking()
+                join s in db.SoftwareSecrets.AsNoTracking() on v.SoftwareSecretId equals s.Id
+                where ids.Contains(s.ProjectId) && v.ExpiresAt != null && v.ExpiresAt <= until
+                select new { s.ProjectId, s.Key, v.EnvironmentId, v.ExpiresAt, v.Note, v.CurrentVersionId })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        // An expired app token no longer works; what matters is the one still running out.
+        var tokens = await db.SoftwareClientTokens.AsNoTracking()
+            .Where(t => t.TenantId == reach.TenantId && ids.Contains(t.ProjectId) && t.TokenHash != "" && t.RevokedAt == null
+                && t.ExpiresAt != null && t.ExpiresAt > now && t.ExpiresAt <= until)
+            .Select(t => new { t.ProjectId, t.EnvironmentId, t.Name, t.ExpiresAt, t.Note })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+
+        var entries = values
+            .Select(v => new AgentExpiringEntry(
+                AgentExpiringKind.SecretValue, v.ExpiresAt!.Value, v.ProjectId, applications[v.ProjectId],
+                environments.GetValueOrDefault(v.EnvironmentId, "?"), v.Key.Value, v.CurrentVersionId is not null, v.Note))
+            .Concat(tokens.Select(t => new AgentExpiringEntry(
+                AgentExpiringKind.AppToken, t.ExpiresAt!.Value, t.ProjectId, applications[t.ProjectId],
+                environments.GetValueOrDefault(t.EnvironmentId, "?"), t.Name, ValueSet: true, t.Note)))
+            .OrderBy(e => e.DueAt)
+            .ThenBy(e => e.Application, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        await audit.AppendAsync(db, new AuditRequest(reach.TenantId, AuditAction.Read, "ExpiringList", null, reach.UserId), ct).ConfigureAwait(false);
+        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return entries;
+    }
+
+    public async Task<AgentSecretValueState> SetRotationAsync(
+        Guid tokenId, Guid applicationId, string key, string environment, DateOnly? rotateBy, bool clearRotateBy, string? note,
+        CancellationToken ct = default)
+    {
+        if (rotateBy is not null && clearRotateBy)
+        {
+            throw new ArgumentException("Either set a rotation date or clear it, not both.");
+        }
+
+        if (rotateBy is null && !clearRotateBy && note is null)
+        {
+            throw new ArgumentException("Nothing to change: give a rotation date, clear it, or give a note.");
+        }
+
+        if (note is { Length: > MaxRotationNoteLength })
+        {
+            throw new ArgumentException($"A rotation note may have at most {MaxRotationNoteLength} characters.");
+        }
+
+        var reach = await ReachableAsync(tokenId, applicationId, ct).ConfigureAwait(false);
+        var secretKey = SecretKey.Create(key);
+        await EnsureEnvironmentAsync(reach, applicationId, environment, ct).ConfigureAwait(false);
+        var current = await StateAsync(tokenId, applicationId, secretKey, environment, ct).ConfigureAwait(false);
+
+        // The shared service replaces date AND note; what the agent left out is carried over from the current state.
+        var expiresAt = clearRotateBy ? null : rotateBy is { } date ? Core.Domain.Software.SecretValue.EndOfDay(date) : current.RotateBy;
+        await secrets.SetValueRotationAsync(
+            reach.TenantId, applicationId, secretKey.Value, environment, expiresAt, note ?? current.RotationNote, reach.UserId, ct).ConfigureAwait(false);
+        return await StateAsync(tokenId, applicationId, secretKey, environment, ct).ConfigureAwait(false);
+    }
+
+    // The column's length (SecretValues.Note).
+    private const int MaxRotationNoteLength = 1024;
+
+    private async Task<AgentSecretValueState> StateAsync(Guid tokenId, Guid applicationId, SecretKey key, string environment, CancellationToken ct)
+    {
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var view = (await ViewsAsync(db, tokenId, [applicationId], ct).ConfigureAwait(false)).Single();
+        return view.Keys.FirstOrDefault(k => SameName(k.Key, key.Value))?.Values.FirstOrDefault(v => SameName(v.Environment, environment.Trim()))
+            ?? throw new AgentApplicationNotFoundException();
+    }
+
     // Reading metadata is still a look into the tenant: one audit entry per read, as the agent.
     private async Task AuditReadAsync(Reach reach, string resourceType, Guid applicationId, CancellationToken ct)
     {

@@ -93,6 +93,13 @@ internal sealed class KeywardAgentClient(HttpClient http)
         SendAsync<AgentSecretWrittenResponse>(HttpMethod.Put, $"/applications/{applicationId}/secrets/{Uri.EscapeDataString(key)}", body, versionId, ct,
             ifNoneMatchAny: versionId is null);
 
+    public Task<AgentResult<AgentSecretValueStateResponse>> SetRotationAsync(
+        Guid applicationId, string key, AgentSetRotationRequest body, CancellationToken ct) =>
+        SendAsync<AgentSecretValueStateResponse>(HttpMethod.Put, $"/applications/{applicationId}/secrets/{Uri.EscapeDataString(key)}/rotation", body, null, ct);
+
+    public Task<AgentResult<AgentExpiringResponse>> ListExpiringAsync(int days, CancellationToken ct) =>
+        SendAsync<AgentExpiringResponse>(HttpMethod.Get, $"/expiring?days={days}", null, null, ct);
+
     /// <summary>The absolute deep link to an item, for handing to a person.</summary>
     public string AbsoluteLink(string link) =>
         http.BaseAddress is null ? link : new Uri(http.BaseAddress, link).ToString();
