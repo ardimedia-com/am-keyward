@@ -259,9 +259,9 @@ All taken as recommended, except **T19: B** — the commands go into `amkeyward-
 | T26 | Between installations | A linked metadata now, push later only if needed / B build push replication now / C nothing | **A** |
 | T27 | Where this analysis lives (public repo) | A commit it here, without internal details / B keep it in the private `.claude` folder | **A** |
 
-### Open (from the second pass, section 5)
+### From the second pass (section 5), decided the same day
 
-| Code | Question | Options | Recommendation |
+| Code | Question | Options | Decision |
 |---|---|---|---|
 | T28 | A credential used by machines *and* people | A one home: the application key; the vault entry only links to it / B a binding: an application key reads through to a vault-entry field / C two copies, kept in step by hand | **A**, B only on demand |
 | T29 | Expiry order | A use value expiry now (machine credentials as application values), then a small agent-API phase, vault-entry expiry after / B vault-entry expiry first | **A** |
