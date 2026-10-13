@@ -3,7 +3,7 @@
 Status: analysis (2026-10-13, against 0.29.0-preview); decisions T18–T27 taken on 2026-10-13 (see section 4). No code,
 migration or deployment is part of it.
 
-Implementation state: **phase 1 is built** (unreleased, 2026-10-13) — `keyward` with `login`, `logout`, `profiles`,
+Implementation state: **phase 1 is built** (released in 0.30.0-preview, 2026-10-13) — `keyward` with `login`, `logout`, `profiles`,
 `get`, `keys`, `run`, `headers`, `env`, `import` and `powershell install`; the SecretManagement vault and
 `Get-KeywardSecret`; per-read audit (`AuditReads`) and the 404 reasons. User documentation:
 [docs/keyward-cli.md](../keyward-cli.md). Phases 2a, 2b, 3 and 4 are not started.

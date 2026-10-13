@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.30.0-preview] - 2026-10-13
+
 ### Added
 
 - **`keyward` — the command line for scripts and tools** (`Am.Keyward.Cli`, a .NET tool; also one self-contained
