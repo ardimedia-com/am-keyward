@@ -158,14 +158,29 @@ else
                                     <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
                                 </div>
 
-                                @* Ready-to-run deployment step: the same one-time secret, wrapped in the PowerShell
-                                   that puts it on the target machine (+ a call that proves it works). *@
-                                <div class="row" style="justify-content:space-between; margin-top:.9rem;">
-                                    <strong>@Loc["Token.Ps.Heading"]</strong>
-                                    <button class="btn-ghost btn-sm" @onclick="CopyScriptAsync"><KeywardIcon Name="@(scriptCopied ? "check" : "copy")" Size="14" /> @Loc["Common.Copy"]</button>
+                                @* Where the token goes decides how it is handed over (T39 A): a server or service reads it
+                                   from a machine-wide environment variable; scripts on a person's computer read it through
+                                   keyward, which asks for it hidden — so the second way never shows the token at all. *@
+                                <div class="token-use">
+                                    <KeywardTabBar Tabs="@UseTabs" Active="@useTab" ActiveChanged="@(t => useTab = t)">
+                                        <ChildContent>
+                                            <div class="token-use-head">
+                                                <span class="muted">@(useTab == CliUse ? Loc["Token.Cli.Desc"] : Loc["Token.Use.Server.Desc"])</span>
+                                                <button class="btn-ghost btn-sm" @onclick="CopyScriptAsync"><KeywardIcon Name="@(scriptCopied ? "check" : "copy")" Size="14" /> @Loc["Common.Copy"]</button>
+                                            </div>
+                                            @if (useTab == CliUse)
+                                            {
+                                                <pre class="kw-script">@CliSnippet()</pre>
+                                                <p class="muted token-use-hint">@Loc["Token.Cli.Hint", Loc["Token.AuditReads"]]</p>
+                                            }
+                                            else
+                                            {
+                                                <pre class="kw-script">@PowerShellSnippet(token)</pre>
+                                                <p class="muted token-use-hint">@Loc["Token.Ps.Hint", KeywardOptions.TokenVariableFor(ApplicationName)]</p>
+                                            }
+                                        </ChildContent>
+                                    </KeywardTabBar>
                                 </div>
-                                <pre class="kw-script">@PowerShellSnippet(token)</pre>
-                                <p class="muted" style="margin:.35rem 0 0;">@Loc["Token.Ps.Hint", KeywardOptions.TokenVariableFor(ApplicationName)]</p>
                             </div>
                         }
                     </div>
@@ -199,6 +214,17 @@ else
     private string? issuedToken;
     private bool issuedCopied;
     private bool scriptCopied;
+
+    // The tab of the hand-over block next to a freshly issued token (server/service, or keyward on a computer).
+    private const string ServerUse = "server";
+    private const string CliUse = "keyward";
+    private string useTab = ServerUse;
+
+    private IReadOnlyList<KeywardTab> UseTabs =>
+    [
+        new(ServerUse, Loc["Token.Use.Server.Tab"], "server"),
+        new(CliUse, Loc["Token.Use.Cli.Tab"], "terminal"),
+    ];
     private bool confirmRevoke;
     private bool confirmDelete;
     private string editName = "";
@@ -422,11 +448,43 @@ else
             """;
     }
 
+    /// <summary>
+    /// The keyward hand-over: install, store the token under a profile (keyward asks for it hidden, so it is
+    /// deliberately NOT in this block), check, use. The profile name is a suggestion derived from the application.
+    /// </summary>
+    private string CliSnippet()
+    {
+        var baseUrl = (string.IsNullOrWhiteSpace(KeywardOptions.PublicBaseUrl) ? Nav.BaseUri : KeywardOptions.PublicBaseUrl!).TrimEnd('/');
+        var profile = CliProfileFor(ApplicationName);
+        return $$"""
+            # {{KeywardOptions.ProductName}} — {{Loc["Token.Cli.Comment.Install"]}}
+            dotnet tool install --global Am.Keyward.Cli --prerelease
+
+            # {{Loc["Token.Cli.Comment.Login", profile]}}
+            keyward login {{profile}} --service {{baseUrl}}
+
+            # {{Loc["Token.Cli.Comment.Check"]}}
+            keyward keys {{profile}}
+
+            # {{Loc["Token.Cli.Comment.Use"]}}
+            keyward get {{profile}}:<Key>
+            keyward run --env NAME={{profile}}:<Key> -- <program>
+            """;
+    }
+
+    // keyward profile names allow letters, digits, «-», «_» and «.» (lower case).
+    private static string CliProfileFor(string applicationName)
+    {
+        var profile = new string(applicationName.Trim().ToLowerInvariant()
+            .Select(c => char.IsLetterOrDigit(c) || c is '-' or '_' or '.' ? c : '-').ToArray()).Trim('-', '.');
+        return profile.Length == 0 ? "app" : profile;
+    }
+
     private async Task CopyScriptAsync()
     {
         var token = tokens?.FirstOrDefault(t => t.Id == issuedForTokenId);
         if (issuedToken is null || token is null) return;
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", PowerShellSnippet(token));
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", useTab == CliUse ? CliSnippet() : PowerShellSnippet(token));
         scriptCopied = true;
         StateHasChanged();
         await Task.Delay(1500);

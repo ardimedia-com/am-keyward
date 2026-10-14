@@ -1125,4 +1125,13 @@
   <data name="Token.AuditReads.Hint" xml:space="preserve">
     <value>pour les scripts et outils (keyward) ; à laisser désactivé pour les applications qui lisent souvent</value>
   </data>
+  <data name="Token.Use.Server.Tab" xml:space="preserve"><value>Serveur ou service</value></data>
+  <data name="Token.Use.Cli.Tab" xml:space="preserve"><value>Scripts sur un ordinateur (keyward)</value></data>
+  <data name="Token.Use.Server.Desc" xml:space="preserve"><value>Pour une application ou un service sur un serveur : enregistre le jeton comme variable d'environnement de la machine.</value></data>
+  <data name="Token.Cli.Desc" xml:space="preserve"><value>Pour les scripts et outils sur ton ordinateur : « keyward login » demande le jeton sans l'afficher et le garde dans le Gestionnaire d'identification Windows ou le trousseau macOS.</value></data>
+  <data name="Token.Cli.Comment.Install" xml:space="preserve"><value>une fois par ordinateur (nécessite le SDK .NET 10 ; plus tard « update » au lieu de « install ») :</value></data>
+  <data name="Token.Cli.Comment.Login" xml:space="preserve"><value>Enregistrer le jeton sous le profil « {0} » — le coller quand il est demandé, jamais dans la ligne de commande :</value></data>
+  <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Vérifier : liste les clés que ce jeton peut lire (jamais de valeurs) :</value></data>
+  <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>Dans les scripts (PowerShell aussi : Get-KeywardSecret, après « keyward powershell install ») :</value></data>
+  <data name="Token.Cli.Hint" xml:space="preserve"><value>Le jeton n'est volontairement pas dans ce bloc : collé à l'invite, il n'apparaît ni dans l'historique du shell ni dans un chat. Pour les jetons de scripts, coche aussi « {0} » ci-dessus.</value></data>
 </root>

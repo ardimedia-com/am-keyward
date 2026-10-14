@@ -1125,4 +1125,13 @@
   <data name="Token.AuditReads.Hint" xml:space="preserve">
     <value>para scripts e ferramentas (keyward); deixa desligado em aplicações que leem com frequência</value>
   </data>
+  <data name="Token.Use.Server.Tab" xml:space="preserve"><value>Servidor ou serviço</value></data>
+  <data name="Token.Use.Cli.Tab" xml:space="preserve"><value>Scripts num computador (keyward)</value></data>
+  <data name="Token.Use.Server.Desc" xml:space="preserve"><value>Para uma aplicação ou um serviço num servidor: guarda o token como variável de ambiente da máquina.</value></data>
+  <data name="Token.Cli.Desc" xml:space="preserve"><value>Para scripts e ferramentas no seu computador: «keyward login» pede o token sem o mostrar e guarda-o no Gestor de Credenciais do Windows ou no porta-chaves do macOS.</value></data>
+  <data name="Token.Cli.Comment.Install" xml:space="preserve"><value>uma vez por computador (requer o SDK .NET 10; mais tarde «update» em vez de «install»):</value></data>
+  <data name="Token.Cli.Comment.Login" xml:space="preserve"><value>Guardar o token no perfil «{0}» — colá-lo quando for pedido, nunca na linha de comandos:</value></data>
+  <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Verificar: lista as chaves que este token pode ler (nunca valores):</value></data>
+  <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>Em scripts (PowerShell também: Get-KeywardSecret, após «keyward powershell install»):</value></data>
+  <data name="Token.Cli.Hint" xml:space="preserve"><value>O token não está de propósito neste bloco: colado no pedido não fica nem no histórico da shell nem num chat. Para tokens de scripts, marque também «{0}» acima.</value></data>
 </root>

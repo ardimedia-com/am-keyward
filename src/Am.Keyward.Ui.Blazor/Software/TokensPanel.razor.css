@@ -6,3 +6,25 @@
     font-size: .9rem;
     cursor: pointer;
 }
+
+/* The hand-over block below a freshly issued token: a tab area (server / keyward), its explanation and the copy
+   action on one line, the script, then the hint. */
+.token-use {
+    margin-top: .9rem;
+}
+
+.token-use-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: .75rem;
+}
+
+.token-use-head > .muted {
+    flex: 1;
+    min-width: 0;
+}
+
+.token-use-hint {
+    margin: .35rem 0 0;
+}

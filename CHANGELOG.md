@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Two ways to hand over a freshly issued app token** (decision T39 A): next to the token, a tab area offers
+  «Server or service» (the PowerShell that stores it as a machine-wide environment variable, as before) and
+  «Scripts on a computer (keyward)» — install, `keyward login <profile> --service …` (the token is asked for hidden
+  and deliberately not part of that block), check and use. Before, the server snippet was the only offer, and
+  pasting it on a workstation put the token into the shell history.
+
 ### Changed
 
 - Operations runbook: KEK rotation says plainly that the re-wrap job is not built yet (step 2); what works today and

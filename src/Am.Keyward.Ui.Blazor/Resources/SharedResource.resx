@@ -1251,4 +1251,13 @@
   <data name="Token.AuditReads.Hint" xml:space="preserve">
     <value>for scripts and tools (keyward); leave it off for applications that read often</value>
   </data>
+  <data name="Token.Use.Server.Tab" xml:space="preserve"><value>Server or service</value></data>
+  <data name="Token.Use.Cli.Tab" xml:space="preserve"><value>Scripts on a computer (keyward)</value></data>
+  <data name="Token.Use.Server.Desc" xml:space="preserve"><value>For an application or service on a server: stores the token as a machine-wide environment variable.</value></data>
+  <data name="Token.Cli.Desc" xml:space="preserve"><value>For scripts and tools on your computer: «keyward login» asks for the token without showing it and keeps it in the Windows Credential Manager or the macOS Keychain.</value></data>
+  <data name="Token.Cli.Comment.Install" xml:space="preserve"><value>once per computer (needs the .NET 10 SDK; use «update» instead of «install» later):</value></data>
+  <data name="Token.Cli.Comment.Login" xml:space="preserve"><value>Store the token under the profile «{0}» — paste it when asked, never on the command line:</value></data>
+  <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Check: lists the keys this token can read (never values):</value></data>
+  <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>In scripts (PowerShell also: Get-KeywardSecret, after «keyward powershell install»):</value></data>
+  <data name="Token.Cli.Hint" xml:space="preserve"><value>The token is deliberately not in this block: pasted at the prompt it ends up neither in the shell history nor in a chat. For tokens of scripts, also tick «{0}» above.</value></data>
 </root>
