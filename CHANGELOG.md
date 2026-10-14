@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.34.0-preview] - 2026-10-14
+
 ### Added
 
 - **Search across all applications** (owner request 2026-10-14; the vaults page had one, the applications page not): a
