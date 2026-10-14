@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.32.0-preview] - 2026-10-14
+
 ### Added
 
 - **Two ways to hand over a freshly issued app token** (decision T39 A): next to the token, a tab area offers
