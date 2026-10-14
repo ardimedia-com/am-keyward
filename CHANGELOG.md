@@ -5,6 +5,18 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Added
+
+- **Search across all applications** (owner request 2026-10-14; the vaults page had one, the applications page not): a
+  search box above the workspace finds application and environment names and — for software operators — key names,
+  rotation notes and app tokens (name or note); values are never searched. A hit opens its application on the right
+  tab with the key or token selected. `IProjectService.SearchAsync`, `ApplicationSearchHit`, `ApplicationSearchField`;
+  `SecretsPanel.FocusKey` / `TokensPanel.FocusTokenId` (+ `FocusRequest`).
+
+### Changed
+
+- **BREAKING:** `IProjectService` has a new member `SearchAsync`; only a custom implementation must add it.
+
 ## [0.33.0-preview] - 2026-10-14
 
 ### Changed

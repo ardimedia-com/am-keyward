@@ -40,9 +40,42 @@ public interface IDefaultEnvironmentService
 /// Management of a tenant's software projects ("Applications" in the UI). Listing is open to tenant members;
 /// create / rename / delete require the tenant-admin role (same operator gate as environment management).
 /// </summary>
+/// <summary>What an applications search matched.</summary>
+public enum ApplicationSearchField
+{
+    Application,
+    Environment,
+    Key,
+    RotationNote,
+    Token,
+}
+
+/// <summary>
+/// One match of the applications search: the application, what matched, and — below the application — the key,
+/// environment or token it is about (<see cref="Detail"/>; <see cref="TokenId"/> for a token). Never a value.
+/// </summary>
+public sealed record ApplicationSearchHit(
+    Guid ApplicationId,
+    string Application,
+    ApplicationSearchField Field,
+    string? Detail = null,
+    string? Environment = null,
+    Guid? TokenId = null);
+
 public interface IProjectService
 {
     Task<IReadOnlyList<ProjectInfo>> ListAsync(Guid tenantId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Searches the tenant's applications for <paramref name="query"/> (at least 2 characters, case-insensitive):
+    /// application and environment names for everyone who sees the list; key names, rotation notes and app-token
+    /// names/notes only for a software operator (they are on the manage tabs). Values are never searched. At most
+    /// <see cref="MaxSearchHits"/> hits, sorted by application.
+    /// </summary>
+    Task<IReadOnlyList<ApplicationSearchHit>> SearchAsync(Guid tenantId, Guid? actorUserId, string query, CancellationToken ct = default);
+
+    /// <summary>Upper bound of <see cref="SearchAsync"/>.</summary>
+    const int MaxSearchHits = 200;
 
     /// <summary>
     /// Whether the user may manage the software side (applications, environments, data, tokens): a system

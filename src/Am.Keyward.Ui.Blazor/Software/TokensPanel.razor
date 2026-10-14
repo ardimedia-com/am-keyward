@@ -204,6 +204,13 @@ else
 
     [Parameter] public Guid? ActorUserId { get; set; }
 
+    /// <summary>A token to open (e.g. from the applications search); applied whenever <see cref="FocusRequest"/> changes.</summary>
+    [Parameter] public Guid? FocusTokenId { get; set; }
+
+    [Parameter] public int FocusRequest { get; set; }
+
+    private int appliedFocus;
+
     private Guid loadedProjectId;
 
     private IReadOnlyList<EnvironmentInfo>? environments;
@@ -291,6 +298,15 @@ else
         {
             loadedProjectId = ProjectId;
             await LoadAsync();
+        }
+
+        if (FocusRequest != appliedFocus)
+        {
+            appliedFocus = FocusRequest;
+            if (FocusTokenId is { } tokenId && tokens?.Any(t => t.Id == tokenId) == true)
+            {
+                selectedTokenId = tokenId;
+            }
         }
     }
 

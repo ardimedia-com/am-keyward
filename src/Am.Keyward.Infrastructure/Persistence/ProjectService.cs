@@ -50,6 +50,86 @@ public sealed class ProjectService(
             .ToList();
     }
 
+    public async Task<IReadOnlyList<ApplicationSearchHit>> SearchAsync(Guid tenantId, Guid? actorUserId, string query, CancellationToken ct = default)
+    {
+        EnsureTenantScope(tenantId);
+        var term = query?.Trim() ?? "";
+        if (term.Length < 2)
+        {
+            return [];
+        }
+
+        bool Matches(string? text) => text is { Length: > 0 } && text.Contains(term, StringComparison.OrdinalIgnoreCase);
+
+        // A tenant holds tens of applications and a few hundred keys: read the names once and match in memory, which
+        // also covers the value-object columns (EnvironmentName, SecretKey) a database LIKE cannot reach.
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        var apps = await db.Projects.AsNoTracking()
+            .Where(p => p.TenantId == tenantId)
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync(ct)
+            .ConfigureAwait(false);
+        var names = apps.ToDictionary(a => a.Id, a => a.Name);
+        var ids = names.Keys.ToList();
+        var environments = (await db.RuntimeEnvironments.AsNoTracking()
+                .Where(e => ids.Contains(e.ProjectId))
+                .Select(e => new { e.Id, e.ProjectId, e.Name, e.SortOrder })
+                .ToListAsync(ct)
+                .ConfigureAwait(false))
+            .Select(e => (e.Id, e.ProjectId, Name: e.Name.Value, e.SortOrder))
+            .ToList();
+        var environmentNames = environments.ToDictionary(e => e.Id, e => e.Name);
+
+        var hits = new List<ApplicationSearchHit>();
+        hits.AddRange(apps.Where(a => Matches(a.Name)).Select(a => new ApplicationSearchHit(a.Id, a.Name, ApplicationSearchField.Application)));
+        hits.AddRange(environments.Where(e => Matches(e.Name))
+            .Select(e => new ApplicationSearchHit(e.ProjectId, names[e.ProjectId], ApplicationSearchField.Environment, e.Name, e.Name)));
+
+        if (await CanManageAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false))
+        {
+            var keys = (await db.SoftwareSecrets.AsNoTracking()
+                    .Where(s => ids.Contains(s.ProjectId))
+                    .Select(s => new { s.Id, s.ProjectId, s.Key })
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false))
+                .Select(s => (s.Id, s.ProjectId, Key: s.Key.Value))
+                .ToList();
+            hits.AddRange(keys.Where(k => Matches(k.Key))
+                .Select(k => new ApplicationSearchHit(k.ProjectId, names[k.ProjectId], ApplicationSearchField.Key, k.Key)));
+
+            var keyIds = keys.Select(k => k.Id).ToList();
+            var keyById = keys.ToDictionary(k => k.Id);
+            var notes = await db.SecretValues.AsNoTracking()
+                .Where(v => keyIds.Contains(v.SoftwareSecretId) && v.Note != "")
+                .Select(v => new { v.SoftwareSecretId, v.EnvironmentId, v.Note })
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            hits.AddRange(notes.Where(n => Matches(n.Note)).Select(n =>
+            {
+                var key = keyById[n.SoftwareSecretId];
+                return new ApplicationSearchHit(key.ProjectId, names[key.ProjectId], ApplicationSearchField.RotationNote, key.Key,
+                    environmentNames.GetValueOrDefault(n.EnvironmentId));
+            }));
+
+            var tokens = await db.SoftwareClientTokens.AsNoTracking()
+                .Where(t => t.TenantId == tenantId && ids.Contains(t.ProjectId))
+                .Select(t => new { t.Id, t.ProjectId, t.EnvironmentId, t.Name, t.Note })
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            hits.AddRange(tokens.Where(t => Matches(t.Name) || Matches(t.Note)).Select(t =>
+                new ApplicationSearchHit(t.ProjectId, names[t.ProjectId], ApplicationSearchField.Token, t.Name,
+                    environmentNames.GetValueOrDefault(t.EnvironmentId), t.Id)));
+        }
+
+        return hits
+            .OrderBy(h => h.Application, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(h => h.Field)
+            .ThenBy(h => h.Detail, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(h => h.Environment, StringComparer.OrdinalIgnoreCase)
+            .Take(IProjectService.MaxSearchHits)
+            .ToList();
+    }
+
     public async Task<Guid> CreateAsync(Guid tenantId, string name, Guid? actorUserId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);

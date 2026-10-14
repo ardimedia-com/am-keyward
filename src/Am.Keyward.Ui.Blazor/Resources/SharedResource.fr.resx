@@ -1136,4 +1136,14 @@
   <data name="Token.Cli.Hint" xml:space="preserve"><value>Le jeton n'est volontairement pas dans ce bloc : collé à l'invite, il n'apparaît ni dans l'historique du shell ni dans un chat. Pour les jetons de scripts, coche aussi « {0} » ci-dessus.</value></data>
   <data name="Common.Splitter.Width" xml:space="preserve"><value>Faire glisser pour changer la largeur (double-clic : valeur par défaut)</value></data>
   <data name="Common.Splitter.Height" xml:space="preserve"><value>Faire glisser pour changer la hauteur (double-clic : 50/50)</value></data>
+  <data name="App.Search.Placeholder" xml:space="preserve"><value>Rechercher dans toutes les applications (nom, environnement, clé, note, jeton)…</value></data>
+  <data name="App.Search.PlaceholderReadOnly" xml:space="preserve"><value>Rechercher dans toutes les applications (nom, environnement)…</value></data>
+  <data name="App.Search.Title" xml:space="preserve"><value>Résultats de recherche</value></data>
+  <data name="App.Search.Count" xml:space="preserve"><value>{0} résultat(s) — les valeurs ne sont jamais recherchées.</value></data>
+  <data name="App.Search.Empty" xml:space="preserve"><value>Rien ne correspond à ta recherche.</value></data>
+  <data name="App.Search.Field.Application" xml:space="preserve"><value>Application</value></data>
+  <data name="App.Search.Field.Environment" xml:space="preserve"><value>Environnement</value></data>
+  <data name="App.Search.Field.Key" xml:space="preserve"><value>Clé</value></data>
+  <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Note</value></data>
+  <data name="App.Search.Field.Token" xml:space="preserve"><value>Jeton d'application</value></data>
 </root>

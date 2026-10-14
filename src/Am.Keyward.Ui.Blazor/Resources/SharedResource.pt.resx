@@ -1136,4 +1136,14 @@
   <data name="Token.Cli.Hint" xml:space="preserve"><value>O token não está de propósito neste bloco: colado no pedido não fica nem no histórico da shell nem num chat. Para tokens de scripts, marque também «{0}» acima.</value></data>
   <data name="Common.Splitter.Width" xml:space="preserve"><value>Arraste para alterar a largura (duplo clique: predefinição)</value></data>
   <data name="Common.Splitter.Height" xml:space="preserve"><value>Arraste para alterar a altura (duplo clique: 50/50)</value></data>
+  <data name="App.Search.Placeholder" xml:space="preserve"><value>Pesquisar em todas as aplicações (nome, ambiente, chave, nota, token)…</value></data>
+  <data name="App.Search.PlaceholderReadOnly" xml:space="preserve"><value>Pesquisar em todas as aplicações (nome, ambiente)…</value></data>
+  <data name="App.Search.Title" xml:space="preserve"><value>Resultados da pesquisa</value></data>
+  <data name="App.Search.Count" xml:space="preserve"><value>{0} resultado(s) — os valores nunca são pesquisados.</value></data>
+  <data name="App.Search.Empty" xml:space="preserve"><value>Nada corresponde à sua pesquisa.</value></data>
+  <data name="App.Search.Field.Application" xml:space="preserve"><value>Aplicação</value></data>
+  <data name="App.Search.Field.Environment" xml:space="preserve"><value>Ambiente</value></data>
+  <data name="App.Search.Field.Key" xml:space="preserve"><value>Chave</value></data>
+  <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Nota</value></data>
+  <data name="App.Search.Field.Token" xml:space="preserve"><value>Token de aplicação</value></data>
 </root>

@@ -39,6 +39,16 @@
     }
     else
     {
+        @* Search across all applications — names, environments and, for managers, keys, rotation notes and app
+           tokens (never values); the same box and result list as on the vaults page. *@
+        <div class="ws-search">
+            <input value="@search" @oninput="OnSearchInputAsync" placeholder="@(canManage ? Loc["App.Search.Placeholder"] : Loc["App.Search.PlaceholderReadOnly"])" aria-label="@(canManage ? Loc["App.Search.Placeholder"] : Loc["App.Search.PlaceholderReadOnly"])" />
+            @if (search.Length > 0)
+            {
+                <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
+            }
+        </div>
+
         <div class="workspace">
             @* ---------- Left: the applications + create ---------- *@
             <KeywardTreePane Title="@Loc["Page.Apps.Title"]">
@@ -70,7 +80,50 @@
 
             @* ---------- Right: the selected application's tabs ---------- *@
             <section class="ws-main">
-                @if (importing)
+                @if (SearchActive)
+                {
+                    <div class="card list-card">
+                        <div class="list-head">
+                            <h3 class="search-title">@Loc["App.Search.Title"]</h3>
+                            @if (searchHits is { Count: > 0 })
+                            {
+                                <p class="muted search-count">@Loc["App.Search.Count", searchHits.Count]</p>
+                            }
+                        </div>
+                        @if (searchHits is null)
+                        {
+                            <p class="muted">@Loc["Common.Loading"]</p>
+                        }
+                        else if (searchHits.Count == 0)
+                        {
+                            <div class="empty-state">
+                                <KeywardIcon Name="search" Size="28" />
+                                <p>@Loc["App.Search.Empty"]</p>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="list-rows">
+                                @foreach (var hit in searchHits)
+                                {
+                                    <button class="list-row" @onclick="() => OpenSearchHitAsync(hit)" disabled="@busy">
+                                        <KeywardIcon Name="@HitIcon(hit.Field)" Size="17" />
+                                        <span class="list-row-name">@(hit.Detail is { } detailText ? $"{hit.Application} · {detailText}" : hit.Application)</span>
+                                        <span class="list-row-meta">
+                                            @if (hit.Environment is { } env && hit.Field != ApplicationSearchField.Environment)
+                                            {
+                                                <span class="badge">@env</span>
+                                            }
+                                            <span>@HitLabel(hit.Field)</span>
+                                            <KeywardIcon Name="chevron-right" Size="15" />
+                                        </span>
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                else if (importing)
                 {
                     <ImportPanel TenantId="@tenantId" ActorUserId="@actorUserId"
                                  OnImported="OnImportedAsync" OnClose="@(() => importing = false)" />
@@ -200,11 +253,13 @@
                             }
                             else if (appTab == "data")
                             {
-                                <SecretsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId" />
+                                <SecretsPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ActorUserId="@actorUserId"
+                                              FocusKey="@focusKey" FocusRequest="@focusRequest" />
                             }
                             else if (appTab == "tokens")
                             {
-                                <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ApplicationName="@(SelectedApp?.Name ?? "")" ActorUserId="@actorUserId" />
+                                <TokensPanel TenantId="@tenantId" ProjectId="@selectedAppId.Value" ApplicationName="@(SelectedApp?.Name ?? "")" ActorUserId="@actorUserId"
+                                             FocusTokenId="@focusTokenId" FocusRequest="@focusRequest" />
                             }
                             else if (appTab == "monitoring")
                             {
@@ -274,6 +329,85 @@
     private bool importing;
 
     private ProjectInfo? SelectedApp => apps?.FirstOrDefault(a => a.Id == selectedAppId);
+
+    // Search across all applications (ProjectService.SearchAsync); a hit opens its application on the right tab and
+    // hands the key / token to the panel through FocusKey / FocusTokenId (FocusRequest makes a repeated hit count).
+    private string search = "";
+    private IReadOnlyList<ApplicationSearchHit>? searchHits;
+    private CancellationTokenSource? searchCts;
+    private string? focusKey;
+    private Guid? focusTokenId;
+    private int focusRequest;
+
+    private bool SearchActive => search.Trim().Length >= 2;
+
+    private async Task OnSearchInputAsync(ChangeEventArgs e)
+    {
+        search = e.Value?.ToString() ?? "";
+        searchCts?.Cancel();
+        if (!SearchActive)
+        {
+            searchHits = null;
+            return;
+        }
+
+        var cts = searchCts = new CancellationTokenSource();
+        try
+        {
+            await Task.Delay(300, cts.Token);
+            searchHits = await ProjectService.SearchAsync(tenantId, actorUserId, search, cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            // superseded by a newer keystroke
+        }
+    }
+
+    private void ClearSearch()
+    {
+        searchCts?.Cancel();
+        search = "";
+        searchHits = null;
+    }
+
+    private async Task OpenSearchHitAsync(ApplicationSearchHit hit)
+    {
+        ClearSearch();
+        await SelectAppAsync(hit.ApplicationId);
+        if (!canManage)
+        {
+            return; // read-only users see the environments only — that is where the hit is
+        }
+
+        focusKey = hit.Field is ApplicationSearchField.Key or ApplicationSearchField.RotationNote ? hit.Detail : null;
+        focusTokenId = hit.TokenId;
+        focusRequest++;
+        appTab = hit.Field switch
+        {
+            ApplicationSearchField.Environment => "envs",
+            ApplicationSearchField.Key or ApplicationSearchField.RotationNote => "data",
+            ApplicationSearchField.Token => "tokens",
+            _ => "application",
+        };
+    }
+
+    private static string HitIcon(ApplicationSearchField field) => field switch
+    {
+        ApplicationSearchField.Environment => "layers",
+        ApplicationSearchField.Key => "key",
+        ApplicationSearchField.RotationNote => "note",
+        ApplicationSearchField.Token => "ticket",
+        _ => "package",
+    };
+
+    private string HitLabel(ApplicationSearchField field) => field switch
+    {
+        ApplicationSearchField.Environment => Loc["App.Search.Field.Environment"],
+        ApplicationSearchField.Key => Loc["App.Search.Field.Key"],
+        ApplicationSearchField.RotationNote => Loc["App.Search.Field.RotationNote"],
+        ApplicationSearchField.Token => Loc["App.Search.Field.Token"],
+        _ => Loc["App.Search.Field.Application"],
+    };
 
     // Deep link (e.g. handed out by the agent API): ?app={id} opens that application, &tab=data|tokens|… a tab.
     [SupplyParameterFromQuery(Name = "app")]
@@ -350,6 +484,8 @@
         importing = false;
         selectedAppId = appId;
         UiState.SelectedProjectId = appId;
+        focusKey = null; // a search hit sets its focus after this; a plain click must not reopen an old hit
+        focusTokenId = null;
         confirmDelete = false;
         renameValue = SelectedApp?.Name ?? "";
         renamingEnvId = null;
