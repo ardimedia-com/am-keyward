@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.33.0-preview] - 2026-10-14
+
 ### Changed
 
 - **Vaults: entries above the entry detail, sizes adjustable** (owner request 2026-10-14). The «Items» tab stacks the
