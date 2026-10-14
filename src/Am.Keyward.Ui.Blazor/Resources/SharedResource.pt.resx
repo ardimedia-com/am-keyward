@@ -1134,4 +1134,6 @@
   <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Verificar: lista as chaves que este token pode ler (nunca valores):</value></data>
   <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>Em scripts (PowerShell também: Get-KeywardSecret, após «keyward powershell install»):</value></data>
   <data name="Token.Cli.Hint" xml:space="preserve"><value>O token não está de propósito neste bloco: colado no pedido não fica nem no histórico da shell nem num chat. Para tokens de scripts, marque também «{0}» acima.</value></data>
+  <data name="Common.Splitter.Width" xml:space="preserve"><value>Arraste para alterar a largura (duplo clique: predefinição)</value></data>
+  <data name="Common.Splitter.Height" xml:space="preserve"><value>Arraste para alterar a altura (duplo clique: 50/50)</value></data>
 </root>

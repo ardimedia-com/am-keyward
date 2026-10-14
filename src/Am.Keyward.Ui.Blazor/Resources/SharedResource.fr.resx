@@ -1134,4 +1134,6 @@
   <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Vérifier : liste les clés que ce jeton peut lire (jamais de valeurs) :</value></data>
   <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>Dans les scripts (PowerShell aussi : Get-KeywardSecret, après « keyward powershell install ») :</value></data>
   <data name="Token.Cli.Hint" xml:space="preserve"><value>Le jeton n'est volontairement pas dans ce bloc : collé à l'invite, il n'apparaît ni dans l'historique du shell ni dans un chat. Pour les jetons de scripts, coche aussi « {0} » ci-dessus.</value></data>
+  <data name="Common.Splitter.Width" xml:space="preserve"><value>Faire glisser pour changer la largeur (double-clic : valeur par défaut)</value></data>
+  <data name="Common.Splitter.Height" xml:space="preserve"><value>Faire glisser pour changer la hauteur (double-clic : 50/50)</value></data>
 </root>

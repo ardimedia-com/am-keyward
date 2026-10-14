@@ -73,6 +73,42 @@
     padding: 1rem;
 }
 
+/* Fill mode: the area is as tall as its container allows; bar and title stay, the content scrolls (and a split
+   inside it can share the height — it is a flex column). */
+.kw-tab-area-fill {
+    display: flex;
+    flex-direction: column;
+}
+
+.kw-tab-area-fill > .kw-tab-area-bar {
+    flex-shrink: 0;
+}
+
+.kw-tab-area-fill > .kw-tab-area-content {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.kw-tab-area-fill > .kw-tab-area-content > * {
+    flex-shrink: 0;
+}
+
+/* Narrow screens stack and scroll as one page: the area takes its content's height again (a zero flex basis
+   would collapse the content to nothing in an auto-height column). */
+@media (max-width: 860px) {
+    .kw-tab-area-fill {
+        display: block;
+    }
+
+    .kw-tab-area-fill > .kw-tab-area-content {
+        display: block;
+        overflow-y: visible;
+    }
+}
+
 .kw-tabs .kw-tab {
     display: inline-flex;
     align-items: center;

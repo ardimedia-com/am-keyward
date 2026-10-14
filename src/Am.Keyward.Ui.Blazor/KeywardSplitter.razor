@@ -1,0 +1,101 @@
+@namespace Am.Keyward.Ui.Blazor
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* A drag handle between two panes of a flex or grid container (its parent). Dragging — or the arrow keys while it
+   has focus — sets a CSS custom property on the parent, which the parent's CSS uses for the first pane's size; a
+   double-click restores the default. The position is remembered in the browser (localStorage), and it is clamped
+   whenever the container changes size, so the second pane never disappears off-screen.
+
+   All of it runs in the browser (KeywardSplitter.razor.js): no server round trip per pointer move. Hidden on narrow
+   screens, where the panes stack (the page CSS decides that, not this component). *@
+<div @ref="handle"
+     class="kw-splitter @(Direction == KeywardSplitDirection.Columns ? "kw-splitter-col" : "kw-splitter-row") @(Disabled ? "disabled" : "")"
+     role="separator"
+     tabindex="@(Disabled ? -1 : 0)"
+     aria-orientation="@(Direction == KeywardSplitDirection.Columns ? "vertical" : "horizontal")"
+     aria-label="@Label"
+     title="@Label">
+    <span class="kw-splitter-grip"></span>
+</div>
+
+@code {
+    /// <summary>Columns: the handle sits between a left and a right pane (it changes the width); Rows: between a top and a bottom pane.</summary>
+    [Parameter] public KeywardSplitDirection Direction { get; set; } = KeywardSplitDirection.Columns;
+
+    /// <summary>The custom property set on the parent, e.g. <c>--kw-tree-width</c>.</summary>
+    [Parameter, EditorRequired] public string Variable { get; set; } = "";
+
+    /// <summary>localStorage key of the remembered position.</summary>
+    [Parameter, EditorRequired] public string StorageKey { get; set; } = "";
+
+    /// <summary>
+    /// The first pane's size: in pixels for <see cref="KeywardSplitDirection.Columns"/> (a tree keeps its width when
+    /// the window grows), as a share of the container (0–1) for <see cref="KeywardSplitDirection.Rows"/> (the 50/50
+    /// split stays 50/50 at any height).
+    /// </summary>
+    [Parameter] public double Default { get; set; } = 300;
+
+    /// <summary>Smallest first pane, in pixels.</summary>
+    [Parameter] public double MinFirst { get; set; } = 160;
+
+    /// <summary>Smallest second pane, in pixels — what is always kept visible.</summary>
+    [Parameter] public double MinSecond { get; set; } = 160;
+
+    /// <summary>Accessible name and tooltip.</summary>
+    [Parameter] public string? Label { get; set; }
+
+    /// <summary>A disabled handle stays in the layout (as the gap) but does nothing — e.g. while the tree is a rail.</summary>
+    [Parameter] public bool Disabled { get; set; }
+
+    private ElementReference handle;
+    private IJSObjectReference? module;
+    private IJSObjectReference? instance;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        try
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/KeywardSplitter.razor.js");
+            instance = await module.InvokeAsync<IJSObjectReference>("attach", handle, new
+            {
+                rows = Direction == KeywardSplitDirection.Rows,
+                variable = Variable,
+                storageKey = StorageKey,
+                defaultSize = Default,
+                minFirst = MinFirst,
+                minSecond = MinSecond,
+            });
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or JSException or InvalidOperationException or TaskCanceledException)
+        {
+            // Prerendering or a circuit going away: the panes keep their CSS default size.
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (instance is not null)
+            {
+                await instance.InvokeVoidAsync("dispose");
+                await instance.DisposeAsync();
+            }
+
+            if (module is not null)
+            {
+                await module.DisposeAsync();
+            }
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone — the browser dropped the listeners with the page.
+        }
+    }
+}

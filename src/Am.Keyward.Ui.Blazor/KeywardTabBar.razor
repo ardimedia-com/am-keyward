@@ -36,7 +36,7 @@
 }
 else
 {
-    <div class="kw-tab-area">
+    <div class="kw-tab-area @(Fill ? "kw-tab-area-fill" : "")">
         <div class="kw-tab-area-bar">
             @* The subject of the tabs (e.g. the selected application) belongs INSIDE the framed area, above
                the bar: title and tabs then read as one unit instead of the title floating in the page. *@
@@ -69,6 +69,12 @@ else
     /// frame. Only used in tab-area mode (<see cref="ChildContent"/> set); ignored for a bare bar.
     /// </summary>
     [Parameter] public RenderFragment? TitleContent { get; set; }
+
+    /// <summary>
+    /// Tab-area mode only: the area takes the height its container gives it (a fill-mode pane) and the content scrolls
+    /// inside, instead of growing with the content.
+    /// </summary>
+    [Parameter] public bool Fill { get; set; }
 
     private async Task SelectAsync(string key)
     {

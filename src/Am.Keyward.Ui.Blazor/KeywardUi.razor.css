@@ -306,17 +306,19 @@
     transform: translateY(-50%);
 }
 
-/* Master-detail workspace: tree pane left, content right; stacks on narrow screens.
-   The collapsed pane (KeywardTreePane's rail) narrows the column via :has(), so the pane owns its own
-   state and no page has to mirror a class onto the grid. */
+/* Master-detail workspace: tree pane left, the width handle (KeywardSplitter, rendered by KeywardTreePane), content
+   right; stacks on narrow screens. --kw-tree-width is set by the handle (remembered per browser). The collapsed pane
+   (KeywardTreePane's rail) narrows the column via :has(), so the pane owns its own state and no page has to mirror a
+   class onto the grid. The handle is the 1rem gap between the columns. */
 .keyward-ui ::deep .workspace {
     display: grid;
-    grid-template-columns: var(--kw-tree-width, 300px) minmax(0, 1fr);
-    gap: 1rem;
+    grid-template-columns: var(--kw-tree-width, 300px) auto minmax(0, 1fr);
+    column-gap: 0;
+    row-gap: 1rem;
     align-items: start;
 }
 .keyward-ui ::deep .workspace:has(.ws-tree.collapsed) {
-    grid-template-columns: var(--kw-tree-rail, 3.1rem) minmax(0, 1fr);
+    grid-template-columns: var(--kw-tree-rail, 3.1rem) auto minmax(0, 1fr);
 }
 @media (max-width: 860px) {
     .keyward-ui ::deep .workspace,
@@ -360,6 +362,12 @@
     flex-direction: column;
 }
 .keyward-ui.kw-fill ::deep .ws-main > * { flex-shrink: 0; }
+/* A tab area in fill mode (KeywardTabBar Fill) takes exactly the pane's height and scrolls inside, so a split
+   within it (the vault's entries over entry detail) can divide that height. */
+.keyward-ui.kw-fill ::deep .ws-main > .kw-tab-area-fill {
+    flex: 1 1 0;
+    min-height: 0;
+}
 
 /* Item list: heading + filter stay pinned, ONLY the rows scroll. The card fills the remaining pane
    height; with areas above it keeps a sensible minimum and the pane scrolls to it.
@@ -383,6 +391,7 @@
     .keyward-ui.kw-fill { display: block; }
     .keyward-ui.kw-fill ::deep .ws-tree,
     .keyward-ui.kw-fill ::deep .ws-main { overflow-y: visible; }
+    .keyward-ui.kw-fill ::deep .ws-main > .kw-tab-area-fill { flex: none; }
 }
 
 /* Tree pane (vaults + folders) */

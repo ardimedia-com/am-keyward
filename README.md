@@ -389,7 +389,11 @@ them (see the reference shell's `js/keyward-theme.js`) — with no toggling you 
 vault/application pages use `<KeywardUi Fill="true">`: in a plain layout they render with a normal page
 scroll; for the pinned header + independently scrolling panes, make your content container a fixed-height
 flex column and add `.your-content:has(> .keyward-ui.kw-fill) { overflow: hidden; display: flex;
-flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`). Secondary areas (settings,
+flex-direction: column; }` (see the reference shell's `MainLayout.razor.css`); below 860px Keyward stacks the panes, so
+turn that off there again (`overflow: auto; display: block`). The tree pane's width and, in a vault, the split between the
+entry list and the entry detail (stacked, 50/50 by default) can be dragged — the browser remembers both (localStorage
+`am-keyward.tree-pane-width`, `am-keyward.vault-entries-split`) and clamps them so the second pane always stays
+visible. Secondary areas (settings,
 sharing, import/export, statistics, …) are collapsible `KeywardArea`s: they start collapsed and remember their
 open state per browser in localStorage (`am-area:keyward.…` keys, the prefix am.ui's `AmArea` uses as well). To
 pin the UI language, add `UseRequestLocalization` with your supported cultures; without it the pages follow

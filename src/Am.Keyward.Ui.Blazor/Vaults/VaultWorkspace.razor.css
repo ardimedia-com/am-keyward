@@ -1,31 +1,56 @@
-/* Two-pane «Einträge» tab (owner layout 2026-07-21): the entry list on the left, the selected entry's
-   detail / the add form on the right. Stacks on narrow viewports. */
-
+/* «Einträge» tab (owner layout 2026-10-14): the entry list on top, the selected entry's detail / the add form below,
+   split by a row handle (KeywardSplitter, --kw-entries-height). Both panes scroll inside; the list card keeps its
+   heading and filter pinned. The tab area is in fill mode (a flex column), so the split takes its whole height; it
+   keeps a minimum, below which the tab content scrolls instead of squeezing both panes to nothing. */
 .entries-split {
+    flex: 1 1 0;
+    min-height: 20rem;
     display: flex;
-    gap: 1rem;
-    align-items: flex-start;
+    flex-direction: column;
 }
 
 .entries-list {
-    flex: 0 0 38%;
-    min-width: 16rem;
+    flex: 0 0 var(--kw-entries-height, 50%);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.entries-split > .entries-list > .list-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-bottom: 0;
 }
 
 .entries-detail {
     flex: 1 1 0;
-    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
 }
 
-@media (max-width: 60rem) {
+.entries-detail > .card:last-child {
+    margin-bottom: 0;
+}
+
+/* Narrow screens: one page scroll, list then detail; the list keeps a sensible height of its own. */
+@media (max-width: 860px) {
     .entries-split {
-        flex-direction: column;
+        flex: none;
+        min-height: 0;
+        gap: 1rem;
     }
 
     .entries-list {
         flex: none;
-        width: 100%;
-        min-width: 0;
+    }
+
+    .entries-split > .entries-list > .list-card {
+        max-height: 60vh;
+    }
+
+    .entries-detail {
+        flex: none;
+        overflow-y: visible;
     }
 }
 

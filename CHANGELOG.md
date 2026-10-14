@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **Vaults: entries above the entry detail, sizes adjustable** (owner request 2026-10-14). The «Items» tab stacks the
+  entry list over the selected entry's detail (before: side by side); they share the height 50/50, a handle between
+  them changes that, and both scroll inside. The tree pane (vaults, applications, groups) gets a width handle too.
+  Both positions are remembered per browser and clamped on every resize, so the second pane never ends up off-screen;
+  a double-click restores the default, the arrow keys move a focused handle. On narrow screens (below 860px) the panes
+  stack and the page scrolls as one. New component `KeywardSplitter` (+ `KeywardSplitDirection`), `KeywardTabBar.Fill`.
+- In fill mode the host must stop its content area from scrolling and turn that off again below 860px (README,
+  *Embedding*); without it the panes do not take the full height.
+
 ## [0.32.0-preview] - 2026-10-14
 
 ### Added

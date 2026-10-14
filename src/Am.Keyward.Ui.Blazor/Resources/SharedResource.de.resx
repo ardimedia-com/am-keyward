@@ -1260,4 +1260,6 @@
   <data name="Token.Cli.Comment.Check" xml:space="preserve"><value>Prüfen: listet die Schlüssel, die dieser Token lesen darf (nie Werte):</value></data>
   <data name="Token.Cli.Comment.Use" xml:space="preserve"><value>In Skripten (PowerShell auch: Get-KeywardSecret, nach «keyward powershell install»):</value></data>
   <data name="Token.Cli.Hint" xml:space="preserve"><value>Der Token steht absichtlich nicht in diesem Block: bei der Abfrage eingefügt, landet er weder im Shell-Verlauf noch in einem Chat. Für Tokens von Skripten oben zusätzlich «{0}» ankreuzen.</value></data>
+  <data name="Common.Splitter.Width" xml:space="preserve"><value>Ziehen, um die Breite zu ändern (Doppelklick: Standard)</value></data>
+  <data name="Common.Splitter.Height" xml:space="preserve"><value>Ziehen, um die Höhe zu ändern (Doppelklick: 50/50)</value></data>
 </root>

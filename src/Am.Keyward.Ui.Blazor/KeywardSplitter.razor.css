@@ -1,0 +1,63 @@
+/* The drag handle between two panes. It IS the gap between them (1rem), so the container sets no gap of its own on
+   that axis; the grip line shows on hover, focus and while dragging. touch-action:none lets a finger drag it on a
+   tablet without scrolling the page. */
+.kw-splitter {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    touch-action: none;
+    user-select: none;
+    outline: none;
+}
+
+.kw-splitter-col {
+    width: 1rem;
+    align-self: stretch;
+    cursor: col-resize;
+}
+
+.kw-splitter-row {
+    height: 1rem;
+    width: 100%;
+    cursor: row-resize;
+}
+
+.kw-splitter-grip {
+    border-radius: 999px;
+    background: var(--kw-border, #e3e6ea);
+    transition: background-color .12s ease;
+}
+
+.kw-splitter-col .kw-splitter-grip {
+    width: 3px;
+    height: 2.5rem;
+}
+
+.kw-splitter-row .kw-splitter-grip {
+    width: 2.5rem;
+    height: 3px;
+}
+
+.kw-splitter:hover .kw-splitter-grip,
+.kw-splitter:focus-visible .kw-splitter-grip,
+.kw-splitter.dragging .kw-splitter-grip {
+    background: var(--kw-primary, #4f46e5);
+}
+
+/* Disabled (e.g. the tree is a rail): stays as the gap, nothing to grab. */
+.kw-splitter.disabled {
+    cursor: default;
+}
+
+.kw-splitter.disabled .kw-splitter-grip {
+    visibility: hidden;
+}
+
+/* Stacked panes on a narrow screen: no handle (the JS sees it hidden and leaves the size to the CSS). */
+@media (max-width: 860px) {
+    .kw-splitter {
+        display: none;
+    }
+}

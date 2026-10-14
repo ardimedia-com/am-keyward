@@ -11,7 +11,8 @@
    a tree node SHOULD carry a title attribute so the rail keeps a tooltip.
 
    The state lives on the circuit-scoped KeywardUiState (shared by every page with such a pane) and is
-   persisted in localStorage, so it survives a reload. .workspace picks the column width up via :has(). *@
+   persisted in localStorage, so it survives a reload. .workspace picks the column width up via :has(), and the
+   width of the open pane from --kw-tree-width, which the KeywardSplitter below sets. *@
 <aside class="ws-tree @(UiState.TreePaneCollapsed ? "collapsed" : "")">
     <div class="ws-tree-head">
         @if (!UiState.TreePaneCollapsed)
@@ -26,6 +27,11 @@
 
     @ChildContent
 </aside>
+
+@* The width handle between this pane and the page's detail pane (the parent .workspace is its container). One
+   remembered width for every page with a tree; inert while the pane is a rail. *@
+<KeywardSplitter Variable="--kw-tree-width" StorageKey="am-keyward.tree-pane-width" Default="300" MinFirst="200" MinSecond="360"
+                 Disabled="@UiState.TreePaneCollapsed" Label="@Loc["Common.Splitter.Width"]" />
 
 @code {
     private const string StorageKey = "am-keyward.tree-pane-collapsed";

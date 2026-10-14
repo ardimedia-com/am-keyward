@@ -128,7 +128,7 @@ else
                 @* ---------- Vault/folder selected: TABBED — «Einträge» (two-pane: list left, entry detail /
                    add form right) / «Tresor-Einstellungen» (the work areas). Bar + content render as ONE
                    bordered tab area (KeywardTabBar's ChildContent mode). ---------- *@
-                <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)">
+                <KeywardTabBar Tabs="@VaultTabs" Active="@vaultTab" ActiveChanged="@(t => vaultTab = t)" Fill="true">
                 <TitleContent>
                     <KeywardIcon Name="@(SelectedFolder is not null ? "folder" : SelectedIsTeam ? "users" : "lock")" Size="18" />
                     <span class="kw-tab-area-name">@ContentTitle</span>
@@ -137,11 +137,13 @@ else
 
                 @if (vaultTab == "entries")
                 {
-                    @* Two-pane layout (owner 2026-07-21): the entry list stays on the left; the right pane
-                       shows the selected entry's detail (edit/delete, no close), the add form (via the
-                       top-right button), or a pick-one hint. *@
+                    @* Two panes, stacked (owner 2026-10-14; before: side by side): the entry list on top, below it
+                       the selected entry's detail (edit/delete, no close), the add form, or a pick-one hint. They
+                       share the height 50/50 by default; the handle between them changes that (remembered). *@
                     <div class="entries-split">
                         <div class="entries-list">@ItemListCard</div>
+                        <KeywardSplitter Direction="KeywardSplitDirection.Rows" Variable="--kw-entries-height" StorageKey="am-keyward.vault-entries-split"
+                                         Default="0.5" MinFirst="140" MinSecond="160" Label="@Loc["Common.Splitter.Height"]" />
                         <div class="entries-detail">
                             @if (itemMode == "add")
                             {
