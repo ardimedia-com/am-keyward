@@ -65,6 +65,11 @@ elevated login is needed.
 Rotation re-wraps every DEK under the new KEK version — one unwrap+wrap per row (a KEK round-trip each),
 tracked per row by `kekId`. It is a resumable, observable job, not a cheap operation.
 
+> **Not available yet.** The re-wrap job (step 2) is not built. What exists: `KeyRingKekProvider` resolves several
+> KEK versions side by side, and the integrity check reports rows whose `kekId` cannot be resolved — so step 1 and
+> step 3 are possible, step 2 is not. Until the job exists a KEK cannot be rotated without help; it will be built
+> when a rotation is due (decision T37 B). Never disable or destroy a KEK version while rows still reference it.
+
 1. Introduce the new KEK version; keep the **old version enabled** (the overlap window) so both resolve.
 2. Re-wrap rows from the old version to the new; the integrity check stays green throughout because both
    versions are available.
@@ -75,7 +80,7 @@ tracked per row by `kekId`. It is a resumable, observable job, not a cheap opera
 
 A leaked KEK exposes any DEK an attacker can also reach. Re-wrapping does **not** undo prior exposure.
 
-1. Rotate the KEK (above) so new wraps use a fresh version.
+1. Rotate the KEK (above) so new wraps use a fresh version — today this needs the re-wrap job built first.
 2. **Flag affected secrets for source rotation** — rotate the underlying credentials (API keys, passwords,
    connection strings) at their source, because the plaintext may already be known.
 3. Review the audit chain and break-glass trail for unexpected access.

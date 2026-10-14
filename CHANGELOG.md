@@ -5,6 +5,11 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- Operations runbook: KEK rotation says plainly that the re-wrap job is not built yet (step 2); what works today and
+  what not.
+
 ## [0.31.0-preview] - 2026-10-13
 
 ### Added
