@@ -58,7 +58,9 @@ Both can be limited to given networks.
 
 On **Agent tokens** (navigation, under the vaults): name, vaults (only those opened to agents) with their
 permissions, validity (default 90 days, at most 365) and optional networks in CIDR notation. The value is shown
-once. A person with Manage opens a team vault to agents in its «Sharing» section; the owner opens a personal vault in
+once. Preselected for a new token: «Find entries», «See URL and user name» and «Create, change and move entries»;
+«Ask for a password» and one-time codes are ticked deliberately (decision T251 A). A person with Manage opens a
+team vault to agents in its «Sharing» section; the owner opens a personal vault in
 its settings (listed on the token as «Name (personal)»).
 
 A user who may manage the software side also sees **Applications**: tick «Manage applications» (unticked by

@@ -23,6 +23,17 @@ public class AgentTokenTests
 {
     private static readonly string ConnectionString = TestConfig.ConnectionString;
 
+    // Decision T251 A: a new token can find, see (URL and user name) and write entries; asking for a password and
+    // one-time codes stay opt-in, and applications are a separate choice.
+    [TestMethod]
+    public void A_new_token_preselects_find_see_and_write_but_not_reveal_or_one_time_codes()
+    {
+        Assert.AreEqual(AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite, AgentToken.DefaultScopes);
+        Assert.IsFalse(AgentToken.DefaultScopes.HasFlag(AgentScopes.VaultReveal));
+        Assert.IsFalse(AgentToken.DefaultScopes.HasFlag(AgentScopes.TotpCodes));
+        Assert.IsFalse(AgentToken.DefaultScopes.HasFlag(AgentScopes.ManageApplications));
+    }
+
     [TestMethod, TestCategory("Integration")]
     public async Task Issuance_rules()
     {

@@ -5,6 +5,15 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.36.0-preview] - 2026-10-19
+
+### Changed
+
+- **A new agent token preselects «See URL and user name»** (decision T251 A), next to «Find entries» and «Create,
+  change and move entries». Before, a token issued with the defaults could create entries but not read one back
+  (`get_item`, and `update_item` without a version, failed). «Ask for a password» and one-time codes stay a
+  deliberate opt-in. `AgentToken.DefaultScopes`.
+
 ## [0.35.0-preview] - 2026-10-19
 
 ### Changed

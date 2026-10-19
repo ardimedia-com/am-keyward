@@ -43,6 +43,13 @@ public enum AgentScopes
 /// </summary>
 public sealed class AgentToken
 {
+    /// <summary>
+    /// The permissions the token page preselects for a new token (decision T251 A): find entries, see a Login's URL
+    /// and user name, create/change/move entries. Asking for a password and one-time codes stay a deliberate opt-in.
+    /// Without «see» a token could create entries but never read one back (bug 2026-10-19).
+    /// </summary>
+    public const AgentScopes DefaultScopes = AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite;
+
     private readonly List<AgentTokenVaultAllowance> _allowedVaults = [];
     private readonly List<AgentTokenApplicationAllowance> _allowedApplications = [];
 

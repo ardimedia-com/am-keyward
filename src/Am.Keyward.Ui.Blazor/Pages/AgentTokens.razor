@@ -447,7 +447,7 @@
     private readonly HashSet<Guid> selectedVaults = [];
     private readonly HashSet<Guid> selectedApplications = [];
     private bool mayCreateApplications;
-    private AgentScopes selectedScopes = AgentScopes.VaultList | AgentScopes.VaultWrite;
+    private AgentScopes selectedScopes = AgentToken.DefaultScopes;
     private int days = (int)AgentTokenLifetime.Default.TotalDays;
     private string networks = "";
 
@@ -762,7 +762,7 @@
         mayCreateApplications = false;
         allAgentVaults = false;
         allApplications = false;
-        selectedScopes = AgentScopes.VaultList | AgentScopes.VaultWrite;
+        selectedScopes = AgentToken.DefaultScopes;
     }
 
     private Task RotateAsync(Guid tokenId) => RunAsync(async () =>
