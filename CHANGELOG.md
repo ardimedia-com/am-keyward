@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.35.0-preview] - 2026-10-19
+
+### Changed
+
+- **BREAKING (agent API): a permission the token lacks answers 403 and names it**, instead of 404 «Not found»
+  (bug report 2026-10-19, toolbox.bvd.li). A token issued with the page's default permissions («Find entries» and
+  «Create, change and move entries», without «See URL and user name») could create entries and find them by name,
+  but `get_item`, `update_item` (which reads the version first) and `request_reveal` answered «404: Not found.» for
+  every entry — it looked as if the entries were gone. Now `GET /items/{id}`, `PATCH /items/{id}`, `POST
+  /items/{id}/move`, `POST /vaults/{id}/items`, `GET /vaults/{id}/tree`, `POST /items/{id}/reveal-requests`, `POST
+  /reveal-requests/{id}/consume` and `POST /items/{id}/totp-code` check the token's own permission first and answer
+  403 with e.g. «This agent token lacks the permission «See URL and user name» …» and where to add it (agent tokens
+  page, Edit; the token stays the same). The check runs before any lookup, so it says nothing about what exists;
+  a vault or entry out of reach still answers 404 exactly like a missing one. `amkeyward-mcp` shows the message as
+  it is (no update needed). Clients that treated 404 as «no permission» must accept 403.
+
 ## [0.34.0-preview] - 2026-10-14
 
 ### Added

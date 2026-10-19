@@ -49,8 +49,10 @@ Both can be limited to given networks.
   environments are validated identically — the error messages are the same.
 - **Throttled.** Per-token rate limit; failed authentications are throttled per client IP; optional network
   restriction per host and per token.
-- **Out of reach answers 404**, exactly like something missing — the API does not reveal what exists. Only the
-  application collection answers 403 when the token lacks «Manage applications», which tells nothing about data.
+- **Out of reach answers 404**, exactly like something missing — the API does not reveal what exists. A permission
+  the token itself lacks answers **403 naming that permission** (checked before anything is looked up, so it tells
+  nothing about data — the token can read its own permissions with `GET /token` anyway); the application collection
+  answers 403 the same way when the token lacks «Manage applications».
 
 ## Issuing a token
 
@@ -97,7 +99,7 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 | PATCH | `/items/{id}` | `If-Match: "<version>"` required (428 without, 412 when changed meanwhile); Login field by field (`"totp": ""` removes the key), other types by `value` |
 | POST | `/items/{id}/move` | `{ "vaultId", "folderId"? }` — another folder and/or another reachable vault (Write on both). 200 with link (unchanged) and version; across vaults the id changes |
 | POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Totp" \| "Value", "reason": "…" }` → 202, pending. `Totp`: the one-time code, generated when it is consumed |
-| POST | `/items/{id}/totp-code` | `{ "code", "validUntil", "secondsLeft" }` (`no-store`), audited as `VaultItemTotp`. Needs «Get one-time codes»; 404 without it, 400 when the Login has no 2FA key |
+| POST | `/items/{id}/totp-code` | `{ "code", "validUntil", "secondsLeft" }` (`no-store`), audited as `VaultItemTotp`. Needs «Get one-time codes»; 403 without it, 400 when the Login has no 2FA key |
 | GET | `/reveal-requests/{id}` | status only: Pending, Approved, Rejected, Expired, Consumed |
 | POST | `/reveal-requests/{id}/consume` | the value, once (`Cache-Control: no-store`); otherwise 409 |
 | GET | `/applications` | reachable applications: name, environments, keys, per environment `valueSet` + `versionId`, `link`, `tokensLink`. 403 without the permission |

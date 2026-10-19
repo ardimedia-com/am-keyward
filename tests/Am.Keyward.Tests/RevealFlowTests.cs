@@ -124,9 +124,9 @@ public class RevealFlowTests
 
         var (tenantId, owner, vault, login, _) = await SeedAsync(app);
 
-        // Without the reveal scope the item is simply out of reach.
+        // Without the reveal scope the token is told which permission it lacks (403, before any lookup).
         var listOnly = await ClientAsync(app, tenantId, owner, vault, AgentScopes.VaultList);
-        Assert.AreEqual(HttpStatusCode.NotFound, (await listOnly.PostAsJsonAsync($"/keyward/api/v1/agent/items/{login}/reveal-requests", new AgentRevealRequestBody("Password", "x"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await listOnly.PostAsJsonAsync($"/keyward/api/v1/agent/items/{login}/reveal-requests", new AgentRevealRequestBody("Password", "x"))).StatusCode);
 
         var client = await ClientAsync(app, tenantId, owner, vault, AgentScopes.VaultReveal);
         var request = await (await client.PostAsJsonAsync($"/keyward/api/v1/agent/items/{login}/reveal-requests",

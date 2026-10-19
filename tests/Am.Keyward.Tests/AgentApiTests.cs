@@ -144,7 +144,83 @@ public class AgentApiTests
             await IssueAsync(services, tenantId, owner, vault, AgentScopes.VaultList));
 
         Assert.AreEqual(HttpStatusCode.OK, (await client.GetAsync($"/keyward/api/v1/agent/vaults/{vault}/tree")).StatusCode);
-        Assert.AreEqual(HttpStatusCode.NotFound, (await client.GetAsync($"/keyward/api/v1/agent/items/{login}")).StatusCode);
+
+        // The missing permission is named (403), for an existing and an unknown entry alike: no existence oracle.
+        var refused = await client.GetAsync($"/keyward/api/v1/agent/items/{login}");
+        Assert.AreEqual(HttpStatusCode.Forbidden, refused.StatusCode);
+        StringAssert.Contains(await refused.Content.ReadAsStringAsync(), "See URL and user name");
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await client.GetAsync($"/keyward/api/v1/agent/items/{Guid.NewGuid()}")).StatusCode);
+    }
+
+    // Regression 2026-10-19 (toolbox.bvd.li): a token issued with the page's default «find» + «create, change» could
+    // create entries and find them by name, but every get_item / update_item / request_reveal answered «404 Not
+    // found», as if the entries were gone. The missing permission is now named; with it the same token reads back,
+    // changes and asks for the entry it created.
+    [TestMethod, TestCategory("Integration")]
+    public async Task An_entry_created_by_an_agent_token_can_be_read_back_and_changed_by_the_same_token()
+    {
+        await using var app = await StartAsync();
+        if (app is null)
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        var services = app.Services;
+        var tenantId = Guid.NewGuid();
+        var owner = Guid.NewGuid();
+        await SeedTenantAsync(services, tenantId, owner);
+
+        Guid vault;
+        using (var scope = ScopeFor(services, tenantId, owner))
+        {
+            var vaults = scope.ServiceProvider.GetRequiredService<IVaultService>();
+            vault = await vaults.CreateTenantVaultAsync(new CreateTenantVaultCommand(owner, tenantId, "IT"));
+            await vaults.SetAgentAccessAsync(owner, vault, allowed: true);
+        }
+
+        // Without «See URL and user name» and «Ask for a password»: creating works, reading back says why not.
+        var writeOnly = app.GetTestClient();
+        writeOnly.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            await IssueAsync(services, tenantId, owner, vault, AgentScopes.VaultList | AgentScopes.VaultWrite));
+        var first = await writeOnly.PostAsJsonAsync($"/keyward/api/v1/agent/vaults/{vault}/items",
+            new AgentCreateItemRequest("Login", "sys.claude", Url: "https://ad.example", Username: "sys.claude", Password: "pw-1"));
+        Assert.AreEqual(HttpStatusCode.Created, first.StatusCode);
+        var firstId = (await first.Content.ReadFromJsonAsync<AgentItemWrittenResponse>())!.Id;
+        var hits = await writeOnly.GetFromJsonAsync<List<AgentItemSummaryResponse>>("/keyward/api/v1/agent/search?q=sys");
+        CollectionAssert.AreEqual(new[] { firstId }, hits!.Select(h => h.Id).ToArray());
+
+        var get = await writeOnly.GetAsync($"/keyward/api/v1/agent/items/{firstId}");
+        Assert.AreEqual(HttpStatusCode.Forbidden, get.StatusCode);
+        StringAssert.Contains(await get.Content.ReadAsStringAsync(), "See URL and user name");
+        var reveal = await writeOnly.PostAsJsonAsync($"/keyward/api/v1/agent/items/{firstId}/reveal-requests", new AgentRevealRequestBody("Password", "check"));
+        Assert.AreEqual(HttpStatusCode.Forbidden, reveal.StatusCode);
+        StringAssert.Contains(await reveal.Content.ReadAsStringAsync(), "Ask for a password");
+
+        // With the full vault permissions the same kind of token reads back and changes what it created.
+        var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            await IssueAsync(services, tenantId, owner, vault,
+                AgentScopes.VaultList | AgentScopes.VaultRead | AgentScopes.VaultWrite | AgentScopes.VaultReveal));
+        var created = await client.PostAsJsonAsync($"/keyward/api/v1/agent/vaults/{vault}/items",
+            new AgentCreateItemRequest("Login", "sys.claude second", Url: "https://ad.example", Username: "sys.claude", Password: "pw-2"));
+        Assert.AreEqual(HttpStatusCode.Created, created.StatusCode);
+        var id = (await created.Content.ReadFromJsonAsync<AgentItemWrittenResponse>())!.Id;
+
+        var item = await client.GetFromJsonAsync<AgentItemResponse>($"/keyward/api/v1/agent/items/{id}");
+        Assert.AreEqual("sys.claude second", item!.Name);
+        Assert.AreEqual("sys.claude", item.Username);
+        Assert.AreEqual(vault, item.VaultId);
+
+        var patch = new HttpRequestMessage(HttpMethod.Patch, $"/keyward/api/v1/agent/items/{id}") { Content = JsonContent.Create(new AgentUpdateItemRequest(Name: "sys.claude renamed")) };
+        patch.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{item.VersionId}\""));
+        Assert.AreEqual(HttpStatusCode.OK, (await client.SendAsync(patch)).StatusCode);
+        Assert.AreEqual("sys.claude renamed", (await client.GetFromJsonAsync<AgentItemResponse>($"/keyward/api/v1/agent/items/{id}"))!.Name);
+
+        // The entry the narrower token created is just as readable for this one.
+        Assert.AreEqual(HttpStatusCode.OK, (await client.GetAsync($"/keyward/api/v1/agent/items/{firstId}")).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Accepted,
+            (await client.PostAsJsonAsync($"/keyward/api/v1/agent/items/{firstId}/reveal-requests", new AgentRevealRequestBody("Password", "check"))).StatusCode);
     }
 
     [TestMethod, TestCategory("Integration")]
@@ -238,14 +314,14 @@ public class AgentApiTests
             Assert.IsTrue(entries.Any(e => e.Action == AuditAction.Update && e.ActorKind == ActorKind.Agent));
         }
 
-        // A token without the write scope can neither create nor change.
+        // A token without the write scope can neither create nor change — and is told which permission it lacks.
         var readOnly = app.GetTestClient();
         readOnly.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
             await IssueAsync(services, tenantId, owner, vault, AgentScopes.VaultList | AgentScopes.VaultRead));
-        Assert.AreEqual(HttpStatusCode.NotFound, (await readOnly.PostAsJsonAsync(items, new AgentCreateItemRequest("Generic", "x", Value: "v"))).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await readOnly.PostAsJsonAsync(items, new AgentCreateItemRequest("Generic", "x", Value: "v"))).StatusCode);
         var readOnlyPatch = new HttpRequestMessage(HttpMethod.Patch, itemUrl) { Content = JsonContent.Create(new AgentUpdateItemRequest(Name: "renamed")) };
         readOnlyPatch.Headers.IfMatch.Add(new EntityTagHeaderValue($"\"{afterPatch.VersionId}\""));
-        Assert.AreEqual(HttpStatusCode.NotFound, (await readOnly.SendAsync(readOnlyPatch)).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await readOnly.SendAsync(readOnlyPatch)).StatusCode);
     }
 
     [TestMethod, TestCategory("Integration")]

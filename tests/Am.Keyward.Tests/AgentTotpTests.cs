@@ -70,7 +70,7 @@ public class AgentTotpTests
         Assert.DoesNotContain(Secret, await (await writer.GetAsync($"/keyward/api/v1/agent/items/{login}")).Content.ReadAsStringAsync());
 
         // Without «one-time codes» there is no direct code — only the reveal request (T16 A).
-        Assert.AreEqual(HttpStatusCode.NotFound, (await writer.PostAsync($"/keyward/api/v1/agent/items/{login}/totp-code", null)).StatusCode);
+        Assert.AreEqual(HttpStatusCode.Forbidden, (await writer.PostAsync($"/keyward/api/v1/agent/items/{login}/totp-code", null)).StatusCode);
 
         var request = await (await writer.PostAsJsonAsync($"/keyward/api/v1/agent/items/{login}/reveal-requests",
             new AgentRevealRequestBody("Totp", "sign in to DHL MyBill"))).Content.ReadFromJsonAsync<AgentRevealStateResponse>();

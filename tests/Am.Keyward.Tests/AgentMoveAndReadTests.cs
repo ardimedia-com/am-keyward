@@ -79,7 +79,7 @@ public class AgentMoveAndReadTests
 
         // Out of reach: a vault not opened to agents, a token without «Create and update entries».
         Assert.AreEqual(HttpStatusCode.NotFound, (await client.PostAsJsonAsync($"{Base}/items/{acrossBody.Id}/move", new AgentMoveItemRequest(closed))).StatusCode);
-        Assert.AreEqual(HttpStatusCode.NotFound,
+        Assert.AreEqual(HttpStatusCode.Forbidden,
             (await Client(app, readOnlyToken).PostAsJsonAsync($"{Base}/items/{acrossBody.Id}/move", new AgentMoveItemRequest(source))).StatusCode);
 
         // No delete, ever.

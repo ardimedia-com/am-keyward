@@ -55,6 +55,11 @@ public static class KeywardAgentApi
         group.MapGet("/vaults/{vaultId:guid}/tree", async (Guid vaultId, ClaimsPrincipal principal, ICurrentUser user,
             ICurrentTenant tenant, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultList) is { } missing)
+            {
+                return missing;
+            }
+
             if (!await access.IsVaultAllowedAsync(TokenId(principal), vaultId, AgentScopes.VaultList, Permission.Read, ct))
             {
                 return NotFound();
@@ -90,6 +95,11 @@ public static class KeywardAgentApi
         group.MapGet("/items/{itemId:guid}", async (Guid itemId, HttpContext http, ClaimsPrincipal principal, ICurrentUser user,
             IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultRead) is { } missing)
+            {
+                return missing;
+            }
+
             if (!await access.IsItemAllowedAsync(TokenId(principal), itemId, AgentScopes.VaultRead, Permission.Read, ct))
             {
                 return NotFound();
@@ -113,6 +123,11 @@ public static class KeywardAgentApi
         group.MapPost("/vaults/{vaultId:guid}/items", async (Guid vaultId, AgentCreateItemRequest body, HttpContext http,
             ClaimsPrincipal principal, ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultWrite) is { } missing)
+            {
+                return missing;
+            }
+
             if (!await access.IsVaultAllowedAsync(TokenId(principal), vaultId, AgentScopes.VaultWrite, Permission.Write, ct))
             {
                 return NotFound();
@@ -147,6 +162,11 @@ public static class KeywardAgentApi
         group.MapPatch("/items/{itemId:guid}", async (Guid itemId, AgentUpdateItemRequest body, HttpContext http,
             ClaimsPrincipal principal, ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultWrite) is { } missing)
+            {
+                return missing;
+            }
+
             if (!await access.IsItemAllowedAsync(TokenId(principal), itemId, AgentScopes.VaultWrite, Permission.Write, ct))
             {
                 return NotFound();
@@ -183,6 +203,11 @@ public static class KeywardAgentApi
         group.MapPost("/items/{itemId:guid}/move", async (Guid itemId, AgentMoveItemRequest body, HttpContext http,
             ClaimsPrincipal principal, ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultWrite) is { } missing)
+            {
+                return missing;
+            }
+
             var tokenId = TokenId(principal);
             if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.VaultWrite, Permission.Write, ct)
                 || !await access.IsVaultAllowedAsync(tokenId, body.VaultId, AgentScopes.VaultWrite, Permission.Write, ct))
@@ -207,6 +232,11 @@ public static class KeywardAgentApi
         group.MapPost("/items/{itemId:guid}/reveal-requests", async (Guid itemId, AgentRevealRequestBody body, ClaimsPrincipal principal,
             IRevealRequestService reveals, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultReveal) is { } missing)
+            {
+                return missing;
+            }
+
             var tokenId = TokenId(principal);
             if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.VaultReveal, Permission.Read, ct))
             {
@@ -234,6 +264,11 @@ public static class KeywardAgentApi
         group.MapPost("/items/{itemId:guid}/totp-code", async (Guid itemId, HttpContext http, ClaimsPrincipal principal,
             ICurrentUser user, IVaultService vaults, IAgentVaultAccess access, IClock clock, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.TotpCodes) is { } missing)
+            {
+                return missing;
+            }
+
             var tokenId = TokenId(principal);
             if (!await access.IsItemAllowedAsync(tokenId, itemId, AgentScopes.TotpCodes, Permission.Read, ct))
             {
@@ -268,6 +303,11 @@ public static class KeywardAgentApi
         group.MapPost("/reveal-requests/{requestId:guid}/consume", async (Guid requestId, HttpContext http, ClaimsPrincipal principal,
             IRevealRequestService reveals, IAgentVaultAccess access, CancellationToken ct) =>
         {
+            if (MissingScope(principal, AgentScopes.VaultReveal) is { } missing)
+            {
+                return missing;
+            }
+
             var tokenId = TokenId(principal);
             var state = await reveals.GetAsync(tokenId, requestId, ct);
 
@@ -409,6 +449,37 @@ public static class KeywardAgentApi
 
     internal static IResult NotFound() =>
         Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found.");
+
+    // A permission the token itself lacks is said plainly (403), checked before anything is looked up: the token's
+    // own permissions are no secret to its holder (GET /token lists them), so this tells nothing about what exists.
+    // Before, it answered 404 like a missing entry, and a token without «See URL and user name» looked as if every
+    // entry it had just created was gone.
+    internal static IResult? MissingScope(ClaimsPrincipal principal, AgentScopes scope)
+    {
+        var granted = Enum.TryParse<AgentScopes>(principal.FindFirstValue(AgentAuthenticationHandler.ScopesClaim), out var scopes)
+            ? scopes
+            : AgentScopes.None;
+        if (scope != AgentScopes.None && (granted & scope) == scope)
+        {
+            return null;
+        }
+
+        return Results.Problem(statusCode: StatusCodes.Status403Forbidden,
+            title: $"This agent token lacks the permission «{ScopeLabel(scope)}». The person who issued it can add it "
+                + $"on the agent tokens page ({KeywardApiDefaults.AgentTokensPath}, Edit) — the token itself stays the same.");
+    }
+
+    // The English labels of the agent tokens page.
+    private static string ScopeLabel(AgentScopes scope) => scope switch
+    {
+        AgentScopes.VaultList => "Find entries (names only)",
+        AgentScopes.VaultRead => "See URL and user name",
+        AgentScopes.VaultWrite => "Create, change and move entries",
+        AgentScopes.VaultReveal => "Ask for a password — you approve each request",
+        AgentScopes.TotpCodes => "Get one-time codes (2FA) directly",
+        AgentScopes.ManageApplications => "Manage applications",
+        _ => scope.ToString(),
+    };
 
     // Set by AgentAuthenticationHandler for every authenticated agent request.
     internal static Guid TokenId(ClaimsPrincipal principal) =>
