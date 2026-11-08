@@ -32,4 +32,7 @@ public static class KeywardApiDefaults
 
     /// <summary>`reason` of a 404 from <c>GET /secrets/{key}</c>: the key holds no value in the token's environment.</summary>
     public const string NoValueReason = "no-value";
+
+    /// <summary>`reason` of a 400 from <c>GET /secrets/{key}</c>: the key is not a valid configuration key (e.g. an entry name with spaces).</summary>
+    public const string InvalidKeyReason = "invalid-key";
 }

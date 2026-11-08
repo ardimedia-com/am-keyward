@@ -39,7 +39,7 @@
 
     private async Task CopyAsync(string code)
     {
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", code);
+        if (!await JS.TryCopyToClipboardAsync(code)) return;
         copied = true;
         StateHasChanged();
         await Task.Delay(1500);

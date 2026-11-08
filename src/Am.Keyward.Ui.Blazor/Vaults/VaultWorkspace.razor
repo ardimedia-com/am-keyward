@@ -1198,7 +1198,7 @@ else
     {
         if (detail is null) return;
         var url = Nav.ToAbsoluteUri(KeywardRoutes.EntryLinkFor(Base62Guid.Encode(detail.PublicId))).ToString();
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+        if (!await JS.TryCopyToClipboardAsync(url)) return;
         copiedKey = "link";
         Notifier.Success(Loc["Vault.Msg.LinkCopied"]);
         StateHasChanged();
@@ -1358,7 +1358,7 @@ else
     /// <summary>Copies a secret to the clipboard and shows a short "copied" check on that field's button.</summary>
     private async Task CopyAsync(string key, string value)
     {
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", value);
+        if (!await JS.TryCopyToClipboardAsync(value)) return;
         copiedKey = key;
         StateHasChanged();
         await Task.Delay(1500);

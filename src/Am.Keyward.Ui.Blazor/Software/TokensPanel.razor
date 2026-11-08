@@ -428,7 +428,7 @@ else
     private async Task CopyIssuedAsync()
     {
         if (issuedToken is null) return;
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", issuedToken);
+        if (!await JS.TryCopyToClipboardAsync(issuedToken)) return;
         issuedCopied = true;
         StateHasChanged();
         await Task.Delay(1500);
@@ -500,7 +500,7 @@ else
     {
         var token = tokens?.FirstOrDefault(t => t.Id == issuedForTokenId);
         if (issuedToken is null || token is null) return;
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", useTab == CliUse ? CliSnippet() : PowerShellSnippet(token));
+        if (!await JS.TryCopyToClipboardAsync(useTab == CliUse ? CliSnippet() : PowerShellSnippet(token))) return;
         scriptCopied = true;
         StateHasChanged();
         await Task.Delay(1500);

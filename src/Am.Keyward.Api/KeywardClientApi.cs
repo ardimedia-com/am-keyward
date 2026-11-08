@@ -39,7 +39,19 @@ public static class KeywardClientApi
         {
             var (tenantId, projectId, environmentId) = ReadScope(user);
             var audit = user.HasClaim(SoftwareClientAuthenticationHandler.AuditReadsClaim, "true");
-            var outcome = await reader.ReadOneAsync(tenantId, projectId, environmentId, key, audit, ct);
+            SecretReadOutcome outcome;
+            try
+            {
+                outcome = await reader.ReadOneAsync(tenantId, projectId, environmentId, key, audit, ct);
+            }
+            catch (ArgumentException ex)
+            {
+                // A key that is no configuration key at all (an entry name such as «WatchGuard (admin):Username») is
+                // the caller's mistake: 400 with the reason, not a 500 that pages the admins (bvd.li.toolbox 30.10.2026).
+                return Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: ex.Message,
+                    extensions: new Dictionary<string, object?> { ["reason"] = KeywardApiDefaults.InvalidKeyReason });
+            }
+
             return outcome.Status switch
             {
                 SecretReadStatus.Found => Results.Ok(new SecretResponse(key, outcome.Value!)),

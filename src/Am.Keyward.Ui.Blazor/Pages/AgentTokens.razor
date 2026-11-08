@@ -830,14 +830,14 @@
 
     private async Task CopyCommandAsync(string command)
     {
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", command);
+        if (!await JS.TryCopyToClipboardAsync(command)) return;
         copiedCommand = command;
     }
 
     private async Task CopyIssuedAsync()
     {
         if (issuedToken is null) return;
-        await JS.InvokeVoidAsync("navigator.clipboard.writeText", issuedToken);
+        if (!await JS.TryCopyToClipboardAsync(issuedToken)) return;
         issuedCopied = true;
     }
 

@@ -5,6 +5,17 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **A secret key that is no configuration key now answers 400, not 500.** `GET /keyward/api/v1/secrets/{key}` with
+  e.g. an entry name containing spaces («WatchGuard Dimension SVRDIM01 (admin):Username») threw inside the reader and
+  reached the host's error page as a server fault, paging its admins. It now returns a problem with `reason`
+  `invalid-key` (`KeywardApiDefaults.InvalidKeyReason`).
+- **Copying no longer breaks the page when the browser refuses the clipboard.** `navigator.clipboard.writeText`
+  fails when the window has lost focus or permission is denied; the eight copy buttons (vault entry, link, TOTP,
+  secrets, tokens, scripts, agent tokens) showed the error panel then. They now go through
+  `ClipboardInterop.TryCopyToClipboardAsync` and simply show no «copied» check.
+
 ## [0.36.0-preview] - 2026-10-19
 
 ### Changed
