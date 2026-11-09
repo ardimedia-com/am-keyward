@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.37.0-preview] - 2026-11-09
+
 ### Fixed
 
 - **A secret key that is no configuration key now answers 400, not 500.** `GET /keyward/api/v1/secrets/{key}` with
