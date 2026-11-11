@@ -166,7 +166,7 @@ public class RevealFlowTests
     {
         var created = new DateTimeOffset(2026, 9, 26, 9, 0, 0, TimeSpan.Zero);
         var user = Guid.NewGuid();
-        RevealRequest New() => new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), user, Guid.NewGuid(), RevealField.Password, "why", created);
+        RevealRequest New() => new(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), user, Guid.NewGuid(), RevealField.Password, "why", created, "Item", Guid.NewGuid());
 
         var undecided = New();
         Assert.AreEqual(RevealRequestStatus.Pending, undecided.StatusAt(created.AddMinutes(4)));
@@ -185,7 +185,7 @@ public class RevealFlowTests
 
         Assert.ThrowsExactly<UnauthorizedAccessException>(() => New().Approve(Guid.NewGuid(), created));
         Assert.ThrowsExactly<ArgumentException>(() =>
-            new RevealRequest(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), user, Guid.NewGuid(), RevealField.Value, new string('x', RevealRequest.MaxReasonLength + 1), created));
+            new RevealRequest(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), user, Guid.NewGuid(), RevealField.Value, new string('x', RevealRequest.MaxReasonLength + 1), created, "Item", Guid.NewGuid()));
     }
 
     private static async Task<(Guid TenantId, Guid Owner, Guid Vault, Guid Login, Guid Note)> SeedAsync(WebApplication app)

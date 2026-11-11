@@ -140,6 +140,13 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset?>("LastRotatedAt")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("LastUsedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("LastUsedIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<bool>("MayCreateApplications")
                         .HasColumnType("bit");
 
@@ -237,6 +244,18 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(16)");
 
                     b.Property<Guid>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ItemNameAtRequest")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("ItemNameBeforeAgentRename")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<Guid>("ItemRevisionAtRequest")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Reason")
@@ -362,7 +381,9 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SubjectReference");
+                    b.HasIndex("SubjectReference")
+                        .IsUnique()
+                        .HasFilter("[ErasedAt] IS NULL");
 
                     b.ToTable("AuditSubjects", "amkeyward");
                 });
@@ -464,14 +485,20 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("CurrentVersionId")
-                        .IsConcurrencyToken()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("FolderId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<int>("LastVersionNumber")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("NameBeforeAgentRename")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
 
@@ -479,6 +506,13 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("RenamedByAgentTokenId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("Revision")
+                        .IsConcurrencyToken()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("TenantId")
@@ -552,6 +586,9 @@ namespace Am.Keyward.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
                         .HasColumnType("datetimeoffset");
 
                     b.Property<DateTimeOffset?>("DisabledAt")

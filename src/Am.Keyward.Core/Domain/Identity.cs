@@ -89,6 +89,15 @@ public sealed class AppUser
 
     public bool IsDisabled => DisabledAt is not null;
 
+    /// <summary>
+    /// When the host deleted this account (see <c>IKeywardAccountDeletion</c>). A deleted user is also disabled; their
+    /// personal vaults are kept for the retention period (feature.md: 90 days) and then removed by the retention job.
+    /// Null for an account that was never deleted, and cleared again if the host enables the user.
+    /// </summary>
+    public DateTimeOffset? DeletedAt { get; private set; }
+
+    public bool IsDeleted => DeletedAt is not null;
+
     public AppUser(Guid id, string? issuer, string externalId, string displayName, bool isSystemAdmin, DateTimeOffset createdAt, bool isSoftwareManager = false)
     {
         if (string.IsNullOrWhiteSpace(externalId))
@@ -122,7 +131,19 @@ public sealed class AppUser
     /// <summary>Disables the user. Idempotent: an already disabled user keeps the original time.</summary>
     public void Disable(DateTimeOffset at) => DisabledAt ??= at;
 
-    public void Enable() => DisabledAt = null;
+    /// <summary>Re-enables the user — and cancels a pending account deletion, so their personal vaults are kept.</summary>
+    public void Enable()
+    {
+        DisabledAt = null;
+        DeletedAt = null;
+    }
+
+    /// <summary>Marks the account deleted (and disabled). Idempotent: the first deletion time is kept.</summary>
+    public void MarkDeleted(DateTimeOffset at)
+    {
+        Disable(at);
+        DeletedAt ??= at;
+    }
 }
 
 /// <summary>Many-to-many user↔tenant link with a per-tenant role (0..n tenants per user).</summary>

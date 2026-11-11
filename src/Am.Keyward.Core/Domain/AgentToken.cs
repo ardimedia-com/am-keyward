@@ -89,6 +89,15 @@ public sealed class AgentToken
     public int? LastExpiryNoticeDaysLeft { get; private set; }
     public DateTimeOffset? RevokedAt { get; private set; }
 
+    /// <summary>
+    /// When the token was last used successfully, accurate to the statistics flush interval (recorded in memory on
+    /// every authenticated request and persisted in batches). Null while it was never used.
+    /// </summary>
+    public DateTimeOffset? LastUsedAt { get; private set; }
+
+    /// <summary>The client address of the last successful use (see <see cref="LastUsedAt"/>).</summary>
+    public string? LastUsedIp { get; private set; }
+
     public IReadOnlyList<AgentTokenVaultAllowance> AllowedVaults => _allowedVaults;
 
     /// <summary>The existing applications this token may manage (with <see cref="AgentScopes.ManageApplications"/>).</summary>
@@ -273,6 +282,18 @@ public sealed class AgentToken
     }
 
     public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;
+
+    /// <summary>Records a use; an older timestamp than the stored one is ignored (batches may arrive late).</summary>
+    public void RecordUse(DateTimeOffset at, string? ipAddress)
+    {
+        if (LastUsedAt is { } last && at <= last)
+        {
+            return;
+        }
+
+        LastUsedAt = at;
+        LastUsedIp = string.IsNullOrWhiteSpace(ipAddress) ? LastUsedIp : ipAddress.Trim();
+    }
 }
 
 /// <summary>One existing application (software project) an agent token may manage. Deleted with the application or the token.</summary>

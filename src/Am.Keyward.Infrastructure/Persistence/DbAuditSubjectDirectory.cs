@@ -2,6 +2,8 @@ using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Audit;
+using Am.Keyward.Core.Domain.ValueObjects;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Am.Keyward.Infrastructure.Persistence;
@@ -14,6 +16,12 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// stages a newly-created subject on the CALLER's unit of work, so it is persisted by the caller's
 /// SaveChanges together with the audit entry that references it; the port methods run on the scope's shared
 /// context (endpoint semantics).
+/// <para>
+/// A new pseudonym is created with ONE insert-if-absent statement (under an update/range lock) on the caller's context
+/// and connection, not staged for the caller's SaveChanges: two concurrent first audits of the same new actor must end
+/// in one pseudonym, which the filtered unique index on <c>SubjectReference</c> (live rows) also enforces. Inside a
+/// caller's transaction the row commits or rolls back with it.
+/// </para>
 /// </summary>
 public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend backend, IClock clock) : IAuditSubjectDirectory
 {
@@ -43,21 +51,50 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
             return staged.Id;
         }
 
-        var existing = await target.AuditSubjects
-            .FirstOrDefaultAsync(s => s.SubjectReference == reference && s.ErasedAt == null, ct)
-            .ConfigureAwait(false);
-        if (existing is not null)
+        if (await FindLiveAsync(target, reference, ct).ConfigureAwait(false) is { } existing)
         {
-            return existing.Id;
+            return existing;
         }
 
         var pseudonymId = Guid.NewGuid();
         var aad = Aad.ForAuditSubjectPii(pseudonymId, AlgVersion);
         var plaintext = JsonSerializer.SerializeToUtf8Bytes(pii, Json);
-        var encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
-        target.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
-        return pseudonymId;
+        EncryptedValue encrypted;
+        try
+        {
+            encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(plaintext);
+        }
+
+        // Same JSON shape as the EncryptedPii value converter of KeywardDbContext (web defaults).
+        var encryptedJson = JsonSerializer.Serialize(encrypted, Json);
+        var createdAt = clock.UtcNow;
+        try
+        {
+            await target.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO [amkeyward].[AuditSubjects] ([Id], [SubjectReference], [EncryptedPii], [CreatedAt], [ErasedAt])
+                SELECT {pseudonymId}, {reference}, {encryptedJson}, {createdAt}, NULL
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM [amkeyward].[AuditSubjects] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [SubjectReference] = {reference} AND [ErasedAt] IS NULL);", ct).ConfigureAwait(false);
+        }
+        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        {
+            // A concurrent writer created it between our check and our insert — use theirs.
+        }
+
+        return await FindLiveAsync(target, reference, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The audit pseudonym could not be created.");
     }
+
+    private static Task<Guid?> FindLiveAsync(KeywardDbContext target, string reference, CancellationToken ct) =>
+        target.AuditSubjects.AsNoTracking()
+            .Where(s => s.SubjectReference == reference && s.ErasedAt == null)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(ct);
 
     public async Task<AuditSubjectPii?> TryReadPiiAsync(Guid pseudonymId, CancellationToken ct = default)
     {
@@ -83,8 +120,12 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
         }
 
         var reference = subjectReference.Trim();
+
+        // Includes the duplicates the Review3DataIntegrity migration set aside as «<reference>#<id>» (two live
+        // pseudonyms of one actor, created by a race before the unique index existed) — erasure must reach them too.
+        var setAside = reference + "#";
         var subjects = await db.AuditSubjects
-            .Where(s => s.SubjectReference == reference && s.ErasedAt == null)
+            .Where(s => (s.SubjectReference == reference || s.SubjectReference.StartsWith(setAside)) && s.ErasedAt == null)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 

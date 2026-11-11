@@ -137,9 +137,12 @@ public sealed class Folder
     public void MoveTo(Guid? parentFolderId) => ParentFolderId = parentFolderId;
 }
 
-/// <summary>Aggregate root: a typed item in a vault (optionally in a folder), with a version chain.</summary>
+//// <summary>Aggregate root: a typed item in a vault (optionally in a folder), with a version chain.</summary>
 public sealed class VaultItem
 {
+    /// <summary>The longest item name (the column width).</summary>
+    public const int MaxNameLength = 256;
+
     private readonly List<VaultItemVersion> _versions = [];
 
     public Guid Id { get; private set; }
@@ -163,15 +166,35 @@ public sealed class VaultItem
     public Guid? CreatedBy { get; private set; }
     public Guid? CurrentVersionId { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>
+    /// The item's revision: renewed on EVERY change — a new value, a rename, a folder move. It is the
+    /// optimistic-concurrency token and the version callers echo back (the agent API's ETag / If-Match), so a
+    /// rename made in between is detected just like a new value. Equals <see cref="CurrentVersionId"/> right after a
+    /// new value is stored.
+    /// </summary>
+    public Guid Revision { get; private set; }
+
+    /// <summary>
+    /// The highest version number ever assigned to this item — a persisted counter, so the next number never
+    /// depends on how much of the history happens to be loaded (or was pruned).
+    /// </summary>
+    public int LastVersionNumber { get; private set; }
+
+    /// <summary>
+    /// Set while the current name was given by an AI agent token: which token renamed the item, and the name it had
+    /// before that agent's first rename. A reveal request shows both, so an agent cannot rename «Prod DB root» to
+    /// «wifi guest», ask for the password and rename it back unnoticed. A rename by a person clears both.
+    /// </summary>
+    public Guid? RenamedByAgentTokenId { get; private set; }
+
+    /// <inheritdoc cref="RenamedByAgentTokenId"/>
+    public string? NameBeforeAgentRename { get; private set; }
+
     public IReadOnlyList<VaultItemVersion> Versions => _versions;
 
     public VaultItem(Guid id, Guid vaultId, Guid? tenantId, Guid? ownerUserId, Guid? folderId, ItemType type, string name, Guid? createdBy, DateTimeOffset createdAt)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            throw new ArgumentException("Item name required.", nameof(name));
-        }
-
         Id = id;
         VaultId = vaultId;
         PublicId = Guid.NewGuid();
@@ -179,9 +202,10 @@ public sealed class VaultItem
         OwnerUserId = ownerUserId;
         FolderId = folderId;
         Type = type;
-        Name = name.Trim();
+        Name = ValidName(name);
         CreatedBy = createdBy;
         CreatedAt = createdAt;
+        Revision = Guid.NewGuid();
     }
 
     /// <summary>
@@ -191,33 +215,118 @@ public sealed class VaultItem
     /// </summary>
     public void AdoptPublicId(Guid publicId) => PublicId = publicId;
 
+    /// <summary>
+    /// Takes over what must survive a cross-vault move besides the content: the stable <see cref="PublicId"/> and an
+    /// agent rename marker (<see cref="RenamedByAgentTokenId"/>, <see cref="NameBeforeAgentRename"/>) — otherwise a
+    /// move would launder an agent's rename before a reveal request.
+    /// </summary>
+    public void AdoptLineageOf(VaultItem source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        PublicId = source.PublicId;
+        RenamedByAgentTokenId = source.RenamedByAgentTokenId;
+        NameBeforeAgentRename = source.NameBeforeAgentRename;
+    }
+
+    /// <summary>Stores a new value as the current version, numbered after the highest number ever assigned.</summary>
     public VaultItemVersion AddVersion(Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
     {
-        var version = new VaultItemVersion(versionId, Id, TenantId, OwnerUserId, _versions.Count + 1, encrypted, at);
+        var version = new VaultItemVersion(versionId, Id, TenantId, OwnerUserId, ++LastVersionNumber, encrypted, at);
         _versions.Add(version);
         CurrentVersionId = version.Id;
+        Revision = version.Id;
         return version;
     }
 
-    public void Rename(string name)
+    /// <summary>
+    /// Carries one version of another item's history over, keeping its number and time — used when a cross-vault
+    /// move recreates the item (each version re-encrypted under the target's binding). <paramref name="isCurrent"/>
+    /// marks the version that becomes <see cref="CurrentVersionId"/>.
+    /// </summary>
+    public VaultItemVersion CarryOverVersion(Guid versionId, int versionNumber, EncryptedValue encrypted, DateTimeOffset createdAt, bool isCurrent)
+    {
+        if (versionNumber < 1 || _versions.Any(v => v.VersionNumber == versionNumber))
+        {
+            throw new ArgumentOutOfRangeException(nameof(versionNumber), "Each carried-over version needs its own positive number.");
+        }
+
+        var version = new VaultItemVersion(versionId, Id, TenantId, OwnerUserId, versionNumber, encrypted, createdAt);
+        _versions.Add(version);
+        LastVersionNumber = Math.Max(LastVersionNumber, versionNumber);
+        if (isCurrent)
+        {
+            CurrentVersionId = version.Id;
+            Revision = version.Id;
+        }
+
+        return version;
+    }
+
+    /// <summary>
+    /// Renames the item. <paramref name="agentTokenId"/> is the AI agent token doing it (null for a person): the
+    /// item then remembers the name it had before that agent's rename (see <see cref="RenamedByAgentTokenId"/>).
+    /// Returns whether the name actually changed.
+    /// </summary>
+    public bool Rename(string name, Guid? agentTokenId = null)
+    {
+        var trimmed = ValidName(name);
+        if (string.Equals(trimmed, Name, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (agentTokenId is { } tokenId)
+        {
+            // Keep the earliest name no agent chose: a chain of agent renames still shows what a person last named it.
+            NameBeforeAgentRename ??= Name;
+            RenamedByAgentTokenId = tokenId;
+        }
+        else
+        {
+            RenamedByAgentTokenId = null;
+            NameBeforeAgentRename = null;
+        }
+
+        Name = trimmed;
+        Revision = Guid.NewGuid();
+        return true;
+    }
+
+    /// <summary>Reparent within the same vault (null = vault root). Cross-vault moves are not allowed.</summary>
+    public void MoveToFolder(Guid? folderId)
+    {
+        if (FolderId == folderId)
+        {
+            return;
+        }
+
+        FolderId = folderId;
+        Revision = Guid.NewGuid();
+    }
+
+    /// <summary>The current version. Only the current version needs to be loaded for this.</summary>
+    public VaultItemVersion Current =>
+        _versions.SingleOrDefault(v => v.Id == CurrentVersionId)
+        ?? throw new InvalidOperationException("Vault item has no current version.");
+
+    private static string ValidName(string name)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
             throw new ArgumentException("Item name required.", nameof(name));
         }
 
-        Name = name.Trim();
+        var trimmed = name.Trim();
+        if (trimmed.Length > MaxNameLength)
+        {
+            throw new ArgumentException($"An item name may be at most {MaxNameLength} characters.", nameof(name));
+        }
+
+        return trimmed;
     }
-
-    /// <summary>Reparent within the same vault (null = vault root). Cross-vault moves are not allowed.</summary>
-    public void MoveToFolder(Guid? folderId) => FolderId = folderId;
-
-    public VaultItemVersion Current =>
-        _versions.SingleOrDefault(v => v.Id == CurrentVersionId)
-        ?? throw new InvalidOperationException("Vault item has no current version.");
 }
 
-/// <summary>An immutable, encrypted version of a vault item.</summary>
+// <summary>An immutable, encrypted version of a vault item.</summary>
 public sealed class VaultItemVersion
 {
     public Guid Id { get; private set; }

@@ -26,6 +26,19 @@ public enum RevealRequestStatus
     Rejected,
     Expired,
     Consumed,
+
+    /// <summary>
+    /// Withdrawn by the system before a decision: the same agent token changed the item (renamed it or changed its
+    /// value) while the request was pending, so what the person would approve is no longer what was asked for.
+    /// </summary>
+    Voided,
+}
+
+/// <summary>Bounds that keep reveal requests from flooding the person who decides them.</summary>
+public static class RevealRequestLimits
+{
+    /// <summary>At most this many undecided, unexpired requests per agent token.</summary>
+    public const int MaxPendingPerToken = 3;
 }
 
 /// <summary>How long each step of a reveal may take.</summary>
@@ -56,6 +69,20 @@ public sealed class RevealRequest
     public Guid UserId { get; private set; }
 
     public Guid ItemId { get; private set; }
+
+    /// <summary>The item's name when the request was made — what the person is shown, whatever the item is called later.</summary>
+    public string ItemNameAtRequest { get; private set; }
+
+    /// <summary>
+    /// The name the item had before an AI agent renamed it, when its name at request time came from an agent (see
+    /// <see cref="Human.VaultItem.NameBeforeAgentRename"/>). Shown next to <see cref="ItemNameAtRequest"/> so a rename
+    /// to something harmless-looking cannot hide what is really being asked for.
+    /// </summary>
+    public string? ItemNameBeforeAgentRename { get; private set; }
+
+    /// <summary>The item's revision when the request was made; a different revision later means the item changed since.</summary>
+    public Guid ItemRevisionAtRequest { get; private set; }
+
     public RevealField Field { get; private set; }
     public string Reason { get; private set; }
     public RevealRequestStatus Status { get; private set; }
@@ -77,8 +104,24 @@ public sealed class RevealRequest
     /// </summary>
     public byte[]? RowVersion { get; private set; }
 
-    public RevealRequest(Guid id, Guid tenantId, Guid tokenId, Guid userId, Guid itemId, RevealField field, string reason, DateTimeOffset createdAt)
+    public RevealRequest(
+        Guid id,
+        Guid tenantId,
+        Guid tokenId,
+        Guid userId,
+        Guid itemId,
+        RevealField field,
+        string reason,
+        DateTimeOffset createdAt,
+        string itemNameAtRequest,
+        Guid itemRevisionAtRequest,
+        string? itemNameBeforeAgentRename = null)
     {
+        if (string.IsNullOrWhiteSpace(itemNameAtRequest))
+        {
+            throw new ArgumentException("The item name at request time is required.", nameof(itemNameAtRequest));
+        }
+
         if (string.IsNullOrWhiteSpace(reason))
         {
             throw new ArgumentException("A reveal request must state a reason.", nameof(reason));
@@ -94,6 +137,9 @@ public sealed class RevealRequest
         TokenId = tokenId;
         UserId = userId;
         ItemId = itemId;
+        ItemNameAtRequest = itemNameAtRequest;
+        ItemNameBeforeAgentRename = string.IsNullOrWhiteSpace(itemNameBeforeAgentRename) ? null : itemNameBeforeAgentRename;
+        ItemRevisionAtRequest = itemRevisionAtRequest;
         Field = field;
         Reason = reason.Trim();
         Status = RevealRequestStatus.Pending;
@@ -134,6 +180,22 @@ public sealed class RevealRequest
 
         Status = RevealRequestStatus.Consumed;
         ConsumedAt = at;
+    }
+
+    /// <summary>
+    /// Withdraws a still-pending request (see <see cref="RevealRequestStatus.Voided"/>). Returns false when it was no
+    /// longer pending — a decided request is left as it is.
+    /// </summary>
+    public bool Void(DateTimeOffset at)
+    {
+        if (StatusAt(at) != RevealRequestStatus.Pending)
+        {
+            return false;
+        }
+
+        Status = RevealRequestStatus.Voided;
+        DecidedAt = at;
+        return true;
     }
 
     private void EnsureDecidable(Guid userId, DateTimeOffset at)

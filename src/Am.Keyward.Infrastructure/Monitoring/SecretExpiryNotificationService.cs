@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Infrastructure.Monitoring;
 
@@ -19,7 +20,10 @@ namespace Am.Keyward.Infrastructure.Monitoring;
 /// Unlike a token expiry, a secret-value expiry is ADVISORY: nothing stops working when the date passes (a
 /// forgotten rotation must never take a deployed application down), so this notice is the only thing that
 /// makes the date matter. Each line carries the value's rotation note, because "how do I get a new one" is
-/// exactly the question the notice raises. The secret itself never leaves the database here.
+/// exactly the question the notice raises. The secret itself never leaves the database here. Because nothing stops
+/// working, the date passing is announced ONCE more («expired», days left 0 or below) — otherwise a missed rotation
+/// would go quiet exactly when it matters. Dates that passed more than <see cref="OverdueWindow"/> ago are left alone,
+/// so an upgrade does not mail a backlog of long-forgotten values.
 /// </para>
 /// <para>
 /// Structural difference to <see cref="TokenExpiryNotificationService"/>: the token table is
@@ -32,6 +36,7 @@ namespace Am.Keyward.Infrastructure.Monitoring;
 public sealed class SecretExpiryNotificationService(
     IServiceScopeFactory scopeFactory,
     IClock clock,
+    IOptions<MonitoringOptions> monitoringOptions,
     ILogger<SecretExpiryNotificationService> logger) : BackgroundService
 {
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
@@ -39,6 +44,9 @@ public sealed class SecretExpiryNotificationService(
     // Offset against the token service's two minutes: both wake on the same interval, and there is no reason
     // for them to hit the database in the same instant on every tick.
     private static readonly TimeSpan StartupDelay = TimeSpan.FromMinutes(3);
+
+    /// <summary>How long after its date a value still gets its one «expired» notice.</summary>
+    internal static readonly TimeSpan OverdueWindow = TimeSpan.FromDays(30);
 
     private bool _missingPresenterLogged;
 
@@ -71,7 +79,8 @@ public sealed class SecretExpiryNotificationService(
         }
     }
 
-    private async Task NotifyDueValuesAsync(CancellationToken ct)
+    /// <summary>One run over every tenant. Returns how many values were marked announced.</summary>
+    internal async Task<int> NotifyDueValuesAsync(CancellationToken ct)
     {
         List<Guid> tenantIds;
         bool hasPresenter;
@@ -90,14 +99,15 @@ public sealed class SecretExpiryNotificationService(
 
         if (tenantIds.Count == 0)
         {
-            return;
+            return 0;
         }
 
+        var marked = 0;
         foreach (var tenantId in tenantIds)
         {
             try
             {
-                await NotifyTenantAsync(tenantId, hasPresenter, ct).ConfigureAwait(false);
+                marked += await NotifyTenantAsync(tenantId, hasPresenter, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -108,28 +118,35 @@ public sealed class SecretExpiryNotificationService(
                 logger.LogError(ex, "Secret-expiry notification failed for tenant {TenantId}; continuing with the next tenant.", tenantId);
             }
         }
+
+        return marked;
     }
 
-    private async Task NotifyTenantAsync(Guid tenantId, bool hasPresenter, CancellationToken ct)
+    private async Task<int> NotifyTenantAsync(Guid tenantId, bool hasPresenter, CancellationToken ct)
     {
         var now = clock.UtcNow;
+        var zone = monitoringOptions.Value.ResolveTimeZone(logger);
         using var scope = scopeFactory.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(tenantId);
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
         var horizon = now.AddDays(ExpiryNoticePolicy.WindowDays + 1);
+        var overdueHorizon = now - OverdueWindow;
         var candidates = await db.SecretValues
-            .Where(v => v.ExpiresAt != null && v.ExpiresAt > now && v.ExpiresAt <= horizon)
+            .Where(v => v.ExpiresAt != null && v.ExpiresAt > overdueHorizon && v.ExpiresAt <= horizon)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        // Ahead of the date: the 30/20/10-then-daily schedule (calendar days in the installation's zone). Past it: one
+        // «expired» notice, recorded as ExpiryNoticePolicy.OverdueNoticeMarker.
         var due = candidates
-            .Select(v => (Value: v, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, v.ExpiresAt!.Value)))
-            .Where(x => ExpiryNoticePolicy.IsDue(x.DaysLeft, x.Value.LastExpiryNoticeDaysLeft))
+            .Select(v => (Value: v, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, v.ExpiresAt!.Value, zone)))
+            .Where(x => ExpiryNoticePolicy.IsDue(x.DaysLeft, x.Value.LastExpiryNoticeDaysLeft)
+                || ExpiryNoticePolicy.IsOverdueNoticeDue(x.DaysLeft, x.Value.LastExpiryNoticeDaysLeft))
             .ToList();
         if (due.Count == 0)
         {
-            return;
+            return 0;
         }
 
         // Without a presenter nobody would ever hear that a value is due for rotation — say it once, loudly,
@@ -146,7 +163,7 @@ public sealed class SecretExpiryNotificationService(
                 _missingPresenterLogged = true;
             }
 
-            return;
+            return 0;
         }
 
         _missingPresenterLogged = false;
@@ -169,21 +186,23 @@ public sealed class SecretExpiryNotificationService(
             .ConfigureAwait(false);
         if (recipients.Count == 0)
         {
-            return;
+            return 0;
         }
 
         var lines = await BuildLinesAsync(db, due, ct).ConfigureAwait(false);
         var delivered = await presenter.NotifySecretExpiryAsync(tenantId, recipients, lines, ct).ConfigureAwait(false);
         if (delivered == 0)
         {
-            return;
+            return 0;
         }
 
         // Only now is the notice recorded: a host that could not deliver keeps them pending instead of
         // losing them. The UPDATE runs in the tenant's own scope, so RLS admits it.
+        // One SaveChanges for the whole tenant on this scope's own context, so the change-tracker reset after a save
+        // cannot drop marks of a later group (the failure mode of the other notice jobs before review 3).
         foreach (var (value, daysLeft) in due)
         {
-            value.MarkExpiryNoticeSent(daysLeft);
+            value.MarkExpiryNoticeSent(daysLeft < 1 ? ExpiryNoticePolicy.OverdueNoticeMarker : daysLeft);
         }
 
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
@@ -191,6 +210,7 @@ public sealed class SecretExpiryNotificationService(
         logger.LogInformation(
             "Secret-expiry notification delivered to {RecipientCount} recipient(s) for tenant {TenantId} covering {ValueCount} value(s).",
             delivered, tenantId, due.Count);
+        return due.Count;
     }
 
     /// <summary>Resolves the display data for the notice body (secret key, application and environment names).</summary>

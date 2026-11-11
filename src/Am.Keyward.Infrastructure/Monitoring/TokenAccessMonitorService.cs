@@ -4,6 +4,7 @@ using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.Software;
 using Am.Keyward.Infrastructure.Persistence;
+using Am.Keyward.Infrastructure.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
@@ -22,6 +23,7 @@ public sealed class TokenAccessMonitorService(
     ICurrentTenant tenant,
     DbAuditSink audit,
     IOptions<MonitoringOptions> options,
+    IOptions<TokenAccessOptions> tokenAccessOptions,
     ICurrentUser currentUser,
     ICurrentActor actor) : ITokenAccessMonitorService
 {
@@ -70,6 +72,16 @@ public sealed class TokenAccessMonitorService(
     public async Task UpsertAsync(UpsertTokenMonitorCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
+
+        // Below this the evaluator cannot tell a late heartbeat from a flush that has not run yet (see HeartbeatTiming).
+        var minimum = HeartbeatTiming.MinimumMaxSilenceMinutes(options.Value, tokenAccessOptions.Value);
+        if (cmd.MaxSilenceMinutes < minimum)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(cmd), cmd.MaxSilenceMinutes,
+                $"The allowed silence must be at least {minimum} minutes (check interval + statistics flush interval of this installation).");
+        }
+
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         await EnsureSoftwareOperatorAsync(db, cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
         await EnsureTokenInTenantAsync(db, cmd.TenantId, cmd.TokenId, ct).ConfigureAwait(false);
