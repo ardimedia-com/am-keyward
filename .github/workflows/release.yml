@@ -38,10 +38,10 @@ jobs:
           fi
           echo "CHANGELOG.md has a section for ${TAG_LABEL}."
 
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
 
       - name: Restore
         run: dotnet restore Am.Keyward.slnx
@@ -132,10 +132,10 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup .NET 10
+      - name: Setup .NET 11
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: '11.0.x'
 
       - name: Publish amkeyward-mcp and keyward (${{ matrix.rid }})
         shell: bash
