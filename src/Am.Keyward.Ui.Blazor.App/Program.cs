@@ -190,6 +190,7 @@ builder.Services.Configure<InvitationTokenProviderOptions>(o =>
     o.TokenLifespan = TimeSpan.FromHours(Math.Clamp(registrationOptions.InvitationLifetimeHours, 1, 24 * 14)));
 builder.Services.AddScoped<RegistrationGate>();
 builder.Services.AddScoped<InvitationService>();
+builder.Services.AddScoped<AdminUserDeletion>();
 
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<IdentityUser>, KeywardUserClaimsPrincipalFactory>();
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
@@ -281,10 +282,12 @@ builder.Services.AddHostedService<Am.Keyward.Ui.Blazor.App.BackgroundServices.Da
 builder.Services.AddScoped<IKeywardAlertPresenter, Am.Keyward.Ui.Blazor.App.Identity.BrandedMailAlertPresenter>();
 
 // Monitoring/health: a live KEK-availability probe and the cached ops-monitor snapshot (KEK integrity,
-// audit-chain integrity, token expiry). Exposed at /health (liveness) and /health/ready (readiness).
+// audit-chain integrity, token expiry) and the single-instance check (one running instance per database is the
+// supported deployment). Exposed at /health (liveness) and /health/ready (readiness).
 builder.Services.AddHealthChecks()
     .AddCheck<KekAvailabilityHealthCheck>("kek-availability", tags: ["ready", "live"])
-    .AddCheck<OpsMonitorHealthCheck>("ops-monitor", tags: ["ready"]);
+    .AddCheck<OpsMonitorHealthCheck>("ops-monitor", tags: ["ready"])
+    .AddCheck<KeywardSingleInstanceHealthCheck>("single-instance", tags: ["ready"]);
 
 var app = builder.Build();
 
@@ -484,64 +487,15 @@ adminUsers.MapPost("/enable", async (HttpContext ctx, [FromForm] string userId,
     return Results.LocalRedirect("/account/admin/users");
 });
 
-// Delete an account (offboarding): removes the Identity login, the tenant membership(s), the user's access
-// grants and their personal vaults (folders/items/versions cascade). The domain AppUser row is kept so the
-// audit chain's actor references stay meaningful. Guards: never self, never the last tenant admin, never
-// the last system admin. The vault deletion runs in the TARGET user's scope — the row-level-security
-// predicate admits personal vaults only for their owner, so an admin delete must act on the owner's behalf.
+// Delete an account (offboarding) with the personal-vault retention: see AdminUserDeletion. Guards: never self, never
+// the last tenant admin, never the last system admin. The admin's action is audited before anything changes.
 adminUsers.MapPost("/delete", async (HttpContext ctx, [FromForm] string userId,
-    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit,
-    IUserScopeSetter userScope, ITenantScopeSetter tenantScope, [FromServices] IKeywardIdentityBinder keywardUsers) =>
+    UserManager<IdentityUser> users, KeywardDbContext db, IAuditSink audit, AdminUserDeletion deletion) =>
 {
-    if (userId == users.GetUserId(ctx.User))
-    {
-        return Results.LocalRedirect("/account/admin/users");
-    }
-
-    var domainUser = await db.Users.FirstOrDefaultAsync(u => u.Issuer == null && u.ExternalId == userId);
-    if (domainUser is not null)
-    {
-        var isLastSystemAdmin = domainUser.IsSystemAdmin
-            && await db.Users.CountAsync(u => u.IsSystemAdmin) <= 1;
-        var isLastTenantAdmin = await db.TenantMemberships.AnyAsync(m =>
-                m.TenantId == Demo.TenantId && m.UserId == domainUser.Id && m.Role == TenantRole.TenantAdmin)
-            && await db.TenantMemberships.CountAsync(m =>
-                m.TenantId == Demo.TenantId && m.Role == TenantRole.TenantAdmin) <= 1;
-        if (isLastSystemAdmin || isLastTenantAdmin)
-        {
-            return Results.LocalRedirect("/account/admin/users");
-        }
-
-        // Audit FIRST (as the acting admin), then switch to the target's scope for the data removal. The
-        // AppUser row stays (audit references), so it is disabled: nothing may act for a deleted account.
-        await AuditUserAdminAsync(ctx, db, audit, userId, "delete");
-        await keywardUsers.DisableAsync(userId);
-
-        userScope.SetUser(domainUser.Id);
-        tenantScope.SetTenant(Demo.TenantId);
-
-        var vaultIds = await db.Vaults
-            .Where(v => v.TenantId == null && v.OwnerUserId == domainUser.Id)
-            .Select(v => v.Id)
-            .ToListAsync();
-        db.AccessGrants.RemoveRange(await db.AccessGrants
-            .Where(g => (g.Scope.Kind == GrantScopeKind.Vault && vaultIds.Contains(g.Scope.TargetId))
-                || (g.PrincipalType == PrincipalType.User && g.PrincipalId == domainUser.Id))
-            .ToListAsync());
-        db.Vaults.RemoveRange(await db.Vaults
-            .Where(v => v.TenantId == null && v.OwnerUserId == domainUser.Id)
-            .ToListAsync());
-        db.TenantMemberships.RemoveRange(await db.TenantMemberships
-            .Where(m => m.UserId == domainUser.Id)
-            .ToListAsync());
-        await db.SaveChangesAsync();
-    }
-
-    var identityUser = await users.FindByIdAsync(userId);
-    if (identityUser is not null)
-    {
-        await users.DeleteAsync(identityUser);
-    }
+    await deletion.DeleteAsync(
+        userId, users.GetUserId(ctx.User), Demo.TenantId,
+        () => AuditUserAdminAsync(ctx, db, audit, userId, "delete"),
+        ctx.RequestAborted);
 
     return Results.LocalRedirect("/account/admin/users");
 });

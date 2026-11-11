@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -412,6 +413,137 @@ public class Review3ShellTests
         finally
         {
             await users.DeleteAsync(user);
+        }
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task The_reveal_mail_names_an_agent_rename_and_a_past_due_secret_reads_expired()
+    {
+        if (!await CanConnectAsync())
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        await using var factory = new ShellFactory("Development", new Dictionary<string, string?>
+        {
+            ["Keyward:NotificationLanguage"] = "en",
+        });
+        _ = factory.Server;
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var email = $"mailtext-{Guid.NewGuid():N}@example.test";
+        var user = new IdentityUser { UserName = email, Email = email };
+        Assert.IsTrue((await users.CreateAsync(user)).Succeeded);
+
+        try
+        {
+            var presenter = scope.ServiceProvider.GetRequiredService<IKeywardAlertPresenter>();
+            var recipient = new KeywardAlertRecipient(Guid.NewGuid(), user.Id);
+
+            await presenter.NotifyRevealRequestAsync(Demo.TenantId, recipient, new KeywardRevealRequestLine(
+                Guid.NewGuid(), "laptop", "Team", "Test sandbox", Core.Domain.Agent.RevealField.Password, "setup",
+                DateTimeOffset.UtcNow.AddMinutes(10), Guid.NewGuid(), ItemNameBeforeAgentRename: "Production database"));
+            var reveal = string.Join("\n", SentMail.Last(m => m.To == email).Content.Paragraphs);
+            StringAssert.Contains(reveal, "«Production database»");
+            StringAssert.Contains(reveal, "renamed the entry itself");
+
+            await presenter.NotifySecretExpiryAsync(Demo.TenantId, [recipient],
+            [
+                new KeywardSecretExpiryLine("TODAY_KEY", "demo", "Production", 0, new DateTimeOffset(2026, 11, 11, 23, 59, 59, TimeSpan.Zero), ""),
+                new KeywardSecretExpiryLine("OLD_KEY", "demo", "Production", -3, new DateTimeOffset(2026, 11, 8, 23, 59, 59, TimeSpan.Zero), ""),
+                new KeywardSecretExpiryLine("SOON_KEY", "demo", "Production", 5, new DateTimeOffset(2026, 11, 16, 23, 59, 59, TimeSpan.Zero), ""),
+            ]);
+            var expiry = SentMail.Last(m => m.To == email).Content.Paragraphs;
+            StringAssert.Contains(expiry.Single(p => p.Contains("TODAY_KEY", StringComparison.Ordinal)), "expired on 2026-11-11");
+            StringAssert.Contains(expiry.Single(p => p.Contains("OLD_KEY", StringComparison.Ordinal)), "expired on 2026-11-08");
+            StringAssert.Contains(expiry.Single(p => p.Contains("SOON_KEY", StringComparison.Ordinal)), "due in 5 day(s)");
+            Assert.IsFalse(expiry.Any(p => p.Contains("due in -", StringComparison.Ordinal) || p.Contains("due in 0", StringComparison.Ordinal)));
+        }
+        finally
+        {
+            await users.DeleteAsync(user);
+        }
+    }
+
+    [TestMethod, TestCategory("Integration")]
+    public async Task Deleting_an_account_disables_it_at_once_and_keeps_its_personal_vaults_for_the_retention()
+    {
+        if (!await CanConnectAsync())
+        {
+            Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
+            return;
+        }
+
+        await using var factory = new ShellFactory("Development");
+        _ = factory.Server;
+
+        string identityId;
+        Guid appUserId, vaultId;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var email = $"offboard-{Guid.NewGuid():N}@example.test";
+            var user = new IdentityUser { UserName = email, Email = email };
+            Assert.IsTrue((await users.CreateAsync(user, "Correct-Horse-Battery-9")).Succeeded);
+            identityId = user.Id;
+
+            var db = scope.ServiceProvider.GetRequiredService<Infrastructure.Persistence.KeywardDbContext>();
+            appUserId = Guid.NewGuid();
+            db.Users.Add(new Core.Domain.Identity.AppUser(appUserId, null, identityId, email, isSystemAdmin: false, DateTimeOffset.UtcNow));
+            await db.SaveChangesAsync();
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            scope.ServiceProvider.GetRequiredService<Core.Abstractions.IUserScopeSetter>().SetUser(appUserId);
+            vaultId = await scope.ServiceProvider.GetRequiredService<IVaultService>()
+                .CreatePersonalVaultAsync(new CreatePersonalVaultCommand(appUserId, "personal"));
+        }
+
+        var audited = 0;
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var deletion = scope.ServiceProvider.GetRequiredService<AdminUserDeletion>();
+            Assert.AreEqual(AdminUserDeletionOutcome.Refused,
+                await deletion.DeleteAsync(identityId, identityId, Demo.TenantId, () => { audited++; return Task.CompletedTask; }));
+            Assert.AreEqual(0, audited, "a refused deletion is not audited");
+
+            Assert.AreEqual(AdminUserDeletionOutcome.AccountDeleted,
+                await deletion.DeleteAsync(identityId, "another-admin", Demo.TenantId, () => { audited++; return Task.CompletedTask; }));
+            Assert.AreEqual(1, audited);
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            // The login stays (the account can be restored) but is locked for good.
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var login = await users.FindByIdAsync(identityId);
+            Assert.IsNotNull(login);
+            Assert.AreEqual(DateTimeOffset.MaxValue, login.LockoutEnd);
+
+            scope.ServiceProvider.GetRequiredService<Core.Abstractions.IUserScopeSetter>().SetUser(appUserId);
+            var db = scope.ServiceProvider.GetRequiredService<Infrastructure.Persistence.KeywardDbContext>();
+            var appUser = await db.Users.AsNoTracking().SingleAsync(u => u.Id == appUserId);
+            Assert.IsTrue(appUser.IsDeleted);
+            Assert.IsNotNull(appUser.DisabledAt);
+            Assert.IsTrue(await db.Vaults.AnyAsync(v => v.Id == vaultId), "the personal vault is kept for the retention period");
+
+            await users.DeleteAsync(login);
+        }
+
+        // An account that never signed in holds nothing to retain: its login is deleted outright.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var email = $"never-{Guid.NewGuid():N}@example.test";
+            var invited = new IdentityUser { UserName = email, Email = email };
+            Assert.IsTrue((await users.CreateAsync(invited)).Succeeded);
+
+            Assert.AreEqual(AdminUserDeletionOutcome.LoginDeleted, await scope.ServiceProvider.GetRequiredService<AdminUserDeletion>()
+                .DeleteAsync(invited.Id, "another-admin", Demo.TenantId, () => Task.CompletedTask));
+            Assert.IsNull(await users.FindByIdAsync(invited.Id));
         }
     }
 

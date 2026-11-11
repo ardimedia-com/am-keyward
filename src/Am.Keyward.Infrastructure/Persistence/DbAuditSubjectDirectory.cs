@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
@@ -109,7 +110,14 @@ public sealed class DbAuditSubjectDirectory(
 
         var aad = Aad.ForAuditSubjectPii(pseudonymId, subject.EncryptedPii.AlgVersion);
         var plaintext = await backend.UnprotectAsync(subject.EncryptedPii, aad, ct).ConfigureAwait(false);
-        return JsonSerializer.Deserialize<AuditSubjectPii>(plaintext, Json);
+        try
+        {
+            return JsonSerializer.Deserialize<AuditSubjectPii>(plaintext, Json);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
     }
 
     public async Task<int> EraseAsync(string subjectReference, CancellationToken ct = default)

@@ -15,7 +15,8 @@ namespace Am.Keyward.Api;
 /// directly — not through middleware order — so every Keyward service sees the user and every audit entry is
 /// attributed to <see cref="ActorKind.Agent"/> with the token. A refused token is audited by the validator (when its
 /// prefix identified a token) and counted by <see cref="FailedAuthenticationThrottle"/> per (address, prefix) — a token
-/// that validates is never refused by the throttle.
+/// that validates is never refused by the throttle. Every successful authentication records the token's last use
+/// through <see cref="IAgentTokenAccessRecorder"/>.
 /// </summary>
 public sealed class AgentAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -33,6 +34,7 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
     private readonly IActorScopeSetter actorScope;
     private readonly FailedAuthenticationThrottle failedAttempts;
     private readonly AgentNetworkPolicy networkPolicy;
+    private readonly IAgentTokenAccessRecorder accessRecorder;
 
     // Marks a request refused for its network, so the challenge answers 403 instead of 401.
     private const string OutsideAllowedNetworks = "Keyward.Agent.OutsideAllowedNetworks";
@@ -46,9 +48,11 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         IUserScopeSetter userScope,
         IActorScopeSetter actorScope,
         FailedAuthenticationThrottle failedAttempts,
-        AgentNetworkPolicy networkPolicy)
+        AgentNetworkPolicy networkPolicy,
+        IAgentTokenAccessRecorder accessRecorder)
         : base(options, logger, encoder)
     {
+        this.accessRecorder = accessRecorder;
         this.networkPolicy = networkPolicy;
         this.authenticator = authenticator;
         this.tenantScope = tenantScope;
@@ -117,6 +121,9 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         tenantScope.SetTenant(principal.TenantId);
         userScope.SetUser(principal.UserId);
         actorScope.SetActor(ActorKind.Agent, principal.TokenId);
+
+        // Last use (time + client address) is a security signal shown in the token list; in memory only, never throws.
+        accessRecorder.Record(principal.TokenId, clientIp);
 
         var identity = new ClaimsIdentity(
         [

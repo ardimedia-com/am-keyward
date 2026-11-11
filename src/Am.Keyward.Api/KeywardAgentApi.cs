@@ -268,6 +268,11 @@ public static class KeywardAgentApi
                 var state = await reveals.RequestAsync(tokenId, itemId, field, body.Reason ?? "", ct);
                 return Results.Accepted($"{DefaultPrefix}/reveal-requests/{state.Id}", ToResponse(state));
             }
+            catch (RevealRequestLimitExceededException ex)
+            {
+                // Too many undecided requests of this token: the agent waits for a decision (or expiry), it is not an error.
+                return Results.Problem(statusCode: StatusCodes.Status429TooManyRequests, title: ex.Message);
+            }
             catch (ArgumentException ex)
             {
                 return BadRequest(ex.Message);

@@ -138,6 +138,10 @@ public sealed class BrandedMailAlertPresenter(
                 Paragraphs =
                 [
                     loc["Email.Reveal.Intro", line.TokenName, loc[$"AgentTokens.Field.{line.Field}"].Value, line.ItemName, line.VaultName, FormatTimestamp(line.ExpiresAt)].Value,
+                    // The agent named the entry itself: the name above may be chosen to make the request look harmless.
+                    .. string.IsNullOrEmpty(line.ItemNameBeforeAgentRename)
+                        ? (string[])[]
+                        : [loc["Email.Reveal.RenamedByAgent", line.ItemNameBeforeAgentRename].Value],
                     loc["Email.Reveal.ReasonLabel"].Value,
                     line.Reason,
                     loc["Email.Reveal.Outro"].Value,
@@ -236,15 +240,8 @@ public sealed class BrandedMailAlertPresenter(
             // notice into something actionable ("this is where a new value comes from").
             var lines = due
                 .SelectMany(x => string.IsNullOrWhiteSpace(x.Note)
-                    ? (string[])
-                    [
-                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatExpiryDate(x.ExpiresAt)].Value,
-                    ]
-                    :
-                    [
-                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatExpiryDate(x.ExpiresAt)].Value,
-                        loc["Email.SecretExpiry.LineNote", x.Note].Value,
-                    ])
+                    ? (string[]) [SecretExpiryLine(x)]
+                    : [SecretExpiryLine(x), loc["Email.SecretExpiry.LineNote", x.Note].Value])
                 .ToList();
 
             return (loc["Email.SecretExpiry.Subject", uiOptions.ProductName].Value, new BrandedEmailContent
@@ -267,6 +264,11 @@ public sealed class BrandedMailAlertPresenter(
             CultureInfo.CurrentUICulture = previous;
         }
     }
+
+    // A secret past its date is «expired», not «due in 0 (or -3) days».
+    private string SecretExpiryLine(KeywardSecretExpiryLine x) => x.DaysLeft <= 0
+        ? loc["Email.SecretExpiry.LineExpired", x.SecretKey, x.ProjectName, x.EnvironmentName, FormatExpiryDate(x.ExpiresAt)].Value
+        : loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatExpiryDate(x.ExpiresAt)].Value;
 
     private (string Subject, BrandedEmailContent Content) BuildContent(bool monitoring, IReadOnlyList<KeywardTokenAlertLine> alerts)
     {
