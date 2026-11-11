@@ -24,9 +24,11 @@ Fixes from the third, code-level security review (all findings, decision T1060 B
   deployment).
 - **Account deletion with a 90-day retention** (`IKeywardAccountDeletion`): the user is disabled at once, personal
   vaults are removed after `Keyward:Retention:PersonalVaultRetentionDays` (default 90); enabling the user again
-  cancels it. Old reveal requests are purged after 30 days.
-- **Agent tokens show when and from where they were last used**, and an agent's listing and searching of vaults is
-  audited.
+  cancels it. Old reveal requests are purged after 30 days. «Delete» in the reference shell's user administration
+  uses it: the account shows «Deleted» with the date its personal vaults are kept until, and «Enable» restores it.
+- **Agent tokens show when and from where they were last used** (time and client address on «AI agent tokens»), and
+  an agent's listing and searching of vaults is audited.
+- `/health/ready` reports a second instance running on the same database.
 - **One «expired» notice** for a secret value whose rotation date has passed.
 - `ExpiresOn` gives a secret's rotation date as the calendar date the user entered.
 
@@ -47,13 +49,17 @@ Fixes from the third, code-level security review (all findings, decision T1060 B
   `Keyward__ServiceUri`, never from a file in the working folder.
 - **BREAKING:** the MCP tool `update_item` requires `versionId`.
 - **BREAKING:** an entry's version (`VersionId`, the ETag) is now its revision and changes on renames and moves too;
-  `UpdateVaultItemCommand` takes an optional expected version.
+  `UpdateVaultItemCommand` takes an optional expected version. Saving an entry in the UI no longer overwrites
+  someone else's change: the current version is shown with a conflict message.
+- **BREAKING:** `ITokenAccessMonitorService` has a new member `MinimumMaxSilenceMinutes`; the monitor editor shows and
+  enforces the minimum allowed silence.
 - **BREAKING:** `keyward run --all` / `keyward env` refuse key names that would set loader, interpreter or shell
   variables (`PATH`, `LD_PRELOAD`, `DOTNET_*`, `NODE_OPTIONS` …) unless `--allow-name` lists them.
 - The Keyward UI takes its colours from the host's am.ui design tokens (`--card`, `--border`, `--primary`, …) and
   falls back to its own palette (decision T1063 A).
-- Reveal requests show the entry's name at request time, its earlier name after an agent rename, and flag later
-  changes; a token may have at most 3 undecided requests and a repeated one is reused.
+- Reveal requests — on «AI agent tokens» and in the notification mail — show the entry's name at request time, its
+  earlier name after an agent rename, and flag later changes; a token may have at most 3 undecided requests (more
+  answer 429) and a repeated one is reused. Secret-expiry mails say «expired» for values past their date.
 - Moving an entry to another vault keeps its history.
 - Expiry notices count calendar days and catch up a missed 30- or 20-day notice; the heartbeat silence has a minimum.
 - Audit-chain verification runs incrementally every hour and in full daily, without loading the chain into memory.
