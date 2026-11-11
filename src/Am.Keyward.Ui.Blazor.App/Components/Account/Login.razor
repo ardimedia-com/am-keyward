@@ -3,10 +3,11 @@
 @using System.Text
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Am.Keyward.Ui.Blazor.App.Identity
 @inject SignInManager<IdentityUser> SignInManager
 @inject UserManager<IdentityUser> UserManager
 @inject IAccountEmailSender EmailSender
+@inject AccountLinkBuilder Links
+@inject RegistrationGate Registration
 @inject ILogger<Login> Logger
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
@@ -43,7 +44,16 @@
 </EditForm>
 
 <p><a href="/account/forgot-password">@Loc["Reset.Forgot.Link"]</a></p>
-<p>@Loc["Login.NoAccount"] <a href="/account/register">@Loc["Login.RegisterLink"]</a> @Loc["Login.FirstAdminHint"]</p>
+@if (registrationAllowed)
+{
+    <p>
+        @Loc["Login.NoAccount"] <a href="/account/register">@Loc["Login.RegisterLink"]</a>
+        @if (emptyInstallation)
+        {
+            @Loc["Login.FirstAdminHint"]
+        }
+    </p>
+}
 
 @code {
     // No initializer on a [SupplyParameterFromForm] property (BL0008: a form post could overwrite it with
@@ -53,8 +63,17 @@
 
     private string? errorMessage;
     private string? infoMessage;
+    private bool registrationAllowed;
+    private bool emptyInstallation;
 
-    protected override void OnInitialized() => Input ??= new();
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        // The register link only where registration can succeed: Open mode, or the first-run path of an empty
+        // installation (InviteOnly otherwise — accounts come from invitations).
+        emptyInstallation = await Registration.IsEmptyInstallationAsync();
+        registrationAllowed = emptyInstallation || Registration.Mode == RegistrationMode.Open;
+    }
 
     private async Task LoginUser()
     {
@@ -63,13 +82,8 @@
         var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
         if (result.Succeeded)
         {
-            Nav.NavigateTo(string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl);
-            return;
-        }
-
-        if (result.IsLockedOut)
-        {
-            errorMessage = Loc["Login.LockedOut"];
+            // Only a path on this site — never an absolute URL, //host or /\host (open redirect).
+            Nav.NavigateTo(LocalUrl.OrRoot(ReturnUrl));
             return;
         }
 
@@ -83,6 +97,8 @@
             return;
         }
 
+        // Locked out, unknown address, wrong password: one answer. A distinct lockout message would tell a
+        // stranger that the address has an account (house rule: never reveal account existence).
         errorMessage = Loc["Login.Invalid"];
     }
 
@@ -96,14 +112,14 @@
             return false;
         }
 
-        var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-        var link = Nav.GetUriWithQueryParameters(
-            Nav.ToAbsoluteUri("account/confirm-email").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = user.Id, ["token"] = encoded });
-
         try
         {
+            var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+            var link = Links.Build("account/confirm-email", new Dictionary<string, string?>
+            {
+                ["userId"] = user.Id,
+                ["token"] = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token)),
+            }, Nav.BaseUri);
             await EmailSender.SendEmailConfirmationLinkAsync(user.Email!, link);
         }
         catch (Exception ex)

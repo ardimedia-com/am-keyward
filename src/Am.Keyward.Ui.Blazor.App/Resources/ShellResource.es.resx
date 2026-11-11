@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Layout.Error.Message" xml:space="preserve">
+    <value>Se ha producido un error inesperado.</value>
+  </data>
+  <data name="Layout.Error.Reload" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
+  <data name="Layout.Error.Dismiss" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Reconnect.Rejoining" xml:space="preserve">
+    <value>Reconectando con el servidor …</value>
+  </data>
+  <data name="Reconnect.RetryIn.Before" xml:space="preserve">
+    <value>Error al reconectar … nuevo intento en</value>
+  </data>
+  <data name="Reconnect.RetryIn.After" xml:space="preserve">
+    <value>segundos.</value>
+  </data>
+  <data name="Reconnect.Failed" xml:space="preserve">
+    <value>No se pudo reconectar.</value>
+  </data>
+  <data name="Reconnect.RetryOrReload" xml:space="preserve">
+    <value>Vuelve a intentarlo o recarga la página.</value>
+  </data>
+  <data name="Reconnect.Retry" xml:space="preserve">
+    <value>Reintentar</value>
+  </data>
+  <data name="Reconnect.Paused" xml:space="preserve">
+    <value>El servidor ha pausado la sesión.</value>
+  </data>
+  <data name="Reconnect.ResumeFailed" xml:space="preserve">
+    <value>No se pudo reanudar la sesión.</value>
+  </data>
+  <data name="Reconnect.Resume" xml:space="preserve">
+    <value>Reanudar</value>
+  </data>
+  <data name="Account.PasswordMismatch" xml:space="preserve">
+    <value>Las contraseñas no coinciden.</value>
+  </data>
+  <data name="Account.PasswordPolicy" xml:space="preserve">
+    <value>La contraseña debe tener al menos 12 caracteres e incluir mayúsculas, minúsculas y un dígito.</value>
+  </data>
+  <data name="Account.GenericError" xml:space="preserve">
+    <value>Algo salió mal. Inténtalo de nuevo más tarde.</value>
+  </data>
+  <data name="Account.TooManyAttempts" xml:space="preserve">
+    <value>Demasiados intentos. Espera unos minutos y vuelve a intentarlo.</value>
+  </data>
+  <data name="Register.InviteOnly" xml:space="preserve">
+    <value>El registro solo es posible por invitación. Pide a un administrador de esta instalación que te invite.</value>
+  </data>
+  <data name="Invite.Title" xml:space="preserve">
+    <value>Aceptar la invitación</value>
+  </data>
+  <data name="Invite.Desc" xml:space="preserve">
+    <value>Elige una contraseña para {0}.</value>
+  </data>
+  <data name="Invite.Submit" xml:space="preserve">
+    <value>Establecer la contraseña y activar la cuenta</value>
+  </data>
+  <data name="Invite.Done" xml:space="preserve">
+    <value>Tu cuenta está activa. Ya puedes iniciar sesión.</value>
+  </data>
+  <data name="Invite.Invalid" xml:space="preserve">
+    <value>Este enlace de invitación no es válido, ya se ha usado o ha caducado. Pide una nueva invitación a un administrador.</value>
+  </data>
+  <data name="Admin.Invite.Title" xml:space="preserve">
+    <value>Invitar a un usuario</value>
+  </data>
+  <data name="Admin.Invite.Desc" xml:space="preserve">
+    <value>La persona invitada recibe un enlace de un solo uso para establecer una contraseña (válido {0} horas). Hasta entonces la cuenta no puede iniciar sesión.</value>
+  </data>
+  <data name="Admin.Invite.Email" xml:space="preserve">
+    <value>Correo electrónico</value>
+  </data>
+  <data name="Admin.Invite.Submit" xml:space="preserve">
+    <value>Enviar invitación</value>
+  </data>
+  <data name="Admin.Invite.Sent" xml:space="preserve">
+    <value>Invitación enviada a {0}.</value>
+  </data>
+  <data name="Admin.Invite.Exists" xml:space="preserve">
+    <value>Ya existe una cuenta activa con esta dirección de correo.</value>
+  </data>
+  <data name="Admin.Invite.Invalid" xml:space="preserve">
+    <value>Introduce una dirección de correo válida.</value>
+  </data>
+  <data name="Admin.Invite.Failed" xml:space="preserve">
+    <value>No se pudo enviar la invitación. Los detalles están en el registro.</value>
+  </data>
+  <data name="Admin.Invite.Resend" xml:space="preserve">
+    <value>Reenviar invitación</value>
+  </data>
+  <data name="Admin.Users.State.Invited" xml:space="preserve">
+    <value>Invitado</value>
+  </data>
+  <data name="Email.Invite.Subject" xml:space="preserve">
+    <value>Invitación a {0}</value>
+  </data>
+  <data name="Email.Invite.Title" xml:space="preserve">
+    <value>Has sido invitado</value>
+  </data>
+  <data name="Email.Invite.Body1" xml:space="preserve">
+    <value>Un administrador te ha invitado a {0}.</value>
+  </data>
+  <data name="Email.Invite.Body2" xml:space="preserve">
+    <value>Elige tu contraseña con el botón de abajo. El enlace funciona una sola vez y es válido durante {0} horas.</value>
+  </data>
+  <data name="Email.Invite.Button" xml:space="preserve">
+    <value>Establecer contraseña</value>
+  </data>
+  <data name="Email.Invite.Footer" xml:space="preserve">
+    <value>Si no esperabas esta invitación, puedes ignorar este correo.</value>
+  </data>
+  <data name="AccessDenied.Title" xml:space="preserve">
+    <value>Acceso denegado</value>
+  </data>
+  <data name="AccessDenied.Body" xml:space="preserve">
+    <value>No tienes permiso para abrir esta página.</value>
+  </data>
+  <data name="AccessDenied.Home" xml:space="preserve">
+    <value>Volver a la página de inicio</value>
+  </data>
+</root>

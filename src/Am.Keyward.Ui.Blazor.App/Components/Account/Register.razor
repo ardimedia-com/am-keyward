@@ -1,48 +1,65 @@
 @page "/account/register"
 @using System.ComponentModel.DataAnnotations
+@using System.Diagnostics
 @using System.Text
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using Am.Keyward.Ui.Blazor.App.Identity
 @inject UserManager<IdentityUser> UserManager
 @inject IAccountEmailSender EmailSender
+@inject AccountLinkBuilder Links
+@inject RegistrationGate Registration
+@inject ILogger<Register> Logger
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> Loc
+@inject IStringLocalizer<ShellResource> ShellLoc
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
 <h1>@Loc["Register.Title"]</h1>
-<p>@Loc["Register.FirstAdmin"]</p>
 
-@if (submitted)
+@if (!allowed)
 {
-    <div class="notice" role="status">@Loc["Register.CheckEmail"]</div>
+    @* InviteOnly and the installation already has accounts: an account comes only from an invitation link. *@
+    <div class="notice" role="status">@ShellLoc["Register.InviteOnly"]</div>
+    <p><a href="/account/login">@Loc["Register.SignInLink"]</a></p>
 }
 else
 {
-    @if (errorMessage is not null)
+    @if (emptyInstallation)
     {
-        <p style="color:var(--danger);" role="alert"><strong>@errorMessage</strong></p>
+        <p>@Loc["Register.FirstAdmin"]</p>
     }
 
-    <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
-        <DataAnnotationsValidator />
-        <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
-            <label>@Loc["Register.Email"]
-                <InputText @bind-Value="Input.Email" autocomplete="username" />
-            </label>
-            <label>@Loc["Register.Password"]
-                <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
-            </label>
-            <label>@Loc["Register.Confirm"]
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
-            </label>
-            <ValidationSummary />
-            <button type="submit">@Loc["Register.Submit"]</button>
-        </div>
-    </EditForm>
+    @if (submitted)
+    {
+        <div class="notice" role="status">@Loc["Register.CheckEmail"]</div>
+    }
+    else
+    {
+        @if (errorMessage is not null)
+        {
+            <p style="color:var(--danger);" role="alert"><strong>@errorMessage</strong></p>
+        }
 
-    <p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
+                <label>@Loc["Register.Email"]
+                    <InputText @bind-Value="Input.Email" autocomplete="username" />
+                </label>
+                <label>@Loc["Register.Password"]
+                    <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
+                </label>
+                <label>@Loc["Register.Confirm"]
+                    <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
+                </label>
+                <ValidationSummary />
+                <button type="submit">@Loc["Register.Submit"]</button>
+            </div>
+        </EditForm>
+
+        <p>@Loc["Register.HaveAccount"] <a href="/account/login">@Loc["Register.SignInLink"]</a>.</p>
+    }
 }
 
 @code {
@@ -52,38 +69,80 @@ else
 
     private string? errorMessage;
     private bool submitted;
+    private bool allowed;
+    private bool emptyInstallation;
 
-    protected override void OnInitialized() => Input ??= new();
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        // Checked on every request, the POST included: hiding the form is not the gate, this is.
+        emptyInstallation = await Registration.IsEmptyInstallationAsync();
+        allowed = emptyInstallation || Registration.Mode == RegistrationMode.Open;
+    }
 
     private async Task RegisterUser()
     {
-        var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
-        var result = await UserManager.CreateAsync(user, Input.Password);
-        if (result.Succeeded)
+        if (!allowed)
         {
-            // Send a confirmation link; the account is inactive until confirmed (RequireConfirmedAccount).
+            return;
+        }
+
+        if (Input.Password != Input.ConfirmPassword)
+        {
+            errorMessage = ShellLoc["Account.PasswordMismatch"];
+            return;
+        }
+
+        var started = Stopwatch.GetTimestamp();
+        try
+        {
+            var user = new IdentityUser { UserName = Input.Email, Email = Input.Email };
+            var result = await UserManager.CreateAsync(user, Input.Password);
+            if (result.Succeeded)
+            {
+                await SendConfirmationAsync(user);
+                submitted = true;
+                return;
+            }
+
+            // Enumeration-safe: a duplicate e-mail must not be distinguishable from a fresh signup — show the same
+            // "check your e-mail" confirmation (and send nothing). Only a rejected password is reported, which
+            // does not reveal whether the address exists.
+            if (result.Errors.All(e => e.Code.StartsWith("Duplicate", StringComparison.Ordinal)))
+            {
+                submitted = true;
+                return;
+            }
+
+            errorMessage = result.Errors.Any(e => e.Code.StartsWith("Password", StringComparison.Ordinal))
+                ? ShellLoc["Account.PasswordPolicy"]
+                : ShellLoc["Account.GenericError"];
+        }
+        finally
+        {
+            // New account (token + mail) and duplicate (nothing sent) answer after the same minimum time.
+            await AccountResponseTiming.EnsureFloorAsync(started);
+        }
+    }
+
+    private async Task SendConfirmationAsync(IdentityUser user)
+    {
+        // A mail failure must look exactly like success (the duplicate path sends nothing and never fails):
+        // log it for the operator, show the same "check your e-mail".
+        try
+        {
             var token = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-            var encoded = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-            var link = Nav.GetUriWithQueryParameters(
-                Nav.ToAbsoluteUri("account/confirm-email").AbsoluteUri,
-                new Dictionary<string, object?> { ["userId"] = user.Id, ["token"] = encoded });
+            var link = Links.Build("account/confirm-email", new Dictionary<string, string?>
+            {
+                ["userId"] = user.Id,
+                ["token"] = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token)),
+            }, Nav.BaseUri);
             await EmailSender.SendEmailConfirmationLinkAsync(Input.Email, link);
-            submitted = true;
-            return;
         }
-
-        // Enumeration-safe: a duplicate e-mail must not be distinguishable from a fresh signup — show the same
-        // "check your e-mail" confirmation (and send nothing). Only surface non-enumerating errors (e.g. a weak
-        // password), which don't reveal whether the address exists.
-        if (result.Errors.All(e => e.Code.StartsWith("Duplicate", StringComparison.Ordinal)))
+        catch (Exception ex)
         {
-            submitted = true;
-            return;
+            Logger.LogError(ex, "Failed to send the confirmation e-mail to {Email}.", Input.Email);
         }
-
-        errorMessage = string.Join(" ", result.Errors
-            .Where(e => !e.Code.StartsWith("Duplicate", StringComparison.Ordinal))
-            .Select(e => e.Description));
     }
 
     private sealed class InputModel
@@ -94,7 +153,7 @@ else
         [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 12)]
         public string Password { get; set; } = "";
 
-        [DataType(DataType.Password), Compare(nameof(Password), ErrorMessage = "The passwords do not match.")]
+        [DataType(DataType.Password)]
         public string ConfirmPassword { get; set; } = "";
     }
 }

@@ -7,6 +7,8 @@
 @inject UserManager<IdentityUser> UserManager
 @inject KeywardDbContext Db
 @inject IStringLocalizer<SharedResource> Loc
+@inject IStringLocalizer<ShellResource> ShellLoc
+@inject Microsoft.Extensions.Options.IOptions<RegistrationOptions> Registration
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -15,8 +17,27 @@
     <p>@Loc["Admin.Users.Desc"]</p>
 </div>
 
-<div class="card">
-    <div class="table-scroll">
+<div class="card" style="margin-bottom:1rem;">
+    <h2 style="margin-top:0;">@ShellLoc["Admin.Invite.Title"]</h2>
+    <p class="muted">@ShellLoc["Admin.Invite.Desc", Registration.Value.InvitationLifetimeHours]</p>
+    @if (!string.IsNullOrEmpty(Invited))
+    {
+        <div class="notice" role="status">@ShellLoc["Admin.Invite.Sent", Invited]</div>
+    }
+    @if (InviteErrorMessage is { } inviteError)
+    {
+        <p style="color:var(--danger);" role="alert"><strong>@inviteError</strong></p>
+    }
+    <form method="post" action="account/admin/users/invite" style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:flex-end;">
+        <AntiforgeryToken />
+        <label style="flex:1 1 16rem;">@ShellLoc["Admin.Invite.Email"]
+            <input type="email" name="email" required autocomplete="off" />
+        </label>
+        <button type="submit">@ShellLoc["Admin.Invite.Submit"]</button>
+    </form>
+</div>
+
+<div class="card">    <div class="table-scroll">
         <table>
             <thead>
                 <tr>
@@ -38,7 +59,11 @@
                             }
                         </td>
                         <td>
-                            @if (row.State == UserState.Disabled)
+                            @if (row.State == UserState.Invited)
+                            {
+                                <span class="badge badge-warning">@ShellLoc["Admin.Users.State.Invited"]</span>
+                            }
+                            else if (row.State == UserState.Disabled)
                             {
                                 <span class="badge badge-danger">@Loc["Admin.Users.State.Disabled"]</span>
                             }
@@ -67,6 +92,14 @@
                         </td>
                         <td>
                             <div class="row-actions">
+                                @if (row.State == UserState.Invited)
+                                {
+                                    <form method="post" action="account/admin/users/invite">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="email" value="@row.Email" />
+                                        <button type="submit" class="btn-ghost btn-sm">@ShellLoc["Admin.Invite.Resend"]</button>
+                                    </form>
+                                }
                                 @if (row.State == UserState.LockedOut)
                                 {
                                     <form method="post" action="account/admin/users/unlock">
@@ -83,7 +116,7 @@
                                         <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.Enable"]</button>
                                     </form>
                                 }
-                                else if (!row.IsSelf)
+                                else if (!row.IsSelf && row.State != UserState.Invited)
                                 {
                                     <form method="post" action="account/admin/users/disable">
                                         <AntiforgeryToken />
@@ -143,6 +176,16 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthState { get; set; }
     [SupplyParameterFromQuery] private string? ConfirmDelete { get; set; }
+    [SupplyParameterFromQuery] private string? Invited { get; set; }
+    [SupplyParameterFromQuery] private string? InviteError { get; set; }
+
+    private string? InviteErrorMessage => InviteError switch
+    {
+        nameof(InvitationOutcome.InvalidEmail) => ShellLoc["Admin.Invite.Invalid"].Value,
+        nameof(InvitationOutcome.AlreadyActive) => ShellLoc["Admin.Invite.Exists"].Value,
+        nameof(InvitationOutcome.MailFailed) => ShellLoc["Admin.Invite.Failed"].Value,
+        _ => null,
+    };
 
     private readonly List<Row> rows = [];
     private int tenantAdminCount;
@@ -154,9 +197,9 @@
         && !(row.TenantRole == TenantRole.TenantAdmin && tenantAdminCount <= 1)
         && !(row.IsSystemAdmin && systemAdminCount <= 1);
 
-    private enum UserState { Active, LockedOut, Disabled }
+    private enum UserState { Active, LockedOut, Disabled, Invited }
 
-    private sealed record Row(string Id, string Name, bool IsSystemAdmin, bool IsSelf, UserState State,
+    private sealed record Row(string Id, string Name, string? Email, bool IsSystemAdmin, bool IsSelf, UserState State,
         bool HasDomainUser, TenantRole? TenantRole);
 
     protected override async Task OnInitializedAsync()
@@ -184,7 +227,7 @@
         var now = DateTimeOffset.UtcNow;
         foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
         {
-            var state = user.LockoutEnd switch
+            var state = InvitationService.IsPending(user) ? UserState.Invited : user.LockoutEnd switch
             {
                 { } end when end >= DateTimeOffset.MaxValue.AddDays(-1) => UserState.Disabled,
                 { } end when end > now => UserState.LockedOut,
@@ -195,6 +238,7 @@
             rows.Add(new Row(
                 user.Id,
                 user.UserName ?? user.Email ?? user.Id,
+                user.Email,
                 domain?.IsSystemAdmin ?? false,
                 user.Id == currentId,
                 state,
