@@ -69,6 +69,9 @@ public sealed class KeywardInstanceLease(
 
     private SqlConnection? leaseConnection;
 
+    /// <summary>The lock resource in use — <see cref="LockResource"/>; tests take their own so parallel test hosts do not interfere.</summary>
+    internal string Resource { get; init; } = LockResource;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -96,7 +99,7 @@ public sealed class KeywardInstanceLease(
         var previous = state.Status;
         try
         {
-            if (leaseConnection is { State: ConnectionState.Open } && await StillHeldAsync(leaseConnection, ct).ConfigureAwait(false))
+            if (leaseConnection is { State: ConnectionState.Open } && await StillHeldAsync(leaseConnection, Resource, ct).ConfigureAwait(false))
             {
                 state.Record(KeywardInstanceLeaseStatus.Held, clock.UtcNow, null);
                 return KeywardInstanceLeaseStatus.Held;
@@ -105,7 +108,7 @@ public sealed class KeywardInstanceLease(
             await ReleaseAsync().ConfigureAwait(false);
             var connection = new SqlConnection(await LeaseConnectionStringAsync(ct).ConfigureAwait(false));
             await connection.OpenAsync(ct).ConfigureAwait(false);
-            if (await TryAcquireAsync(connection, ct).ConfigureAwait(false))
+            if (await TryAcquireAsync(connection, Resource, ct).ConfigureAwait(false))
             {
                 leaseConnection = connection;
                 state.Record(KeywardInstanceLeaseStatus.Held, clock.UtcNow, null);
@@ -160,23 +163,23 @@ public sealed class KeywardInstanceLease(
         return builder.ConnectionString;
     }
 
-    private static async Task<bool> TryAcquireAsync(SqlConnection connection, CancellationToken ct)
+    private static async Task<bool> TryAcquireAsync(SqlConnection connection, string resource, CancellationToken ct)
     {
         await using var command = connection.CreateCommand();
         command.CommandText =
             "DECLARE @result int; "
             + "EXEC @result = sp_getapplock @Resource = @resource, @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = 0; "
             + "SELECT @result;";
-        command.Parameters.Add(new SqlParameter("@resource", SqlDbType.NVarChar, 255) { Value = LockResource });
+        command.Parameters.Add(new SqlParameter("@resource", SqlDbType.NVarChar, 255) { Value = resource });
         var result = Convert.ToInt32(await command.ExecuteScalarAsync(ct).ConfigureAwait(false), System.Globalization.CultureInfo.InvariantCulture);
         return result >= 0; // 0 granted, 1 granted after wait; -1 timeout (held elsewhere), below that an error
     }
 
-    private static async Task<bool> StillHeldAsync(SqlConnection connection, CancellationToken ct)
+    private static async Task<bool> StillHeldAsync(SqlConnection connection, string resource, CancellationToken ct)
     {
         await using var command = connection.CreateCommand();
         command.CommandText = "SELECT APPLOCK_MODE('public', @resource, 'Session');";
-        command.Parameters.Add(new SqlParameter("@resource", SqlDbType.NVarChar, 255) { Value = LockResource });
+        command.Parameters.Add(new SqlParameter("@resource", SqlDbType.NVarChar, 255) { Value = resource });
         var mode = await command.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
         return string.Equals(mode, "Exclusive", StringComparison.OrdinalIgnoreCase);
     }

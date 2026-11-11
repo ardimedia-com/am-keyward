@@ -17,13 +17,19 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// SaveChanges together with the audit entry that references it; the port methods run on the scope's shared
 /// context (endpoint semantics).
 /// <para>
-/// A new pseudonym is created with ONE insert-if-absent statement (under an update/range lock) on the caller's context
-/// and connection, not staged for the caller's SaveChanges: two concurrent first audits of the same new actor must end
-/// in one pseudonym, which the filtered unique index on <c>SubjectReference</c> (live rows) also enforces. Inside a
-/// caller's transaction the row commits or rolls back with it.
+/// A new pseudonym is created with ONE insert-if-absent statement (under an update/range lock) on its OWN short-lived
+/// context and connection, committed at once — not staged for the caller's SaveChanges and never part of the caller's
+/// transaction: two concurrent first audits of the same new actor must end in one pseudonym (the filtered unique index
+/// on <c>SubjectReference</c> over live rows enforces it too), and a caller's transaction must not keep a range lock on
+/// this table while it waits for the audit-chain lock. A pseudonym whose audit entry then fails to save is harmless — it
+/// is reused by the actor's next audit.
 /// </para>
 /// </summary>
-public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend backend, IClock clock) : IAuditSubjectDirectory
+public sealed class DbAuditSubjectDirectory(
+    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
+    ISecretBackend backend,
+    IClock clock) : IAuditSubjectDirectory
 {
     private const int AlgVersion = 1;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -72,9 +78,10 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
         // Same JSON shape as the EncryptedPii value converter of KeywardDbContext (web defaults).
         var encryptedJson = JsonSerializer.Serialize(encrypted, Json);
         var createdAt = clock.UtcNow;
+        await using var own = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         try
         {
-            await target.Database.ExecuteSqlInterpolatedAsync($@"
+            await own.Database.ExecuteSqlInterpolatedAsync($@"
                 INSERT INTO [amkeyward].[AuditSubjects] ([Id], [SubjectReference], [EncryptedPii], [CreatedAt], [ErasedAt])
                 SELECT {pseudonymId}, {reference}, {encryptedJson}, {createdAt}, NULL
                 WHERE NOT EXISTS (
@@ -86,7 +93,7 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
             // A concurrent writer created it between our check and our insert — use theirs.
         }
 
-        return await FindLiveAsync(target, reference, ct).ConfigureAwait(false)
+        return await FindLiveAsync(own, reference, ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException("The audit pseudonym could not be created.");
     }
 

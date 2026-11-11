@@ -74,7 +74,10 @@ public sealed class RevealRequestService(
 
         var request = new RevealRequest(
             Guid.NewGuid(), tenantId, tokenId, userId, itemId, field, reason, now,
-            item.Name, item.Revision, item.RenamedByAgentTokenId is null ? null : item.NameBeforeAgentRename);
+            item.Name, item.Revision,
+            item.RenamedByAgentTokenId is not null && !string.Equals(item.NameBeforeAgentRename, item.Name, StringComparison.Ordinal)
+                ? item.NameBeforeAgentRename
+                : null);
         db.RevealRequests.Add(request);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.RevealRequested, ResourceType, request.Id, userId, request.Reason), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);

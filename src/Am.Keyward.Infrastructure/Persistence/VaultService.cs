@@ -300,7 +300,7 @@ public sealed class VaultService(
     public Task<Guid> AddFolderAsync(AddVaultFolderCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
-        return InTransactionAsync(async (db, innerCt) =>
+        return RunAsync(transactional: cmd.ParentFolderId is not null, async (db, innerCt) =>
         {
             var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, innerCt).ConfigureAwait(false);
 
@@ -322,7 +322,7 @@ public sealed class VaultService(
     public Task<Guid> AddItemAsync(AddVaultItemCommand cmd, CancellationToken ct = default)
     {
         EnsureUserScope(cmd.UserId);
-        return InTransactionAsync(async (db, innerCt) =>
+        return RunAsync(transactional: cmd.FolderId is not null, async (db, innerCt) =>
         {
             var vault = await LoadAuthorizedVaultAsync(db, cmd.UserId, cmd.VaultId, Permission.Write, innerCt).ConfigureAwait(false);
             await EnsureFolderInVaultAsync(db, cmd.FolderId, vault.Id, innerCt).ConfigureAwait(false);
@@ -454,7 +454,7 @@ public sealed class VaultService(
     public async Task DeleteFolderAsync(Guid userId, Guid vaultId, Guid folderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        await InTransactionAsync(async (db, innerCt) =>
+        await RunAsync(transactional: true, async (db, innerCt) =>
         {
             var vault = await LoadAuthorizedVaultAsync(db, userId, vaultId, Permission.Write, innerCt).ConfigureAwait(false);
 
@@ -497,7 +497,7 @@ public sealed class VaultService(
         Guid baselineRevision = default;
         try
         {
-            await InTransactionAsync(async (db, innerCt) =>
+            await RunAsync(transactional: cmd.FolderId is not null, async (db, innerCt) =>
             {
                 var (item, _) = await LoadItemAsync(db, i => i.Id == cmd.ItemId, tracking: true, innerCt).ConfigureAwait(false);
                 if (item is null)
@@ -547,7 +547,7 @@ public sealed class VaultService(
 
     // An item's folder must belong to the item's own vault: FolderId carries no FK, and a folder from another vault
     // would make the item vanish from its vault's tree (and survive that folder's deletion unparented). Read under a
-    // shared lock held to commit — callers run in a transaction (InTransactionAsync) — see DeleteFolderAsync.
+    // shared lock held to commit — callers that place into a folder run in a transaction (RunAsync) — see DeleteFolderAsync.
     private static async Task EnsureFolderInVaultAsync(KeywardDbContext db, Guid? folderId, Guid vaultId, CancellationToken ct)
     {
         if (folderId is { } id && !await FolderExistsLockedAsync(db, id, vaultId, ct).ConfigureAwait(false))
@@ -567,7 +567,7 @@ public sealed class VaultService(
     public Task<Guid> MoveItemAsync(Guid userId, Guid itemId, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        return InTransactionAsync(async (db, innerCt) =>
+        return RunAsync(transactional: targetFolderId is not null, async (db, innerCt) =>
         {
             var movedId = await MoveItemCoreAsync(db, userId, itemId, targetVaultId, targetFolderId, innerCt).ConfigureAwait(false);
             await db.SaveChangesAsync(innerCt).ConfigureAwait(false);
@@ -578,7 +578,7 @@ public sealed class VaultService(
     public async Task MoveItemsAsync(Guid userId, IReadOnlyList<Guid> itemIds, Guid targetVaultId, Guid? targetFolderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        await InTransactionAsync(async (db, innerCt) =>
+        await RunAsync(transactional: targetFolderId is not null, async (db, innerCt) =>
         {
             foreach (var itemId in itemIds.Distinct())
             {
@@ -594,7 +594,8 @@ public sealed class VaultService(
     public Task<Guid> MoveFolderAsync(Guid userId, Guid folderId, Guid targetVaultId, Guid? targetParentFolderId, CancellationToken ct = default)
     {
         EnsureUserScope(userId);
-        return InTransactionAsync((db, innerCt) => MoveFolderCoreAsync(db, userId, folderId, targetVaultId, targetParentFolderId, innerCt), ct);
+        return RunAsync(transactional: targetParentFolderId is not null,
+            (db, innerCt) => MoveFolderCoreAsync(db, userId, folderId, targetVaultId, targetParentFolderId, innerCt), ct);
     }
 
     private async Task<Guid> MoveFolderCoreAsync(KeywardDbContext db, Guid userId, Guid folderId, Guid targetVaultId, Guid? targetParentFolderId, CancellationToken ct)
@@ -1314,13 +1315,21 @@ public sealed class VaultService(
     }
 
     /// <summary>
-    /// Runs <paramref name="work"/> in ONE transaction on a fresh context, inside the retrying execution strategy (which
-    /// requires a user transaction to be retried as a whole — each attempt gets a new context, so no half-tracked state
-    /// survives into the retry). Used where a check must hold until commit (folder existence, see
-    /// <see cref="FolderExistsLockedAsync"/>) or several statements must commit with their audit entry.
+    /// Runs <paramref name="work"/> on a fresh context. With <paramref name="transactional"/> it runs in ONE transaction,
+    /// inside the retrying execution strategy (which requires a user transaction to be retried as a whole — each attempt
+    /// gets a new context, so no half-tracked state survives into the retry). Used where a check must hold until commit
+    /// (a folder something is placed into, see <see cref="FolderExistsLockedAsync"/>) or several statements must commit
+    /// with their audit entry (folder deletion). Everything else stays a single SaveChanges — atomic on its own, and
+    /// holding no row locks while it waits for the audit-chain lock, which keeps lock chains (and deadlocks) short.
     /// </summary>
-    private async Task<T> InTransactionAsync<T>(Func<KeywardDbContext, CancellationToken, Task<T>> work, CancellationToken ct)
+    private async Task<T> RunAsync<T>(bool transactional, Func<KeywardDbContext, CancellationToken, Task<T>> work, CancellationToken ct)
     {
+        if (!transactional)
+        {
+            await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+            return await work(db, ct).ConfigureAwait(false);
+        }
+
         await using var outer = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var strategy = outer.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async innerCt =>

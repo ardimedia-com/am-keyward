@@ -280,6 +280,12 @@ public sealed class VaultItem
             // Keep the earliest name no agent chose: a chain of agent renames still shows what a person last named it.
             NameBeforeAgentRename ??= Name;
             RenamedByAgentTokenId = tokenId;
+            if (string.Equals(trimmed, NameBeforeAgentRename, StringComparison.Ordinal))
+            {
+                // Renamed back to the name a person gave it: nothing misleading is left to point out.
+                RenamedByAgentTokenId = null;
+                NameBeforeAgentRename = null;
+            }
         }
         else
         {
