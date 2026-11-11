@@ -23,6 +23,16 @@ public static class TestDatabaseSetup
     [AssemblyInitialize]
     public static async Task InitializeAsync(TestContext _)
     {
+        // Test hosts built with WebApplication.CreateBuilder() take their environment from the process. Without a
+        // variable that is Production, where the library refuses to start without a break-glass trail path — so a
+        // CI runner (no variable) and a developer machine (DOTNET_ENVIRONMENT=Development) behaved differently.
+        // Pin Development unless the run sets an environment explicitly; tests that need Production say so.
+        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"))
+            && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")))
+        {
+            Environment.SetEnvironmentVariable("DOTNET_ENVIRONMENT", "Development");
+        }
+
         var connectionString = TestConfig.ConnectionString;
 
         await using var provider = new ServiceCollection()
