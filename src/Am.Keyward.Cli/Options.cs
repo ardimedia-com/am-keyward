@@ -59,8 +59,16 @@ internal sealed class Options
 
     public IReadOnlyList<string> Values(string name) => values.TryGetValue(name, out var list) ? list : [];
 
-    public Uri Uri(string name) =>
-        Value(name) is { } text && System.Uri.TryCreate(text, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http"
-            ? uri
-            : throw new KeywardCliException(KeywardExitCode.Usage, $"{name} needs the installation's address, e.g. https://keyward.example.com");
+    /// <summary>An installation address: https, or plain http to localhost only (a token never travels unencrypted).</summary>
+    public Uri Uri(string name)
+    {
+        if (Value(name) is not { } text)
+        {
+            throw new KeywardCliException(KeywardExitCode.Usage, $"{name} needs the installation's address, e.g. https://keyward.example.com");
+        }
+
+        return Am.Keyward.Client.KeywardServiceAddress.TryParse(text, out var uri, out var error)
+            ? uri!
+            : throw new KeywardCliException(KeywardExitCode.Usage, $"{name}: {error}");
+    }
 }

@@ -27,19 +27,40 @@ public interface IKeywardCredentialStore
 /// Nothing is written to a file or an environment variable, and the MCP configuration of the assistant never contains
 /// the token.
 /// <para>
-/// One entry per KEYWARD: the name carries the address the user configured (<see cref="TargetFor"/>), so one computer
-/// can hold tokens for any number of KEYWARD installations — none of them known when this tool was built.
-/// <see cref="LegacyAgentTarget"/> is the single Windows target of versions before 0.24 and is still read as a fallback.
+/// One entry per KEYWARD: the name carries the address the user configured (<see cref="AgentTarget"/>), so one computer
+/// can hold tokens for any number of KEYWARD installations — none of them known when this tool was built — and a token
+/// is only ever sent to the address it was stored for (<see cref="FindAgentToken"/>). <see cref="LegacyAgentTarget"/>,
+/// the single entry of versions before 0.24, is never read as a token: <c>amkeyward-mcp setup &lt;address&gt;</c> moves
+/// it to that address once.
 /// </para>
 /// </summary>
 public static class KeywardCredentialStore
 {
-    /// <summary>The single agent-token entry of `amkeyward-mcp` before 0.24 — still read as a fallback.</summary>
+    /// <summary>
+    /// The single agent-token entry of `amkeyward-mcp` before 0.24. Not bound to any address, so it is never used to
+    /// call a KEYWARD; <c>setup &lt;address&gt;</c> moves it to that address's entry and deletes it.
+    /// </summary>
     public const string LegacyAgentTarget = "AmKeyward:Agent";
 
-    /// <summary>The entry of an agent token for a KEYWARD address: <c>AmKeyward:Agent:{host[:port]}</c>, lower case.</summary>
-    public static string AgentTarget(Uri serviceUri) =>
-        $"{LegacyAgentTarget}:{(serviceUri.IsDefaultPort ? serviceUri.Host : $"{serviceUri.Host}:{serviceUri.Port}").ToLowerInvariant()}";
+    /// <summary>
+    /// The environment variable holding an agent token where the computer has no credential store (Linux, a
+    /// container). It is not bound to an address, so it is ignored wherever a credential store exists.
+    /// </summary>
+    public const string AgentTokenVariable = "KEYWARD_AGENT_TOKEN";
+
+    /// <summary>
+    /// The entry of an agent token for a KEYWARD address: <c>AmKeyward:Agent:{host[:port]}</c> for https, lower case.
+    /// A plain-http address (accepted for loopback only) gets its own entry, <c>AmKeyward:Agent:http://{host:port}</c>,
+    /// so a token stored for https is never sent over http to the same name.
+    /// </summary>
+    public static string AgentTarget(Uri serviceUri)
+    {
+        ArgumentNullException.ThrowIfNull(serviceUri);
+        var authority = (serviceUri.IsDefaultPort ? serviceUri.Host : $"{serviceUri.Host}:{serviceUri.Port}").ToLowerInvariant();
+        return serviceUri.Scheme == Uri.UriSchemeHttps
+            ? $"{LegacyAgentTarget}:{authority}"
+            : $"{LegacyAgentTarget}:{serviceUri.Scheme.ToLowerInvariant()}://{authority}";
+    }
 
     /// <summary>The entry of an app-token profile of `keyward`: <c>AmKeyward:App:{profile}</c>, lower case.</summary>
     public static string AppProfileTarget(string profile) => $"AmKeyward:App:{profile.Trim().ToLowerInvariant()}";
@@ -49,7 +70,60 @@ public static class KeywardCredentialStore
         OperatingSystem.IsWindows() ? new WindowsCredentialStore(target)
         : OperatingSystem.IsMacOS() ? new MacKeychainStore(target)
         : null;
+
+    /// <summary>The agent token for this computer's KEYWARD at <paramref name="serviceUri"/> (see the other overload).</summary>
+    public static KeywardAgentTokenLookup FindAgentToken(Uri serviceUri) =>
+        FindAgentToken(serviceUri, For, Environment.GetEnvironmentVariable);
+
+    /// <summary>
+    /// The agent token stored for exactly this address — never one stored for another address or by a version before
+    /// 0.24. Rules: the address must be https (http only to localhost); where a credential store exists only its entry
+    /// for this address counts and <see cref="AgentTokenVariable"/> is ignored; where none exists (Linux) the
+    /// environment variable is used — which is not bound to an address.
+    /// </summary>
+    public static KeywardAgentTokenLookup FindAgentToken(
+        Uri serviceUri, Func<string, IKeywardCredentialStore?> storeFor, Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(serviceUri);
+        ArgumentNullException.ThrowIfNull(storeFor);
+        ArgumentNullException.ThrowIfNull(environment);
+
+        var display = KeywardServiceAddress.Root(serviceUri).AbsoluteUri.TrimEnd('/');
+        if (!KeywardServiceAddress.IsSecure(serviceUri))
+        {
+            return new(null, $"{display} is not https; an agent token is only sent over https (plain http to localhost only).");
+        }
+
+        var setup = $"amkeyward-mcp setup {display}";
+        if (storeFor(AgentTarget(serviceUri)) is not { } store)
+        {
+            return environment(AgentTokenVariable) is { Length: > 0 } fromEnvironment
+                ? new(fromEnvironment, null)
+                : new(null, $"No agent token for {display}: there is no credential store on this computer, so set {AgentTokenVariable}.");
+        }
+
+        if (store.Read() is { Length: > 0 } stored)
+        {
+            return new(stored, null);
+        }
+
+        var problem = $"No agent token stored for {display} in {store.Place}. Run '{setup}'.";
+        if (storeFor(LegacyAgentTarget)?.Read() is { Length: > 0 })
+        {
+            problem += $" A token stored by a version before 0.24 is not bound to an address and is no longer used; '{setup}' moves it to this address.";
+        }
+
+        if (environment(AgentTokenVariable) is { Length: > 0 })
+        {
+            problem += $" {AgentTokenVariable} is ignored on a computer with a credential store, because it is not bound to an address.";
+        }
+
+        return new(null, problem);
+    }
 }
+
+/// <summary>The outcome of <see cref="KeywardCredentialStore.FindAgentToken(Uri)"/>: the token, or why there is none.</summary>
+public sealed record KeywardAgentTokenLookup(string? Token, string? Problem);
 
 /// <summary>A generic credential in the Windows Credential Manager, persisted for this user on this machine.</summary>
 [SupportedOSPlatform("windows")]

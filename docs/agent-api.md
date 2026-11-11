@@ -33,9 +33,11 @@ Both can be limited to given networks.
   and every reveal request carries it): the person opens the entry and copies the value there.
 - **Revealing a vault secret needs a human, every time.** An agent asks to see one field with a reason; the
   token's user approves or rejects it on the «AI agent tokens» page within 5 minutes; an approved value can be fetched
-  **once**, within 60 seconds. The MCP server puts it on the Windows clipboard (excluded from clipboard history and
-  cloud sync, cleared after 30 seconds) — never into the assistant's context. The reason is the agent's own text:
-  decide on what you know, not on what it says. Application values cannot be revealed at all.
+  **once**, within 60 seconds. The MCP server puts it on the clipboard of Windows (excluded from clipboard history and
+  cloud sync) or macOS, cleared after 30 seconds or when the server stops, whichever comes first — never into the
+  assistant's context. It checks that the clipboard is usable before it fetches the value, so a busy clipboard does
+  not use up the approval. The reason is the agent's own text: decide on what you know, not on what it says.
+  Application values cannot be revealed at all.
 - **App tokens are human-only.** An agent can neither issue, reveal, rotate nor revoke a software-client token. It
   may read their metadata — name, environment, status, expiry, last access, heartbeat monitoring, access statistics —
   never a token or its prefix. The application response carries the link to the page where a person issues one.
@@ -214,6 +216,13 @@ A .NET tool (`amkeyward-mcp`) that speaks MCP over stdio.
 - Vault tools: `list_vaults`, `list_items`, `search`, `get_item`, `create_login`, `create_item`, `update_item`,
   `move_item`, `request_reveal`, `consume_reveal`, `get_totp_code`. `get_item` and `request_reveal` hand out the entry
   link — usually the simplest way: the person copies the value in KEYWARD.
+- **Data, not instructions.** Names of vaults, folders, entries, applications, environments and keys, a Login's URL
+  and user name, and rotation notes are written by people or other agents. The tools show every such value between
+  `⟦` and `⟧`, with line breaks, control and invisible formatting characters replaced by spaces, the delimiter itself
+  neutralized and the length capped at 500 characters — so a name cannot forge an extra line or a fake id — and every
+  tool description that returns such text tells the assistant that it is data, never instructions.
+- `update_item` requires `versionId` (from `get_item`, or from the answer of the last create, update or move); when the
+  entry changed in between, the update is refused with 412 instead of overwriting the other change.
 - 2FA (decisions T15 A, T16 A+B): `create_login` / `update_item` take a Login's 2FA key (`totp`, write-only — never read
   back); `get_item` says whether an entry has one. A one-time code comes either through `request_reveal` with field
   `Totp` (the person approves, the code goes to the clipboard) or — with the token permission «Get one-time codes» —
@@ -260,10 +269,18 @@ claude mcp add --env Keyward__ServiceUri=https://keyward.example.com --scope use
 of the MCP configuration. The «AI agent tokens» page shows these commands filled in with its own
 address, for Windows or macOS.
 
+**The address and the token.** The server reads the KEYWARD address from the environment variable
+`Keyward__ServiceUri` only — never from an `appsettings.json` or any other file in the folder the assistant runs in —
+and uses the token stored for exactly that address. A cloned repository whose project `.mcp.json` registers
+`amkeyward-mcp` with another address therefore finds no token to send there. The address must be `https://`
+(plain `http://` is accepted for `localhost` only); an installation under a sub-path (`https://host/app`) works.
+
 **Several KEYWARD installations on one computer** (e.g. two companies' toolboxes): nothing about them is built into
-the tool. Each token is stored under its KEYWARD's address (`AmKeyward:Agent:<host>`), and each installation is its
-own MCP registration with its own `Keyward__ServiceUri` — run `setup` and `claude mcp add` once per installation. A
-token stored by a version before 0.24 (target `AmKeyward:Agent`) is still found as a fallback.
+the tool. Each token is stored under its KEYWARD's address (`AmKeyward:Agent:<host>`, `AmKeyward:Agent:http://<host:port>`
+for a local http address), and each installation is its own MCP registration with its own `Keyward__ServiceUri` —
+run `setup` and `claude mcp add` once per installation. A token stored by a version before 0.24 (target
+`AmKeyward:Agent`, not bound to any address) is no longer used: `amkeyward-mcp setup <address>` moves it once to that
+address and deletes the old entry; until then the server says so when it starts.
 
 **Where a token applies:** every Claude Code session of that user account on that computer (`--scope user`), all
 acting as the token's user. Use one token per computer, named after it; Claude Desktop and claude.ai have their own
@@ -283,7 +300,15 @@ Then revoke the token on «AI agent tokens» and delete it from the list. For a 
 a revoked token is useless wherever it is still stored.
 
 On Linux there is neither a credential store nor a clipboard the tool uses: the token comes from
-`KEYWARD_AGENT_TOKEN`, and revealing is refused, because there is no clipboard to send the value to.
+`KEYWARD_AGENT_TOKEN`, and revealing is refused, because there is no clipboard to send the value to. That variable
+is **not bound to an address** — every `amkeyward-mcp` registration of that user sends it to its own
+`Keyward__ServiceUri`, so check the address of every project-level MCP configuration before you trust it. On Windows
+and macOS the variable is ignored.
+
+**Clipboard limits.** On macOS the value goes through `pbcopy`, which cannot mark it as concealed or transient: a
+clipboard history (Spotlight's, since macOS 26, or a third-party clipboard manager) may record it. A server that is
+killed rather than stopped (task manager, `kill -9`) cannot clear the clipboard; the value then stays until something
+else is copied.
 
 ### Without .NET
 

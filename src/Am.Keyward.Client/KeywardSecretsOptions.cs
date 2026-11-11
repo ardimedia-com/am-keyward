@@ -1,4 +1,5 @@
 using Am.Keyward.Contracts;
+using Microsoft.Extensions.Logging;
 
 namespace Am.Keyward.Client;
 
@@ -11,8 +12,19 @@ namespace Am.Keyward.Client;
 /// </summary>
 public sealed class KeywardSecretsOptions
 {
-    /// <summary>Root URL of the Keyward installation, e.g. <c>https://keyward.example.com</c>. Required.</summary>
+    /// <summary>
+    /// Root URL of the Keyward installation, e.g. <c>https://keyward.example.com</c> (a sub-path such as
+    /// <c>https://host/app</c> is kept). Required. Must be <c>https://</c>; plain <c>http://</c> is accepted only for
+    /// a loopback host (<c>localhost</c>) unless <see cref="AllowInsecureHttp"/> is set.
+    /// </summary>
     public Uri? ServiceUri { get; set; }
+
+    /// <summary>
+    /// INSECURE — accepts a plain <c>http://</c> <see cref="ServiceUri"/> to another computer, so the app token and
+    /// every secret travel unencrypted and can be read or replaced by anyone on the network path. Only for a test
+    /// setup on an isolated network. Default <c>false</c>.
+    /// </summary>
+    public bool AllowInsecureHttp { get; set; }
 
     /// <summary>The app token itself. When set, it wins over the environment-variable lookup.</summary>
     public string? Token { get; set; }
@@ -64,8 +76,23 @@ public sealed class KeywardSecretsOptions
     public TimeSpan LoadRetryDelay { get; set; } = TimeSpan.FromSeconds(2);
 
     /// <summary>
+    /// Upper bound for the whole blocking startup load — every attempt and every retry delay together. The
+    /// configuration is built synchronously during host startup, and a Windows service that does not report
+    /// «started» within 30 seconds is killed by the service control manager, so the default stays well below that.
+    /// When it runs out the load fails (or stays empty when <see cref="Optional"/>).
+    /// </summary>
+    public TimeSpan StartupTimeout { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// Where the configuration provider reports reload problems — a refresh failure as a warning, a token the server
+    /// rejects (401/403) as an error. The configuration layer has no logger of its own; without one, a rejected token
+    /// during a reload is written to standard error.
+    /// </summary>
+    public ILogger? Logger { get; set; }
+
+    /// <summary>
     /// Advanced: the HTTP transport to use instead of the default (proxies, custom TLS handling, tests).
-    /// The provider disposes it together with its <see cref="HttpClient"/>.
+    /// It stays the caller's: the client and the provider never dispose it.
     /// </summary>
     public HttpMessageHandler? HttpMessageHandler { get; set; }
 
@@ -95,9 +122,13 @@ public sealed class KeywardSecretsOptions
             throw new InvalidOperationException("KeywardSecretsOptions.ServiceUri must be an absolute URL (e.g. https://keyward.example.com).");
         }
 
-        // Slash-terminate the root so a ServiceUri with a sub-path (https://host/app) keeps that path when
-        // the relative API base path is resolved against it.
-        var root = ServiceUri.AbsoluteUri.EndsWith('/') ? ServiceUri : new Uri(ServiceUri.AbsoluteUri + "/");
-        return new Uri(root, ApiBasePath.Trim('/') + "/");
+        if (!KeywardServiceAddress.TryParse(ServiceUri.OriginalString, out _, out var error, AllowInsecureHttp))
+        {
+            throw new InvalidOperationException(
+                $"KeywardSecretsOptions.ServiceUri: {error} (KeywardSecretsOptions.AllowInsecureHttp overrides this, insecurely).");
+        }
+
+        // A ServiceUri with a sub-path (https://host/app) keeps that path when the API base path is resolved against it.
+        return KeywardServiceAddress.ApiBase(ServiceUri, ApiBasePath);
     }
 }

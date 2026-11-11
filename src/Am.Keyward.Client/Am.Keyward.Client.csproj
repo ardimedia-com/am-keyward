@@ -20,4 +20,8 @@
     <ProjectReference Include="..\Am.Keyward.Contracts\Am.Keyward.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Am.Keyward.Tests" />
+  </ItemGroup>
+
 </Project>

@@ -64,6 +64,20 @@ server fails the host at startup — loudly, with the variable name in the messa
 window; `Optional = true` tolerates it with an empty source. See the README section *Consuming secrets
 from a deployed application* for the full option list.
 
+- **HTTPS only.** `ServiceUri` must be `https://`; plain `http://` is accepted for `localhost` only.
+  `AllowInsecureHttp = true` lifts that — **insecure**: the app token and every value then travel unencrypted, so use it
+  only for a test setup on an isolated network. A `ServiceUri` with a sub-path (`https://host/app`) keeps it.
+- **Bounded startup.** All startup attempts and retry delays together stay within `StartupTimeout` (default 20 s),
+  below the 30 s a Windows service has to report «started». A token the server rejects (401/403) is not retried —
+  retrying would only feed the server's failed-authentication throttle. An answer that is not the expected JSON (an
+  HTML error or sign-in page) counts as a failed load, like an unreachable server.
+- **Reloads.** With `ReloadInterval` the provider re-reads with ±10 % jitter, keeps the last known good values when a
+  refresh fails, and reports problems to `Logger` (an `ILogger` you pass in the options; the configuration layer has
+  none of its own): a refresh failure as a warning, a rejected token as an error — without a logger the rejection goes
+  to standard error. An explicit `IConfigurationRoot.Reload()` refreshes once with the same client.
+- **Your handler stays yours.** An `HttpMessageHandler` passed in the options is never disposed by the client or the
+  provider.
+
 ## Token lifecycle
 
 - **Pending placeholders.** Creating an application (or adding an environment) automatically creates one
@@ -185,8 +199,8 @@ await KeywardHeartbeat.SendAsync(configuration, "Contoso.Nightly.Sync", logger);
 
 It is best-effort by contract and returns whether the heartbeat actually landed: an absent or empty
 `Keyward:ServiceUri` means monitoring is off for this environment (the usual local-development case), and
-a missing token, an unreachable server or a revoked token are logged and reported as `false` rather than
-thrown. A monitoring outage must never turn into a job failure — the missing ping is itself the signal,
+a malformed or plain-http address, a missing token, an unreachable server or a revoked token are logged and
+reported as `false` rather than thrown. A monitoring outage must never turn into a job failure — the missing ping is itself the signal,
 and it clears on the next successful run. Overloads take an explicit `Uri?` instead of `IConfiguration`,
 or an `Action<KeywardSecretsOptions>` for full control (explicit token, custom timeout, proxy handler).
 
