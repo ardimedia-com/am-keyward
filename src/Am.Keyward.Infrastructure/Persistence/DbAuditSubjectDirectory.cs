@@ -3,7 +3,6 @@ using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Audit;
 using Am.Keyward.Core.Domain.ValueObjects;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace Am.Keyward.Infrastructure.Persistence;
@@ -12,17 +11,14 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// Crypto-shredding directory: maps an actor to a stable opaque pseudonym and stores that actor's PII
 /// encrypted under a per-subject DEK (envelope, KEK-wrapped). Erasure clears the ciphertext so the PII is
 /// irrecoverable while the audit chain keeps the pseudonym. The db-parametric
-/// <see cref="ResolvePseudonymAsync(KeywardDbContext, string?, AuditSubjectPii, CancellationToken)"/>
-/// stages a newly-created subject on the CALLER's unit of work, so it is persisted by the caller's
-/// SaveChanges together with the audit entry that references it; the port methods run on the scope's shared
-/// context (endpoint semantics).
+/// <see cref="ResolvePseudonymAsync(KeywardDbContext, string?, AuditSubjectPii, CancellationToken)"/> looks the subject
+/// up on the CALLER's context; the port methods run on the scope's shared context (endpoint semantics).
 /// <para>
-/// A new pseudonym is created with ONE insert-if-absent statement (under an update/range lock) on its OWN short-lived
-/// context and connection, committed at once — not staged for the caller's SaveChanges and never part of the caller's
-/// transaction: two concurrent first audits of the same new actor must end in one pseudonym (the filtered unique index
-/// on <c>SubjectReference</c> over live rows enforces it too), and a caller's transaction must not keep a range lock on
-/// this table while it waits for the audit-chain lock. A pseudonym whose audit entry then fails to save is harmless — it
-/// is reused by the actor's next audit.
+/// A new pseudonym is inserted on its OWN short-lived context and connection and committed at once — never staged for
+/// the caller's SaveChanges, never part of the caller's transaction. Two concurrent first audits of the same new actor
+/// end in one pseudonym: the filtered unique index on <c>SubjectReference</c> (live rows) rejects the second insert,
+/// which then uses the winner's. A pseudonym whose audit entry fails to save afterwards is harmless — the actor's next
+/// audit reuses it.
 /// </para>
 /// </summary>
 public sealed class DbAuditSubjectDirectory(
@@ -75,20 +71,17 @@ public sealed class DbAuditSubjectDirectory(
             System.Security.Cryptography.CryptographicOperations.ZeroMemory(plaintext);
         }
 
-        // Same JSON shape as the EncryptedPii value converter of KeywardDbContext (web defaults).
-        var encryptedJson = JsonSerializer.Serialize(encrypted, Json);
-        var createdAt = clock.UtcNow;
+        // Its own context: committed at once, outside any transaction of the caller. A concurrent first audit of the same
+        // actor loses on the filtered unique index — then the winner's pseudonym is used. (A plain insert, no lock hints:
+        // range locks taken to pre-empt the race deadlocked concurrent inserts of DIFFERENT actors on a small table.)
         await using var own = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        own.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
         try
         {
-            await own.Database.ExecuteSqlInterpolatedAsync($@"
-                INSERT INTO [amkeyward].[AuditSubjects] ([Id], [SubjectReference], [EncryptedPii], [CreatedAt], [ErasedAt])
-                SELECT {pseudonymId}, {reference}, {encryptedJson}, {createdAt}, NULL
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM [amkeyward].[AuditSubjects] WITH (UPDLOCK, HOLDLOCK)
-                    WHERE [SubjectReference] = {reference} AND [ErasedAt] IS NULL);", ct).ConfigureAwait(false);
+            await own.SaveChangesAsync(ct).ConfigureAwait(false);
+            return pseudonymId;
         }
-        catch (SqlException ex) when (ex.Number is 2601 or 2627)
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
         {
             // A concurrent writer created it between our check and our insert — use theirs.
         }
