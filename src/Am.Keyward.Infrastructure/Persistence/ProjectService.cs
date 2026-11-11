@@ -19,12 +19,14 @@ public sealed class ProjectService(
     IClock clock,
     ICurrentTenant tenant,
     DbAuditSink audit,
-    ISoftwareClientTokenService tokens,
     ICurrentUser currentUser,
     ICurrentActor actor) : IProjectService
 {
     private const string ResourceType = "Project";
 
+    // Deliberately readable by every tenant member: names and counts only — no key, value or token — and the
+    // applications page shows exactly this, read-only, to members who are no software operator (see CanManageAsync).
+    // The management HTTP API maps no route to it. Keys, values and tokens stay operator-only.
     public async Task<IReadOnlyList<ProjectInfo>> ListAsync(Guid tenantId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
@@ -162,13 +164,32 @@ public sealed class ProjectService(
 
         db.Projects.Add(project);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, project.Id, actorUserId), ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
         // Every environment starts with a pending app token (no secret yet — the value is minted on the
-        // Tokens page when it is actually needed), so the token structure is visible right away.
+        // Tokens page when it is actually needed), so the token structure is visible right away. Staged on the
+        // same context: application, environments and tokens commit in ONE SaveChanges (one transaction, retried
+        // as a whole by the execution strategy). A failure leaves nothing behind, so a retry is not refused with
+        // «name exists» for an application that never got its tokens.
         foreach (var environment in project.Environments)
         {
-            await tokens.CreatePendingAsync(tenantId, project.Id, environment.Id, actorUserId, ct).ConfigureAwait(false);
+            await Auth.SoftwareClientTokenService.StagePendingAsync(
+                db, audit, clock, tenantId, project.Id, project.Name, environment.Id, environment.Name.Value, actorUserId ?? currentUser.UserId, ct)
+                .ConfigureAwait(false);
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            // A concurrent create with the same name won the unique index.
+            if (await NameTakenAsync(tenantId, trimmed, ct).ConfigureAwait(false))
+            {
+                throw new SoftwareConflictException($"An application named '{trimmed}' already exists.", ex);
+            }
+
+            throw;
         }
 
         return project.Id;
@@ -181,14 +202,26 @@ public sealed class ProjectService(
         await EnsureOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.TenantId == tenantId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Project {projectId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Project {projectId} not found.");
 
         var trimmed = name?.Trim() ?? "";
         await EnsureNameFreeAsync(db, tenantId, trimmed, exceptProjectId: projectId, ct).ConfigureAwait(false);
 
         project.Rename(trimmed);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, ResourceType, projectId, actorUserId), ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            if (await NameTakenAsync(tenantId, trimmed, ct).ConfigureAwait(false))
+            {
+                throw new SoftwareConflictException($"An application named '{trimmed}' already exists.", ex);
+            }
+
+            throw;
+        }
     }
 
     public async Task DeleteAsync(Guid tenantId, Guid projectId, Guid? actorUserId, CancellationToken ct = default)
@@ -234,6 +267,13 @@ public sealed class ProjectService(
         {
             throw new InvalidOperationException($"An application named '{name}' already exists.");
         }
+    }
+
+    // On a fresh context: the failed one still holds the rejected changes.
+    private async Task<bool> NameTakenAsync(Guid tenantId, string name, CancellationToken ct)
+    {
+        await using var fresh = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await fresh.Projects.AsNoTracking().AnyAsync(p => p.TenantId == tenantId && p.Name == name, ct).ConfigureAwait(false);
     }
 
     /// <summary>

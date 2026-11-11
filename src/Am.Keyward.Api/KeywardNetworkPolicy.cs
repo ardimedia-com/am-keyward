@@ -27,7 +27,13 @@ public abstract class KeywardNetworkPolicy
     /// <param name="settingName">The setting's configuration key, for messages ("Keyward:Agent:AllowedNetworks").</param>
     /// <param name="allowedNetworks">Comma- or semicolon-separated CIDR list; null or blank = unrestricted.</param>
     /// <param name="knownProxies">The host's trusted reverse proxies; none of them may lie inside the networks.</param>
-    protected KeywardNetworkPolicy(string apiName, string settingName, string? allowedNetworks, IEnumerable<IPAddress>? knownProxies)
+    /// <param name="knownProxyNetworks">The host's trusted proxy networks; none of them may overlap the networks.</param>
+    protected KeywardNetworkPolicy(
+        string apiName,
+        string settingName,
+        string? allowedNetworks,
+        IEnumerable<IPAddress>? knownProxies,
+        IEnumerable<IPNetwork>? knownProxyNetworks = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(apiName);
         ArgumentException.ThrowIfNullOrWhiteSpace(settingName);
@@ -35,6 +41,9 @@ public abstract class KeywardNetworkPolicy
         ApiName = apiName;
         SettingName = settingName;
         networks = [];
+        var proxies = (knownProxies ?? []).Select(Normalize).ToList();
+        var proxyNetworks = (knownProxyNetworks ?? []).ToList();
+        ProxyGuardActive = proxies.Count > 0 || proxyNetworks.Count > 0;
 
         if (string.IsNullOrWhiteSpace(allowedNetworks))
         {
@@ -63,12 +72,14 @@ public abstract class KeywardNetworkPolicy
 
         networks = parsed;
 
-        var admittedProxy = (knownProxies ?? []).FirstOrDefault(p => networks.Any(n => n.Contains(Normalize(p))));
+        var admittedProxy = proxies.FirstOrDefault(p => networks.Any(n => n.Contains(p)))?.ToString()
+            ?? proxyNetworks.Where(p => networks.Any(n => Overlaps(n, p))).Select(p => p.ToString()).FirstOrDefault();
         if (admittedProxy is not null)
         {
             networks = [];
             Error = $"{apiName} ({settingName}): the networks contain the reverse proxy {admittedProxy}; every request it "
-                + "forwards from the internet would pass. Keep the proxy's network out of the list.";
+                + "forwards from the internet would pass. Keep the proxy's network out of the list, and let UseForwardedHeaders "
+                + "resolve the real client address from that proxy (ForwardedHeadersOptions.KnownProxies / KnownIPNetworks).";
         }
     }
 
@@ -80,6 +91,12 @@ public abstract class KeywardNetworkPolicy
 
     /// <summary>Why the setting cannot be used; <c>null</c> when it is valid (or absent). Non-null = fail closed.</summary>
     public string? Error { get; }
+
+    /// <summary>
+    /// Whether the host configured trusted proxies (<c>ForwardedHeadersOptions.KnownProxies</c> / <c>KnownIPNetworks</c>),
+    /// i.e. whether a list that admits a proxy CAN be detected. Without them the guard sees no proxy at all.
+    /// </summary>
+    public bool ProxyGuardActive { get; }
 
     /// <summary>Whether the setting is valid (or absent).</summary>
     public bool IsValid => Error is null;
@@ -102,6 +119,9 @@ public abstract class KeywardNetworkPolicy
 
         return address is not null && networks.Any(n => n.Contains(Normalize(address)));
     }
+
+    private static bool Overlaps(IPNetwork a, IPNetwork b) =>
+        a.BaseAddress.AddressFamily == b.BaseAddress.AddressFamily && (a.Contains(b.BaseAddress) || b.Contains(a.BaseAddress));
 
     /// <summary>A dual-stack socket (and IIS) report an IPv4 client as IPv4-mapped IPv6 (::ffff:10.1.0.26); compare as IPv4.</summary>
     private static IPAddress Normalize(IPAddress address) => address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;

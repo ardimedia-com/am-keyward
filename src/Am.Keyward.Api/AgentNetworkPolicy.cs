@@ -17,7 +17,7 @@ public sealed class AgentNetworkPolicy : KeywardNetworkPolicy
     /// throws (fail closed) — <c>AddKeywardAgentApi</c> does.
     /// </summary>
     public AgentNetworkPolicy(string? allowedNetworks)
-        : this(allowedNetworks, knownProxies: null)
+        : this(allowedNetworks, knownProxies: null, knownProxyNetworks: null)
     {
         if (Error is not null)
         {
@@ -25,14 +25,16 @@ public sealed class AgentNetworkPolicy : KeywardNetworkPolicy
         }
     }
 
-    private AgentNetworkPolicy(string? allowedNetworks, IEnumerable<IPAddress>? knownProxies)
-        : base(Api, KeywardAgentApiOptions.AllowedNetworksConfigurationKey, allowedNetworks, knownProxies)
+    private AgentNetworkPolicy(string? allowedNetworks, IEnumerable<IPAddress>? knownProxies, IEnumerable<IPNetwork>? knownProxyNetworks)
+        : base(Api, KeywardAgentApiOptions.AllowedNetworksConfigurationKey, allowedNetworks, knownProxies, knownProxyNetworks)
     {
     }
 
     /// <summary>Parses the setting without throwing: an unusable value yields a policy that refuses every caller.</summary>
     /// <param name="allowedNetworks">Comma- or semicolon-separated CIDR list; null or blank = unrestricted.</param>
     /// <param name="knownProxies">The host's trusted reverse proxies; a setting that contains one is rejected.</param>
-    public static AgentNetworkPolicy Parse(string? allowedNetworks, IEnumerable<IPAddress>? knownProxies = null) =>
-        new(allowedNetworks, knownProxies);
+    /// <param name="knownProxyNetworks">The host's trusted proxy networks; a setting that overlaps one is rejected.</param>
+    public static AgentNetworkPolicy Parse(
+        string? allowedNetworks, IEnumerable<IPAddress>? knownProxies = null, IEnumerable<IPNetwork>? knownProxyNetworks = null) =>
+        new(allowedNetworks, knownProxies, knownProxyNetworks);
 }

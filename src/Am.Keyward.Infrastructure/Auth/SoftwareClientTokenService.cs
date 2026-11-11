@@ -33,7 +33,7 @@ public sealed class SoftwareClientTokenService(
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.ProjectId == cmd.ProjectId && e.Name == environmentName, ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
 
         // No name given → assign "<application>-<environment>", numbered when taken (-2, -3, …). A custom
         // name (e.g. a host/purpose suffix) stays possible and must be unique within the application.
@@ -65,16 +65,41 @@ public sealed class SoftwareClientTokenService(
             .Select(e => e.Name)
             .FirstOrDefaultAsync(ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Environment {environmentId} not found in project {projectId}.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment {environmentId} not found in project {projectId}.");
+        var projectName = await db.Projects.Where(p => p.Id == projectId).Select(p => p.Name).FirstOrDefaultAsync(ct).ConfigureAwait(false)
+            ?? throw new SoftwareResourceNotFoundException($"Project {projectId} not found.");
 
-        var name = await GenerateNameAsync(db, tenantId, projectId, environmentName.Value, ct).ConfigureAwait(false);
-        var token = SoftwareClientToken.CreatePending(
-            Guid.NewGuid(), tenantId, projectId, environmentId, name, actorUserId, clock.UtcNow);
-
-        db.SoftwareClientTokens.Add(token);
-        await AuditAsync(db, tenantId, AuditAction.Create, token.Id, actorUserId, ct).ConfigureAwait(false);
+        var token = await StagePendingAsync(
+            db, audit, clock, tenantId, projectId, projectName, environmentId, environmentName.Value, actorUserId ?? currentUser.UserId, ct)
+            .ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
         return token.Id;
+    }
+
+    /// <summary>
+    /// Stages a pending app token (no secret yet) for a new environment on <paramref name="db"/> together with its audit
+    /// entry — WITHOUT saving, so the caller commits it in the same SaveChanges as the application or environment it
+    /// belongs to (one unit of work: a failure leaves neither behind). <paramref name="projectName"/> is passed in
+    /// because the project may not be saved yet.
+    /// </summary>
+    internal static async Task<SoftwareClientToken> StagePendingAsync(
+        KeywardDbContext db,
+        DbAuditSink audit,
+        IClock clock,
+        Guid tenantId,
+        Guid projectId,
+        string projectName,
+        Guid environmentId,
+        string environmentName,
+        Guid? auditActorUserId,
+        CancellationToken ct)
+    {
+        var name = await GenerateNameAsync(db, tenantId, projectId, projectName, environmentName, ct).ConfigureAwait(false);
+        var token = SoftwareClientToken.CreatePending(Guid.NewGuid(), tenantId, projectId, environmentId, name, auditActorUserId, clock.UtcNow);
+
+        db.SoftwareClientTokens.Add(token);
+        await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, ResourceType, token.Id, auditActorUserId), ct).ConfigureAwait(false);
+        return token;
     }
 
     public async Task<IssuedSoftwareClientToken> RotateAsync(Guid tenantId, Guid tokenId, TokenExpiryChange expiry, Guid? actorUserId, CancellationToken ct = default)
@@ -84,7 +109,7 @@ public sealed class SoftwareClientTokenService(
         await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(db, tenantId, tokenId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Token {tokenId} not found.");
 
         // Rotation renews the secret AND sets the validity window per the explicit choice: Keep re-applies the
         // ORIGINAL LIFETIME from now (a 30-day token becomes a fresh 30-day token — it neither stays expired
@@ -127,7 +152,7 @@ public sealed class SoftwareClientTokenService(
         await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(db, tenantId, tokenId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Token {tokenId} not found.");
 
         if (token.RevokedAt is null)
         {
@@ -156,13 +181,16 @@ public sealed class SoftwareClientTokenService(
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
     }
 
+    // Operator only: the list carries every token's prefix, note, last access and last address — management data.
     public async Task<IReadOnlyList<SoftwareClientTokenInfo>> ListAsync(Guid tenantId, Guid projectId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
 
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId: null, ct).ConfigureAwait(false);
         var now = clock.UtcNow;
         var tokens = await db.SoftwareClientTokens
+            .AsNoTracking()
             .Where(t => t.TenantId == tenantId && t.ProjectId == projectId)
             .OrderBy(t => t.Name)
             .ToListAsync(ct)
@@ -183,7 +211,7 @@ public sealed class SoftwareClientTokenService(
         await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(db, tenantId, tokenId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Token {tokenId} not found.");
 
         await EnsureNameFreeAsync(db, tenantId, token.ProjectId, name, exceptTokenId: tokenId, ct).ConfigureAwait(false);
 
@@ -199,7 +227,7 @@ public sealed class SoftwareClientTokenService(
         await EnsureSoftwareOperatorAsync(db, tenantId, actorUserId, ct).ConfigureAwait(false);
 
         var token = await FindAsync(db, tenantId, tokenId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Token {tokenId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Token {tokenId} not found.");
 
         token.SetAuditReads(auditReads);
         await AuditAsync(db, tenantId, AuditAction.Update, token.Id, actorUserId, ct).ConfigureAwait(false);
@@ -221,13 +249,26 @@ public sealed class SoftwareClientTokenService(
     private static async Task<string> GenerateNameAsync(KeywardDbContext db, Guid tenantId, Guid projectId, string environmentName, CancellationToken ct)
     {
         var projectName = await db.Projects.Where(p => p.Id == projectId).Select(p => p.Name).FirstOrDefaultAsync(ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Project {projectId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Project {projectId} not found.");
+        return await GenerateNameAsync(db, tenantId, projectId, projectName, environmentName, ct).ConfigureAwait(false);
+    }
 
+    private static async Task<string> GenerateNameAsync(
+        KeywardDbContext db, Guid tenantId, Guid projectId, string projectName, string environmentName, CancellationToken ct)
+    {
         var baseName = $"{projectName}-{environmentName}".ToLowerInvariant();
+
+        // Names staged on this context but not saved yet (several environments of one new application) count as taken.
+        var staged = db.ChangeTracker.Entries<SoftwareClientToken>()
+            .Where(e => e.State == EntityState.Added && e.Entity.ProjectId == projectId)
+            .Select(e => e.Entity.Name)
+            .ToHashSet(StringComparer.Ordinal);
+
         for (var i = 1; ; i++)
         {
             var candidate = i == 1 ? baseName : $"{baseName}-{i}";
-            if (!await db.SoftwareClientTokens.AnyAsync(
+            if (!staged.Contains(candidate)
+                && !await db.SoftwareClientTokens.AnyAsync(
                     t => t.TenantId == tenantId && t.ProjectId == projectId && t.Name == candidate, ct).ConfigureAwait(false))
             {
                 return candidate;

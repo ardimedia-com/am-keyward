@@ -188,10 +188,15 @@ public sealed class SoftwareSecret
     public void MarkCreatedByAgent(Guid tokenId) => CreatedByAgentTokenId = tokenId;
 
     /// <summary>Sets (or adds a new version of) this secret's value for a given environment.</summary>
-    public SecretValue SetValue(Guid valueId, Guid environmentId, Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
+    /// <param name="versionNumber">
+    /// The new version's number. A persistence layer that does not load the whole version history must pass the
+    /// persisted MAX + 1 (see <see cref="SecretValue.AddVersion"/>); null derives it from the loaded versions.
+    /// </param>
+    public SecretValue SetValue(
+        Guid valueId, Guid environmentId, Guid versionId, EncryptedValue encrypted, DateTimeOffset at, int? versionNumber = null)
     {
         var existing = EnsureValue(valueId, environmentId);
-        existing.AddVersion(versionId, encrypted, at);
+        existing.AddVersion(versionId, encrypted, at, versionNumber);
         return existing;
     }
 
@@ -260,9 +265,22 @@ public sealed class SecretValue
         EnvironmentId = environmentId;
     }
 
-    public SecretVersion AddVersion(Guid versionId, EncryptedValue encrypted, DateTimeOffset at)
+    /// <summary>
+    /// Adds a new current version. The number must be unique per value (a unique index guards it): the count of
+    /// the LOADED versions is not that number once only the current version is loaded or old versions are pruned,
+    /// so a caller that loads partially passes the persisted MAX + 1 as <paramref name="versionNumber"/>. Without
+    /// it the number continues from the highest loaded version.
+    /// </summary>
+    public SecretVersion AddVersion(Guid versionId, EncryptedValue encrypted, DateTimeOffset at, int? versionNumber = null)
     {
-        var version = new SecretVersion(versionId, TenantId, Id, _versions.Count + 1, encrypted, at);
+        var number = versionNumber ?? (_versions.Count == 0 ? 1 : _versions.Max(v => v.VersionNumber) + 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(number, 1, nameof(versionNumber));
+        if (_versions.Any(v => v.VersionNumber >= number))
+        {
+            throw new InvalidOperationException($"Version number {number} is not above the loaded versions of this value.");
+        }
+
+        var version = new SecretVersion(versionId, TenantId, Id, number, encrypted, at);
         _versions.Add(version);
         CurrentVersionId = version.Id;
         // A new value is a completed rotation: the notices already sent applied to the value it replaced.
@@ -292,6 +310,16 @@ public sealed class SecretValue
     /// The UI and the agent API both convert through here.
     /// </summary>
     public static DateTimeOffset EndOfDay(DateOnly date) => new(date.ToDateTime(new TimeOnly(23, 59, 59)), TimeSpan.Zero);
+
+    /// <summary>
+    /// The calendar date a stored expiry stands for — the date the user entered, inverse of <see cref="EndOfDay"/>.
+    /// Present THIS to people (a mail, a list) instead of converting <see cref="ExpiresAt"/> into a time zone: the
+    /// stored instant is the end of that day in UTC, so east of UTC it would read as the following day.
+    /// </summary>
+    public static DateOnly CalendarDate(DateTimeOffset expiresAt) => DateOnly.FromDateTime(expiresAt.UtcDateTime);
+
+    /// <summary>The rotation date as the calendar date the user entered (see <see cref="CalendarDate"/>); null when unset.</summary>
+    public DateOnly? ExpiresOn => ExpiresAt is { } expiresAt ? CalendarDate(expiresAt) : null;
 
     /// <summary>Records that an expiry notice was sent for this days-left bucket (dedupe).</summary>
     public void MarkExpiryNoticeSent(int daysLeft) => LastExpiryNoticeDaysLeft = daysLeft;

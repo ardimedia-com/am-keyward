@@ -43,6 +43,8 @@ public class TenantIsolationTests
 
         using var scope = provider.CreateScope();
         scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>().SetTenant(t1);
+        // A management read by environment name is operator-only; this scope reads as a declared system caller.
+        scope.ServiceProvider.GetRequiredService<IActorScopeSetter>().SetSystemActor();
         var svc = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 

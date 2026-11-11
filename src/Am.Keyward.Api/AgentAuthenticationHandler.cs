@@ -10,10 +10,12 @@ using Microsoft.Extensions.Options;
 namespace Am.Keyward.Api;
 
 /// <summary>
-/// Authentication for AI agents: a Bearer agent token is validated by <see cref="IAgentAuthenticator"/> on every
+/// Authentication for AI agents: a Bearer agent token is validated by <see cref="IAgentAuthenticationValidator"/> on every
 /// request. On success the request runs <b>as the token's user</b>: tenant, user and actor scope are set here,
 /// directly — not through middleware order — so every Keyward service sees the user and every audit entry is
-/// attributed to <see cref="ActorKind.Agent"/> with the token.
+/// attributed to <see cref="ActorKind.Agent"/> with the token. A refused token is audited by the validator (when its
+/// prefix identified a token) and counted by <see cref="FailedAuthenticationThrottle"/> per (address, prefix) — a token
+/// that validates is never refused by the throttle.
 /// </summary>
 public sealed class AgentAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
@@ -25,7 +27,7 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
 
     private const string BearerPrefix = "Bearer ";
 
-    private readonly IAgentAuthenticator authenticator;
+    private readonly IAgentAuthenticationValidator authenticator;
     private readonly ITenantScopeSetter tenantScope;
     private readonly IUserScopeSetter userScope;
     private readonly IActorScopeSetter actorScope;
@@ -39,7 +41,7 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        IAgentAuthenticator authenticator,
+        IAgentAuthenticationValidator authenticator,
         ITenantScopeSetter tenantScope,
         IUserScopeSetter userScope,
         IActorScopeSetter actorScope,
@@ -80,18 +82,38 @@ public sealed class AgentAuthenticationHandler : AuthenticationHandler<Authentic
         }
 
         var clientIp = clientAddress?.ToString();
-        if (failedAttempts.IsBlocked(clientIp))
+        var token = raw[BearerPrefix.Length..].Trim();
+        var attempt = failedAttempts.TryBegin(clientIp, token);
+        if (attempt is null)
         {
+            Logger.LogDebug("KEYWARD: agent token refused without lookup — too many failed attempts for its prefix from {ClientIp}.", clientIp);
             return AuthenticateResult.Fail("Too many failed authentication attempts; try again later.");
         }
 
-        var principal = await authenticator.AuthenticateAsync(raw[BearerPrefix.Length..].Trim(), clientAddress, Context.RequestAborted);
-        if (principal is null)
+        TokenAuthenticationResult<AgentPrincipal> result;
+        try
         {
-            failedAttempts.RecordFailure(clientIp);
+            result = await authenticator.ValidateAsync(token, clientAddress, Context.RequestAborted);
+        }
+        catch
+        {
+            attempt.Abandoned();
+            throw;
+        }
+
+        if (result.Principal is not { } principal)
+        {
+            if (attempt.Failed())
+            {
+                Logger.LogWarning(
+                    "KEYWARD: {ClientIp} used up its failed agent-token authentications for one token prefix; that prefix is refused from there for the rest of the window.",
+                    clientIp);
+            }
+
             return AuthenticateResult.Fail("Invalid, expired or revoked agent token.");
         }
 
+        attempt.Succeeded();
         tenantScope.SetTenant(principal.TenantId);
         userScope.SetUser(principal.UserId);
         actorScope.SetActor(ActorKind.Agent, principal.TokenId);

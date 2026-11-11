@@ -35,4 +35,12 @@ public static class KeywardApiDefaults
 
     /// <summary>`reason` of a 400 from <c>GET /secrets/{key}</c>: the key is not a valid configuration key (e.g. an entry name with spaces).</summary>
     public const string InvalidKeyReason = "invalid-key";
+
+    /// <summary>
+    /// Request header that marks a state-changing call to the cookie-authenticated management API
+    /// (<c>MapKeywardApi</c>) as deliberate. Such a call must carry either <c>Content-Type: application/json</c> or this
+    /// header (any value) — neither can be produced by a cross-site HTML form, so a forged request from another site is
+    /// refused (415). Use it for calls without a JSON body (DELETE, rotate without a body).
+    /// </summary>
+    public const string ManagementRequestHeader = "X-Keyward-Request";
 }

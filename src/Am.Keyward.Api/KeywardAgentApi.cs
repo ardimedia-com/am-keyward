@@ -29,8 +29,11 @@ public static class KeywardAgentApi
 
     private const int MaxSearchHits = 100;
 
-    // Upper bound for any single text field an agent sends (names are capped at 256 by the model).
+    // Upper bound for any single text field an agent sends.
     private const int MaxFieldLength = 32_768;
+
+    // An entry name is stored in a 256-character column: longer is the caller's mistake (400), not a 500 from the database.
+    private const int MaxNameLength = 256;
 
     public static IEndpointRouteBuilder MapKeywardAgentApi(this IEndpointRouteBuilder endpoints, string prefix = DefaultPrefix)
     {
@@ -46,7 +49,7 @@ public static class KeywardAgentApi
 
         // The vaults this token may list: the user's team vaults, narrowed to the allowlist and the agent flag.
         group.MapGet("/vaults", async (ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant,
-            IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
+            IVaultService vaults, IAgentVaultFilter access, CancellationToken ct) =>
         {
             var reachable = await ReachableVaultsAsync(principal, user, tenant, vaults, access, ct);
             return Results.Ok(reachable.Select(v => new AgentVaultResponse(v.Id, v.Name)).ToList());
@@ -65,8 +68,15 @@ public static class KeywardAgentApi
                 return NotFound();
             }
 
+            // The allowed vault may be a team vault or one of the user's personal vaults (decision T12 B).
             var userId = UserId(user);
-            var vault = (await vaults.ListSharedVaultsAsync(userId, TenantId(tenant), ct)).First(v => v.Id == vaultId);
+            var vault = (await vaults.ListSharedVaultsAsync(userId, TenantId(tenant), ct)).FirstOrDefault(v => v.Id == vaultId)
+                ?? (await vaults.ListVaultsAsync(userId, ct)).FirstOrDefault(v => v.Id == vaultId);
+            if (vault is null)
+            {
+                return NotFound();
+            }
+
             var folders = await vaults.ListFoldersAsync(userId, vaultId, ct);
             var items = await vaults.ListItemsAsync(userId, vaultId, ct);
 
@@ -79,7 +89,7 @@ public static class KeywardAgentApi
 
         // Name search across the reachable vaults. Names are cleartext; nothing is decrypted.
         group.MapGet("/search", async (string? q, ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant,
-            IVaultService vaults, IAgentVaultAccess access, CancellationToken ct) =>
+            IVaultService vaults, IAgentVaultFilter access, CancellationToken ct) =>
         {
             if (q is null || q.Trim().Length < 2)
             {
@@ -181,6 +191,11 @@ public static class KeywardAgentApi
             if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value, body.Totp))
             {
                 return BadRequest($"A field exceeds {MaxFieldLength} characters.");
+            }
+
+            if (body.Name is { Length: > MaxNameLength })
+            {
+                return BadRequest($"An entry name may have at most {MaxNameLength} characters.");
             }
 
             try
@@ -360,6 +375,12 @@ public static class KeywardAgentApi
             return false;
         }
 
+        if (body.Name.Length > MaxNameLength)
+        {
+            error = $"An entry name may have at most {MaxNameLength} characters.";
+            return false;
+        }
+
         if (TooLong(body.Name, body.Url, body.Username, body.Password, body.Note, body.Value, body.Totp))
         {
             error = $"A field exceeds {MaxFieldLength} characters.";
@@ -427,24 +448,18 @@ public static class KeywardAgentApi
         Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: title);
 
     private static async Task<IReadOnlyList<VaultSummary>> ReachableVaultsAsync(
-        ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant, IVaultService vaults, IAgentVaultAccess access, CancellationToken ct)
+        ClaimsPrincipal principal, ICurrentUser user, ICurrentTenant tenant, IVaultService vaults, IAgentVaultFilter access, CancellationToken ct)
     {
-        var tokenId = TokenId(principal);
         // The team vaults of the token's tenant and the user's personal vaults (decision T12 B).
         var candidates = (await vaults.ListSharedVaultsAsync(UserId(user), TenantId(tenant), ct))
             .Concat(await vaults.ListVaultsAsync(UserId(user), ct))
+            .Where(v => v.AgentAccessAllowed)
             .ToList();
 
-        var reachable = new List<VaultSummary>();
-        foreach (var vault in candidates.Where(v => v.AgentAccessAllowed))
-        {
-            if (await access.IsVaultAllowedAsync(tokenId, vault.Id, AgentScopes.VaultList, Permission.Read, ct))
-            {
-                reachable.Add(vault);
-            }
-        }
-
-        return reachable;
+        // One batched decision for all candidates (the same rule as IsVaultAllowedAsync), not a context per vault.
+        var allowed = await access.FilterAllowedVaultsAsync(
+            TokenId(principal), candidates.Select(v => v.Id).ToList(), AgentScopes.VaultList, Permission.Read, ct);
+        return candidates.Where(v => allowed.Contains(v.Id)).ToList();
     }
 
     internal static IResult NotFound() =>
