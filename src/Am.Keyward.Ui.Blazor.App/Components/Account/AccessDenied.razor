@@ -1,0 +1,9 @@
+@page "/account/access-denied"
+@inject IStringLocalizer<ShellResource> ShellLoc
+
+@* The cookie handler's AccessDeniedPath: a signed-in user without the required permission. *@
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+<h1>@ShellLoc["AccessDenied.Title"]</h1>
+<p>@ShellLoc["AccessDenied.Body"]</p>
+<p><a href="">@ShellLoc["AccessDenied.Home"]</a></p>

@@ -39,6 +39,11 @@ public sealed class BrandedMailAlertPresenter(
         TimeZoneInfo.ConvertTime(value, monitoringOptions.Value.ResolveTimeZone(logger))
             .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
+    // A secret's expiry is a calendar DATE, stored as 23:59:59 UTC of that day. Converting it into the installation
+    // zone would show the NEXT day east of UTC; format the UTC date, exactly as the UI does (SecretsPanel).
+    private static string FormatExpiryDate(DateTimeOffset value) =>
+        value.UtcDateTime.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
     public async Task<int> NotifyTokenAlertsAsync(
         Guid tenantId,
         bool monitoring,
@@ -233,11 +238,11 @@ public sealed class BrandedMailAlertPresenter(
                 .SelectMany(x => string.IsNullOrWhiteSpace(x.Note)
                     ? (string[])
                     [
-                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatDate(x.ExpiresAt)].Value,
+                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatExpiryDate(x.ExpiresAt)].Value,
                     ]
                     :
                     [
-                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatDate(x.ExpiresAt)].Value,
+                        loc["Email.SecretExpiry.Line", x.SecretKey, x.ProjectName, x.EnvironmentName, x.DaysLeft, FormatExpiryDate(x.ExpiresAt)].Value,
                         loc["Email.SecretExpiry.LineNote", x.Note].Value,
                     ])
                 .ToList();

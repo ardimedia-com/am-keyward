@@ -52,6 +52,7 @@
             }
 
             <form action="account/logout" method="post" style="margin-top:1rem;">
+                <AntiforgeryToken />
                 <button type="submit" class="btn-danger">@Loc["Nav.SignOut"]</button>
             </form>
         </div>

@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
+@inject IStringLocalizer<ShellResource> ShellLoc
 
 @* The sidebar collapses to an icon rail (toggle in the brand row), so a wide page — an application's data
    table — gets the width back while every section stays one click away. Remembered in the browser; the
@@ -19,9 +20,9 @@
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    @ShellLoc["Layout.Error.Message"]
+    <a href="." class="reload">@ShellLoc["Layout.Error.Reload"]</a>
+    <span class="dismiss" role="button" aria-label="@ShellLoc["Layout.Error.Dismiss"]">🗙</span>
 </div>
 
 @code {

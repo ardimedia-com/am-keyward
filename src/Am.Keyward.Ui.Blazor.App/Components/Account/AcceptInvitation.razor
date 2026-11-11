@@ -1,0 +1,102 @@
+@page "/account/accept-invitation"
+@using System.ComponentModel.DataAnnotations
+@inject InvitationService Invitations
+@inject IStringLocalizer<SharedResource> Loc
+@inject IStringLocalizer<ShellResource> ShellLoc
+
+@* Static SSR like every account page: the invited person chooses a password; the link is single-use. *@
+<PageTitle>@KeywardOptions.ProductName</PageTitle>
+
+<h1>@ShellLoc["Invite.Title"]</h1>
+
+@if (done)
+{
+    <div class="notice" role="status">
+        @ShellLoc["Invite.Done"] <a href="account/login">@Loc["Login.Submit"]</a>
+    </div>
+}
+else if (invitedEmail is null)
+{
+    <p style="color:var(--danger);" role="alert"><strong>@ShellLoc["Invite.Invalid"]</strong></p>
+}
+else
+{
+    <p>@ShellLoc["Invite.Desc", invitedEmail]</p>
+
+    @if (errorMessage is not null)
+    {
+        <p style="color:var(--danger);" role="alert"><strong>@errorMessage</strong></p>
+    }
+
+    <EditForm Model="Input" method="post" OnValidSubmit="AcceptAsync" FormName="accept-invitation">
+        <DataAnnotationsValidator />
+        <div style="display:flex; flex-direction:column; gap:.5rem; max-width:24rem;">
+            <input type="text" name="username" value="@invitedEmail" autocomplete="username" readonly hidden />
+            <label>@Loc["Register.Password"]
+                <InputText type="password" @bind-Value="Input.Password" autocomplete="new-password" />
+            </label>
+            <label>@Loc["Register.Confirm"]
+                <InputText type="password" @bind-Value="Input.ConfirmPassword" autocomplete="new-password" />
+            </label>
+            <ValidationSummary />
+            <button type="submit">@ShellLoc["Invite.Submit"]</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromForm] private InputModel Input { get; set; } = default!;
+    [SupplyParameterFromQuery] private string? UserId { get; set; }
+    [SupplyParameterFromQuery] private string? Token { get; set; }
+
+    private string? invitedEmail;
+    private string? errorMessage;
+    private bool done;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Input ??= new();
+        // Checking the link does not spend it; only a successful accept does.
+        invitedEmail = (await Invitations.FindValidAsync(UserId, Token))?.Email;
+    }
+
+    private async Task AcceptAsync()
+    {
+        if (invitedEmail is null)
+        {
+            return;
+        }
+
+        if (Input.Password != Input.ConfirmPassword)
+        {
+            errorMessage = ShellLoc["Account.PasswordMismatch"];
+            return;
+        }
+
+        var (linkValid, result) = await Invitations.AcceptAsync(UserId, Token, Input.Password);
+        if (!linkValid)
+        {
+            invitedEmail = null;
+            return;
+        }
+
+        if (result is { Succeeded: true })
+        {
+            done = true;
+            return;
+        }
+
+        errorMessage = result?.Errors.Any(e => e.Code.StartsWith("Password", StringComparison.Ordinal)) == true
+            ? ShellLoc["Account.PasswordPolicy"]
+            : ShellLoc["Account.GenericError"];
+    }
+
+    private sealed class InputModel
+    {
+        [Required, DataType(DataType.Password), StringLength(100, MinimumLength = 12)]
+        public string Password { get; set; } = "";
+
+        [DataType(DataType.Password)]
+        public string ConfirmPassword { get; set; } = "";
+    }
+}

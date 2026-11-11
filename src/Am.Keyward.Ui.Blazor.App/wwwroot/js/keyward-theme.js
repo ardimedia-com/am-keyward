@@ -32,6 +32,21 @@ window.keywardTheme = {
     }
 };
 
+// The topbar controls carry data-kw-theme="<name>" / data-kw-toggle-dark instead of inline onclick handlers (the
+// Content-Security-Policy blocks those); one delegated listener serves them, including after enhanced navigation.
+document.addEventListener('click', function (e) {
+    var target = e.target instanceof Element ? e.target : null;
+    if (!target) { return; }
+    var themeButton = target.closest('[data-kw-theme]');
+    if (themeButton) {
+        window.keywardTheme.setTheme(themeButton.getAttribute('data-kw-theme'));
+        return;
+    }
+    if (target.closest('[data-kw-toggle-dark]')) {
+        window.keywardTheme.toggleDark();
+    }
+});
+
 // Blazor enhanced navigation patches the DOM to match the server response, which carries no theme
 // attributes (they are client-side only) — re-apply after every enhanced load so the theme survives.
 (function registerEnhancedLoad(attempt) {
