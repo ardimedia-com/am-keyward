@@ -144,7 +144,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? Written("Moved", result.Value!) : result.Error!;
     }
 
-    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password', 'Note' or 'Totp' (the current one-time code, generated when it is copied) of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (Agent tokens page) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
+    [McpServerTool(Name = "request_reveal"), Description("Asks to see one secret: 'Password', 'Note' or 'Totp' (the current one-time code, generated when it is copied) of a Login, 'Value' of other types. Often simpler: give the person the entry link from get_item — they open the entry in KEYWARD and copy the value themselves. A reveal must be approved by the person the token belongs to in KEYWARD (the «AI agent tokens» page, linked in the answer) within 5 minutes; then call consume_reveal. The value is copied to the clipboard, never returned to you.")]
     public async Task<string> RequestRevealAsync(
         [Description("The entry id.")] Guid itemId,
         [Description("Password, Note, Totp or Value.")] string field,
@@ -160,10 +160,20 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         if (!result.Ok) return result.Error!;
 
         var request = result.Value!;
-        return $"Reveal request {request.Id} is waiting for approval until {request.ExpiresAt:HH:mm} UTC. "
-            + "Ask the person to approve it in KEYWARD under «AI agent tokens», then call consume_reveal with this id. "
+        return $"Reveal request {request.Id} is waiting for approval until {Deadline(request.ExpiresAt)}. "
+            + $"Ask the person to approve it on «AI agent tokens»: {ApprovalLink}, then call consume_reveal with this id. "
             + $"Or the person opens the entry and copies the value there: {keyward.AbsoluteLink(request.ItemLink)}";
     }
+
+    /// <summary>The page where the token's owner approves a reveal — handed out in full so nobody has to find it.</summary>
+    private string ApprovalLink => keyward.AbsoluteLink(KeywardApiDefaults.AgentTokensPath);
+
+    /// <summary>
+    /// The approval deadline in the local time of the computer the MCP server runs on — the person's own clock — with
+    /// UTC beside it, so a five-minute window is not misread by an hour.
+    /// </summary>
+    private static string Deadline(DateTimeOffset expiresAt) =>
+        $"{expiresAt.ToLocalTime():HH:mm} local time ({expiresAt.ToUniversalTime():HH:mm} UTC)";
 
     [McpServerTool(Name = "consume_reveal"), Description("After the person approved a reveal request: copies the value to the clipboard of this computer (cleared after 30 seconds; on Windows kept out of clipboard history). The value itself is not returned. Works once.")]
     public async Task<string> ConsumeRevealAsync([Description("The id from request_reveal.")] Guid requestId, CancellationToken ct)
@@ -178,7 +188,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         switch (state.Value!.Status)
         {
             case "Pending":
-                return $"Not approved yet — the person can decide until {state.Value.ExpiresAt:HH:mm} UTC. Try again after they approved.";
+                return $"Not approved yet — the person can decide until {Deadline(state.Value.ExpiresAt)} on {ApprovalLink}. Try again after they approved.";
             case "Approved":
                 break;
             default:

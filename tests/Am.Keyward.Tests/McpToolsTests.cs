@@ -74,7 +74,12 @@ public class McpToolsTests
         var requestId = Guid.Parse(requested.Split(' ')[2]);
         // The person may simply open the entry and copy the value there: the answer carries the entry link.
         StringAssert.Contains(requested, "/amkeyward/e/");
-        StringAssert.Contains(await Say(tools.ConsumeRevealAsync(requestId, default)), "Not approved yet");
+        // The person approves on «AI agent tokens»: the answer carries that page in full and the deadline in local time.
+        StringAssert.Contains(requested, KeywardApiDefaults.AgentTokensPath);
+        StringAssert.Contains(requested, "local time");
+        var pending = await Say(tools.ConsumeRevealAsync(requestId, default));
+        StringAssert.Contains(pending, "Not approved yet");
+        StringAssert.Contains(pending, KeywardApiDefaults.AgentTokensPath);
         Assert.IsNull(clipboard.Value);
 
         using (var scope = ScopeFor(app.Services, tenantId, owner))

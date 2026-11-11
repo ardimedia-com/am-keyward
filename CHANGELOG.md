@@ -5,6 +5,14 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Changed
+
+- **A reveal request now names the page where it is approved, and its deadline in local time.** `request_reveal`
+  and a pending `consume_reveal` answer with the full link to «AI agent tokens» (`KeywardApiDefaults.AgentTokensPath`)
+  instead of only the menu name, and give the five-minute deadline in the local time of the computer the MCP server
+  runs on, with UTC beside it. Before, the assistant had to guess the address, and a deadline in UTC alone was misread
+  by an hour.
+
 ## [0.37.0-preview] - 2026-11-09
 
 ### Fixed
