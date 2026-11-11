@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.38.0-preview] - 2026-11-11
+
 ### Changed
 
 - **A reveal request now names the page where it is approved, and its deadline in local time.** `request_reveal`
