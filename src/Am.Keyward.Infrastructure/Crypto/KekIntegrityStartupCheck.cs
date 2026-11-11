@@ -14,7 +14,8 @@ namespace Am.Keyward.Infrastructure.Crypto;
 /// <c>BackgroundService</c>: the host awaits it before the server accepts the first request, so the verdict
 /// is in place before anything can read or write a secret. It never throws — a database that is unreachable
 /// at this moment leaves the verdict <see cref="KekIntegrityStatus.Unknown"/>, which does not block; only a
-/// CONFIRMED conflict does.</para>
+/// CONFIRMED conflict does. An Unknown verdict is re-run later: lazily on the first use of the key and by the ops
+/// monitor (<see cref="KeywardKeyIntegrityState.EnsureVerifiedAsync"/>, <see cref="KeywardKeyIntegrityState.RecheckAsync"/>).</para>
 /// </summary>
 public sealed class KekIntegrityStartupCheck(
     IServiceScopeFactory scopeFactory,
@@ -26,47 +27,29 @@ public sealed class KekIntegrityStartupCheck(
     {
         try
         {
-            using IServiceScope scope = scopeFactory.CreateScope();
-            KekCanaryService canary = scope.ServiceProvider.GetRequiredService<KekCanaryService>();
-            KeywardInstallationRegistry registry = scope.ServiceProvider.GetRequiredService<KeywardInstallationRegistry>();
-            IKekProvider kek = scope.ServiceProvider.GetRequiredService<IKekProvider>();
-
-            string writtenBy = $"{registry.Current.MachineName} ({registry.Current.EnvironmentName})";
-            (KekIntegrityStatus status, string? detail) = await canary.VerifyOrCreateAsync(writtenBy, cancellationToken).ConfigureAwait(false);
-            state.Record(status, detail);
-
-            switch (status)
+            // The verdict and its log lines come from the state, so a startup check and every later recheck say
+            // the same thing in the same words. It never throws for an unreachable database.
+            KekIntegrityStatus status = await state.RecheckAsync(cancellationToken).ConfigureAwait(false);
+            if (status == KekIntegrityStatus.Unknown)
             {
-                case KekIntegrityStatus.Ok:
-                    logger.LogInformation("KEYWARD: the key-encryption key owns this database (canary verified).");
-                    break;
-
-                case KekIntegrityStatus.Created:
-                    logger.LogInformation("KEYWARD: key-ownership canary written. {Detail}", detail);
-                    break;
-
-                case KekIntegrityStatus.Conflict when state.IsBlocked:
-                    logger.LogCritical(
-                        "KEYWARD: KEY MISMATCH — encryption and decryption are DISABLED to keep the split from "
-                        + "growing. {Detail}", detail);
-                    break;
-
-                case KekIntegrityStatus.Conflict:
-                    logger.LogCritical(
-                        "KEYWARD: KEY MISMATCH — configured to continue anyway (Keyward:KeyIntegrity:OnConflict=Warn). "
-                        + "Every value written from now on will be unreadable to the installation that owns the data. "
-                        + "{Detail}", detail);
-                    break;
+                return;   // no database: nothing to register either
             }
 
+            using IServiceScope scope = scopeFactory.CreateScope();
+            KeywardInstallationRegistry registry = scope.ServiceProvider.GetRequiredService<KeywardInstallationRegistry>();
+            IKekProvider kek = scope.ServiceProvider.GetRequiredService<IKekProvider>();
             await this.ReportPeersAsync(registry, kek.KekId, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            state.Record(KekIntegrityStatus.Unknown, ex.Message);
+            if (state.Status == KekIntegrityStatus.Unknown)
+            {
+                state.Record(KekIntegrityStatus.Unknown, ex.Message);
+            }
+
             logger.LogError(ex,
-                "KEYWARD: the key-ownership check could not run — continuing without a verdict. A key mismatch "
-                + "would therefore not be caught this run.");
+                "KEYWARD: the key-ownership check could not run — continuing without a verdict. It is retried on the "
+                + "next use of the key and by the ops monitor.");
         }
     }
 

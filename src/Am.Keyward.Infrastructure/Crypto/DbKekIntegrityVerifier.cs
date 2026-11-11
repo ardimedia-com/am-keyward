@@ -5,8 +5,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Am.Keyward.Infrastructure.Crypto;
 
 /// <summary>
-/// Backup/restore consistency job. Scans every persisted encrypted slot (software secret versions and
-/// human vault item versions) and checks that the KEK id its DEK was wrapped under is still resolvable by
+/// Backup/restore consistency job. Scans every persisted encrypted slot (software secret versions, human
+/// vault item versions and the audit subjects' encrypted PII) and checks that the KEK id its DEK was wrapped under is still resolvable by
 /// the current <see cref="IKekProvider"/>. An unresolvable id means the database was restored without its
 /// matching KEK store, or a KEK version was retired before its rows were re-wrapped — either way those
 /// values would be undecryptable, which this surfaces before they are needed.
@@ -52,6 +52,22 @@ public sealed class DbKekIntegrityVerifier(IDbContextFactory<KeywardDbContext> d
             if (!kek.CanResolve(slot.Encrypted.KekId))
             {
                 issues.Add(new KekIntegrityIssue("VaultItemVersion", slot.Id, slot.Encrypted.KekId));
+            }
+        }
+
+        // The audit subjects' PII is sealed by the same KEK (crypto-shredding): a key retired before these were
+        // re-wrapped would make the audit trail's names unreadable. Erased subjects hold no envelope.
+        var subjectSlots = db.AuditSubjects
+            .AsNoTracking()
+            .Where(s => s.EncryptedPii != null)
+            .Select(s => new { s.Id, s.EncryptedPii })
+            .AsAsyncEnumerable();
+        await foreach (var slot in subjectSlots.WithCancellation(ct).ConfigureAwait(false))
+        {
+            checkedCount++;
+            if (!kek.CanResolve(slot.EncryptedPii!.KekId))
+            {
+                issues.Add(new KekIntegrityIssue("AuditSubject", slot.Id, slot.EncryptedPii.KekId));
             }
         }
 

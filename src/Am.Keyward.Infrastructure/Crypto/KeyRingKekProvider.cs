@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Am.Keyward.Core.Abstractions;
 
 namespace Am.Keyward.Infrastructure.Crypto;
@@ -38,12 +39,67 @@ public sealed class KeyRingKekProvider : IKekProvider
         _current = _versions[currentKekId];
     }
 
-    public bool CanResolve(string kekId) => _versions.ContainsKey(kekId);
+    /// <summary>
+    /// Resolvable when a ring member has exactly this id, or when the id is the unqualified (pre-fingerprint) form
+    /// of a member's id (<c>dpapi-file:v1</c> for <c>dpapi-file:v1:a1b2c3d4</c>, see
+    /// <see cref="KekFingerprint.IsUnqualifiedFormOf"/>) - the same legacy acceptance <see cref="StaticKekProvider"/>
+    /// has, so rows written before the fingerprint existed stay readable once a host moves to a key ring.
+    /// </summary>
+    public bool CanResolve(string kekId) =>
+        _versions.ContainsKey(kekId) || LegacyCandidates(kekId).Any();
 
     public ValueTask<byte[]> WrapAsync(byte[] dek, CancellationToken ct = default) => _current.WrapAsync(dek, ct);
 
-    public ValueTask<byte[]> UnwrapAsync(byte[] wrappedDek, string kekId, CancellationToken ct = default) =>
-        _versions.TryGetValue(kekId, out var provider)
-            ? provider.UnwrapAsync(wrappedDek, kekId, ct)
-            : throw new InvalidOperationException($"No KEK version '{kekId}' in the key ring (needed to unwrap this value).");
+    public async ValueTask<byte[]> UnwrapAsync(byte[] wrappedDek, string kekId, CancellationToken ct = default)
+    {
+        if (_versions.TryGetValue(kekId, out var provider))
+        {
+            return await provider.UnwrapAsync(wrappedDek, kekId, ct).ConfigureAwait(false);
+        }
+
+        // A legacy id names only the FORMAT, so several members may claim it. AES-GCM authenticates: the member
+        // that really sealed this DEK is the only one whose unwrap verifies, so a trial over the candidates is
+        // exact (current key first - after an upgrade it is by far the most likely one).
+        List<StaticKekProvider> candidates = [.. LegacyCandidates(kekId)];
+        if (candidates.Count == 0)
+        {
+            throw new InvalidOperationException($"No KEK version '{kekId}' in the key ring (needed to unwrap this value).");
+        }
+
+        foreach (StaticKekProvider candidate in candidates)
+        {
+            try
+            {
+                return await candidate.UnwrapAsync(wrappedDek, candidate.KekId, ct).ConfigureAwait(false);
+            }
+            catch (CryptographicException)
+            {
+                // Not this member: try the next one.
+            }
+        }
+
+        throw new CryptographicException(
+            $"None of the {candidates.Count} key-ring member(s) of format '{kekId}' can unwrap this value.");
+    }
+
+    private IEnumerable<StaticKekProvider> LegacyCandidates(string kekId)
+    {
+        if (string.IsNullOrEmpty(kekId))
+        {
+            yield break;
+        }
+
+        if (KekFingerprint.IsUnqualifiedFormOf(kekId, _current.KekId))
+        {
+            yield return _current;
+        }
+
+        foreach (KeyValuePair<string, StaticKekProvider> member in _versions)
+        {
+            if (!ReferenceEquals(member.Value, _current) && KekFingerprint.IsUnqualifiedFormOf(kekId, member.Key))
+            {
+                yield return member.Value;
+            }
+        }
+    }
 }
