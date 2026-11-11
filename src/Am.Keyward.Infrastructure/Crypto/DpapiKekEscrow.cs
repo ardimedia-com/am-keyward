@@ -47,6 +47,7 @@ public static class DpapiKekEscrow
     private const int NonceSize = 12;   // AES-GCM standard
     private const int TagSize = 16;     // AES-GCM standard
     private const int WrapKeySize = 32; // AES-256
+    private const int KekSize = 32;     // the wrapped key itself: AES-256
 
     /// <summary>
     /// Minimum length of an escrow passphrase, in characters. The blob is not machine-bound — that is its point —
@@ -260,25 +261,65 @@ public static class DpapiKekEscrow
         string passphrase = ReadPassphrase("Passphrase: ");
 
         byte[] kek = Unwrap(blob, passphrase);
-        string fingerprint = Fingerprint(kek);
+        string fingerprint;
+        try
+        {
+            // The blob authenticated, but it may still not be a KEK: an escrow of something else would otherwise be
+            // written as kek.bin and only fail when the app starts (or, worse, be truncated into a key).
+            EnsureKekSize(kek);
+            fingerprint = Fingerprint(kek);
 
-        Directory.CreateDirectory(directory);
-        File.WriteAllBytes(path, ProtectedData.Protect(kek, optionalEntropy: null, DataProtectionScope.LocalMachine));
-        CryptographicOperations.ZeroMemory(kek);
+            Directory.CreateDirectory(directory);
+
+            // Narrow the folder the same way the app does, but to the identity running THIS command (an
+            // administrator): the app's own identity is added below with one icacls line, because this command
+            // cannot know which account the app runs as.
+            if (!DpapiKekFile.TryRestrictAccess(directory, out string? problem))
+            {
+                Console.WriteLine($"WARNING: the folder's access rules could not be narrowed ({problem}).");
+            }
+
+            // Created exclusively, with explicit protected rules; never readable by a group, never overwriting.
+            if (!DpapiKekFile.TryCreateKeyFile(directory, ProtectedData.Protect(kek, optionalEntropy: null, DataProtectionScope.LocalMachine)))
+            {
+                throw new InvalidOperationException($"'{path}' appeared while importing — refusing to overwrite a live KEK.");
+            }
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(kek);
+        }
 
         Console.WriteLine();
         Console.WriteLine($"Imported. KEK fingerprint: {fingerprint}");
         Console.WriteLine($"Written (DPAPI, this machine): {path}");
-
-
-        // Deliberately NOT narrowed here: the import runs as an administrator, not as the app's identity, and
-        // narrowing to "this process" would lock the app out of its own key. The app narrows the folder when it
-        // loads the key (DpapiKekFile.LoadOrCreate) — if it may: it may not change the rules of a folder an
-        // administrator created, so say what to do.
-        Console.WriteLine("Access: the app narrows this folder to SYSTEM, Administrators and its own identity when it starts.");
-        Console.WriteLine("If the folder was created just now (by this command), the app is not its owner and cannot do");
-        Console.WriteLine("that — then narrow it by hand: inheritance off, SYSTEM + Administrators + the app's identity only.");
+        Console.WriteLine();
+        Console.WriteLine("Access: the folder and the key file are now readable by SYSTEM, Administrators and the account that");
+        Console.WriteLine("ran this command only. Grant the app's own identity (an IIS app pool, a service account) before it starts:");
+        Console.WriteLine();
+        Console.WriteLine($"  {IcaclsGrantLine(directory, "IIS AppPool\\<AppPoolName>")}");
+        Console.WriteLine();
+        Console.WriteLine("(for a Windows service use its account, e.g. \"NT SERVICE\\<ServiceName>\"). Grant an individual account,");
+        Console.WriteLine("never a group such as IIS_IUSRS or Users: the app removes group grants when it starts.");
         Console.WriteLine("Compare the fingerprint with the one printed at export — they must be identical.");
+    }
+
+    /// <summary>
+    /// The <c>icacls</c> command that grants <paramref name="account"/> full control of the KEK folder and, with
+    /// <c>/T</c>, of the key file in it (the key file does not inherit: its rules are protected).
+    /// </summary>
+    internal static string IcaclsGrantLine(string directory, string account) =>
+        $"icacls \"{directory}\" /grant \"{account}:(OI)(CI)F\" /T";
+
+    /// <summary>Throws unless <paramref name="kek"/> is exactly a 32-byte AES-256 key.</summary>
+    internal static void EnsureKekSize(byte[] kek)
+    {
+        ArgumentNullException.ThrowIfNull(kek);
+        if (kek.Length != KekSize)
+        {
+            throw new InvalidOperationException(
+                $"The escrow blob holds {kek.Length} bytes, not a {KekSize}-byte key-encryption key. Nothing was written.");
+        }
     }
 
     /// <summary>

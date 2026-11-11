@@ -31,8 +31,13 @@ namespace Am.Keyward.Infrastructure.Crypto;
 /// (<see cref="TryRestrictAccess"/>). Explicit grants to individual accounts — a second installation that shares
 /// this KEK under its own identity, e.g. an IIS app-pool identity an operator added by hand — are kept; grants to
 /// groups (Users, Authenticated Users, IIS_IUSRS, Everyone, …) are removed. When the process may not change the
-/// ACL (a folder created by an administrator, whose owner it is not) the key still loads and a warning is
-/// logged.</para>
+/// ACL of an EXISTING folder or key (a folder created by an administrator, whose owner it is not) the key still
+/// loads and a warning is logged. A NEW key file is different: it is created with its own explicit, protected
+/// rules and fails closed when those cannot be applied (<see cref="TryCreateKeyFile"/>).</para>
+///
+/// <para><b>First run is exclusive.</b> The new key is written to a temporary file and renamed into place without
+/// replacing an existing one, so two installations starting for the first time on one folder end up with ONE key:
+/// the loser of the rename reads the winner's file instead of keeping a key that exists only in its memory.</para>
 ///
 /// <para><b>No DPAPI entropy.</b> An <c>optionalEntropy</c> would have to live somewhere a local process can
 /// read as well (the code or configuration of this app), so it adds little next to the ACL — and every existing
@@ -78,7 +83,9 @@ public static class DpapiKekFile
     /// Returns the KEK for <c>AddKeyward</c>, creating it on first use — see <see cref="LoadOrCreate(string)"/>.
     /// Before the key is read or written, the folder (and an existing file) is narrowed to this installation
     /// (<see cref="TryRestrictAccess"/>); when that is not possible a warning goes to <paramref name="logger"/>
-    /// (without a logger: to <see cref="Trace"/>) and the key is still returned.
+    /// (without a logger: to <see cref="Trace"/>) and an existing key is still returned. A key created by this call
+    /// is written exclusively with protected rules and throws <see cref="InvalidOperationException"/> when it cannot
+    /// be protected.
     /// </summary>
     /// <param name="directory">The host-owned key directory; created when missing.</param>
     /// <param name="logger">Receives the warning when the access rules cannot be narrowed; optional.</param>
@@ -89,22 +96,155 @@ public static class DpapiKekFile
         Directory.CreateDirectory(directory);
         string path = PathIn(directory);
 
-        // Narrow the folder FIRST: a new key file then inherits the narrowed rules from the moment it exists.
+        // Narrow the folder FIRST, so whatever else lands in it later inherits the narrowed rules. The key file
+        // itself does not depend on this: it is created with its own explicit, protected rules (below).
         RestrictAccessOrWarn(directory, logger);
 
         if (File.Exists(path))
         {
-            byte[] key = ProtectedData.Unprotect(File.ReadAllBytes(path), optionalEntropy: null, DataProtectionScope.LocalMachine);
-            return key.Length == KekSize
-                ? (key, KekFingerprint.Qualify(FormatId, key), Created: false)
-                : throw new InvalidOperationException($"The KEK at '{path}' is malformed ({key.Length} bytes, expected {KekSize}).");
+            return Load(path);
         }
 
         byte[] fresh = RandomNumberGenerator.GetBytes(KekSize);
-        File.WriteAllBytes(path, ProtectedData.Protect(fresh, optionalEntropy: null, DataProtectionScope.LocalMachine));
-        RestrictAccessOrWarn(directory, logger);   // now the file exists: give it its own, non-inherited rules
+        if (!TryCreateKeyFile(directory, ProtectedData.Protect(fresh, optionalEntropy: null, DataProtectionScope.LocalMachine)))
+        {
+            // Another process (or thread) created the key between our check and our write. Its file is complete
+            // (the rename is atomic) and it is the key the database will be sealed with: use it, never ours.
+            CryptographicOperations.ZeroMemory(fresh);
+            return Load(path);
+        }
+
         return (fresh, KekFingerprint.Qualify(FormatId, fresh), Created: true);
     }
+
+    private static (byte[] Key, string KekId, bool Created) Load(string path)
+    {
+        byte[] key = ProtectedData.Unprotect(File.ReadAllBytes(path), optionalEntropy: null, DataProtectionScope.LocalMachine);
+        if (key.Length != KekSize)
+        {
+            CryptographicOperations.ZeroMemory(key);
+            throw new InvalidOperationException($"The KEK at '{path}' is malformed ({key.Length} bytes, expected {KekSize}).");
+        }
+
+        return (key, KekFingerprint.Qualify(FormatId, key), Created: false);
+    }
+
+    /// <summary>
+    /// Writes a NEW key file exclusively and atomically: the DPAPI blob goes into a temporary file that is created
+    /// with an explicit, protected access-control list (SYSTEM, Administrators, the identity of this process and
+    /// any individual account the folder already grants, see <see cref="TryRestrictAccess"/>), and is then renamed
+    /// to <see cref="FileName"/> without replacing an existing file. Readers therefore never see a half-written key,
+    /// and two first starts on one folder cannot both keep their own key: the second rename fails and that caller
+    /// gets <c>false</c>, so it re-reads the winner's file.
+    ///
+    /// <para><b>Fails closed.</b> When the protected rules cannot be applied, or do not verify on the written file,
+    /// the temporary file is deleted and an <see cref="InvalidOperationException"/> is thrown: a new key never
+    /// stays readable by a group behind a mere warning.</para>
+    /// </summary>
+    /// <returns><c>true</c> when this call created the key file; <c>false</c> when one already existed.</returns>
+    internal static bool TryCreateKeyFile(string directory, byte[] protectedBlob)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        ArgumentNullException.ThrowIfNull(protectedBlob);
+
+        string path = PathIn(directory);
+        string temporary = Path.Combine(directory, $".{FileName}.{Guid.NewGuid():N}.tmp");
+        HashSet<SecurityIdentifier> kept = AllowedIdentities(directory);
+
+        try
+        {
+            FileSecurity security = new();
+            security.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
+            foreach (SecurityIdentifier sid in kept)
+            {
+                security.AddAccessRule(new FileSystemAccessRule(sid, FileSystemRights.FullControl, AccessControlType.Allow));
+            }
+
+            try
+            {
+                using FileStream stream = new FileInfo(temporary).Create(
+                    FileMode.CreateNew, FileSystemRights.Write | FileSystemRights.ReadPermissions, FileShare.None,
+                    bufferSize: 4096, FileOptions.WriteThrough, security);
+                stream.Write(protectedBlob);
+                stream.Flush(flushToDisk: true);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or SystemException)
+            {
+                throw new InvalidOperationException(
+                    $"KEYWARD: the new key file in '{directory}' could not be created with protected access rules "
+                    + $"({ex.Message}). No key was written. Make sure this process may create files in that folder.", ex);
+            }
+
+            if (!Complies(new FileInfo(temporary).GetAccessControl(), kept))
+            {
+                throw new InvalidOperationException(
+                    $"KEYWARD: the new key file in '{directory}' did not keep its protected access rules (SYSTEM, "
+                    + "Administrators and this process only). No key was written.");
+            }
+
+            try
+            {
+                File.Move(temporary, path, overwrite: false);
+                return true;
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                return false;   // lost the race: the winner's key is the key
+            }
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(temporary);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Best effort: a leftover temporary blob is still protected (its rules were set at creation).
+            }
+        }
+    }
+
+    /// <summary>
+    /// The identities that may hold the key: SYSTEM, BUILTIN\Administrators, this process, and every individual
+    /// account the folder (or an existing key file) grants explicitly. When those rules cannot be read, only the
+    /// required three are returned, which is the safe direction.
+    /// </summary>
+    private static HashSet<SecurityIdentifier> AllowedIdentities(string directory)
+    {
+        HashSet<SecurityIdentifier> kept = [.. RequiredIdentities()];
+        try
+        {
+            FileInfo file = new(PathIn(directory));
+            IEnumerable<FileSystemAccessRule> explicitGrants = ExplicitAllowRules(new DirectoryInfo(directory).GetAccessControl());
+            if (file.Exists)
+            {
+                explicitGrants = explicitGrants.Concat(ExplicitAllowRules(file.GetAccessControl()));
+            }
+
+            foreach (FileSystemAccessRule rule in explicitGrants)
+            {
+                if (rule.IdentityReference is SecurityIdentifier sid && IsIndividualAccount(sid))
+                {
+                    kept.Add(sid);
+                }
+            }
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or SystemException)
+        {
+            // Not readable: keep the minimum set.
+        }
+
+        return kept;
+    }
+
+    private static SecurityIdentifier[] RequiredIdentities() =>
+    [
+        new(WellKnownSidType.LocalSystemSid, null),
+        new(WellKnownSidType.BuiltinAdministratorsSid, null),
+        WindowsIdentity.GetCurrent().User
+            ?? throw new InvalidOperationException("The identity of the running process has no SID."),
+    ];
 
     /// <summary>
     /// Narrows the access rules of <paramref name="directory"/> and of the KEK file in it (when present) to
@@ -127,29 +267,10 @@ public static class DpapiKekFile
             DirectoryInfo folder = new(directory);
             FileInfo file = new(PathIn(directory));
             DirectorySecurity folderSecurity = folder.GetAccessControl();
-            FileSecurity? fileSecurity = file.Exists ? file.GetAccessControl() : null;
-
-            SecurityIdentifier[] required =
-            [
-                new(WellKnownSidType.LocalSystemSid, null),
-                new(WellKnownSidType.BuiltinAdministratorsSid, null),
-                WindowsIdentity.GetCurrent().User
-                    ?? throw new InvalidOperationException("The identity of the running process has no SID."),
-            ];
 
             // Explicit grants to individual accounts survive; the set is the same for folder and file, so an
             // account that may read the folder may also read the key file in it.
-            HashSet<SecurityIdentifier> kept = [.. required];
-            IEnumerable<FileSystemAccessRule> explicitGrants = fileSecurity is null
-                ? ExplicitAllowRules(folderSecurity)
-                : ExplicitAllowRules(folderSecurity).Concat(ExplicitAllowRules(fileSecurity));
-            foreach (FileSystemAccessRule rule in explicitGrants)
-            {
-                if (rule.IdentityReference is SecurityIdentifier sid && IsIndividualAccount(sid))
-                {
-                    kept.Add(sid);
-                }
-            }
+            HashSet<SecurityIdentifier> kept = AllowedIdentities(directory);
 
             if (!Complies(folderSecurity, kept))
             {

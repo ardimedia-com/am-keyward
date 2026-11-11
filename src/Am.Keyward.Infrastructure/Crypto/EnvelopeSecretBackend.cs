@@ -30,8 +30,10 @@ public sealed class EnvelopeSecretBackend : ISecretBackend
 
     public async ValueTask<EncryptedValue> ProtectAsync(ReadOnlyMemory<byte> plaintext, ReadOnlyMemory<byte> aad, CancellationToken ct = default)
     {
-        // The single choke point for both directions: when the startup canary proved this key does not own
-        // the database, writing is what compounds the damage and reading would fail anyway.
+        // The single choke point for both directions: when the canary proved this key does not own the
+        // database, writing is what compounds the damage and reading would fail anyway. A verdict that could not
+        // be reached at startup (database down) is re-run here first, before the first value is sealed.
+        await _keyIntegrity.EnsureVerifiedAsync(ct).ConfigureAwait(false);
         _keyIntegrity.ThrowIfBlocked();
 
         var dek = RandomNumberGenerator.GetBytes(DekSize);
@@ -57,6 +59,7 @@ public sealed class EnvelopeSecretBackend : ISecretBackend
     public async ValueTask<byte[]> UnprotectAsync(EncryptedValue value, ReadOnlyMemory<byte> aad, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(value);
+        await _keyIntegrity.EnsureVerifiedAsync(ct).ConfigureAwait(false);
         _keyIntegrity.ThrowIfBlocked();
         // Pin the tag length to the constant we wrote with — never trust the stored (DB-writable) tag length.
         // A tamperer could otherwise shorten the tag to weaken forgery resistance.

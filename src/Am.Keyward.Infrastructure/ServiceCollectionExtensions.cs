@@ -6,6 +6,7 @@ using Am.Keyward.Infrastructure.Persistence;
 using Am.Keyward.Infrastructure.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Am.Keyward.Infrastructure;
 
@@ -104,7 +105,12 @@ public static class ServiceCollectionExtensions
         services.AddScoped<DbAuditSink>();
         services.AddScoped<IAuditSink>(sp => sp.GetRequiredService<DbAuditSink>());
         services.AddScoped<IAuditChainVerifier, DbAuditChainVerifier>();
+        // Incremental audit verification (last verified head per chain) and the out-of-band head anchors.
+        services.AddSingleton<AuditChainCheckpoints>();
+        services.AddSingleton<AuditHeadAnchorLog>();
         services.AddScoped<IKekIntegrityVerifier, DbKekIntegrityVerifier>();
+        // KEK rotation: re-wraps stored data keys from older ring members to the current KEK (run by the host).
+        services.AddSingleton<KekRewrapService>();
 
         // Key OWNERSHIP: does the key this process holds actually open this database's data? Verified once
         // at host start against a known plaintext stored in the database (the canary), because no metadata
@@ -157,6 +163,17 @@ public static class ServiceCollectionExtensions
 
         // Break-glass: dual-control emergency access with an out-of-band, append-only non-repudiation sink.
         services.AddSingleton<IBreakGlassSink, FileBreakGlassSink>();
+        // Outside Development the trail's path must be configured; checked at host start (after the host's own
+        // Configure/PostConfigure), so a missing path stops the deployment instead of the first emergency.
+        services.AddOptions<BreakGlassOptions>()
+            .Validate<IServiceProvider>(
+                (o, sp) => !string.IsNullOrWhiteSpace(o.SinkFilePath)
+                    || sp.GetService<IHostEnvironment>() is not { } environment
+                    || environment.IsDevelopment(),
+                "KEYWARD: Keyward:BreakGlass:SinkFilePath is not set. Outside Development the break-glass trail needs an "
+                + "explicit, durable path outside the deployed application folder (configuration or "
+                + "PostConfigure<BreakGlassOptions>).")
+            .ValidateOnStart();
         services.AddScoped<IBreakGlassService, BreakGlassService>();
 
         // Ops monitoring: a periodic compliance/availability sweep (KEK integrity, audit-chain integrity,

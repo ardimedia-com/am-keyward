@@ -21,7 +21,26 @@ public sealed record TotpSettings(
     int Digits = 6,
     int PeriodSeconds = 30,
     string? Issuer = null,
-    string? Account = null);
+    string? Account = null)
+{
+    /// <summary>
+    /// Never prints <see cref="SecretBase32"/>: a record's generated <c>ToString</c> lists every property, and a
+    /// logged or interpolated settings object would hand out the shared secret that generates every future code.
+    /// </summary>
+    public override string ToString() =>
+        $"TotpSettings {{ SecretBase32 = [REDACTED], Algorithm = {Algorithm}, Digits = {Digits}, PeriodSeconds = {PeriodSeconds}, "
+        + $"Issuer = {Issuer}, Account = {Account} }}";
+
+    private bool PrintMembers(System.Text.StringBuilder builder)
+    {
+        builder.Append("SecretBase32 = [REDACTED], Algorithm = ").Append(Algorithm)
+            .Append(", Digits = ").Append(Digits)
+            .Append(", PeriodSeconds = ").Append(PeriodSeconds)
+            .Append(", Issuer = ").Append(Issuer)
+            .Append(", Account = ").Append(Account);
+        return true;
+    }
+}
 
 /// <summary>A one-time code and the moment it stops being valid.</summary>
 public sealed record TotpCode(string Code, DateTimeOffset ValidUntil);
