@@ -268,6 +268,7 @@ public class Review3CryptoTests
         finally
         {
             File.Delete(path);
+            File.Delete(path + ".lock");
         }
     }
 

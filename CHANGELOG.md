@@ -5,6 +5,16 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.39.1-preview] - 2026-11-11
+
+### Fixed
+
+- **On Linux and macOS two writers could fork the break-glass trail and the audit anchors.** .NET maps the file
+  share mode to an advisory *shared* lock there, so the exclusive write lock of 0.39.0 only held on Windows. Writers
+  now serialize on a companion file `<trail>.lock` with an exclusive lock on every platform; readers still read the
+  trail meanwhile.
+- The integration tests run the same on a CI runner without `DOTNET_ENVIRONMENT` as on a developer machine.
+
 ## [0.39.0-preview] - 2026-11-11
 
 Fixes from the third, code-level security review (all findings, decision T1060 B). Upgrading hosts: read the

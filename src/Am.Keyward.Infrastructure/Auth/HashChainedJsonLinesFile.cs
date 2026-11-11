@@ -26,9 +26,10 @@ public sealed record HashChainVerification(
 /// <c>hash = SHA-256(prevHash | record-json)</c>, so deleting, reordering or editing a line breaks the chain. Shared by
 /// the break-glass trail and the audit head anchors.
 ///
-/// <para><b>Safe with several writers.</b> Every append takes an exclusive write lock on the file (other writers wait
-/// and retry; readers may still read) and re-reads the chain head from the file under that lock, so two processes or
-/// two instances appending to one file can never fork the chain — nothing is cached between appends.</para>
+/// <para><b>Safe with several writers, on every platform.</b> Every append holds an exclusive lock on the companion
+/// file «&lt;trail&gt;.lock» (other writers wait and retry; readers may still read the trail) and re-reads the chain head
+/// from the file under that lock, so two processes or two instances appending to one file can never fork the chain —
+/// nothing is cached between appends.</para>
 ///
 /// <para><b>Survives a torn write.</b> A line left incomplete by a crash mid-append (or any unparsable line) is not
 /// fatal: it is logged loudly, terminated so the next line starts cleanly, skipped when looking for the head, and
@@ -79,7 +80,13 @@ public sealed class HashChainedJsonLinesFile
                 Directory.CreateDirectory(folder);
             }
 
-            await using FileStream stream = await this.OpenExclusiveAsync(ct).ConfigureAwait(false);
+            // The writer lock is a separate «<file>.lock» held exclusively for the whole append. FileShare on the data
+            // file alone is not enough: on Linux and macOS .NET maps FileShare.Read to a SHARED advisory lock, so two
+            // writers could both open the trail and fork the chain. FileShare.None maps to an exclusive lock on every
+            // platform, and keeping it on its own file leaves the trail itself readable for verifiers meanwhile.
+            await using FileStream writerLock = await this.AcquireWriterLockAsync(ct).ConfigureAwait(false);
+            await using FileStream stream = new(Path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read,
+                bufferSize: 4096, FileOptions.Asynchronous | FileOptions.WriteThrough);
             Tail tail = await ReadTailAsync(stream, ct).ConfigureAwait(false);
 
             if (tail.UnparsableTailLines > 0)
@@ -196,7 +203,10 @@ public sealed class HashChainedJsonLinesFile
         }
     }
 
-    private async Task<FileStream> OpenExclusiveAsync(CancellationToken ct)
+    /// <summary>The lock file that serializes writers: «&lt;trail&gt;.lock» next to the trail. It holds no data.</summary>
+    public string LockPath => Path + ".lock";
+
+    private async Task<FileStream> AcquireWriterLockAsync(CancellationToken ct)
     {
         DateTimeOffset giveUpAt = DateTimeOffset.UtcNow + LockTimeout;
         TimeSpan pause = TimeSpan.FromMilliseconds(20);
@@ -204,11 +214,12 @@ public sealed class HashChainedJsonLinesFile
         {
             try
             {
-                // FileShare.Read: verifiers may read meanwhile; any other writer gets a sharing violation and waits.
-                return new FileStream(Path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Read,
-                    bufferSize: 4096, FileOptions.Asynchronous | FileOptions.WriteThrough);
+                // FileShare.None = exclusive on Windows (sharing violation) and on Unix (flock LOCK_EX), also between
+                // two streams of the same process; any other writer gets an IOException and waits.
+                return new FileStream(LockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None,
+                    bufferSize: 1, FileOptions.None);
             }
-            catch (IOException) when (File.Exists(Path) && DateTimeOffset.UtcNow < giveUpAt)
+            catch (IOException) when (DateTimeOffset.UtcNow < giveUpAt)
             {
                 await Task.Delay(pause, ct).ConfigureAwait(false);
                 pause = TimeSpan.FromMilliseconds(Math.Min(pause.TotalMilliseconds * 2, 500));

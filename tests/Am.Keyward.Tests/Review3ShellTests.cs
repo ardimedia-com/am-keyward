@@ -198,6 +198,14 @@ public class Review3ShellTests
     [TestMethod, TestCategory("Integration")]
     public async Task Production_serves_security_headers_and_a_nonce_only_csp()
     {
+        if (!OperatingSystem.IsWindows())
+        {
+            // Outside Development the reference shell keeps its KEK in a DPAPI-protected file and deliberately refuses
+            // to start on other platforms — so a Production host cannot be built here (the Linux CI runner).
+            Assert.Inconclusive("The reference shell runs outside Development on Windows only.");
+            return;
+        }
+
         if (!await CanConnectAsync())
         {
             Assert.Inconclusive("SQL Server not reachable — skipping integration test.");
