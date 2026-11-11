@@ -9,7 +9,12 @@ namespace Am.Keyward.Core.Application;
 public sealed record RevealRequestState(
     Guid Id, Guid ItemId, RevealField Field, RevealRequestStatus Status, DateTimeOffset ExpiresAt, DateTimeOffset? ConsumeBy, Guid ItemPublicId);
 
-/// <summary>A pending request as the human deciding it sees it (reason is the agent's untrusted text).</summary>
+/// <summary>
+/// A pending request as the human deciding it sees it (reason is the agent's untrusted text). <see cref="ItemName"/>
+/// is the name when the request was made. <see cref="ItemNameBeforeAgentRename"/> is set when that name was given by
+/// an AI agent — show it prominently («renamed by an agent, was …»). <see cref="ItemChangedSinceRequest"/> is true when
+/// the item was renamed, moved or changed after the request; <see cref="CurrentItemName"/> is its name now.
+/// </summary>
 public sealed record PendingRevealRequest(
     Guid Id,
     string TokenName,
@@ -19,7 +24,20 @@ public sealed record PendingRevealRequest(
     string Reason,
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
-    Guid ItemPublicId);
+    Guid ItemPublicId,
+    string? ItemNameBeforeAgentRename = null,
+    bool ItemChangedSinceRequest = false,
+    string? CurrentItemName = null);
+
+/// <summary>
+/// The agent token already has <see cref="Domain.Agent.RevealRequestLimits.MaxPendingPerToken"/> undecided requests; it
+/// must wait for a decision (or expiry) before asking again. Protects the person from approval fatigue.
+/// </summary>
+public sealed class RevealRequestLimitExceededException(Guid tokenId, int limit)
+    : InvalidOperationException($"This agent token already has {limit} reveal requests waiting for a decision; wait until they are decided or expire.")
+{
+    public Guid TokenId { get; } = tokenId;
+}
 
 /// <summary>Outcome of the one-time fetch: the value only when the request was approved and still in its window.</summary>
 public sealed record RevealConsumeResult(RevealRequestStatus Status, string? Value);
@@ -31,7 +49,11 @@ public sealed record RevealConsumeResult(RevealRequestStatus Status, string? Val
 /// </summary>
 public interface IRevealRequestService
 {
-    /// <summary>Creates a pending request and notifies the token's user. Throws <see cref="ArgumentException"/> when the field does not fit the item.</summary>
+    /// <summary>
+    /// Creates a pending request and notifies the token's user. An undecided request of the same token for the same
+    /// item and field is reused (no second notice). Throws <see cref="ArgumentException"/> when the field does not fit
+    /// the item, <see cref="RevealRequestLimitExceededException"/> when the token has too many undecided requests.
+    /// </summary>
     Task<RevealRequestState> RequestAsync(Guid tokenId, Guid itemId, RevealField field, string reason, CancellationToken ct = default);
 
     /// <summary>The request of this token, or null.</summary>

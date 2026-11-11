@@ -18,10 +18,17 @@ namespace Am.Keyward.Infrastructure.Statistics;
 /// trims counters/IPs/alerts past the retention window. Best-effort: failures are logged and never
 /// crash the host; a failed flush loses that interval's numbers, never the secret reads themselves. The
 /// statistics tables are installation-global (like the token table), so this runs without a tenant scope.
+/// <para>
+/// With statistics switched off (<c>Keyward:TokenAccess:Enabled = false</c>) the loop still runs, because two
+/// things are not statistics: an app token's <c>LastAccessAt</c> is the signal every heartbeat monitor reads (without
+/// it each monitor went Down), and an agent token's last use is a security signal. Those are persisted; counters, IPs,
+/// alerts and secret-read rows are not — but every accumulator is still drained, so nothing grows in memory.
+/// </para>
 /// </summary>
 public sealed class TokenAccessFlushService(
     TokenAccessAccumulator accumulator,
     SecretReadAccumulator secretReads,
+    AgentTokenAccessAccumulator agentUses,
     IServiceScopeFactory scopeFactory,
     IClock clock,
     IOptions<TokenAccessOptions> options,
@@ -31,14 +38,20 @@ public sealed class TokenAccessFlushService(
     private static readonly TimeSpan MinFlushInterval = TimeSpan.FromSeconds(5);
     private static readonly TimeSpan CleanupInterval = TimeSpan.FromHours(24);
 
+    // A failed retention cleanup is retried after this, not on every flush tick (each try is three table scans).
+    private static readonly TimeSpan CleanupRetryDelay = TimeSpan.FromHours(1);
+
     private DateTimeOffset lastCleanupAt = DateTimeOffset.MinValue;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!options.Value.Enabled)
+        var statisticsEnabled = options.Value.Enabled;
+        if (!statisticsEnabled)
         {
-            logger.LogInformation("Token access statistics are disabled ({Section}:Enabled = false).", TokenAccessOptions.SectionName);
-            return;
+            logger.LogInformation(
+                "Token access statistics are disabled ({Section}:Enabled = false). Only the last access of tokens (heartbeat "
+                + "monitoring) and the last use of agent tokens are still persisted.",
+                TokenAccessOptions.SectionName);
         }
 
         var interval = TimeSpan.FromSeconds(Math.Max(options.Value.FlushIntervalSeconds, (int)MinFlushInterval.TotalSeconds));
@@ -49,7 +62,7 @@ public sealed class TokenAccessFlushService(
             {
                 try
                 {
-                    await FlushAsync(stoppingToken).ConfigureAwait(false);
+                    await FlushAsync(statisticsEnabled, stoppingToken).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException)
                 {
@@ -66,7 +79,7 @@ public sealed class TokenAccessFlushService(
             // Host shutting down — expected. A final best-effort flush preserves the last interval.
             try
             {
-                await FlushAsync(CancellationToken.None).ConfigureAwait(false);
+                await FlushAsync(statisticsEnabled, CancellationToken.None).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -75,13 +88,23 @@ public sealed class TokenAccessFlushService(
         }
     }
 
-    private async Task FlushAsync(CancellationToken ct)
+    /// <summary>
+    /// One flush. With <paramref name="statisticsEnabled"/> false only the last access of app tokens and the last use
+    /// of agent tokens are written; the rest of the batch is drained and dropped.
+    /// </summary>
+    internal async Task FlushAsync(bool statisticsEnabled, CancellationToken ct)
     {
         var batch = accumulator.Drain();
         var secretBatch = secretReads.Drain();
+        var agentBatch = agentUses.Drain();
+        if (!statisticsEnabled)
+        {
+            secretBatch = []; // drained (bounded memory), deliberately not persisted
+        }
+
         var now = clock.UtcNow;
-        var cleanupDue = now - lastCleanupAt >= CleanupInterval;
-        if (batch.Count == 0 && secretBatch.Count == 0 && !cleanupDue)
+        var cleanupDue = statisticsEnabled && now - lastCleanupAt >= CleanupInterval;
+        if (batch.Count == 0 && secretBatch.Count == 0 && agentBatch.Count == 0 && !cleanupDue)
         {
             return;
         }
@@ -89,9 +112,21 @@ public sealed class TokenAccessFlushService(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
+        foreach (var (tokenId, use) in agentBatch)
+        {
+            await PersistAgentTokenUseAsync(db, tokenId, use, ct).ConfigureAwait(false);
+        }
+
         foreach (var (tokenId, access) in batch)
         {
-            await PersistTokenBatchAsync(db, tokenId, access, ct).ConfigureAwait(false);
+            if (statisticsEnabled)
+            {
+                await PersistTokenBatchAsync(db, tokenId, access, ct).ConfigureAwait(false);
+            }
+            else
+            {
+                await PersistLastAccessOnlyAsync(db, tokenId, access, ct).ConfigureAwait(false);
+            }
         }
 
         var scopeSetter = scope.ServiceProvider.GetRequiredService<ITenantScopeSetter>();
@@ -107,9 +142,42 @@ public sealed class TokenAccessFlushService(
 
         if (cleanupDue)
         {
-            await CleanupAsync(db, now, ct).ConfigureAwait(false);
-            lastCleanupAt = now;
+            try
+            {
+                await CleanupAsync(db, now, ct).ConfigureAwait(false);
+                lastCleanupAt = now;
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Back off instead of retrying the cleanup on every flush tick; the flushed numbers above are saved.
+                lastCleanupAt = now - CleanupInterval + CleanupRetryDelay;
+                logger.LogWarning(ex, "Token access statistics retention cleanup failed; retrying in {RetryDelay}.", CleanupRetryDelay);
+            }
         }
+    }
+
+    // Statistics off: only the heartbeat signal (last access + IP on the token row), set-based and never backwards.
+    private static Task PersistLastAccessOnlyAsync(KeywardDbContext db, Guid tokenId, PendingTokenAccess access, CancellationToken ct)
+    {
+        var at = access.LastAccessAt;
+        var ip = access.LastIp;
+        return db.SoftwareClientTokens
+            .Where(t => t.Id == tokenId && (t.LastAccessAt == null || t.LastAccessAt < at))
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(t => t.LastAccessAt, (DateTimeOffset?)at)
+                .SetProperty(t => t.LastAccessIp, t => ip ?? t.LastAccessIp), ct);
+    }
+
+    // The agent-token table is installation-global (no tenant filter, no row-level security), so this needs no scope.
+    private static Task PersistAgentTokenUseAsync(KeywardDbContext db, Guid tokenId, AgentTokenUse use, CancellationToken ct)
+    {
+        var at = use.At;
+        var ip = use.IpAddress;
+        return db.AgentTokens
+            .Where(t => t.Id == tokenId && (t.LastUsedAt == null || t.LastUsedAt < at))
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(t => t.LastUsedAt, (DateTimeOffset?)at)
+                .SetProperty(t => t.LastUsedIp, t => ip ?? t.LastUsedIp), ct);
     }
 
     private async Task PersistTokenBatchAsync(KeywardDbContext db, Guid tokenId, PendingTokenAccess access, CancellationToken ct)

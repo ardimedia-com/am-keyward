@@ -42,14 +42,16 @@ public sealed record KeywardSecretExpiryLine(
     DateTimeOffset ExpiresAt,
     string Note);
 
-/// <summary>
-/// An agent asks to see a secret; the token's user decides in the Keyward UI (agent tokens page) before
-/// <paramref name="ExpiresAt"/>. <paramref name="Reason"/> is the agent's own text — untrusted, render it as plain
-/// text (HTML-encode it in a mail). The secret itself is never part of this record.
-/// </summary>
 /// <summary>One AI agent token nearing expiry, for the notice to its owner.</summary>
 public sealed record KeywardAgentTokenExpiryLine(Guid TokenId, string TokenName, int DaysLeft, DateTimeOffset ExpiresAt);
 
+/// <summary>
+/// An agent asks to see a secret; the token's user decides in the Keyward UI (agent tokens page) before
+/// <paramref name="ExpiresAt"/>. <paramref name="Reason"/> is the agent's own text — untrusted, render it as plain
+/// text (HTML-encode it in a mail). The secret itself is never part of this record. <paramref name="ItemName"/> is the
+/// name at request time; <paramref name="ItemNameBeforeAgentRename"/> is set when an AI agent gave the item that name —
+/// show it prominently («renamed by an agent, was …»), it is what defeats a rename-then-ask trick.
+/// </summary>
 public sealed record KeywardRevealRequestLine(
     Guid RequestId,
     string TokenName,
@@ -58,7 +60,8 @@ public sealed record KeywardRevealRequestLine(
     RevealField Field,
     string Reason,
     DateTimeOffset ExpiresAt,
-    Guid ItemPublicId);
+    Guid ItemPublicId,
+    string? ItemNameBeforeAgentRename = null);
 
 /// <summary>
 /// Delivers administrative alerts to the administrators who opted into them. Two categories exist and are

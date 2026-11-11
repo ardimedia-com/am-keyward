@@ -2,6 +2,7 @@ using System.Text.Json;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain;
 using Am.Keyward.Core.Domain.Audit;
+using Am.Keyward.Core.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace Am.Keyward.Infrastructure.Persistence;
@@ -10,12 +11,21 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// Crypto-shredding directory: maps an actor to a stable opaque pseudonym and stores that actor's PII
 /// encrypted under a per-subject DEK (envelope, KEK-wrapped). Erasure clears the ciphertext so the PII is
 /// irrecoverable while the audit chain keeps the pseudonym. The db-parametric
-/// <see cref="ResolvePseudonymAsync(KeywardDbContext, string?, AuditSubjectPii, CancellationToken)"/>
-/// stages a newly-created subject on the CALLER's unit of work, so it is persisted by the caller's
-/// SaveChanges together with the audit entry that references it; the port methods run on the scope's shared
-/// context (endpoint semantics).
+/// <see cref="ResolvePseudonymAsync(KeywardDbContext, string?, AuditSubjectPii, CancellationToken)"/> looks the subject
+/// up on the CALLER's context; the port methods run on the scope's shared context (endpoint semantics).
+/// <para>
+/// A new pseudonym is inserted on its OWN short-lived context and connection and committed at once — never staged for
+/// the caller's SaveChanges, never part of the caller's transaction. Two concurrent first audits of the same new actor
+/// end in one pseudonym: the filtered unique index on <c>SubjectReference</c> (live rows) rejects the second insert,
+/// which then uses the winner's. A pseudonym whose audit entry fails to save afterwards is harmless — the actor's next
+/// audit reuses it.
+/// </para>
 /// </summary>
-public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend backend, IClock clock) : IAuditSubjectDirectory
+public sealed class DbAuditSubjectDirectory(
+    KeywardDbContext db,
+    IDbContextFactory<KeywardDbContext> dbFactory,
+    ISecretBackend backend,
+    IClock clock) : IAuditSubjectDirectory
 {
     private const int AlgVersion = 1;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -43,21 +53,48 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
             return staged.Id;
         }
 
-        var existing = await target.AuditSubjects
-            .FirstOrDefaultAsync(s => s.SubjectReference == reference && s.ErasedAt == null, ct)
-            .ConfigureAwait(false);
-        if (existing is not null)
+        if (await FindLiveAsync(target, reference, ct).ConfigureAwait(false) is { } existing)
         {
-            return existing.Id;
+            return existing;
         }
 
         var pseudonymId = Guid.NewGuid();
         var aad = Aad.ForAuditSubjectPii(pseudonymId, AlgVersion);
         var plaintext = JsonSerializer.SerializeToUtf8Bytes(pii, Json);
-        var encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
-        target.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
-        return pseudonymId;
+        EncryptedValue encrypted;
+        try
+        {
+            encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(plaintext);
+        }
+
+        // Its own context: committed at once, outside any transaction of the caller. A concurrent first audit of the same
+        // actor loses on the filtered unique index — then the winner's pseudonym is used. (A plain insert, no lock hints:
+        // range locks taken to pre-empt the race deadlocked concurrent inserts of DIFFERENT actors on a small table.)
+        await using var own = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        own.AuditSubjects.Add(new AuditSubject(pseudonymId, reference, encrypted, clock.UtcNow));
+        try
+        {
+            await own.SaveChangesAsync(ct).ConfigureAwait(false);
+            return pseudonymId;
+        }
+        catch (DbUpdateException ex) when (ex.IsUniqueViolation())
+        {
+            // A concurrent writer created it between our check and our insert — use theirs.
+        }
+
+        return await FindLiveAsync(own, reference, ct).ConfigureAwait(false)
+            ?? throw new InvalidOperationException("The audit pseudonym could not be created.");
     }
+
+    private static Task<Guid?> FindLiveAsync(KeywardDbContext target, string reference, CancellationToken ct) =>
+        target.AuditSubjects.AsNoTracking()
+            .Where(s => s.SubjectReference == reference && s.ErasedAt == null)
+            .Select(s => (Guid?)s.Id)
+            .FirstOrDefaultAsync(ct);
 
     public async Task<AuditSubjectPii?> TryReadPiiAsync(Guid pseudonymId, CancellationToken ct = default)
     {
@@ -83,8 +120,12 @@ public sealed class DbAuditSubjectDirectory(KeywardDbContext db, ISecretBackend 
         }
 
         var reference = subjectReference.Trim();
+
+        // Includes the duplicates the Review3DataIntegrity migration set aside as «<reference>#<id>» (two live
+        // pseudonyms of one actor, created by a race before the unique index existed) — erasure must reach them too.
+        var setAside = reference + "#";
         var subjects = await db.AuditSubjects
-            .Where(s => s.SubjectReference == reference && s.ErasedAt == null)
+            .Where(s => (s.SubjectReference == reference || s.SubjectReference.StartsWith(setAside)) && s.ErasedAt == null)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 

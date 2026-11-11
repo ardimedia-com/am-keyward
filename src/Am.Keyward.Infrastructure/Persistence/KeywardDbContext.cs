@@ -241,6 +241,7 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.TokenPrefix).HasMaxLength(64).IsRequired();
             e.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
             e.Property(x => x.AllowedNetworks).HasMaxLength(1024).IsRequired();
+            e.Property(x => x.LastUsedIp).HasMaxLength(64);
             e.HasIndex(x => x.TokenPrefix).IsUnique();
             e.HasIndex(x => new { x.TenantId, x.UserId });
             e.HasMany(x => x.AllowedVaults).WithOne().HasForeignKey(x => x.TokenId).OnDelete(DeleteBehavior.Cascade);
@@ -277,6 +278,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.Field).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(16);
             e.Property(x => x.Reason).HasMaxLength(RevealRequest.MaxReasonLength).IsRequired();
+            // What the person is shown: the item's name (and, after an agent rename, its earlier name) as of the request.
+            e.Property(x => x.ItemNameAtRequest).HasMaxLength(VaultItem.MaxNameLength).IsRequired();
+            e.Property(x => x.ItemNameBeforeAgentRename).HasMaxLength(VaultItem.MaxNameLength);
             e.Property(x => x.RowVersion).IsRowVersion();
             e.HasIndex(x => new { x.UserId, x.Status });
             e.HasIndex(x => x.TokenId);
@@ -389,10 +393,12 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.ToTable("VaultItems");
             e.HasKey(x => x.Id);
             e.Property(x => x.Type).HasConversion<string>().HasMaxLength(32);
-            e.Property(x => x.Name).HasMaxLength(256).IsRequired();
-            // Every content change moves CurrentVersionId, so it doubles as the optimistic-concurrency token: two
-            // writers that both started from the same version cannot both win (the later UPDATE finds no row).
-            e.Property(x => x.CurrentVersionId).IsConcurrencyToken();
+            e.Property(x => x.Name).HasMaxLength(VaultItem.MaxNameLength).IsRequired();
+            e.Property(x => x.NameBeforeAgentRename).HasMaxLength(VaultItem.MaxNameLength);
+            // Every change — a new value, a rename, a folder move — renews Revision, so it is the optimistic-concurrency
+            // token: two writers that both started from the same revision cannot both win (the later UPDATE finds no
+            // row). It replaces CurrentVersionId in that role, which a rename did not move.
+            e.Property(x => x.Revision).IsConcurrencyToken();
             // Stable, shareable deep-link id — unique so a link resolves to exactly one item, and indexed
             // because the link resolver looks items up by it. Survives cross-vault moves (see AdoptPublicId).
             e.HasIndex(x => x.PublicId).IsUnique();
@@ -439,6 +445,10 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             });
             e.HasIndex(x => x.TenantId);
             e.HasIndex(x => new { x.PrincipalType, x.PrincipalId });
+            // One grant per (principal, scope): UX_AccessGrants_Principal_Scope on (PrincipalType, PrincipalId,
+            // ScopeKind, ScopeTargetId). It spans owner and owned (GrantScope) columns, which EF cannot express as a
+            // model index, so it is created in SQL by the Review3DataIntegrity migration (EF leaves unmodelled
+            // indexes alone). The services catch the unique violation of a concurrent share.
             e.HasQueryFilter(x => x.TenantId == _tenant.TenantId);
         });
 
@@ -493,7 +503,9 @@ public sealed class KeywardDbContext(DbContextOptions<KeywardDbContext> options,
             e.Property(x => x.EncryptedPii).HasConversion(
                 v => v == null ? null : JsonSerializer.Serialize(v, json),
                 s => s == null ? null : JsonSerializer.Deserialize<EncryptedValue>(s, json));
-            e.HasIndex(x => x.SubjectReference);
+            // One live (not erased) pseudonym per actor: concurrent first audits of a new actor cannot create two.
+            // After an erasure the actor gets a fresh pseudonym, so erased rows are outside the constraint.
+            e.HasIndex(x => x.SubjectReference).IsUnique().HasFilter("[ErasedAt] IS NULL");
         });
 
         // Key-ownership canary: ONE row for the whole database, so — like the token and audit-subject

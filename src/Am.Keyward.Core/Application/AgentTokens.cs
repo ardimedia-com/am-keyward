@@ -78,7 +78,20 @@ public sealed record AgentTokenSummary(
     DateTimeOffset CreatedAt,
     DateTimeOffset ExpiresAt,
     DateTimeOffset? RevokedAt,
-    bool IsActive);
+    bool IsActive,
+    DateTimeOffset? LastUsedAt = null,
+    string? LastUsedIp = null);
+
+/// <summary>
+/// The hot-path side of agent-token usage: called on every successfully authenticated agent request, in memory only
+/// (never touches the database, never throws). The statistics flush persists the latest use per token
+/// (<see cref="Domain.Agent.AgentToken.LastUsedAt"/> / <see cref="Domain.Agent.AgentToken.LastUsedIp"/>) — always, also
+/// when token statistics are switched off, because it is a security signal, not a statistic.
+/// </summary>
+public interface IAgentTokenAccessRecorder
+{
+    void Record(Guid tokenId, string? ipAddress);
+}
 
 /// <summary>An agent token in the administrators' overview: the token and whose it is.</summary>
 public sealed record AgentTokenAdminSummary(AgentTokenSummary Token, Guid OwnerUserId, string OwnerName);

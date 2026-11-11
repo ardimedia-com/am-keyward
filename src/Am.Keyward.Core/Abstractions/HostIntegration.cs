@@ -93,3 +93,19 @@ public interface IKeywardIdentityBinder
     /// <summary>Enables a disabled Keyward user again. Returns <c>false</c> when the identity was never bound.</summary>
     Task<bool> EnableAsync(string externalId, CancellationToken cancellationToken = default);
 }
+
+/// <summary>
+/// Account deletion with the retention period of the design (feature.md, «Policies»: personal vault on account
+/// deletion = 90-day retention then delete). Call it from the host's own «delete user» action instead of
+/// <see cref="IKeywardIdentityBinder.DisableAsync"/>: the user is disabled at once (no sign-in, no agent token), and
+/// their personal vaults stay in the database for the retention period — recoverable by enabling the user again —
+/// before the retention job removes them for good. Team vaults are never touched: they belong to the tenant.
+/// </summary>
+public interface IKeywardAccountDeletion
+{
+    /// <summary>
+    /// Marks the Keyward user of a host identity deleted (and disabled) and revokes their agent tokens. Idempotent:
+    /// the retention period counts from the first call. Returns <c>false</c> when the identity was never bound.
+    /// </summary>
+    Task<bool> DeleteAccountAsync(string externalId, CancellationToken cancellationToken = default);
+}

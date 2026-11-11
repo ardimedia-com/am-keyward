@@ -70,7 +70,8 @@ public sealed class TokenAccessAlertNotificationService(
         }
     }
 
-    private async Task NotifyFreshAlertsAsync(CancellationToken ct)
+    /// <summary>One run: delivers the pending alerts per category and tenant. Returns how many alerts were marked delivered.</summary>
+    internal async Task<int> NotifyFreshAlertsAsync(CancellationToken ct)
     {
         var now = clock.UtcNow;
 
@@ -79,14 +80,14 @@ public sealed class TokenAccessAlertNotificationService(
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
         var horizon = now - MailableWindow;
-        var due = await db.TokenAccessAlerts
+        var due = await db.TokenAccessAlerts.AsNoTracking()
             .Where(a => a.EmailedAt == null && a.CreatedAt > horizon)
             .OrderBy(a => a.CreatedAt)
             .ToListAsync(ct)
             .ConfigureAwait(false);
         if (due.Count == 0)
         {
-            return;
+            return 0;
         }
 
         // A host that never registered a presenter would otherwise drop every alert silently — exactly the
@@ -103,10 +104,11 @@ public sealed class TokenAccessAlertNotificationService(
                 _missingPresenterLogged = true;
             }
 
-            return;
+            return 0;
         }
 
         _missingPresenterLogged = false;
+        var marked = 0;
 
         // Two categories with separate opt-ins and texts; each is grouped per tenant below.
         (List<TokenAccessAlert> Alerts, bool Monitoring)[] categories =
@@ -115,8 +117,11 @@ public sealed class TokenAccessAlertNotificationService(
             (due.Where(a => a.Kind is TokenAccessAlertKind.HeartbeatMissed or TokenAccessAlertKind.HeartbeatRecovered).ToList(), true),
         ];
 
-        // Per-tenant isolation AND per-tenant persistence — one failing tenant must neither skip the rest
-        // nor lose the already-delivered tenants' dedupe marks (the marks live on this context's tracked rows).
+        // Per-tenant isolation AND per-tenant persistence — one failing tenant must neither skip the rest nor lose
+        // the already-delivered tenants' dedupe marks. The mark is a set-based UPDATE by id, written right after each
+        // delivery: never tracked entities saved group by group, because the change tracker is cleared after every
+        // SaveChanges (ChangeTrackerResetInterceptor) and the second group's marks were silently lost — re-sending
+        // those notices on every run.
         foreach (var (alerts, monitoring) in categories)
         {
             foreach (var tenantGroup in alerts.GroupBy(a => a.TenantId))
@@ -126,12 +131,11 @@ public sealed class TokenAccessAlertNotificationService(
                 {
                     if (await NotifyTenantAsync(tenantGroup.Key, group, monitoring, ct).ConfigureAwait(false))
                     {
-                        foreach (var alert in group)
-                        {
-                            alert.MarkEmailed(now);
-                        }
-
-                        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+                        var ids = group.Select(a => a.Id).ToList();
+                        marked += await db.TokenAccessAlerts
+                            .Where(a => ids.Contains(a.Id) && a.EmailedAt == null)
+                            .ExecuteUpdateAsync(set => set.SetProperty(a => a.EmailedAt, (DateTimeOffset?)now), ct)
+                            .ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException)
@@ -144,6 +148,8 @@ public sealed class TokenAccessAlertNotificationService(
                 }
             }
         }
+
+        return marked;
     }
 
     private async Task<bool> NotifyTenantAsync(Guid tenantId, IReadOnlyList<TokenAccessAlert> alerts, bool monitoring, CancellationToken ct)

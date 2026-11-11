@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Infrastructure.Monitoring;
 
@@ -24,6 +25,7 @@ namespace Am.Keyward.Infrastructure.Monitoring;
 public sealed class TokenExpiryNotificationService(
     IServiceScopeFactory scopeFactory,
     IClock clock,
+    IOptions<MonitoringOptions> monitoringOptions,
     ILogger<TokenExpiryNotificationService> logger) : BackgroundService
 {
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
@@ -60,27 +62,29 @@ public sealed class TokenExpiryNotificationService(
         }
     }
 
-    private async Task NotifyDueTokensAsync(CancellationToken ct)
+    /// <summary>One run: notifies the due tokens per tenant. Returns how many tokens were marked announced.</summary>
+    internal async Task<int> NotifyDueTokensAsync(CancellationToken ct)
     {
         var now = clock.UtcNow;
+        var zone = monitoringOptions.Value.ResolveTimeZone(logger);
 
         // The token table is installation-global (no tenant filter), so the discovery runs without a scope.
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
 
         var horizon = now.AddDays(ExpiryNoticePolicy.WindowDays + 1);
-        var candidates = await db.SoftwareClientTokens
+        var candidates = await db.SoftwareClientTokens.AsNoTracking()
             .Where(t => t.RevokedAt == null && t.TokenHash != "" && t.ExpiresAt != null && t.ExpiresAt > now && t.ExpiresAt <= horizon)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
         var due = candidates
-            .Select(t => (Token: t, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt!.Value)))
+            .Select(t => (Token: t, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt!.Value, zone)))
             .Where(x => ExpiryNoticePolicy.IsDue(x.DaysLeft, x.Token.LastExpiryNoticeDaysLeft))
             .ToList();
         if (due.Count == 0)
         {
-            return;
+            return 0;
         }
 
         // Without a presenter nobody would ever hear that a token is about to expire — say it once, loudly,
@@ -97,15 +101,17 @@ public sealed class TokenExpiryNotificationService(
                 _missingPresenterLogged = true;
             }
 
-            return;
+            return 0;
         }
 
         _missingPresenterLogged = false;
+        var marked = 0;
 
-        // Per-tenant isolation AND per-tenant persistence: one failing tenant must neither skip the
-        // remaining tenants nor lose the already-sent tenants' dedupe marks (which would re-send their
-        // notices on the next run). The marks live on the discovery context's tracked entities (the token
-        // table is installation-global, so this scope can write them).
+        // Per-tenant isolation AND per-tenant persistence: one failing tenant must neither skip the remaining tenants
+        // nor lose the already-sent tenants' dedupe marks (which would re-send their notices on the next run). The
+        // marks are set-based UPDATEs by id right after each delivery — not tracked entities: the change tracker is
+        // cleared after every SaveChanges, which silently dropped every group's marks after the first. The token
+        // table is installation-global, so this scope can write them.
         foreach (var tenantGroup in due.GroupBy(x => x.Token.TenantId))
         {
             var group = tenantGroup.ToList();
@@ -113,12 +119,15 @@ public sealed class TokenExpiryNotificationService(
             {
                 if (await NotifyTenantAsync(tenantGroup.Key, group, ct).ConfigureAwait(false))
                 {
-                    foreach (var (token, daysLeft) in group)
+                    foreach (var bucket in group.GroupBy(x => x.DaysLeft))
                     {
-                        token.MarkExpiryNoticeSent(daysLeft);
+                        var ids = bucket.Select(x => x.Token.Id).ToList();
+                        int? daysLeft = bucket.Key;
+                        marked += await db.SoftwareClientTokens
+                            .Where(t => ids.Contains(t.Id))
+                            .ExecuteUpdateAsync(set => set.SetProperty(t => t.LastExpiryNoticeDaysLeft, daysLeft), ct)
+                            .ConfigureAwait(false);
                     }
-
-                    await db.SaveChangesAsync(ct).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException)
@@ -130,6 +139,8 @@ public sealed class TokenExpiryNotificationService(
                 logger.LogError(ex, "Token-expiry notification failed for tenant {TenantId}; continuing with the next tenant.", tenantGroup.Key);
             }
         }
+
+        return marked;
     }
 
     private async Task<bool> NotifyTenantAsync(

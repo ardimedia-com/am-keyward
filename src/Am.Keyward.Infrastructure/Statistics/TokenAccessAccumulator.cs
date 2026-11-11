@@ -37,6 +37,27 @@ public sealed class TokenAccessAccumulator(IClock clock, IOptions<MonitoringOpti
         }
     }
 
+    /// <summary>
+    /// The latest not-yet-flushed access of each of <paramref name="tokenIds"/> (tokens without one are absent). Read
+    /// by the heartbeat monitor so a heartbeat counts the moment it arrives, not only after the next flush.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, DateTimeOffset> PeekLastAccess(IReadOnlyCollection<Guid> tokenIds)
+    {
+        var result = new Dictionary<Guid, DateTimeOffset>();
+        lock (gate)
+        {
+            foreach (var tokenId in tokenIds)
+            {
+                if (pending.TryGetValue(tokenId, out var access))
+                {
+                    result[tokenId] = access.LastAccessAt;
+                }
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Takes the current batch (empty list when nothing was recorded) and resets the accumulator.</summary>
     public IReadOnlyList<KeyValuePair<Guid, PendingTokenAccess>> Drain()
     {

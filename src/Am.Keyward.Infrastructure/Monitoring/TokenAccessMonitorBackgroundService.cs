@@ -2,6 +2,7 @@ using System.Data.Common;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Domain.Software;
 using Am.Keyward.Infrastructure.Persistence;
+using Am.Keyward.Infrastructure.Statistics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,11 +21,18 @@ namespace Am.Keyward.Infrastructure.Monitoring;
 /// State and signal both live in the database, so a host restart just re-evaluates against persisted
 /// values: missed ticks cause no false alarms, at most a later first detection. Best-effort: failures are
 /// logged and never crash the host. Assumes a single running instance (like the other mail/flush jobs);
-/// a second instance would evaluate twice.
+/// a second instance would evaluate twice (see <c>KeywardInstanceLease</c>).
+/// <para>
+/// The heartbeat is the later of the persisted <c>LastAccessAt</c> and the not-yet-flushed access in the in-memory
+/// accumulator, so the signal does not depend on the statistics flush; and the allowed silence is never taken below
+/// <see cref="HeartbeatTiming.MinimumMaxSilenceMinutes"/>, which no flush/check cadence could honour.
+/// </para>
 /// </summary>
 public sealed class TokenAccessMonitorBackgroundService(
     IServiceScopeFactory scopeFactory,
     IOptions<MonitoringOptions> options,
+    IOptions<TokenAccessOptions> tokenAccessOptions,
+    TokenAccessAccumulator pendingAccesses,
     IClock clock,
     ILogger<TokenAccessMonitorBackgroundService> logger) : BackgroundService
 {
@@ -62,7 +70,8 @@ public sealed class TokenAccessMonitorBackgroundService(
         }
     }
 
-    private async Task EvaluateAsync(TimeZoneInfo zone, CancellationToken ct)
+    /// <summary>One evaluation of every enabled monitor.</summary>
+    internal async Task EvaluateAsync(TimeZoneInfo zone, CancellationToken ct)
     {
         try
         {
@@ -88,6 +97,16 @@ public sealed class TokenAccessMonitorBackgroundService(
                 .ToDictionaryAsync(t => t.Id, t => t.LastAccessAt, ct)
                 .ConfigureAwait(false);
 
+            // A heartbeat that arrived since the last flush counts now — not one flush interval later.
+            foreach (var (tokenId, pendingAt) in pendingAccesses.PeekLastAccess(tokenIds))
+            {
+                if (lastAccessByToken.GetValueOrDefault(tokenId) is not { } persisted || pendingAt > persisted)
+                {
+                    lastAccessByToken[tokenId] = pendingAt;
+                }
+            }
+
+            var minimumSilence = TimeSpan.FromMinutes(HeartbeatTiming.MinimumMaxSilenceMinutes(options.Value, tokenAccessOptions.Value));
             var now = clock.UtcNow;
             foreach (var monitor in monitors)
             {
@@ -99,7 +118,8 @@ public sealed class TokenAccessMonitorBackgroundService(
                 var reference = lastAccessByToken.GetValueOrDefault(monitor.TokenId) ?? monitor.CreatedAt;
                 var silence = WatchWindowCalculator.ElapsedInWindow(
                     reference, now, monitor.WatchDaysMask, monitor.WatchStart, monitor.WatchEnd, zone);
-                var state = silence > TimeSpan.FromMinutes(monitor.MaxSilenceMinutes)
+                var allowed = TimeSpan.FromMinutes(monitor.MaxSilenceMinutes);
+                var state = silence > (allowed > minimumSilence ? allowed : minimumSilence)
                     ? TokenMonitorState.Down
                     : TokenMonitorState.Up;
 

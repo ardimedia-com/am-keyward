@@ -144,12 +144,11 @@ public static class ServiceCollectionExtensions
         // Bulk import of applications + secret keys (no values); composes the two services above.
         services.AddScoped<IApplicationImportService, ApplicationImportService>();
 
-        // Software-client tokens: management + authentication, and a best-effort expiry watcher.
+        // Software-client tokens: management + authentication. Expiry notices come from TokenExpiryNotificationService.
         services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();
         services.AddScoped<SoftwareClientAuthenticator>();
         services.AddScoped<ISoftwareClientAuthenticator>(sp => sp.GetRequiredService<SoftwareClientAuthenticator>());
         services.AddScoped<ISoftwareClientAuthenticationValidator>(sp => sp.GetRequiredService<SoftwareClientAuthenticator>());
-        services.AddHostedService<SoftwareClientTokenExpiryService>();
 
         // Token access statistics: in-memory recording on the hot path, batched persistence + rule-based
         // access-pattern alerts (new IP / resumed after silence) in the flush service, a read service for
@@ -166,8 +165,26 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Statistics.SecretReadAccumulator>();
         services.AddSingleton<ISecretReadRecorder>(sp => sp.GetRequiredService<Statistics.SecretReadAccumulator>());
 
+        // Agent-token usage (last used + client address): recorded in memory by the agent authentication handler on
+        // every authenticated request, persisted by the same flush service — also when statistics are switched off.
+        services.AddSingleton<Statistics.AgentTokenAccessAccumulator>();
+        services.AddSingleton<IAgentTokenAccessRecorder>(sp => sp.GetRequiredService<Statistics.AgentTokenAccessAccumulator>());
+
         // Human vaults (server-side encrypted).
         services.AddScoped<IVaultService, VaultService>();
+
+        // Account deletion with retention: the host's «delete user» disables at once; the retention job removes the
+        // personal vaults after the retention period (feature.md: 90 days) and purges old reveal requests.
+        // Configure via the "Keyward:Retention" section (optional).
+        services.AddScoped<IKeywardAccountDeletion, KeywardAccountDeletion>();
+        services.AddOptions<KeywardRetentionOptions>().BindConfiguration(KeywardRetentionOptions.SectionName);
+        services.AddHostedService<KeywardRetentionBackgroundService>();
+
+        // ONE instance per database is the supported deployment (T1062 A): the background jobs are not coordinated
+        // across instances. A session-scoped application lock detects a second instance, logs an error and turns the
+        // KeywardSingleInstanceHealthCheck Unhealthy — loud and cheap, deliberately no cross-instance job locking.
+        services.AddSingleton<KeywardInstanceLeaseState>();
+        services.AddHostedService<KeywardInstanceLease>();
 
         // Break-glass: dual-control emergency access with an out-of-band, append-only non-repudiation sink.
         services.AddSingleton<IBreakGlassSink, FileBreakGlassSink>();

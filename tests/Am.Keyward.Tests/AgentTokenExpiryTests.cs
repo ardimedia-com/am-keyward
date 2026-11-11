@@ -52,7 +52,8 @@ public class AgentTokenExpiryTests
 
         // Five days left: due (daily from nine days on), sent to the owner, then not again for the same bucket.
         var job = new AgentTokenExpiryNotificationService(
-            provider.GetRequiredService<IServiceScopeFactory>(), provider.GetRequiredService<IClock>(), NullLogger<AgentTokenExpiryNotificationService>.Instance);
+            provider.GetRequiredService<IServiceScopeFactory>(), provider.GetRequiredService<IClock>(),
+            Microsoft.Extensions.Options.Options.Create(new MonitoringOptions()), NullLogger<AgentTokenExpiryNotificationService>.Instance);
         await job.NotifyDueTokensAsync(CancellationToken.None);
         var notice = presenter.Notices.Single(n => n.Recipient.UserId == owner);
         Assert.AreEqual("WUHARRY", notice.Lines.Single().TokenName);

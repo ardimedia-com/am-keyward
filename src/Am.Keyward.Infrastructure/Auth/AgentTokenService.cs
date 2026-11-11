@@ -207,7 +207,7 @@ public sealed class AgentTokenService(
         t.Id, t.Name, t.Scopes, t.AllowedVaults.Select(v => v.VaultId).ToList(),
         t.AllowedApplications.Select(a => a.ProjectId).ToList(), t.MayCreateApplications, t.AllAgentVaults, t.AllApplications,
         t.AllowedNetworks,
-        t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now));
+        t.CreatedAt, t.ExpiresAt, t.RevokedAt, t.IsActive(now), t.LastUsedAt, t.LastUsedIp);
 
     public async Task<IssuedAgentToken> RotateAsync(Guid userId, Guid tenantId, Guid tokenId, DateTimeOffset? expiresAt = null, CancellationToken ct = default)
     {

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Am.Keyward.Infrastructure.Monitoring;
 
@@ -17,6 +18,7 @@ namespace Am.Keyward.Infrastructure.Monitoring;
 public sealed class AgentTokenExpiryNotificationService(
     IServiceScopeFactory scopeFactory,
     IClock clock,
+    IOptions<MonitoringOptions> monitoringOptions,
     ILogger<AgentTokenExpiryNotificationService> logger) : BackgroundService
 {
     private static readonly TimeSpan CheckInterval = TimeSpan.FromHours(1);
@@ -55,17 +57,18 @@ public sealed class AgentTokenExpiryNotificationService(
     internal async Task<int> NotifyDueTokensAsync(CancellationToken ct)
     {
         var now = clock.UtcNow;
+        var zone = monitoringOptions.Value.ResolveTimeZone(logger);
 
         // The token table is installation-global (looked up before a tenant is known), so discovery needs no scope.
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<KeywardDbContext>();
         var horizon = now.AddDays(ExpiryNoticePolicy.WindowDays + 1);
-        var candidates = await db.AgentTokens
+        var candidates = await db.AgentTokens.AsNoTracking()
             .Where(t => t.RevokedAt == null && t.ExpiresAt > now && t.ExpiresAt <= horizon)
             .ToListAsync(ct)
             .ConfigureAwait(false);
         var due = candidates
-            .Select(t => (Token: t, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt)))
+            .Select(t => (Token: t, DaysLeft: ExpiryNoticePolicy.DaysLeft(now, t.ExpiresAt, zone)))
             .Where(x => ExpiryNoticePolicy.IsDue(x.DaysLeft, x.Token.LastExpiryNoticeDaysLeft))
             .ToList();
 
@@ -77,12 +80,18 @@ public sealed class AgentTokenExpiryNotificationService(
             {
                 if (await NotifyOwnerAsync(owner.Key.TenantId, owner.Key.UserId, group, ct).ConfigureAwait(false))
                 {
-                    foreach (var (token, daysLeft) in group)
+                    // Set-based mark by id right after the delivery — tracked entities saved owner by owner lost every
+                    // owner's marks after the first (the change tracker is cleared after each SaveChanges).
+                    foreach (var bucket in group.GroupBy(x => x.DaysLeft))
                     {
-                        token.MarkExpiryNoticeSent(daysLeft);
+                        var ids = bucket.Select(x => x.Token.Id).ToList();
+                        int? daysLeft = bucket.Key;
+                        await db.AgentTokens
+                            .Where(t => ids.Contains(t.Id))
+                            .ExecuteUpdateAsync(set => set.SetProperty(t => t.LastExpiryNoticeDaysLeft, daysLeft), ct)
+                            .ConfigureAwait(false);
                     }
 
-                    await db.SaveChangesAsync(ct).ConfigureAwait(false);
                     announced += group.Count;
                 }
             }

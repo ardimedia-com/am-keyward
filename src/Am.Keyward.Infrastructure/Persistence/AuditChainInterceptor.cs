@@ -6,6 +6,7 @@ using Am.Keyward.Core.Domain.Audit;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Am.Keyward.Infrastructure.Persistence;
 
@@ -17,8 +18,21 @@ namespace Am.Keyward.Infrastructure.Persistence;
 /// case before the context's connection is disposed.
 /// One scoped instance is shared by every context the scope's factory creates, so the per-save state
 /// (opened connection, held locks) is keyed per context — never held in instance fields.
+/// <para>
+/// Inside a caller's transaction (<c>Database.BeginTransaction</c>) the locks are kept until that transaction commits
+/// or rolls back, not released at the end of SaveChanges: the sealed entries are not visible to the next writer until
+/// the commit, so releasing earlier would let it read a stale chain head.
+/// </para>
+/// <para>
+/// Retries: the lock is taken in <see cref="SavingChangesAsync"/>, OUTSIDE the execution strategy that retries the
+/// save itself. If a transient error makes EF reconnect and re-run the batch, the new session no longer holds the lock
+/// and the sealed sequence numbers may meanwhile have been used by another writer. That can never fork the chain: the
+/// unique index on (TenantId, Sequence) rejects the duplicate, so the save fails with a unique-key
+/// <see cref="DbUpdateException"/> that the caller can retry (re-reading the head) — covered by a test. Holding the lock
+/// across the retry would need the whole save inside a user transaction, which is what callers with stricter needs do.
+/// </para>
 /// </summary>
-public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor, IDbConnectionInterceptor
+public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser user) : SaveChangesInterceptor, IDbConnectionInterceptor, IDbTransactionInterceptor
 {
     // Per-tenant lock resource: appends for different tenants serialize on different locks and no longer
     // contend on one installation-wide lock. The tenant-less (personal/system) chain shares one resource.
@@ -40,6 +54,9 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
     private sealed class SaveState
     {
         public DbConnection? ConnectionOpenedHere;
+
+        // The caller's transaction, when the save runs inside one: every command on its connection must enlist in it.
+        public DbTransaction? Transaction;
         public List<string> HeldLocks { get; } = [];
     }
 
@@ -83,6 +100,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
     private async Task SealAsync(DbContext context, SaveState state, List<AuditEntry> pending, CancellationToken ct)
     {
         var connection = context.Database.GetDbConnection();
+        var transaction = state.Transaction = context.Database.CurrentTransaction?.GetDbTransaction();
         if (connection.State != ConnectionState.Open)
         {
             await connection.OpenAsync(ct).ConfigureAwait(false);
@@ -95,7 +113,7 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         // cross-tenant break-glass entry), and RLS would otherwise hide those rows so the head read returns
         // nothing and the chain silently forks (re-sealing sequence 1). The bypass is confined to this head
         // read and only affects the FILTER predicate (reads); the audit INSERT that follows is unaffected.
-        await SetBypassAsync(connection, on: true, ct).ConfigureAwait(false);
+        await SetBypassAsync(connection, transaction, on: true, ct).ConfigureAwait(false);
         try
         {
             // Order groups by tenant so a multi-tenant save always takes its per-tenant locks in the same
@@ -106,14 +124,14 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
 
                 // sp_getapplock reports timeout/deadlock/error as a negative return code, not as an exception;
                 // THROW turns it into one so an unacquired lock can never be mistaken for a held one.
-                await ExecuteAsync(connection,
+                await ExecuteAsync(connection, transaction,
                     $"DECLARE @result int; "
                     + $"EXEC @result = sp_getapplock @Resource = N'{resource}', @LockMode = 'Exclusive', @LockOwner = 'Session', @LockTimeout = {LockTimeoutMilliseconds}; "
                     + "IF @result < 0 THROW 51000, N'Could not acquire the audit chain lock.', 1;", ct)
                     .ConfigureAwait(false);
                 state.HeldLocks.Add(resource);
 
-                var (sequence, previousHash) = await ReadHeadAsync(connection, group.Key, ct).ConfigureAwait(false);
+                var (sequence, previousHash) = await ReadHeadAsync(connection, transaction, group.Key, ct).ConfigureAwait(false);
                 foreach (var entry in group.OrderBy(e => e.OccurredAt))
                 {
                     sequence++;
@@ -126,16 +144,40 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         finally
         {
             // Not the caller's token: a cancelled save must still switch the read bypass off again.
-            await SetBypassAsync(connection, on: false, CancellationToken.None).ConfigureAwait(false);
+            await SetBypassAsync(connection, transaction, on: false, CancellationToken.None).ConfigureAwait(false);
         }
     }
 
     public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken ct = default)
     {
-        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
+        // In a caller's transaction the entries are not committed yet: keep the locks until it ends (see the
+        // transaction callbacks below), so the next writer cannot read the uncommitted chain head as stale.
+        if (eventData.Context?.Database.CurrentTransaction is null)
+        {
+            await ReleaseAsync(eventData.Context).ConfigureAwait(false);
+        }
+
         return result;
     }
+
+    async Task IDbTransactionInterceptor.TransactionCommittedAsync(DbTransaction transaction, TransactionEndEventData eventData, CancellationToken ct) =>
+        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
+
+    void IDbTransactionInterceptor.TransactionCommitted(DbTransaction transaction, TransactionEndEventData eventData) =>
+        ReleaseAsync(eventData.Context).GetAwaiter().GetResult();
+
+    async Task IDbTransactionInterceptor.TransactionRolledBackAsync(DbTransaction transaction, TransactionEndEventData eventData, CancellationToken ct) =>
+        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
+
+    void IDbTransactionInterceptor.TransactionRolledBack(DbTransaction transaction, TransactionEndEventData eventData) =>
+        ReleaseAsync(eventData.Context).GetAwaiter().GetResult();
+
+    async Task IDbTransactionInterceptor.TransactionFailedAsync(DbTransaction transaction, TransactionErrorEventData eventData, CancellationToken ct) =>
+        await ReleaseAsync(eventData.Context).ConfigureAwait(false);
+
+    void IDbTransactionInterceptor.TransactionFailed(DbTransaction transaction, TransactionErrorEventData eventData) =>
+        ReleaseAsync(eventData.Context).GetAwaiter().GetResult();
 
     public override async Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken ct = default)
     {
@@ -225,7 +267,10 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             {
                 try
                 {
-                    await ExecuteAsync(connection, $"EXEC sp_releaseapplock @Resource = N'{resource}', @LockOwner = 'Session';", CancellationToken.None).ConfigureAwait(false);
+                    // Still inside the caller's transaction (a failed save) the command must enlist in it; after the
+                    // commit/rollback callbacks the transaction is complete and the connection is free again.
+                    var pending = state.Transaction is { Connection: not null } open ? open : null;
+                    await ExecuteAsync(connection, pending, $"EXEC sp_releaseapplock @Resource = N'{resource}', @LockOwner = 'Session';", CancellationToken.None).ConfigureAwait(false);
                 }
                 catch
                 {
@@ -252,9 +297,10 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
         }
     }
 
-    private static async Task<(long Sequence, string PreviousHash)> ReadHeadAsync(DbConnection connection, Guid? tenantId, CancellationToken ct)
+    private static async Task<(long Sequence, string PreviousHash)> ReadHeadAsync(DbConnection connection, DbTransaction? transaction, Guid? tenantId, CancellationToken ct)
     {
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = tenantId is null
             ? "SELECT TOP 1 [Sequence], [Hash] FROM [amkeyward].[AuditEntries] WHERE [TenantId] IS NULL ORDER BY [Sequence] DESC;"
             : "SELECT TOP 1 [Sequence], [Hash] FROM [amkeyward].[AuditEntries] WHERE [TenantId] = @t ORDER BY [Sequence] DESC;";
@@ -270,12 +316,13 @@ public sealed class AuditChainInterceptor(ICurrentTenant tenant, ICurrentUser us
             : (0L, AuditChainHash.GenesisHash);
     }
 
-    private static Task SetBypassAsync(DbConnection connection, bool on, CancellationToken ct) =>
-        ExecuteAsync(connection, $"EXEC sp_set_session_context @key = N'SystemBypass', @value = {(on ? 1 : 0)};", ct);
+    private static Task SetBypassAsync(DbConnection connection, DbTransaction? transaction, bool on, CancellationToken ct) =>
+        ExecuteAsync(connection, transaction, $"EXEC sp_set_session_context @key = N'SystemBypass', @value = {(on ? 1 : 0)};", ct);
 
-    private static async Task ExecuteAsync(DbConnection connection, string sql, CancellationToken ct)
+    private static async Task ExecuteAsync(DbConnection connection, DbTransaction? transaction, string sql, CancellationToken ct)
     {
         await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = sql;
         await command.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }

@@ -27,16 +27,23 @@ public sealed record AddVaultFolderCommand(Guid UserId, Guid VaultId, string Nam
 /// <summary>Adds a typed item to a vault, encrypting its content into a new version.</summary>
 public sealed record AddVaultItemCommand(Guid UserId, Guid VaultId, Guid? FolderId, ItemType Type, string Name, string Content);
 
-/// <summary>Updates an item's name/folder and stores its new content as a new encrypted version.</summary>
-public sealed record UpdateVaultItemCommand(Guid UserId, Guid ItemId, string Name, Guid? FolderId, string Content);
+/// <summary>
+/// Updates an item's name/folder and stores its new content as a new encrypted version. With
+/// <paramref name="ExpectedVersionId"/> (the <see cref="VaultItemReference.VersionId"/> / <see cref="VaultItemDetail.VersionId"/>
+/// the editor started from) the change is applied only if nobody changed the item in between — otherwise
+/// <see cref="VaultItemVersionConflictException"/>. Null keeps last-writer-wins (callers should always pass it).
+/// </summary>
+public sealed record UpdateVaultItemCommand(Guid UserId, Guid ItemId, string Name, Guid? FolderId, string Content, Guid? ExpectedVersionId = null);
 
 public sealed record VaultSummary(Guid Id, string Name, ProtectionMode ProtectionMode, DateTimeOffset CreatedAt, bool AgentAccessAllowed = false);
 
 public sealed record VaultItemSummary(Guid Id, Guid? FolderId, ItemType Type, string Name, DateTimeOffset CreatedAt);
 
 /// <summary>An item plus its decrypted content (for viewing/editing). <paramref name="PublicId"/> is the
-/// stable, shareable id used to build a deep link to this item (survives cross-vault moves).</summary>
-public sealed record VaultItemDetail(Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, string Content, Guid PublicId);
+/// stable, shareable id used to build a deep link to this item (survives cross-vault moves).
+/// <paramref name="VersionId"/> is the item's revision, to pass back as
+/// <see cref="UpdateVaultItemCommand.ExpectedVersionId"/>.</summary>
+public sealed record VaultItemDetail(Guid Id, Guid VaultId, Guid? FolderId, ItemType Type, string Name, string Content, Guid PublicId, Guid VersionId = default);
 
 /// <summary>Where a deep link (public item id) resolves to: the item, its vault, and whether that vault is a
 /// tenant ("team") vault — enough to route to the right page without decrypting the item.</summary>
@@ -204,7 +211,8 @@ public interface IVaultService
 
     /// <summary>
     /// Items of the given vaults whose cleartext name contains <paramref name="query"/> (at least 2 characters,
-    /// case-insensitive). Never decrypts and writes no audit entry — names are not secret. At most
+    /// case-insensitive). Never decrypts. Writes no audit entry for a person (names are not secret, and the UI
+    /// searches as you type); an AI agent's search IS audited (<c>VaultSearch</c>), so enumeration leaves a trail. At most
     /// <paramref name="limit"/> hits. The caller decides which vaults may be searched; each is still checked
     /// for the user's Read grant.
     /// </summary>
@@ -270,10 +278,14 @@ public sealed record PatchVaultItemCommand(
     string? Value = null,
     string? Totp = null);
 
-/// <summary>Identifies an item and its current value without carrying any of it.</summary>
+/// <summary>
+/// Identifies an item and its current state without carrying any of it. <see cref="VersionId"/> is the item's
+/// REVISION (<see cref="Domain.Human.VaultItem.Revision"/>): it changes with every change — a new value, a rename, a
+/// folder move — so it is the right value for optimistic concurrency (the agent API's ETag).
+/// </summary>
 public sealed record VaultItemReference(Guid Id, Guid PublicId, Guid VersionId);
 
-/// <summary>The item changed since the caller read it: its current version is no longer the expected one.</summary>
+/// <summary>The item changed since the caller read it: its revision is no longer the expected one.</summary>
 public sealed class VaultItemVersionConflictException(Guid itemId)
     : InvalidOperationException($"Item {itemId} was changed in the meantime; read it again and reapply the change.")
 {

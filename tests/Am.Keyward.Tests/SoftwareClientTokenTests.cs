@@ -61,19 +61,22 @@ public class ExpiryNoticePolicyTests
     [TestMethod, TestCategory("Auth")]
     public void Schedule_is_30_20_10_then_daily_from_9()
     {
-        // First notice per bucket (nothing sent yet).
+        // The exact threshold days and the daily phase are due when nothing was sent yet.
         foreach (var dueDay in new[] { 30, 20, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 })
         {
             Assert.IsTrue(ExpiryNoticePolicy.IsDue(dueDay, null), $"day {dueDay} must be due");
         }
 
-        // Between the coarse buckets nothing fires.
-        foreach (var quietDay in new[] { 31, 29, 25, 21, 19, 15, 11 })
+        // Outside the window nothing fires.
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(31, null));
+
+        // Between the coarse buckets nothing fires once that bucket was announced.
+        foreach (var (quietDay, announced) in new[] { (29, 30), (25, 30), (21, 30), (19, 20), (15, 20), (11, 20) })
         {
-            Assert.IsFalse(ExpiryNoticePolicy.IsDue(quietDay, null), $"day {quietDay} must be quiet");
+            Assert.IsFalse(ExpiryNoticePolicy.IsDue(quietDay, announced), $"day {quietDay} after {announced} must be quiet");
         }
 
-        // Expired (or expiring within the current day math) sends nothing.
+        // Expired is never due on the schedule (see IsOverdueNoticeDue).
         Assert.IsFalse(ExpiryNoticePolicy.IsDue(0, null));
         Assert.IsFalse(ExpiryNoticePolicy.IsDue(-3, null));
     }
@@ -95,13 +98,42 @@ public class ExpiryNoticePolicyTests
     }
 
     [TestMethod, TestCategory("Auth")]
-    public void DaysLeft_rounds_up_so_today_counts_as_one()
+    public void A_missed_threshold_run_is_caught_up_instead_of_skipped()
     {
+        // The day-20 run was missed (host down on that day): day 19 still announces the 20-day threshold.
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(19, 30));
+        // The day-30 run was missed and nothing was ever sent: day 28 announces the 30-day threshold.
+        Assert.IsTrue(ExpiryNoticePolicy.IsDue(28, null));
+        // Day 12 still belongs to the 20-day bucket, which was announced: nothing to catch up.
+        Assert.IsFalse(ExpiryNoticePolicy.IsDue(12, 20));
+    }
+
+    [TestMethod, TestCategory("Auth")]
+    public void The_overdue_notice_is_sent_once()
+    {
+        Assert.IsTrue(ExpiryNoticePolicy.IsOverdueNoticeDue(0, null));
+        Assert.IsTrue(ExpiryNoticePolicy.IsOverdueNoticeDue(-4, 1));
+        Assert.IsFalse(ExpiryNoticePolicy.IsOverdueNoticeDue(-4, ExpiryNoticePolicy.OverdueNoticeMarker));
+        Assert.IsFalse(ExpiryNoticePolicy.IsOverdueNoticeDue(3, null));
+    }
+
+    [TestMethod, TestCategory("Auth")]
+    public void DaysLeft_counts_calendar_days_so_the_time_of_day_does_not_matter()
+    {
+        var utc = TimeZoneInfo.Utc;
         var now = new DateTimeOffset(2026, 7, 7, 12, 0, 0, TimeSpan.Zero);
-        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddHours(6)));
-        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1)));
-        Assert.AreEqual(2, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1).AddMinutes(1)));
-        Assert.AreEqual(30, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(30)));
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddHours(6), utc));
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1), utc));
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(1).AddMinutes(1), utc));
+        Assert.AreEqual(10, ExpiryNoticePolicy.DaysLeft(now.AddHours(-4), now.AddDays(10), utc)); // a ceiling said 11
+        Assert.AreEqual(30, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(30), utc));
+        Assert.AreEqual(0, ExpiryNoticePolicy.DaysLeft(now, now.AddHours(-1), utc));
+        Assert.AreEqual(-2, ExpiryNoticePolicy.DaysLeft(now, now.AddDays(-2), utc));
+
+        // A date-only expiry is valid through its day.
+        Assert.AreEqual(1, ExpiryNoticePolicy.DaysLeft(now, new DateOnly(2026, 7, 7), utc));
+        Assert.AreEqual(2, ExpiryNoticePolicy.DaysLeft(now, new DateOnly(2026, 7, 8), utc));
+        Assert.AreEqual(0, ExpiryNoticePolicy.DaysLeft(now, new DateOnly(2026, 7, 6), utc));
     }
 }
 

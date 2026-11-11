@@ -12,6 +12,13 @@ namespace Am.Keyward.Infrastructure.Auth;
 /// The reveal flow (see <see cref="IRevealRequestService"/>). Requests are tenant data (query filter and
 /// row-level security); every transition is serialized by the request row version, and the value itself is read
 /// only after the request is marked consumed, so a value is handed out at most once.
+/// <para>
+/// Against social engineering and approval fatigue: a request snapshots the item's name (and, when an AI agent gave it
+/// that name, the name before) and revision, so the person decides on what was asked for and sees when the item changed
+/// afterwards; the same token's changes to the item void its pending requests (see <c>VaultService</c>); an undecided
+/// request for the same item and field is reused instead of notifying again; and a token may have at most
+/// <see cref="RevealRequestLimits.MaxPendingPerToken"/> undecided requests.
+/// </para>
 /// </summary>
 public sealed class RevealRequestService(
     IDbContextFactory<KeywardDbContext> dbFactory,
@@ -36,7 +43,7 @@ public sealed class RevealRequestService(
 
         var item = await db.VaultItems.AsNoTracking()
             .Where(i => i.Id == itemId)
-            .Select(i => new { i.Id, i.VaultId, i.Type, i.Name, i.PublicId })
+            .Select(i => new { i.Id, i.VaultId, i.Type, i.Name, i.PublicId, i.Revision, i.RenamedByAgentTokenId, i.NameBeforeAgentRename })
             .FirstOrDefaultAsync(ct).ConfigureAwait(false)
             ?? throw new InvalidOperationException($"Item {itemId} not found.");
 
@@ -48,13 +55,35 @@ public sealed class RevealRequestService(
                 : $"A {item.Type} reveals its value.");
         }
 
-        var request = new RevealRequest(Guid.NewGuid(), tenantId, tokenId, userId, itemId, field, reason, clock.UtcNow);
+        var now = clock.UtcNow;
+        var pending = await db.RevealRequests.AsNoTracking()
+            .Where(r => r.TokenId == tokenId && r.Status == RevealRequestStatus.Pending && r.ExpiresAt > now)
+            .ToListAsync(ct).ConfigureAwait(false);
+
+        // The same question is still open: answer with it instead of a second request and a second notice. Only while
+        // the item is unchanged — after a change the person must see the new state, so a fresh request is made.
+        if (pending.FirstOrDefault(r => r.ItemId == itemId && r.Field == field && r.ItemRevisionAtRequest == item.Revision) is { } open)
+        {
+            return Map(open, now, item.PublicId);
+        }
+
+        if (pending.Count >= RevealRequestLimits.MaxPendingPerToken)
+        {
+            throw new RevealRequestLimitExceededException(tokenId, RevealRequestLimits.MaxPendingPerToken);
+        }
+
+        var request = new RevealRequest(
+            Guid.NewGuid(), tenantId, tokenId, userId, itemId, field, reason, now,
+            item.Name, item.Revision,
+            item.RenamedByAgentTokenId is not null && !string.Equals(item.NameBeforeAgentRename, item.Name, StringComparison.Ordinal)
+                ? item.NameBeforeAgentRename
+                : null);
         db.RevealRequests.Add(request);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.RevealRequested, ResourceType, request.Id, userId, request.Reason), ct).ConfigureAwait(false);
         await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        await NotifyAsync(tenantId, userId, request, token.Name, item.VaultId, item.Name, item.PublicId, ct).ConfigureAwait(false);
-        return Map(request, clock.UtcNow, item.PublicId);
+        await NotifyAsync(tenantId, userId, request, token.Name, item.VaultId, item.PublicId, ct).ConfigureAwait(false);
+        return Map(request, now, item.PublicId);
     }
 
     public async Task<RevealRequestState?> GetAsync(Guid tokenId, Guid requestId, CancellationToken ct = default)
@@ -131,14 +160,22 @@ public sealed class RevealRequestService(
             .ToDictionaryAsync(t => t.Id, t => t.Name, ct).ConfigureAwait(false);
         var items = await db.VaultItems.AsNoTracking()
             .Where(i => itemIds.Contains(i.Id))
-            .Join(db.Vaults, i => i.VaultId, v => v.Id, (i, v) => new { i.Id, ItemName = i.Name, VaultName = v.Name, i.PublicId })
+            .Join(db.Vaults, i => i.VaultId, v => v.Id, (i, v) => new { i.Id, ItemName = i.Name, VaultName = v.Name, i.PublicId, i.Revision })
             .ToDictionaryAsync(x => x.Id, ct).ConfigureAwait(false);
 
+        // The person decides on the request as it was made: its name snapshot, plus a flag (and the current name) when
+        // the item changed since — the live name alone could have been chosen by the requester itself.
         return requests
             .Where(r => items.ContainsKey(r.ItemId))
-            .Select(r => new PendingRevealRequest(
-                r.Id, tokenNames.GetValueOrDefault(r.TokenId, "?"), items[r.ItemId].VaultName, items[r.ItemId].ItemName,
-                r.Field, r.Reason, r.CreatedAt, r.ExpiresAt, items[r.ItemId].PublicId))
+            .Select(r =>
+            {
+                var item = items[r.ItemId];
+                var changed = item.Revision != r.ItemRevisionAtRequest;
+                return new PendingRevealRequest(
+                    r.Id, tokenNames.GetValueOrDefault(r.TokenId, "?"), item.VaultName, r.ItemNameAtRequest,
+                    r.Field, r.Reason, r.CreatedAt, r.ExpiresAt, item.PublicId,
+                    r.ItemNameBeforeAgentRename, changed, changed ? item.ItemName : null);
+            })
             .ToList();
     }
 
@@ -174,7 +211,7 @@ public sealed class RevealRequestService(
 
     // Best-effort: the request is valid without the notice, and a delivery problem must not fail the agent call.
     private async Task NotifyAsync(
-        Guid tenantId, Guid userId, RevealRequest request, string tokenName, Guid vaultId, string itemName, Guid itemPublicId, CancellationToken ct)
+        Guid tenantId, Guid userId, RevealRequest request, string tokenName, Guid vaultId, Guid itemPublicId, CancellationToken ct)
     {
         if (!presenters.Any())
         {
@@ -192,7 +229,8 @@ public sealed class RevealRequestService(
             }
 
             var line = new KeywardRevealRequestLine(
-                request.Id, tokenName, vaultName ?? "?", itemName, request.Field, request.Reason, request.ExpiresAt, itemPublicId);
+                request.Id, tokenName, vaultName ?? "?", request.ItemNameAtRequest, request.Field, request.Reason, request.ExpiresAt, itemPublicId,
+                request.ItemNameBeforeAgentRename);
             foreach (var presenter in presenters)
             {
                 await presenter.NotifyRevealRequestAsync(tenantId, new KeywardAlertRecipient(userId, externalId), line, ct).ConfigureAwait(false);
