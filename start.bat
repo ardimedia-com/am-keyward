@@ -24,8 +24,10 @@ REM      A runtime safety-net also re-checks for pending migrations periodically
 REM      (in case the DB is swapped under the running app); configure via the
 REM      "DatabaseMigration" section in appsettings.json (Enabled / CheckIntervalSeconds).
 REM    - A dev KEK is auto-created as "kek.dev.key" in the shell folder
-REM      (gitignored, kept OUTSIDE the database). Production uses a real KEK
-REM      provider (Azure Key Vault / HSM) instead -- see SECURITY.md.
+REM      (gitignored, kept OUTSIDE the database) -- in Development only.
+REM      Outside Development the shell uses a DPAPI-protected key file in
+REM      %ProgramData%\Ardimedia\Am.Keyward\kek (Keyward:Kek:Directory), or an
+REM      embedding host supplies a KMS-backed IKekProvider -- see SECURITY.md.
 REM ============================================================================
 REM
 REM  TESTING:

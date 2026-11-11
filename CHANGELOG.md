@@ -5,8 +5,93 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+Fixes from the third, code-level security review (all findings, decision T1060 B). Upgrading hosts: read the
+**BREAKING** lines first.
+
+### Added
+
+- **Invite-only registration in the reference shell** (default, `Keyward:Registration:Mode` = `InviteOnly`). The
+  first account on an empty installation becomes System Admin; everyone else is invited by e-mail from the admin user
+  page with a single-use, short-lived set-password link (`InvitationLifetimeHours`, default 48). `Open` lets anyone
+  register and is meant for demos only. The shell also gets an access-denied page and its texts in six languages.
+- **KEK re-wrap job** (`KekRewrapService`): after a key rotation it moves every stored data key to the current KEK in
+  audited batches, without decrypting a single value. A KEK can now actually be rotated.
+- **Break-glass trail verification** and **out-of-band audit-chain anchors** (`audit-anchors.jsonl` next to the
+  break-glass trail): deleting entries from the end of the audit chain, or restoring an older database copy, is
+  detected. The ops monitor runs both and the health check reports them.
+- **Single-instance detection.** A second instance on the same database logs an error and
+  `KeywardSingleInstanceHealthCheck` reports Unhealthy (decision T1062 A: one instance per database is the supported
+  deployment).
+- **Account deletion with a 90-day retention** (`IKeywardAccountDeletion`): the user is disabled at once, personal
+  vaults are removed after `Keyward:Retention:PersonalVaultRetentionDays` (default 90); enabling the user again
+  cancels it. Old reveal requests are purged after 30 days.
+- **Agent tokens show when and from where they were last used**, and an agent's listing and searching of vaults is
+  audited.
+- **One «expired» notice** for a secret value whose rotation date has passed.
+- `ExpiresOn` gives a secret's rotation date as the calendar date the user entered.
+
+### Changed
+
+- **BREAKING:** the reference shell refuses to start without an explicit `ASPNETCORE_ENVIRONMENT` /
+  `DOTNET_ENVIRONMENT`, and outside Development without `ConnectionStrings:Keyward`, an https `Keyward:PublicBaseUrl`
+  and Windows (the KEK is a DPAPI-protected file in `Keyward:Kek:Directory`, default
+  `%ProgramData%\Ardimedia\Am.Keyward\kek`). The plaintext development key file is used in Development only.
+- **BREAKING:** `Keyward:BreakGlass:SinkFilePath` is required outside Development; the host refuses to start without
+  it. The reference shell defaults it next to its KEK file.
+- **BREAKING:** the reference shell maps the agent API only with `Keyward:Agent:Enabled` or
+  `Keyward:Agent:AllowedNetworks`, and an unrestricted agent API logs a startup warning.
+- **BREAKING:** the management API's secret read and token list require the tenant-admin or software-manager role;
+  its state-changing calls need `Content-Type: application/json` or the `X-Keyward-Request` header (otherwise 415).
+- **BREAKING:** `amkeyward-mcp`, `keyward` and `Am.Keyward.Client` require https (http only to localhost; the library
+  can opt out with `AllowInsecureHttp`, which is insecure). `amkeyward-mcp` reads the KEYWARD address only from
+  `Keyward__ServiceUri`, never from a file in the working folder.
+- **BREAKING:** the MCP tool `update_item` requires `versionId`.
+- **BREAKING:** an entry's version (`VersionId`, the ETag) is now its revision and changes on renames and moves too;
+  `UpdateVaultItemCommand` takes an optional expected version.
+- **BREAKING:** `keyward run --all` / `keyward env` refuse key names that would set loader, interpreter or shell
+  variables (`PATH`, `LD_PRELOAD`, `DOTNET_*`, `NODE_OPTIONS` …) unless `--allow-name` lists them.
+- The Keyward UI takes its colours from the host's am.ui design tokens (`--card`, `--border`, `--primary`, …) and
+  falls back to its own palette (decision T1063 A).
+- Reveal requests show the entry's name at request time, its earlier name after an agent rename, and flag later
+  changes; a token may have at most 3 undecided requests and a repeated one is reused.
+- Moving an entry to another vault keeps its history.
+- Expiry notices count calendar days and catch up a missed 30- or 20-day notice; the heartbeat silence has a minimum.
+- Audit-chain verification runs incrementally every hour and in full daily, without loading the chain into memory.
+- The session cookie lasts 8 hours (sliding); a lockout lasts 15 minutes; the demo project is seeded only in
+  Development or with `Keyward:SeedDemo`.
+- The vault export is a single «Download CSV» button; revealed secrets hide again after 30 seconds; an issued token
+  leaves the page after 5 minutes or on «Close».
+
+### Removed
+
+- The leftover `SoftwareClientTokenExpiryService` (expiry notices come from `TokenExpiryNotificationService`).
+
 ### Fixed
 
+- **Expiry and alert notices were sent again on every run** for every recipient after the first one.
+- Secret-expiry mails showed the next day east of UTC.
+- Heartbeat monitors went Down when token statistics were switched off.
+- Two first starts on one key folder could each keep a different key; the second key was lost on restart.
+- The key-ownership check is retried after a database outage at startup, and re-run by the ops monitor.
+- A key ring can open values stored under legacy unqualified KEK ids.
+- A torn last line no longer blocks the break-glass trail, and two writers can no longer fork it.
+- Management and agent endpoints answer 400/403/404/409/429 instead of 500; the agent vault tree works for personal
+  vaults; entry names over 256 characters are refused with 400.
+- Creating an application or environment no longer leaves it without tokens when a save fails; concurrent saves of
+  a value and of shares no longer fail or duplicate; version numbers cannot collide after pruning.
+- Deleting a folder while an entry is added to it can no longer leave the entry pointing at a missing folder.
+- Reads no longer load the whole version history.
+- `keyward import` sets a new key in several environments; sub-path installations work in `amkeyward-mcp` and
+  `keyward`.
+- Configuration provider: an HTML page answered with 200 no longer crashes an optional host, a rejected token is not
+  retried, startup is bounded (`StartupTimeout`, 20 s), `Reload()` is safe, reloads have jitter, a caller's handler is
+  not disposed.
+- The heartbeat tolerates a malformed address; MCP timeouts give a clear message; `keyward` prints one line with a
+  documented exit code instead of a stack trace.
+- A failed load or search in the UI shows an error instead of breaking the page; a late search result no longer
+  overwrites a newer one; pending reveal requests keep refreshing after a database hiccup; dates are shown in your
+  time zone; missing French, Italian, Spanish and Portuguese texts; hard-coded English in the shell; `lang` followed
+  no culture.
 - **Title and count in the tab bar of «Applications» and the vault workspace are styled again.** The name is cut
   with an ellipsis and the count stays quiet instead of pushing the name out; the rules never reached the two spans.
 - **The search heading on «Applications» has its spacing** (it borrowed rules from the vault page, which do not
@@ -17,6 +102,33 @@ All notable changes to this project are documented here, following
 
 ### Security
 
+- **The management API handed plaintext application secrets to any tenant member**; reading values and listing
+  tokens now needs the operator role (the list of applications stays visible to members, decision T1065 A).
+- **`amkeyward-mcp` sends an agent token only to the address it was stored for.** The pre-0.24 single token is no
+  longer used (`amkeyward-mcp setup <address>` moves it once); `KEYWARD_AGENT_TOKEN` counts only where there is no
+  credential store (Linux).
+- **Open redirect after sign-in** in the reference shell; account links are built from `Keyward:PublicBaseUrl`, not
+  the request host.
+- Per-IP limit on the sign-in, registration and reset forms; the lockout message and mail failures no longer reveal
+  whether an account exists; disabled or deleted users lose their session; logout and the language switch need an
+  antiforgery token.
+- Content Security Policy with a per-request nonce, `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`,
+  `Referrer-Policy`, `Permissions-Policy`; forwarded headers only from configured proxies
+  (`Keyward:ForwardedHeaders:KnownProxies` / `KnownNetworks`).
+- Junk tokens from one address can no longer lock out valid agent or app tokens; refused tokens are audited, never
+  with the token itself; a token can no longer be rotated or revoked through another application's route.
+- An agent can no longer rename an entry, ask to reveal it and rename it back unnoticed, nor move team entries into
+  a personal vault.
+- A new KEK file is created with protected access rules and fails closed when it cannot be protected; the escrow
+  import narrows access and rejects blobs that are not 32-byte keys; the key-ownership canary is no longer written
+  into a database that already holds values of another key; `TotpSettings.ToString()` no longer prints the secret.
+- MCP answers show KEYWARD data between ⟦ and ⟧ on one line and mark it as data, so a name cannot forge lines or
+  instructions; a revealed value is cleared from the clipboard when the server stops, and a busy clipboard no longer
+  uses up the approval.
+- A stored login URL is a link only when it is an absolute http(s) address; the CSV export is no longer kept in the
+  page; secrets in the edit form are masked and discarded on Cancel; copied secrets are cleared from the clipboard
+  after 30 seconds where the browser allows it; error messages no longer show internal details.
+- Plaintext buffers are cleared after use.
 - **`System.Security.Cryptography.Pkcs` lifted to 10.0.15** (CVE-2026-84008, GHSA-846f-f764-76mx, high, denial of
   service). The package came in through `Microsoft.Data.SqlClient` and MimeKit at 9.0.11 / 10.0.0;
   `Am.Keyward.Infrastructure` now references a patched version directly, so every host gets it.

@@ -49,8 +49,12 @@ Both can be limited to given networks.
   a key a program already reads, or anything a person put there, is not an agent's to change.
 - **One rule set.** Every application change goes through the same services as the UI, so names, keys and
   environments are validated identically — the error messages are the same.
-- **Throttled.** Per-token rate limit; failed authentications are throttled per client IP; optional network
-  restriction per host and per token.
+- **Throttled.** Per-token rate limit; failed authentications are throttled per client IP and presented token
+  prefix, and a token that validates is never refused; refused tokens that can be identified are audited (never the
+  token itself); optional network restriction per host and per token. A token records when and from which address
+  it was last used, shown on «AI agent tokens».
+- **Audited listing.** Listing and searching vaults through an agent token writes `VaultList` / `VaultSearch` audit
+  entries.
 - **Out of reach answers 404**, exactly like something missing — the API does not reveal what exists. A permission
   the token itself lacks answers **403 naming that permission** (checked before anything is looked up, so it tells
   nothing about data — the token can read its own permissions with `GET /token` anyway); the application collection
@@ -102,9 +106,9 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 | POST | `/vaults/{id}/items` | Login: `url`, `username`, `password`, `note`, `totp` (2FA key: Base32 secret or `otpauth://totp/…` link, 400 with a reason if unreadable); other types: `value`. 201, no echo |
 | PATCH | `/items/{id}` | `If-Match: "<version>"` required (428 without, 412 when changed meanwhile); Login field by field (`"totp": ""` removes the key), other types by `value` |
 | POST | `/items/{id}/move` | `{ "vaultId", "folderId"? }` — another folder and/or another reachable vault (Write on both). 200 with link (unchanged) and version; across vaults the id changes |
-| POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Totp" \| "Value", "reason": "…" }` → 202, pending. `Totp`: the one-time code, generated when it is consumed |
+| POST | `/items/{id}/reveal-requests` | `{ "field": "Password" \| "Note" \| "Totp" \| "Value", "reason": "…" }` → 202, pending. `Totp`: the one-time code, generated when it is consumed. An open request for the same entry and field is reused; more than 3 undecided requests per token answer 429. The approval shows the entry's name at request time (and its earlier name if this token renamed it); the token's own later change of the entry voids the request |
 | POST | `/items/{id}/totp-code` | `{ "code", "validUntil", "secondsLeft" }` (`no-store`), audited as `VaultItemTotp`. Needs «Get one-time codes»; 403 without it, 400 when the Login has no 2FA key |
-| GET | `/reveal-requests/{id}` | status only: Pending, Approved, Rejected, Expired, Consumed |
+| GET | `/reveal-requests/{id}` | status only: Pending, Approved, Rejected, Expired, Consumed, Voided |
 | POST | `/reveal-requests/{id}/consume` | the value, once (`Cache-Control: no-store`); otherwise 409 |
 | GET | `/applications` | reachable applications: name, environments, keys, per environment `valueSet` + `versionId`, `link`, `tokensLink`. 403 without the permission |
 | POST | `/applications` | `{ "name", "environments": [] }` → 201. Starts with the tenant's default environments; listed ones are added. Needs «May create new applications» (403 otherwise) |
@@ -123,8 +127,10 @@ Base path `/keyward/api/v1/agent`, `Authorization: Bearer amkwa_…`. Errors are
 
 `link` opens the application on its keys and values (`/amkeyward/applications?app={id}&tab=data`), `tokensLink` on
 its app tokens (`&tab=tokens`). Both are paths on the KEYWARD host; the MCP server makes them absolute. Status codes:
-400 invalid name/key/environment (same message as the UI), 403 permission or rename/delete refused, 404 out of reach
-or missing, 409 name/key/environment already exists, 412/428 as above.
+400 invalid name/key/environment (same message as the UI; entry names longer than 256 characters too), 403
+permission or rename/delete refused, 404 out of reach or missing, 409 name/key/environment already exists or a
+concurrent change, 412/428 as above. `/vaults/{id}/tree` works for personal vaults opened to agents as well. An
+agent may not move an entry from a team vault into a personal vault (403).
 
 ## Enabling on a host
 
@@ -135,7 +141,8 @@ The API is part of `Am.Keyward.Api`. A host adds it next to the software-client 
 2. **Middleware** — `app.UseRateLimiter()` must run before the mapped endpoints (the limiter partitions by the
    bearer header, so its place relative to `UseAuthentication()` does not matter).
 3. **Map** — `app.MapKeywardAgentApi();` — only when `AllowedNetworks` is set, so the API is never exposed by
-   accident.
+   accident. A mapped API without `AllowedNetworks` logs a startup warning. (The reference shell maps it only with
+   `Keyward:Agent:Enabled` or `Keyward:Agent:AllowedNetworks`.)
 4. **Networks** — `AllowedNetworks` is a comma-separated CIDR list (LAN, internal Wi-Fi, VPN pools). Callers from
    elsewhere get 403 (with or without a token) before any token is looked up. An unusable value — not CIDR, a bare
    address without `/32`, or a list containing a known reverse proxy — no longer stops the host: it is logged as

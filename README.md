@@ -90,7 +90,26 @@ What AM KEYWARD is designed to resist, and what it explicitly does **not**:
 
 - [SECURITY.md](SECURITY.md) — reporting, operator responsibilities, no-warranty.
 - [Operations & KEK/DR runbook](docs/operations-runbook.md) — key custody, backup/restore order, KEK
-  rotation and compromise response, monitoring/health endpoints, break-glass, GDPR erasure.
+  rotation (with the re-wrap job) and compromise response, monitoring/health endpoints, break-glass, audit anchors,
+  GDPR erasure and account-deletion retention.
+- **One instance per database.** Background jobs (notification mails, statistics flush, heartbeat monitoring,
+  retention) are not coordinated across processes: no web farm, no IIS web garden, no overlapping deployment. A
+  second instance logs an error and reports Unhealthy (`KeywardSingleInstanceHealthCheck`).
+- **Running the reference shell outside Development.** It refuses to start without an explicit
+  `ASPNETCORE_ENVIRONMENT` / `DOTNET_ENVIRONMENT`, `ConnectionStrings:Keyward`, an https `Keyward:PublicBaseUrl`
+  and Windows: its KEK is a DPAPI-protected file in `Keyward:Kek:Directory` (default
+  `%ProgramData%\Ardimedia\Am.Keyward\kek`; back it up with the escrow export), and the break-glass trail defaults
+  next to it. Set `AllowedHosts` to your host name. Behind a reverse proxy list the proxy in
+  `Keyward:ForwardedHeaders:KnownProxies` (or `KnownNetworks`) — without it every caller has the proxy's address,
+  which breaks throttling and the allow-lists — and never let the proxy lie inside an `AllowedNetworks` range. The
+  agent API is mapped only with `Keyward:Agent:Enabled` or `Keyward:Agent:AllowedNetworks`.
+- **Registration.** `Keyward:Registration:Mode` is `InviteOnly` by default: the first account on an empty
+  installation becomes System Admin, everyone else is invited by e-mail from the admin user page
+  (`InvitationLifetimeHours`, default 48). `Open` lets anyone register and is meant for demos only.
+- **Security headers.** The shell sends a Content Security Policy that allows scripts only from the site plus a
+  per-request nonce, with `frame-ancestors 'none'`, plus `X-Frame-Options: DENY`, `nosniff`,
+  `Referrer-Policy: no-referrer` and `Permissions-Policy`. Custom pages must not use inline scripts or `onclick=`
+  handlers.
 
 ## Embedding in your own ASP.NET Core / Blazor app
 
@@ -357,6 +376,9 @@ builder.Configuration.AddKeywardSecrets(o =>
 });
 ```
 
+`ServiceUri` must be https (plain http is accepted only for a loopback address; `AllowInsecureHttp` opts out and is
+insecure).
+
 The bulk read (`GET /secrets`) lands in `IConfiguration`, so `ConnectionStrings:Main`, options binding
 etc. resolve like any other configuration value — later sources overlay earlier ones as usual. The token
 comes from the **same per-application environment variable** the Keyward UI's deployment PowerShell snippet
@@ -366,8 +388,11 @@ Defaults are deliberate: the source **fails the host loudly at startup** when no
 server is unreachable (an app whose connection strings live in Keyward must not silently start without
 them; set `o.Optional = true` to tolerate it), and the startup load retries with backoff
 (`LoadRetryCount`/`LoadRetryDelay`) so a service booting right after a host reboot does not lose the race
-against the Keyward server. Set `o.ReloadInterval` to re-read periodically and raise a configuration reload
-when values changed (`IOptionsMonitor<T>` picks it up); a failed refresh keeps the last known good values.
+against the Keyward server; `StartupTimeout` (default 20 s) bounds the whole startup load, so a Windows service
+stays within its start limit. A rejected token (401/403) is not retried, and an answer that is not JSON counts as a
+failure. Set `o.ReloadInterval` to re-read periodically (with ±10 % jitter) and raise a configuration reload when
+values changed (`IOptionsMonitor<T>` picks it up); a failed refresh keeps the last known good values, and a token
+rejected during a reload is logged as an error once (through `o.Logger`, or stderr when none is set).
 
 For direct runtime reads (a secret fetched on demand rather than at startup), register the typed client via
 `IHttpClientFactory` and inject `KeywardSecretsClient`:
@@ -383,9 +408,15 @@ builder.Services.AddKeywardSecretsClient(o =>
 
 **Styling and routes come for free.** The UI theme is component-scoped CSS in the RCL, so it is folded into
 your app's standard `{Assembly}.styles.css` bundle automatically — no extra stylesheet `<link>` needed (the
-template's existing bundle link covers it). Override the look by redefining the `--kw-*` CSS variables on
+template's existing bundle link covers it). **Theming:** Keyward's `--kw-*` variables read the am.ui /
+shadcn design-token contract first — `--background`, `--card`, `--muted`, `--foreground`, `--muted-foreground`,
+`--border`, `--primary`, `--primary-foreground`, `--destructive`, `--success`, `--warning`, `--info`, `--ring`,
+`--radius`, plus an optional `--primary-hover` — so a host on that contract themes Keyward completely, dark mode
+included; without it Keyward's own palette applies. To restyle only Keyward, redefine the `--kw-*` variables on
 `.keyward-ui`; dark mode / color themes react to `html.dark` / `html[data-theme="…"]` if your host toggles
-them (see the reference shell's `js/keyward-theme.js`) — with no toggling you get the light default. The
+them (see the reference shell's `js/keyward-theme.js`) — with no toggling you get the light default.
+**Navigation contract:** `KeywardNav` ships no styling; the host styles `.nav-group-label` (section heading) and
+`.nav-link` (a NavLink that gets `active` on the current page, containing an `svg.kw-icon` and a text `<span>`). The
 vault/application pages use `<KeywardUi Fill="true">`: in a plain layout they render with a normal page
 scroll; for the pinned header + independently scrolling panes, make your content container a fixed-height
 flex column and add `.your-content:has(> .keyward-ui.kw-fill) { overflow: hidden; display: flex;

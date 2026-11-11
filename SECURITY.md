@@ -3,8 +3,9 @@
 AM KEYWARD is a credential & secrets manager in **early development (pre-1.0)**. Its design has **not**
 yet undergone an external security review — no independent party has audited the envelope crypto, the tenant
 isolation or the audit hash chain. It is usable with real secrets, but that assurance gap is real: everything
-in this policy rests on the project's own testing. Weigh it against what the secrets protect, and track
-releases so you get fixes.
+in this policy rests on the project's own testing and internal reviews (the latest, a code-level review in
+November 2026, found no cross-tenant path and no flaw in the envelope encryption; its findings are fixed in the
+release after 0.38.0-preview). Weigh it against what the secrets protect, and track releases so you get fixes.
 
 ## Reporting a vulnerability
 
@@ -34,7 +35,14 @@ ones it leaves to the operator and the user:
 
 - **A value leaking into the assistant's context.** Values are write-only: no agent endpoint returns a stored value
   or a part of it — for applications not at all, for vault entries only after a per-request human approval, and then
-  to the Windows clipboard, not to the assistant. Tests check every response and the host's log output for values.
+  to the Windows or macOS clipboard, not to the assistant. The clipboard is cleared after 30 seconds or when the MCP
+  server stops; a server that is killed cannot clear it, and on macOS a clipboard history may record the value.
+  Tests check every response and the host's log output for values.
+- **A disguised reveal request.** The approval shows the entry's name at request time and, if the agent renamed the
+  entry, its earlier name; a later change is flagged, and the agent's own rename voids its pending requests. A token
+  may hold at most 3 undecided requests.
+- **Text from KEYWARD steering the assistant.** Entry, vault and folder names and notes reach the assistant on one
+  line between ⟦ and ⟧, with control characters removed, and the tool descriptions state that such text is data.
 - **An assistant told to exfiltrate or plant data (prompt injection).** The token reaches only what it was given:
   allowlisted vaults opened to agents, allowlisted applications and the ones it created, with the ticked
   permissions. It cannot read a software secret, cannot issue or see an app token, and may rename or delete only its
@@ -42,8 +50,12 @@ ones it leaves to the operator and the user:
   person in the UI and audited as the agent. Treat an agent's reveal reason as untrusted text.
 - **A stolen agent token.** Hashed at rest, always expiring (≤ 365 days), revocable, rate-limited, throttled on
   failed authentication, re-checked against the user and their role on every request, and restrictable to
-  networks. **Operator:** expose `/keyward/api/v1/agent` only to internal networks (`AllowedNetworks`) and make sure
-  a reverse proxy's address is never among them; keep the token in the Windows Credential Manager, not in files.
+  networks. Junk tokens from one address cannot lock out a valid token; refused tokens are audited (never the token
+  itself). The MCP server sends a token only to the https address it was stored for, and reads that address only
+  from `Keyward__ServiceUri`. **Operator:** expose `/keyward/api/v1/agent` only to internal networks
+  (`AllowedNetworks`), list your reverse proxy in the forwarded-headers configuration and make sure its address is
+  never among the allowed networks; keep the token in the Windows Credential Manager or macOS Keychain, not in files
+  (on Linux `KEYWARD_AGENT_TOKEN` is not bound to an address).
 - **A stolen app (software-client) token.** Hashed at rest, environment-scoped, rotatable, rate-limited, throttled on
   failed authentication. **Operator:** set `Keyward:Client:AllowedNetworks` to the networks of the deployed
   applications, so a leaked token is useless from anywhere else (without it the host logs a startup warning).
@@ -67,8 +79,14 @@ deployment, including:
 - Backups of the database and the KEK store (on separate schedules/locations), the correct **restore
   order** (KEK store before database), and a **rehearsed KEK restore drill** — see the
   [operations runbook](docs/operations-runbook.md).
-- The out-of-band **break-glass trail** (`Keyward:BreakGlass:SinkFilePath`) on storage the database admin
-  cannot rewrite, and monitoring the `/health` endpoints and the ops-monitor warnings.
+- The out-of-band **break-glass trail** (`Keyward:BreakGlass:SinkFilePath`, required outside Development) on
+  storage the database admin cannot rewrite, the audit-chain anchors next to it, and monitoring the `/health`
+  endpoints and the ops-monitor warnings.
+- **One instance per database.** Background jobs are not coordinated across processes; a second instance reports
+  Unhealthy.
+- For the reference shell: an explicit environment, `Keyward:PublicBaseUrl` (https), `AllowedHosts` set to your host
+  name, invite-only registration (the default), and the security headers it sends — custom pages must not use inline
+  scripts or `onclick=` handlers.
 
 ## No warranty
 

@@ -9,8 +9,11 @@ client never sends them.
 ## Endpoints
 
 Base path: `/keyward/api/v1`. Authentication: `Authorization: Bearer <token>`. Requests are rate limited
-per token, and failed authentications are throttled per client IP (after 20 failures in 5 minutes the IP is
-refused until the window resets).
+per token. Failed authentications are throttled per client IP **and presented token prefix** (after 20 failures in
+5 minutes that combination is refused until the window resets); a token that validates is never refused, so junk
+tokens from the same address cannot lock out a working application. A refused token that can be identified
+(wrong secret, expired, revoked, network refused) is written to the audit chain as `Login` with the reason and the
+address — never the token.
 
 **Networks.** A host can limit the API to the networks its applications run in — `Keyward:Client:AllowedNetworks`,
 a comma-separated CIDR list (`10.1.0.0/23, 10.8.0.0/24`), bound to `KeywardSoftwareClientApiOptions.AllowedNetworks`:
@@ -24,7 +27,7 @@ It is checked before the token: a caller from elsewhere gets **403 with an empty
 token), no token is looked up, nothing counts in the token statistics or against the failed-authentication
 throttle. The address is `Connection.RemoteIpAddress` after `UseForwardedHeaders` — behind a reverse proxy, trust
 that proxy as a known proxy and keep its network out of the list; a list that contains a known proxy
-(`ForwardedHeadersOptions.KnownProxies`) is rejected. Without the setting the API stays open to every network (as
+(`ForwardedHeadersOptions.KnownProxies` or `KnownIPNetworks`) is rejected. Without the setting the API stays open to every network (as
 before) and the host logs a startup warning. An unusable value (not CIDR, a bare address without `/32`, a proxy
 inside) is logged as an error and the API answers 403 to everyone until it is corrected; the host still starts.
 
@@ -230,4 +233,13 @@ watcher of everything else.
   requires a software operator (tenant admin, software manager or system admin), like every change does.
 - The management API above requires a signed-in admin (the host's authorization policy), and the route's
   `{tenantId}` is verified against the signed-in user's tenant membership — non-members get 403 (system
-  admins count as members of every tenant).
+  admins count as members of every tenant). Reading a value and listing tokens additionally need the software
+  operator role; a plain member gets 403. The list of applications and their environments (names and counts, no
+  values) stays visible to members.
+- State-changing management calls must send `Content-Type: application/json` or the header
+  `X-Keyward-Request: 1`; anything else answers **415**, so a cross-site form post cannot rotate or revoke a token.
+- A token is rotated or revoked only through the route of its own application (`…/projects/{projectId}/tokens/{id}`);
+  another application's route answers 404.
+- Status codes: 400 invalid key, environment or missing value; 403 not an operator; 404 unknown application,
+  environment or token; 409 a concurrent change or a name that already exists. Value and token responses carry
+  `Cache-Control: no-store`.
