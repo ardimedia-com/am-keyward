@@ -5,6 +5,8 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+## [0.39.0-preview] - 2026-11-11
+
 Fixes from the third, code-level security review (all findings, decision T1060 B). Upgrading hosts: read the
 **BREAKING** lines first.
 
