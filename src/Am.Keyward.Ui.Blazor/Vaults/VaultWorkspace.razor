@@ -264,6 +264,7 @@ else
                                 }
                                 @if (shares is { Count: > 0 })
                                 {
+                                    <div class="table-scroll">
                                     <table>
                                         <thead><tr><th>@Loc["Vault.Share.User"]</th><th>@Loc["Vault.Share.Permission"]</th><th></th></tr></thead>
                                         <tbody>
@@ -290,6 +291,7 @@ else
                                             }
                                         </tbody>
                                     </table>
+                                    </div>
                                 }
                             </div>
                             <div class="ws-area">

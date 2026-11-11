@@ -5,6 +5,22 @@ All notable changes to this project are documented here, following
 
 ## [Unreleased]
 
+### Fixed
+
+- **Title and count in the tab bar of «Applications» and the vault workspace are styled again.** The name is cut
+  with an ellipsis and the count stays quiet instead of pushing the name out; the rules never reached the two spans.
+- **The search heading on «Applications» has its spacing** (it borrowed rules from the vault page, which do not
+  apply there), the list of shares scrolls sideways on a narrow screen instead of widening the page, and the token
+  row no longer overflows on a phone.
+- **Error texts on the sign-in, registration, reset and confirmation pages are readable in dark mode** and are
+  announced to screen readers.
+
+### Security
+
+- **`System.Security.Cryptography.Pkcs` lifted to 10.0.15** (CVE-2026-84008, GHSA-846f-f764-76mx, high, denial of
+  service). The package came in through `Microsoft.Data.SqlClient` and MimeKit at 9.0.11 / 10.0.0;
+  `Am.Keyward.Infrastructure` now references a patched version directly, so every host gets it.
+
 ## [0.38.0-preview] - 2026-11-11
 
 ### Changed

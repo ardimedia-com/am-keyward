@@ -21,7 +21,7 @@
 }
 @if (errorMessage is not null)
 {
-    <p style="color:#b00020;"><strong>@errorMessage</strong></p>
+    <p style="color:var(--danger);" role="alert"><strong>@errorMessage</strong></p>
 }
 
 <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">

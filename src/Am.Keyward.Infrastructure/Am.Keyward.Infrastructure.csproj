@@ -23,6 +23,11 @@
          package restores everywhere; the helpers are [SupportedOSPlatform("windows")] and a host on another
          platform simply supplies its own IKekProvider instead. -->
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
+    <!-- Not used directly. Microsoft.Data.SqlClient 6.1.6 (via EF Core SqlServer) and MimeKit (via MailKit in the
+         host) pull System.Security.Cryptography.Pkcs 9.0.11 / 10.0.0, both hit by CVE-2026-84008 (GHSA-846f-f764-76mx,
+         high, denial of service; fixed in 10.0.13). This direct reference lifts every consumer of Infrastructure to
+         a patched version. Remove it once SqlClient and MimeKit reference a patched Pkcs themselves. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
   </ItemGroup>
 
   <PropertyGroup>

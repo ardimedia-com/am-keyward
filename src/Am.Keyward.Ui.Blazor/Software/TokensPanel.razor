@@ -90,7 +90,7 @@ else
                 {
                     <div class="card" style="margin:.25rem 0 .75rem;">
                         <div class="row" style="justify-content:space-between; flex-wrap:wrap;">
-                            <div class="row" style="flex:1; min-width:20rem; flex-wrap:nowrap;">
+                            <div class="row" style="flex:1; min-width:min(20rem,100%); flex-wrap:nowrap;">
                                 <KeywardIcon Name="ticket" Size="18" />
                                 <input @bind="editName" aria-label="@(Loc["Common.Name"])" placeholder="@(Loc["Common.Name"])" title="@(Loc["Common.Name"])" style="max-width:14rem; font-weight:600;" />
                                 <input @bind="editNote" aria-label="@(Loc["Common.Note"])" placeholder="@(Loc["Token.NoteOptional"])" title="@(Loc["Token.NoteOptional"])" style="max-width:18rem;" />

@@ -55,15 +55,16 @@
     line-height: 1.2;
 }
 
-/* A secondary fact next to the title (counts) stays quiet and never pushes the name out. */
-.kw-tab-area-title .kw-tab-area-subtitle {
+/* A secondary fact next to the title (counts) stays quiet and never pushes the name out. The spans come from the
+   parent's TitleContent and carry the PARENT's scope attribute, hence ::deep. */
+.kw-tab-area-title ::deep .kw-tab-area-subtitle {
     color: var(--kw-muted-text, #667085);
     font-size: .82rem;
     font-weight: 400;
     white-space: nowrap;
 }
 
-.kw-tab-area-title .kw-tab-area-name {
+.kw-tab-area-title ::deep .kw-tab-area-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

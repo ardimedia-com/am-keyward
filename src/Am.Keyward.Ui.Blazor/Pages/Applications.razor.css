@@ -45,3 +45,13 @@ div.notice.env-confirm {
 .confirm-actions {
     margin-top: .5rem;
 }
+
+/* Search results: heading lines of the list head. Declared here too, because scoped CSS does not cross components
+   (the same rules in VaultWorkspace.razor.css never reach this page). */
+.list-head .search-title {
+    margin: 0 0 .25rem;
+}
+
+.list-head .search-count {
+    margin: 0 0 .5rem;
+}
