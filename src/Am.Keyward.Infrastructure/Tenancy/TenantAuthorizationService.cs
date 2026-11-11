@@ -37,26 +37,39 @@ public sealed class TenantAuthorizationService(IDbContextFactory<KeywardDbContex
         return resourceTenant is not null && resourceTenant == current;
     }
 
-    private static async Task<bool> HasVaultGrantAsync(KeywardDbContext db, Guid userId, Guid vaultId, Permission action, CancellationToken ct)
+    private static async Task<bool> HasVaultGrantAsync(KeywardDbContext db, Guid userId, Guid vaultId, Permission action, CancellationToken ct) =>
+        (await VaultsWithGrantAsync(db, userId, [vaultId], action, ct).ConfigureAwait(false)).Contains(vaultId);
+
+    /// <summary>
+    /// The vaults among <paramref name="vaultIds"/> on which <paramref name="userId"/> holds at least
+    /// <paramref name="action"/> — direct user grants plus grants of any group the user belongs to — in two
+    /// queries whatever the number of vaults. The one place the vault-grant rule lives (single and batched checks).
+    /// </summary>
+    internal static async Task<IReadOnlySet<Guid>> VaultsWithGrantAsync(
+        KeywardDbContext db, Guid userId, IReadOnlyCollection<Guid> vaultIds, Permission action, CancellationToken ct)
     {
-        // Direct user grants plus grants held by any group the user belongs to. Permission is stored as
-        // a string, so compare the levels in memory (the set per user+vault is tiny).
+        if (vaultIds.Count == 0)
+        {
+            return new HashSet<Guid>();
+        }
+
         var groupIds = await db.GroupMemberships
             .Where(m => m.UserId == userId)
             .Select(m => m.GroupId)
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        var permissions = await db.AccessGrants
+        // Permission is stored as a string, so compare the levels in memory (the set per user and vault is tiny).
+        var grants = await db.AccessGrants
             .Where(g => g.Scope.Kind == GrantScopeKind.Vault
-                     && g.Scope.TargetId == vaultId
+                     && vaultIds.Contains(g.Scope.TargetId)
                      && ((g.PrincipalType == PrincipalType.User && g.PrincipalId == userId)
                          || (g.PrincipalType == PrincipalType.Group && groupIds.Contains(g.PrincipalId))))
-            .Select(g => g.Permission)
+            .Select(g => new { g.Scope.TargetId, g.Permission })
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
-        return permissions.Any(p => p >= action);
+        return grants.Where(g => g.Permission >= action).Select(g => g.TargetId).ToHashSet();
     }
 
     private static async Task<Guid?> ResolveResourceTenantAsync(KeywardDbContext db, GrantScope resource, CancellationToken ct) =>

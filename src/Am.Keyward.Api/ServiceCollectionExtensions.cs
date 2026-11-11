@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
@@ -25,8 +23,8 @@ public sealed class KeywardSoftwareClientApiOptions
     public int QueueLimit { get; set; }
 
     /// <summary>
-    /// Failed token authentications allowed per client IP per <see cref="FailedAuthenticationWindow"/> before
-    /// that IP is refused without a token lookup. Default 20.
+    /// Failed token authentications allowed per (client address, token prefix) per <see cref="FailedAuthenticationWindow"/>
+    /// before that prefix is refused from that address without a token lookup. Default 20.
     /// </summary>
     public int FailedAuthenticationLimit { get; set; } = 20;
 
@@ -61,7 +59,9 @@ public static class ServiceCollectionExtensions
     /// <para>
     /// Call <c>app.UseRateLimiter()</c> BEFORE <c>app.UseAuthentication()</c>: the token is validated inside the
     /// authorization middleware, so a limiter placed after it only ever sees requests that already cost a
-    /// token lookup. Guessed tokens are additionally throttled per client IP (<see cref="FailedAuthenticationThrottle"/>).
+    /// token lookup. The limiter partitions per recently validated token and otherwise per client address; failing
+    /// tokens are additionally throttled per (address, token prefix) (<see cref="FailedAuthenticationThrottle"/>) —
+    /// neither ever refuses a token that validates because of someone else's junk.
     /// </para>
     /// <para>
     /// Set <see cref="KeywardSoftwareClientApiOptions.AllowedNetworks"/> (conventionally from
@@ -76,7 +76,7 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.TryAddSingleton(new FailedAuthenticationThrottle(options));
-        services.AddSingleton(sp => SoftwareClientNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp)));
+        services.AddSingleton(sp => SoftwareClientNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp), KnownProxyNetworks(sp)));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, KeywardNetworkPolicyStartupLog<SoftwareClientNetworkPolicy>>());
 
         services.AddAuthentication()
@@ -95,12 +95,10 @@ public static class ServiceCollectionExtensions
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             limiter.AddPolicy(KeywardClientApi.RateLimiterPolicy, httpContext =>
             {
-                // Partition per token, but never hold the plaintext bearer token as the in-memory key: hash it,
-                // so a limiter dump reveals no secrets and the key is fixed-width regardless of token length.
-                var authHeader = httpContext.Request.Headers.Authorization.ToString();
-                var partitionKey = string.IsNullOrEmpty(authHeader)
-                    ? "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous")
-                    : "tok:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(authHeader)));
+                // A token that validated recently gets its own partition (keyed by an in-process fingerprint, never
+                // the token); everything else shares the caller address's partition, so junk headers can neither open
+                // fresh partitions to bypass the limit nor grow the limiter's memory (FailedAuthenticationThrottle).
+                var partitionKey = PartitionKey(httpContext);
 
                 return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
                 {
@@ -118,8 +116,9 @@ public static class ServiceCollectionExtensions
     /// Registers the agent API: the <c>Keyward.Agent</c> Bearer scheme, an authorization policy requiring it and
     /// the per-token rate limiter <see cref="KeywardAgentApi.RateLimiterPolicy"/>. Like the software-client API,
     /// the host adds the middleware (<c>app.UseRateLimiter()</c> before <c>app.UseAuthentication()</c>) and maps
-    /// the endpoints with <c>MapKeywardAgentApi()</c>. Failed authentications share the per-IP throttle with the
-    /// software-client API.
+    /// the endpoints with <c>MapKeywardAgentApi()</c>. Failed authentications share the throttle with the
+    /// software-client API. Set <see cref="KeywardAgentApiOptions.AllowedNetworks"/>: without it a warning is logged
+    /// at startup, because agent tokens are then accepted from every network that reaches the host.
     /// </summary>
     public static IServiceCollection AddKeywardAgentApi(
         this IServiceCollection services, Action<KeywardAgentApiOptions>? configure = null)
@@ -131,7 +130,7 @@ public static class ServiceCollectionExtensions
 
         // Never throws: a malformed setting (a typo, a bare address without /32) must not take the
         // whole host down. It yields a policy that refuses every caller, and the startup log names the error.
-        services.AddSingleton(sp => AgentNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp)));
+        services.AddSingleton(sp => AgentNetworkPolicy.Parse(options.AllowedNetworks, KnownProxies(sp), KnownProxyNetworks(sp)));
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IHostedService, KeywardNetworkPolicyStartupLog<AgentNetworkPolicy>>());
 
         services.AddAuthentication()
@@ -149,10 +148,7 @@ public static class ServiceCollectionExtensions
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             limiter.AddPolicy(KeywardAgentApi.RateLimiterPolicy, httpContext =>
             {
-                var authHeader = httpContext.Request.Headers.Authorization.ToString();
-                var partitionKey = string.IsNullOrEmpty(authHeader)
-                    ? "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "anonymous")
-                    : "tok:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(authHeader)));
+                var partitionKey = PartitionKey(httpContext);
 
                 return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
                 {
@@ -169,6 +165,15 @@ public static class ServiceCollectionExtensions
     /// <summary>The host's trusted reverse proxies (<c>ForwardedHeadersOptions.KnownProxies</c>), which must stay outside any allowed network.</summary>
     private static IEnumerable<System.Net.IPAddress> KnownProxies(IServiceProvider services) =>
         services.GetService<IOptions<ForwardedHeadersOptions>>()?.Value.KnownProxies ?? [];
+
+    /// <summary>The host's trusted proxy networks (<c>ForwardedHeadersOptions.KnownIPNetworks</c>), which must not overlap any allowed network.</summary>
+    private static IEnumerable<System.Net.IPNetwork> KnownProxyNetworks(IServiceProvider services) =>
+        services.GetService<IOptions<ForwardedHeadersOptions>>()?.Value.KnownIPNetworks ?? [];
+
+    private static string PartitionKey(HttpContext httpContext) =>
+        httpContext.RequestServices.GetRequiredService<FailedAuthenticationThrottle>().RateLimitPartitionKey(
+            httpContext.Request.Headers.Authorization.ToString(),
+            httpContext.Connection.RemoteIpAddress?.ToString());
 }
 
 /// <summary>Tuning for the agent API.</summary>
@@ -181,7 +186,7 @@ public sealed class KeywardAgentApiOptions
     public TimeSpan Window { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
-    /// Failed authentications per client IP per <see cref="FailedAuthenticationWindow"/>; used only when the
+    /// Failed authentications per (client address, token prefix) per <see cref="FailedAuthenticationWindow"/>; used only when the
     /// software-client API is not registered (the throttle is shared). Default 20.
     /// </summary>
     public int FailedAuthenticationLimit { get; set; } = 20;

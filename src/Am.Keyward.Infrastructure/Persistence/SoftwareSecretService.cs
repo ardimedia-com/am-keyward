@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using Am.Keyward.Core.Abstractions;
 using Am.Keyward.Core.Application;
@@ -25,12 +26,13 @@ public sealed class SoftwareSecretService(
     ICurrentTenant tenant,
     ICurrentUser currentUser,
     IKeywardAccessPolicy authorization,
-    ISoftwareClientTokenService tokens,
     ISecretReadRecorder readStatistics,
     ICurrentActor actor) : ISoftwareSecretService, ISoftwareSecretReader
 {
     private const int AlgVersion = 1;
 
+    // Deliberately readable by every tenant member: environment names only (no key, value or token) — the
+    // applications page shows them read-only to members who are no software operator. No management HTTP route maps it.
     public async Task<IReadOnlyList<EnvironmentInfo>> ListEnvironmentsAsync(Guid tenantId, Guid projectId, CancellationToken ct = default)
     {
         EnsureTenantScope(tenantId);
@@ -52,7 +54,7 @@ public sealed class SoftwareSecretService(
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Environment {environmentId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment {environmentId} not found.");
 
         var name = EnvironmentName.Create(newName);
         if (await db.RuntimeEnvironments.AnyAsync(
@@ -63,7 +65,7 @@ public sealed class SoftwareSecretService(
 
         environment.Rename(name);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Update, "Environment", environmentId, actorUserId), ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await SaveOrConflictAsync(db, $"Environment '{name}' already exists in this project.", ct).ConfigureAwait(false);
     }
 
     public async Task DeleteEnvironmentAsync(Guid tenantId, Guid projectId, Guid environmentId, Guid? actorUserId, CancellationToken ct = default)
@@ -74,7 +76,7 @@ public sealed class SoftwareSecretService(
 
         var environment = await db.RuntimeEnvironments
             .FirstOrDefaultAsync(e => e.Id == environmentId && e.ProjectId == projectId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Environment {environmentId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment {environmentId} not found.");
 
         // A project must keep at least one environment — secrets and tokens have nowhere to live otherwise.
         if (!await db.RuntimeEnvironments.AnyAsync(e => e.ProjectId == projectId && e.Id != environmentId, ct).ConfigureAwait(false))
@@ -107,11 +109,12 @@ public sealed class SoftwareSecretService(
     }
 
     // Managing the software side (environments AND per-environment data/secrets) requires a system admin,
-    // a tenant admin, OR a software manager. It gates the mutation paths AND the management read paths
-    // (ListSecretsAsync / GetSecretAsync — the latter decrypts every environment), so a tenant member who is
-    // not an operator sees no application data even through a path the UI does not render. The token-
-    // authenticated client READ paths (ReadAsync/ReadAllAsync of ISoftwareSecretReader) stay tenant-scoped:
-    // the token is the authorization there.
+    // a tenant admin, OR a software manager. It gates the mutation paths AND every management read path
+    // (ReadAsync by environment name — the management API's GET —, ListSecretsAsync, GetSecretAsync), so a tenant
+    // member who is not an operator sees no application data even through a path the UI does not render. A host
+    // reading its OWN secrets in-process (KeywardMachineSecrets) runs as a declared system caller. The token-
+    // authenticated client READ paths (ReadAsync/ReadOneAsync/ReadAllAsync of ISoftwareSecretReader) stay
+    // tenant-scoped: the token is the authorization there.
     private Task EnsureSoftwareOperatorAsync(KeywardDbContext db, Guid tenantId, Guid? actorUserId, CancellationToken ct) =>
         SoftwareOperatorGuard.EnsureOperatorAsync(db, tenantId, actorUserId, currentUser, actor,
             "Managing application data requires the tenant-admin or software-manager role.", ct);
@@ -125,30 +128,67 @@ public sealed class SoftwareSecretService(
 
         var project = await db.Projects.Include(p => p.Environments)
             .FirstOrDefaultAsync(p => p.Id == projectId, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Project {projectId} not found.");
+            ?? throw new SoftwareResourceNotFoundException($"Project {projectId} not found.");
 
-        var environment = project.AddEnvironment(Guid.NewGuid(), EnvironmentName.Create(name), clock.UtcNow);
+        var environmentName = EnvironmentName.Create(name);
+        if (project.Environments.Any(e => string.Equals(e.Name.Value, environmentName.Value, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException($"Environment '{environmentName}' already exists in this project.");
+        }
+
+        var environment = project.AddEnvironment(Guid.NewGuid(), environmentName, clock.UtcNow);
         db.RuntimeEnvironments.Add(environment); // new child of a tracked aggregate -> mark Added explicitly
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "Environment", environment.Id, actorUserId), ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
 
-        // A new environment starts with a pending app token (no secret yet), like at application creation.
-        await tokens.CreatePendingAsync(tenantId, projectId, environment.Id, actorUserId, ct).ConfigureAwait(false);
+        // A new environment starts with a pending app token (no secret yet), like at application creation — staged on
+        // the same context, so environment and token commit together or not at all.
+        await Auth.SoftwareClientTokenService.StagePendingAsync(
+            db, audit, clock, tenantId, projectId, project.Name, environment.Id, environment.Name.Value, actorUserId ?? currentUser.UserId, ct)
+            .ConfigureAwait(false);
+        await SaveOrConflictAsync(db, $"Environment '{environmentName}' already exists in this project.", ct).ConfigureAwait(false);
     }
 
     public async Task<StoredSecretValue> StoreAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct = default)
     {
+        ArgumentNullException.ThrowIfNull(cmd.Value, nameof(cmd.Value));
         EnsureTenantScope(cmd.TenantId);
+
+        // Without a precondition a store is "last write wins": a concurrent writer that took the same version number,
+        // or created the same key first, is no reason to fail — the store is simply repeated on the new state. With a
+        // precondition the race is the caller's conflict (SecretValueVersionConflictException).
+        const int attempts = 3;
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return await StoreOnceAsync(cmd, ct).ConfigureAwait(false);
+            }
+            catch (DbUpdateException ex) when (cmd.Precondition is null)
+            {
+                if (attempt >= attempts)
+                {
+                    throw new SoftwareConflictException(
+                        $"The value of '{cmd.Key}' in '{cmd.Environment}' is being changed concurrently; try again.", ex);
+                }
+            }
+        }
+    }
+
+    private async Task<StoredSecretValue> StoreOnceAsync(StoreSoftwareSecretCommand cmd, CancellationToken ct)
+    {
         await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         await EnsureSoftwareOperatorAsync(db, cmd.TenantId, cmd.ActorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(cmd.ProjectId, Permission.Write, ct).ConfigureAwait(false);
 
         var environment = await ResolveEnvironmentAsync(db, cmd.ProjectId, cmd.Environment, ct)
-            ?? throw new InvalidOperationException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment '{cmd.Environment}' not found in project {cmd.ProjectId}.");
 
         var key = SecretKey.Create(cmd.Key);
+
+        // The value row only — never the version history: a new version needs the current pointer (precondition,
+        // concurrency token) and the next number, which comes from the database (MAX + 1), not from loaded versions.
         var secret = await db.SoftwareSecrets
-            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environment.Id))
             .FirstOrDefaultAsync(s => s.ProjectId == cmd.ProjectId && s.Key == key, ct)
             .ConfigureAwait(false);
 
@@ -161,12 +201,29 @@ public sealed class SoftwareSecretService(
             throw new SecretValueVersionConflictException(key.Value, environment.Name.Value);
         }
 
+        var nextVersionNumber = existingValue is null
+            ? 1
+            : (await db.SecretVersions
+                .Where(v => v.SecretValueId == existingValue.Id)
+                .MaxAsync(v => (int?)v.VersionNumber, ct)
+                .ConfigureAwait(false) ?? 0) + 1;
+
         var valueId = existingValue?.Id ?? Guid.NewGuid();
         var versionId = Guid.NewGuid();
 
         var aad = Aad.ForSoftwareSecretVersion(cmd.TenantId, cmd.ProjectId, environment.Id, secret.Id, versionId, AlgVersion);
-        var encrypted = await backend.ProtectAsync(Encoding.UTF8.GetBytes(cmd.Value), aad, ct).ConfigureAwait(false);
-        var secretValue = secret.SetValue(valueId, environment.Id, versionId, encrypted, clock.UtcNow);
+        var plaintext = Encoding.UTF8.GetBytes(cmd.Value);
+        EncryptedValue encrypted;
+        try
+        {
+            encrypted = await backend.ProtectAsync(plaintext, aad, ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
+
+        var secretValue = secret.SetValue(valueId, environment.Id, versionId, encrypted, clock.UtcNow, nextVersionNumber);
 
         // Keys are app-assigned Guids, so EF's graph state heuristic (IsKeySet) would mis-mark new
         // children as Modified -> a 0-row UPDATE. Mark the genuinely-new entities Added explicitly.
@@ -229,9 +286,13 @@ public sealed class SoftwareSecretService(
     public async Task<string?> ReadAsync(ReadSoftwareSecretQuery query, CancellationToken ct = default)
     {
         EnsureTenantScope(query.TenantId);
+        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+
+        // A management read hands out a plaintext value: software operators only (or a declared system caller —
+        // a host reading its own machine secrets), exactly like every write path. A plain tenant member is refused.
+        await EnsureSoftwareOperatorAsync(db, query.TenantId, query.ActorUserId, ct).ConfigureAwait(false);
         await EnsureAuthorizedAsync(query.ProjectId, Permission.Read, ct).ConfigureAwait(false);
 
-        await using var db = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
         var environment = await ResolveEnvironmentAsync(db, query.ProjectId, query.Environment, ct).ConfigureAwait(false);
         if (environment is null)
         {
@@ -240,7 +301,8 @@ public sealed class SoftwareSecretService(
 
         var key = SecretKey.Create(query.Key);
         var secret = await db.SoftwareSecrets
-            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .AsNoTracking()
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environment.Id))
             .FirstOrDefaultAsync(s => s.ProjectId == query.ProjectId && s.Key == key, ct)
             .ConfigureAwait(false);
 
@@ -250,7 +312,8 @@ public sealed class SoftwareSecretService(
             return null;
         }
 
-        var plaintext = await DecryptCurrentAsync(query.TenantId, query.ProjectId, environment.Id, secret.Id, value, ct)
+        var versions = await LoadCurrentVersionsAsync(db, [value], ct).ConfigureAwait(false);
+        var plaintext = await DecryptCurrentAsync(query.TenantId, query.ProjectId, environment.Id, secret.Id, value, versions, ct)
             .ConfigureAwait(false);
 
         readStatistics.Record(query.TenantId, secret.Id, environment.Id, SecretReadSource.InProcess);
@@ -278,7 +341,7 @@ public sealed class SoftwareSecretService(
         var secretKey = SecretKey.Create(key);
         var secret = await db.SoftwareSecrets
             .AsNoTracking()
-            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId)).ThenInclude(v => v.Versions)
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId))
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
             .ConfigureAwait(false);
 
@@ -293,7 +356,8 @@ public sealed class SoftwareSecretService(
             return new SecretReadOutcome(SecretReadStatus.NoValue, null);
         }
 
-        var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
+        var versions = await LoadCurrentVersionsAsync(db, [value], ct).ConfigureAwait(false);
+        var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, versions, ct)
             .ConfigureAwait(false);
 
         // A single-key client read of an APPLICATION is evidenced by the read statistics (per secret, environment
@@ -323,10 +387,12 @@ public sealed class SoftwareSecretService(
         var secrets = await db.SoftwareSecrets
             .AsNoTracking()
             .Where(s => s.ProjectId == projectId)
-            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId)).ThenInclude(v => v.Versions)
+            .Include(s => s.Values.Where(v => v.EnvironmentId == environmentId))
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        // The current versions of every value in one query — never the version history.
+        var versions = await LoadCurrentVersionsAsync(db, secrets.SelectMany(s => s.Values), ct).ConfigureAwait(false);
         var result = new List<KeyValuePair<string, string>>();
         foreach (var secret in secrets)
         {
@@ -336,7 +402,7 @@ public sealed class SoftwareSecretService(
                 continue;
             }
 
-            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, ct)
+            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environmentId, secret.Id, value, versions, ct)
                 .ConfigureAwait(false);
             result.Add(new KeyValuePair<string, string>(secret.Key.Value, plaintext));
             readStatistics.Record(tenantId, secret.Id, environmentId, SecretReadSource.Client);
@@ -350,13 +416,41 @@ public sealed class SoftwareSecretService(
         return result;
     }
 
-    private async Task<string> DecryptCurrentAsync(
-        Guid tenantId, Guid projectId, Guid environmentId, Guid secretId, SecretValue value, CancellationToken ct)
+    // The current version of each value by its pointer, in ONE query — reads never load a value's version history.
+    private static async Task<Dictionary<Guid, EncryptedValue>> LoadCurrentVersionsAsync(
+        KeywardDbContext db, IEnumerable<SecretValue> values, CancellationToken ct)
     {
-        var version = value.Versions.Single(v => v.Id == value.CurrentVersionId);
-        var aad = Aad.ForSoftwareSecretVersion(tenantId, projectId, environmentId, secretId, version.Id, AlgVersion);
-        var plaintext = await backend.UnprotectAsync(version.Encrypted, aad, ct).ConfigureAwait(false);
-        return Encoding.UTF8.GetString(plaintext);
+        var ids = values.Where(v => v.CurrentVersionId is not null).Select(v => v.CurrentVersionId!.Value).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        return await db.SecretVersions.AsNoTracking()
+            .Where(x => ids.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, x => x.Encrypted, ct)
+            .ConfigureAwait(false);
+    }
+
+    private async Task<string> DecryptCurrentAsync(
+        Guid tenantId, Guid projectId, Guid environmentId, Guid secretId, SecretValue value,
+        IReadOnlyDictionary<Guid, EncryptedValue> currentVersions, CancellationToken ct)
+    {
+        var versionId = value.CurrentVersionId
+            ?? throw new InvalidOperationException("Secret value has no current version.");
+        var encrypted = currentVersions.GetValueOrDefault(versionId)
+            ?? throw new InvalidOperationException($"The current version {versionId} of a secret value is missing.");
+        var aad = Aad.ForSoftwareSecretVersion(tenantId, projectId, environmentId, secretId, versionId, AlgVersion);
+        var plaintext = await backend.UnprotectAsync(encrypted, aad, ct).ConfigureAwait(false);
+        try
+        {
+            return Encoding.UTF8.GetString(plaintext);
+        }
+        finally
+        {
+            // The string cannot be wiped, but the buffer it came from need not linger until the GC reuses it.
+            CryptographicOperations.ZeroMemory(plaintext);
+        }
     }
 
     // --- management surface (list / view / delete by key) ---
@@ -378,6 +472,7 @@ public sealed class SoftwareSecretService(
         var envOrder = envs.ToDictionary(e => e.Id, e => (e.SortOrder, EnvironmentOrder.CanonicalRank(e.Name.Value)));
 
         var secrets = await db.SoftwareSecrets
+            .AsNoTracking()
             .Where(s => s.ProjectId == projectId)
             .Include(s => s.Values)
             .ToListAsync(ct)
@@ -409,7 +504,8 @@ public sealed class SoftwareSecretService(
             .ConfigureAwait(false);
 
         var secret = await db.SoftwareSecrets
-            .Include(s => s.Values).ThenInclude(v => v.Versions)
+            .AsNoTracking()
+            .Include(s => s.Values)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
             .ConfigureAwait(false);
         if (secret is null)
@@ -424,6 +520,7 @@ public sealed class SoftwareSecretService(
             .ToListAsync(ct)
             .ConfigureAwait(false);
 
+        var versions = await LoadCurrentVersionsAsync(db, secret.Values, ct).ConfigureAwait(false);
         var values = new List<SecretEnvironmentValue>();
         foreach (var environment in environments
             .OrderBy(e => e.SortOrder)
@@ -442,7 +539,7 @@ public sealed class SoftwareSecretService(
                 continue;
             }
 
-            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environment.Id, secret.Id, value, ct).ConfigureAwait(false);
+            var plaintext = await DecryptCurrentAsync(tenantId, projectId, environment.Id, secret.Id, value, versions, ct).ConfigureAwait(false);
             values.Add(new SecretEnvironmentValue(
                 environment.Name.Value, true, plaintext, read?.LastReadAt, read?.LastReadSource.ToString(), read?.ReadCount ?? 0,
                 value.ExpiresAt, value.Note));
@@ -468,7 +565,7 @@ public sealed class SoftwareSecretService(
         var secret = await db.SoftwareSecrets
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == currentKey, ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Secret '{currentKey}' not found in project {projectId}.");
+            ?? throw new SoftwareResourceNotFoundException($"Secret '{currentKey}' not found in project {projectId}.");
 
         if (currentKey == targetKey)
         {
@@ -493,7 +590,7 @@ public sealed class SoftwareSecretService(
         await audit.AppendAsync(
             db, new AuditRequest(tenantId, AuditAction.Update, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct)
             .ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await SaveOrConflictAsync(db, $"The key '{targetKey}' already exists in this project.", ct).ConfigureAwait(false);
     }
 
     public async Task DeleteSecretAsync(Guid tenantId, Guid projectId, string key, Guid? actorUserId, CancellationToken ct = default)
@@ -542,7 +639,20 @@ public sealed class SoftwareSecretService(
         var secret = NewSecret(projectId, tenantId, secretKey, actorUserId);
         db.SoftwareSecrets.Add(secret);
         await audit.AppendAsync(db, new AuditRequest(tenantId, AuditAction.Create, "SoftwareSecret", secret.Id, actorUserId ?? currentUser.UserId), ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            if (await KeyExistsAsync(projectId, secretKey, ct).ConfigureAwait(false))
+            {
+                return false; // a concurrent create of the same key won the unique index: "already exists", as above
+            }
+
+            throw;
+        }
+
         return true;
     }
 
@@ -563,13 +673,13 @@ public sealed class SoftwareSecretService(
 
         var secretKey = SecretKey.Create(key);
         var runtimeEnvironment = await ResolveEnvironmentAsync(db, projectId, environment, ct).ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Environment '{environment}' does not exist in this application.");
+            ?? throw new SoftwareResourceNotFoundException($"Environment '{environment}' does not exist in this application.");
 
         var secret = await db.SoftwareSecrets
             .Include(s => s.Values)
             .FirstOrDefaultAsync(s => s.ProjectId == projectId && s.Key == secretKey, ct)
             .ConfigureAwait(false)
-            ?? throw new InvalidOperationException($"Secret '{key}' does not exist in this application.");
+            ?? throw new SoftwareResourceNotFoundException($"Secret '{key}' does not exist in this application.");
 
         // Deliberately creates the value row when the environment has none yet: the rotation note is most
         // valuable BEFORE a value exists ("this is where you get it"). The row stays value-less, which every
@@ -589,7 +699,28 @@ public sealed class SoftwareSecretService(
             db,
             new AuditRequest(tenantId, AuditAction.Update, "SecretValueRotation", value.Id, actorUserId ?? currentUser.UserId),
             ct).ConfigureAwait(false);
-        await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await SaveOrConflictAsync(db, $"The rotation date of '{key}' in '{environment}' was changed concurrently; try again.", ct).ConfigureAwait(false);
+    }
+
+    // A unique index or concurrency token lost to a concurrent writer (UI double submit, two operators) is a conflict
+    // (409), not a server error.
+    private static async Task SaveOrConflictAsync(KeywardDbContext db, string conflictMessage, CancellationToken ct)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new SoftwareConflictException(conflictMessage, ex);
+        }
+    }
+
+    // On a fresh context: the failed one still holds the rejected changes.
+    private async Task<bool> KeyExistsAsync(Guid projectId, SecretKey key, CancellationToken ct)
+    {
+        await using var fresh = await dbFactory.CreateDbContextAsync(ct).ConfigureAwait(false);
+        return await fresh.SoftwareSecrets.AsNoTracking().AnyAsync(s => s.ProjectId == projectId && s.Key == key, ct).ConfigureAwait(false);
     }
 
     /// <summary>

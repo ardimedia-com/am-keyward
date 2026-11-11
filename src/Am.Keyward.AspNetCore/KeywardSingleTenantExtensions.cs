@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Am.Keyward.Core.Abstractions;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -45,6 +46,11 @@ public static class KeywardSingleTenantExtensions
     /// circuit is open, and would otherwise hit an unset ambient tenant ("Tenant scope mismatch").
     /// <para>Add it after <c>UseAuthentication()</c> / <c>UseAuthorization()</c>, next to
     /// <c>UseKeywardCurrentUser()</c>.</para>
+    /// <para>
+    /// A request whose agent or app token already established a DIFFERENT tenant (a token issued in another tenant of
+    /// the same database) is answered 403 here instead of being re-scoped to the host's tenant — which made every
+    /// service refuse it with «Tenant scope mismatch», a 500.
+    /// </para>
     /// </summary>
     public static IApplicationBuilder UseKeywardSingleTenant(this IApplicationBuilder app, Guid tenantId)
     {
@@ -52,10 +58,26 @@ public static class KeywardSingleTenantExtensions
 
         return app.Use(async (context, next) =>
         {
+            var established = context.RequestServices.GetService<ICurrentTenant>()?.TenantId
+                ?? TokenTenant(context.User);
+            if (established is { } other && other != tenantId)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+
             context.RequestServices.GetService<ITenantScopeSetter>()?.SetTenant(tenantId);
             await next();
         });
     }
+
+    // The tenant claim the Keyward token handlers stamp (agent and app tokens share the claim type).
+    private static Guid? TokenTenant(ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirst(TokenTenantClaim)?.Value, out var tenant) ? tenant : null;
+
+    // Mirrors AgentAuthenticationHandler.TenantIdClaim / SoftwareClientAuthenticationHandler.TenantIdClaim (Am.Keyward.Api,
+    // which this package does not reference).
+    private const string TokenTenantClaim = "keyward:tenant_id";
 
     private sealed class FixedTenantWorkspaceContext(Guid tenantId) : IKeywardWorkspaceContext
     {

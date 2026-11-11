@@ -38,6 +38,22 @@ public sealed record StoredSecretValue(Guid SecretId, Guid EnvironmentId, Guid V
 public sealed class SecretValueVersionConflictException(string key, string environment)
     : InvalidOperationException($"The value of '{key}' in '{environment}' was changed in the meantime; read it again and reapply the change.");
 
+/// <summary>
+/// An application, environment, key or app token addressed by a software-management call does not exist (in the
+/// caller's tenant). Derives from <see cref="InvalidOperationException"/>, which these paths threw before, so existing
+/// handlers keep working; an HTTP edge maps it to 404.
+/// </summary>
+public sealed class SoftwareResourceNotFoundException(string message) : InvalidOperationException(message);
+
+/// <summary>
+/// A software-management change lost a race with a concurrent writer (a unique name or key, or a value taken in the
+/// meantime) — what used to surface as a raw database update error. The up-front checks («already exists», «last
+/// environment») keep throwing <see cref="InvalidOperationException"/>, from which this derives; an HTTP edge maps
+/// both to 409.
+/// </summary>
+public sealed class SoftwareConflictException(string message, Exception? innerException = null)
+    : InvalidOperationException(message, innerException);
+
 /// <summary>Reads the current value of a software secret for one project environment.</summary>
 public sealed record ReadSoftwareSecretQuery(
     Guid TenantId,
@@ -70,7 +86,14 @@ public sealed record SecretEnvironmentValue(
     string? LastReadVia = null,
     long ReadCount = 0,
     DateTimeOffset? ExpiresAt = null,
-    string Note = "");
+    string Note = "")
+{
+    /// <summary>
+    /// The rotation date as the calendar date the user entered — present this, not <see cref="ExpiresAt"/> converted
+    /// into a time zone (the stored instant is the end of that day in UTC). See <see cref="SecretValue.CalendarDate"/>.
+    /// </summary>
+    public DateOnly? ExpiresOn => ExpiresAt is { } expiresAt ? SecretValue.CalendarDate(expiresAt) : null;
+}
 
 /// <summary>A secret with its current value in every project environment (for the management view).</summary>
 public sealed record SoftwareSecretDetail(string Key, IReadOnlyList<SecretEnvironmentValue> Environments);

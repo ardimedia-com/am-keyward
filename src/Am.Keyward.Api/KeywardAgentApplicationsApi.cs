@@ -251,6 +251,16 @@ internal static class KeywardAgentApplicationsApi
         {
             return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: ex.Message);
         }
+        catch (SoftwareResourceNotFoundException)
+        {
+            // Removed between the reach check and the change (a person deleted it meanwhile).
+            return KeywardAgentApi.NotFound();
+        }
+        catch (InvalidOperationException ex)
+        {
+            // A race the shared services lost (a concurrent writer, a name taken meanwhile): a conflict, not a 500.
+            return Results.Problem(statusCode: StatusCodes.Status409Conflict, title: ex.Message);
+        }
         catch (ArgumentException ex)
         {
             return BadRequest(ex.Message);

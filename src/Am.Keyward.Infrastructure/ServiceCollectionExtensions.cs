@@ -60,8 +60,14 @@ public static class ServiceCollectionExtensions
 
         // Agent tokens (AI assistants acting for their issuing user).
         services.AddScoped<IAgentTokenService, Auth.AgentTokenService>();
-        services.AddScoped<IAgentAuthenticator, Auth.AgentAuthenticator>();
-        services.AddScoped<IAgentVaultAccess, Auth.AgentVaultAccess>();
+        services.AddScoped<Auth.AgentAuthenticator>();
+        services.AddScoped<IAgentAuthenticator>(sp => sp.GetRequiredService<Auth.AgentAuthenticator>());
+        services.AddScoped<IAgentAuthenticationValidator>(sp => sp.GetRequiredService<Auth.AgentAuthenticator>());
+        services.AddLogging(); // idempotent; the auditor logs refused tokens even in a host without logging set up
+        services.AddSingleton<Auth.TokenAuthenticationAuditor>();
+        services.AddScoped<Auth.AgentVaultAccess>();
+        services.AddScoped<IAgentVaultAccess>(sp => sp.GetRequiredService<Auth.AgentVaultAccess>());
+        services.AddScoped<IAgentVaultFilter>(sp => sp.GetRequiredService<Auth.AgentVaultAccess>());
         services.AddScoped<IAgentApplicationService, Auth.AgentApplicationService>();
         services.AddScoped<IRevealRequestService, Auth.RevealRequestService>();
         services.AddScoped<IGroupService, GroupService>();
@@ -140,7 +146,9 @@ public static class ServiceCollectionExtensions
 
         // Software-client tokens: management + authentication, and a best-effort expiry watcher.
         services.AddScoped<ISoftwareClientTokenService, SoftwareClientTokenService>();
-        services.AddScoped<ISoftwareClientAuthenticator, SoftwareClientAuthenticator>();
+        services.AddScoped<SoftwareClientAuthenticator>();
+        services.AddScoped<ISoftwareClientAuthenticator>(sp => sp.GetRequiredService<SoftwareClientAuthenticator>());
+        services.AddScoped<ISoftwareClientAuthenticationValidator>(sp => sp.GetRequiredService<SoftwareClientAuthenticator>());
         services.AddHostedService<SoftwareClientTokenExpiryService>();
 
         // Token access statistics: in-memory recording on the hot path, batched persistence + rule-based

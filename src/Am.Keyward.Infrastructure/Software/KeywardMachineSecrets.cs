@@ -66,6 +66,10 @@ public sealed class KeywardMachineSecrets(
             Guid tenantId = workspace.TenantId;
             tenantScope.SetTenant(tenantId);   // software secrets are tenant-scoped (row-level security)
 
+            // A management read of a value is a software-operator operation; the host reading its OWN secret in an
+            // unattended scope (startup, a background worker) declares itself a system caller, like the overlay.
+            this.DeclareSystemCallerWhenUnattended();
+
             if (await this.ResolveProjectIdAsync(tenantId, cancellationToken).ConfigureAwait(false) is not { } projectId)
             {
                 return null;
@@ -161,7 +165,7 @@ public sealed class KeywardMachineSecrets(
     #region Private Methods
 
     /// <summary>
-    /// Listing an application's keys is a software-operator operation, and it refuses a scope with neither a user
+    /// Listing an application's keys and reading a value by environment name are software-operator operations, and they refuse a scope with neither a user
     /// nor an explicit system declaration. The overlay normally runs in a startup scope or a background worker with
     /// no user — the host reading its OWN configuration — so such a scope is declared a system caller here. A scope
     /// that serves a user (or a token) keeps its principal and is checked as that principal.

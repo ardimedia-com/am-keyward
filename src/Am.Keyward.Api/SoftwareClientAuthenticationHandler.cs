@@ -11,7 +11,7 @@ namespace Am.Keyward.Api;
 
 /// <summary>
 /// Authentication for software clients: a Bearer token in the <c>Authorization</c> header is validated by
-/// <see cref="ISoftwareClientAuthenticator"/>. On success the request's tenant scope is set
+/// <see cref="ISoftwareClientAuthenticationValidator"/>. On success the request's tenant scope is set
 /// server-authoritatively from the token (so the query filter and row-level security apply) and the
 /// token's (tenant, project, environment) scope is exposed as claims for the endpoints to read. The client
 /// never supplies tenant/project/environment — those come only from the token record.
@@ -36,7 +36,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
 
     private const string BearerPrefix = "Bearer ";
 
-    private readonly ISoftwareClientAuthenticator authenticator;
+    private readonly ISoftwareClientAuthenticationValidator authenticator;
     private readonly ITenantScopeSetter tenantScope;
     private readonly IActorScopeSetter actorScope;
     private readonly ITokenAccessRecorder accessRecorder;
@@ -50,7 +50,7 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
-        ISoftwareClientAuthenticator authenticator,
+        ISoftwareClientAuthenticationValidator authenticator,
         ITenantScopeSetter tenantScope,
         IActorScopeSetter actorScope,
         ITokenAccessRecorder accessRecorder,
@@ -88,21 +88,42 @@ public sealed class SoftwareClientAuthenticationHandler : AuthenticationHandler<
             return AuthenticateResult.NoResult();
         }
 
-        // An IP that has used up its failed attempts is refused before the token lookup, so guessing tokens
-        // costs the attacker time and the database nothing. A valid token from that IP waits out the window too.
+        // A (address, token prefix) pair that has used up its failed attempts is refused before the lookup, so guessing
+        // costs the attacker time and the database nothing. Only that prefix is refused: junk from the same address
+        // never blocks a genuine token, and a token that validated recently bypasses the throttle altogether.
         var clientIp = Context.Connection.RemoteIpAddress?.ToString();
-        if (failedAttempts.IsBlocked(clientIp))
+        var token = raw[BearerPrefix.Length..].Trim();
+        var attempt = failedAttempts.TryBegin(clientIp, token);
+        if (attempt is null)
         {
+            Logger.LogDebug("KEYWARD: app token refused without lookup — too many failed attempts for its prefix from {ClientIp}.", clientIp);
             return AuthenticateResult.Fail("Too many failed authentication attempts; try again later.");
         }
 
-        var token = raw[BearerPrefix.Length..].Trim();
-        var principal = await authenticator.AuthenticateAsync(token, Context.RequestAborted);
-        if (principal is null)
+        TokenAuthenticationResult<SoftwareClientPrincipal> result;
+        try
         {
-            failedAttempts.RecordFailure(clientIp);
+            result = await authenticator.ValidateAsync(token, Context.Connection.RemoteIpAddress, Context.RequestAborted);
+        }
+        catch
+        {
+            attempt.Abandoned();
+            throw;
+        }
+
+        if (result.Principal is not { } principal)
+        {
+            if (attempt.Failed())
+            {
+                Logger.LogWarning(
+                    "KEYWARD: {ClientIp} used up its failed app-token authentications for one token prefix; that prefix is refused from there for the rest of the window.",
+                    clientIp);
+            }
+
             return AuthenticateResult.Fail("Invalid or expired software-client token.");
         }
+
+        attempt.Succeeded();
 
         // Server-authoritative tenant scope, from the token record (never from the request).
         tenantScope.SetTenant(principal.TenantId);
