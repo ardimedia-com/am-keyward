@@ -1,0 +1,7 @@
+/* Admin user list. Layout only; colours come from the shell's tokens. */
+
+/* «Personal vaults kept until …» under the «Deleted» badge. */
+.retention-note {
+    margin-top: .2rem;
+    font-size: .78rem;
+}

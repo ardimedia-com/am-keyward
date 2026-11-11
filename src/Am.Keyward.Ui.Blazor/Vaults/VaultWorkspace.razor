@@ -1314,7 +1314,31 @@ else
         var content = fType == ItemType.Login ? LoginContent.ToJson(fUrl, fUser, fPwd, fNote, fTotp) : fContent;
         if (itemMode == "edit" && detail is not null)
         {
-            await VaultService.UpdateItemAsync(new UpdateVaultItemCommand(actorUserId!.Value, detail.Id, fName, folderId, content));
+            // Lost-update guard: the save applies only to the revision the form was loaded from.
+            var expected = detail.VersionId == Guid.Empty ? (Guid?)null : detail.VersionId;
+            try
+            {
+                await VaultService.UpdateItemAsync(new UpdateVaultItemCommand(actorUserId!.Value, detail.Id, fName, folderId, content, expected));
+            }
+            catch (VaultItemVersionConflictException)
+            {
+                // Someone (a person or an agent) changed the entry meanwhile: show the current revision and ask the
+                // user to apply the change again — never overwrite what they have not seen.
+                var current = await VaultService.GetItemAsync(actorUserId!.Value, detail.Id);
+                if (current is not null)
+                {
+                    ShowItemDetail(current);
+                }
+                else
+                {
+                    await ReloadContentsAsync();
+                    BackToList();
+                }
+
+                status = (Loc["Common.Error.Conflict"], true);
+                return;
+            }
+
             Ok(Loc["Vault.Msg.ItemSaved"]);
         }
         else

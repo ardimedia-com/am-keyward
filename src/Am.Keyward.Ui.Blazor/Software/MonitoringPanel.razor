@@ -49,13 +49,17 @@ else
             <div class="field">
                 <label for="kw-monitor-silence">@Loc["Monitor.MaxSilence.Label"]</label>
                 <div class="inline-controls">
-                    <input id="kw-monitor-silence" type="number" min="1" class="silence-value" @bind="silenceValue" />
+                    <input id="kw-monitor-silence" type="number" min="@(silenceUnit == "m" ? MinimumSilenceMinutes : 1)" class="silence-value"
+                           @bind="silenceValue" aria-describedby="kw-monitor-silence-min" />
                     <select class="auto-width" @bind="silenceUnit" aria-label="@Loc["Monitor.MaxSilence.Label"]">
                         <option value="m">@Loc["Monitor.Unit.Minutes"]</option>
                         <option value="h">@Loc["Monitor.Unit.Hours"]</option>
                         <option value="d">@Loc["Monitor.Unit.Days"]</option>
                     </select>
                 </div>
+                @* The installation cannot resolve a shorter silence (check + statistics flush interval); say so here
+                   instead of letting the save fail. *@
+                <p id="kw-monitor-silence-min" class="muted field-hint">@Loc["Monitor.MaxSilence.Minimum", MinimumSilenceMinutes]</p>
             </div>
 
             <div class="field" role="group" aria-labelledby="kw-monitor-days">
@@ -186,6 +190,9 @@ else
     private IReadOnlyList<TokenMonitorInfo>? monitors;
 
     private Guid? selectedTokenId;
+
+    // The shortest allowed silence this installation can resolve (minutes); the service refuses anything shorter.
+    private int MinimumSilenceMinutes => MonitorService.MinimumMaxSilenceMinutes;
     private int silenceValue = 26;
     private string silenceUnit = "h";
     private readonly bool[] dayFlags = [true, true, true, true, true, true, true];
@@ -365,6 +372,11 @@ else
         }
 
         var minutes = silenceUnit switch { "d" => silenceValue * 1440, "h" => silenceValue * 60, _ => silenceValue };
+        if (minutes < MinimumSilenceMinutes)
+        {
+            status = (Loc["Monitor.Error.SilenceTooShort", MinimumSilenceMinutes].Value, true);
+            return;
+        }
 
         busy = true;
         try

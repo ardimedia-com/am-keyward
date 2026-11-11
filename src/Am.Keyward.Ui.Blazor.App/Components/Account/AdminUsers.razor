@@ -9,6 +9,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 @inject IStringLocalizer<ShellResource> ShellLoc
 @inject Microsoft.Extensions.Options.IOptions<RegistrationOptions> Registration
+@inject Microsoft.Extensions.Options.IOptions<KeywardRetentionOptions> Retention
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -63,6 +64,12 @@
                             {
                                 <span class="badge badge-warning">@ShellLoc["Admin.Users.State.Invited"]</span>
                             }
+                            else if (row.State == UserState.Deleted)
+                            {
+                                @* Deleted with retention: the personal vaults stay until then, «Enable» restores the account. *@
+                                <span class="badge badge-danger">@Loc["Admin.Users.State.Deleted"]</span>
+                                <div class="muted retention-note">@Loc["Admin.Users.RetainedUntil"] <LocalTime Utc="row.RetainedUntil" Format="yyyy-MM-dd" /></div>
+                            }
                             else if (row.State == UserState.Disabled)
                             {
                                 <span class="badge badge-danger">@Loc["Admin.Users.State.Disabled"]</span>
@@ -108,7 +115,7 @@
                                         <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.Unlock"]</button>
                                     </form>
                                 }
-                                @if (row.State == UserState.Disabled)
+                                @if (row.State is UserState.Disabled or UserState.Deleted)
                                 {
                                     <form method="post" action="account/admin/users/enable">
                                         <AntiforgeryToken />
@@ -144,19 +151,19 @@
                                         <button type="submit" class="btn-ghost btn-sm">@Loc["Admin.Users.MakeMember"]</button>
                                     </form>
                                 }
-                                @if (CanDelete(row))
+                                @if (CanDelete(row) && row.State != UserState.Deleted)
                                 {
                                     <a class="btn btn-danger btn-sm" href="account/admin/users?confirmDelete=@row.Id">@Loc["Common.DeleteEllipsis"]</a>
                                 }
                             </div>
                         </td>
                     </tr>
-                    @if (ConfirmDelete == row.Id && CanDelete(row))
+                    @if (ConfirmDelete == row.Id && CanDelete(row) && row.State != UserState.Deleted)
                     {
                         <tr>
                             <td colspan="4">
                                 <div class="notice notice-error" style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
-                                    <span>@Loc["Admin.Users.ConfirmDelete", row.Name]</span>
+                                    <span>@Loc["Admin.Users.ConfirmDelete", row.Name, RetentionDays]</span>
                                     <form method="post" action="account/admin/users/delete" style="margin:0;">
                                         <AntiforgeryToken />
                                         <input type="hidden" name="userId" value="@row.Id" />
@@ -197,10 +204,12 @@
         && !(row.TenantRole == TenantRole.TenantAdmin && tenantAdminCount <= 1)
         && !(row.IsSystemAdmin && systemAdminCount <= 1);
 
-    private enum UserState { Active, LockedOut, Disabled, Invited }
+    private enum UserState { Active, LockedOut, Disabled, Deleted, Invited }
 
     private sealed record Row(string Id, string Name, string? Email, bool IsSystemAdmin, bool IsSelf, UserState State,
-        bool HasDomainUser, TenantRole? TenantRole);
+        bool HasDomainUser, TenantRole? TenantRole, DateTimeOffset? RetainedUntil = null);
+
+    private int RetentionDays => Math.Max(Retention.Value.PersonalVaultRetentionDays, 1);
 
     protected override async Task OnInitializedAsync()
     {
@@ -212,7 +221,7 @@
         // TenantMemberships), keyed by the Identity user id for local accounts.
         var domainUsers = await Db.Users
             .Where(u => u.Issuer == null && u.ExternalId != null)
-            .Select(u => new { u.Id, u.ExternalId, u.IsSystemAdmin })
+            .Select(u => new { u.Id, u.ExternalId, u.IsSystemAdmin, u.DeletedAt })
             .ToListAsync();
         var byExternalId = domainUsers.ToDictionary(u => u.ExternalId!, u => u);
 
@@ -235,6 +244,11 @@
             };
 
             var domain = byExternalId.GetValueOrDefault(user.Id);
+            if (domain?.DeletedAt is not null)
+            {
+                state = UserState.Deleted;
+            }
+
             rows.Add(new Row(
                 user.Id,
                 user.UserName ?? user.Email ?? user.Id,
@@ -243,7 +257,8 @@
                 user.Id == currentId,
                 state,
                 domain is not null,
-                domain is not null && roles.TryGetValue(domain.Id, out var role) ? role : null));
+                domain is not null && roles.TryGetValue(domain.Id, out var role) ? role : null,
+                domain?.DeletedAt?.AddDays(RetentionDays)));
         }
     }
 }

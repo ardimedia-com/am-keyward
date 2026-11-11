@@ -60,7 +60,8 @@
     cursor: pointer;
 }
 
-.field > p.window-hint {
+.field > p.window-hint,
+.field > p.field-hint {
     margin: .25rem 0 0;
     font-size: .78rem;
 }

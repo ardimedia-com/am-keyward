@@ -77,7 +77,6 @@
   <data name="Login.RegisterLink" xml:space="preserve"><value>Registrieren</value></data>
   <data name="Login.FirstAdminHint" xml:space="preserve"><value>(das erste Konto wird System-Administrator)</value></data>
   <data name="Login.Invalid" xml:space="preserve"><value>E-Mail oder Passwort ungültig.</value></data>
-  <data name="Login.LockedOut" xml:space="preserve"><value>Dieses Konto ist nach zu vielen Fehlversuchen vorübergehend gesperrt. Versuche es später erneut.</value></data>
   <data name="Login.Unconfirmed.Resent" xml:space="preserve"><value>Dein Konto ist noch nicht bestätigt. Wir haben dir einen neuen Bestätigungslink gesendet — bitte prüfe deine E-Mail.</value></data>
   <data name="Register.Title" xml:space="preserve"><value>Registrieren</value></data>
   <data name="Register.FirstAdmin" xml:space="preserve"><value>Das erste erstellte Konto wird System-Administrator.</value></data>
@@ -379,7 +378,7 @@
     <value>Zu Mitglied machen</value>
   </data>
   <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
-    <value>Das Konto «{0}» endgültig löschen? Persönliche Tresore und Zugriffe werden entfernt. Dies kann nicht rückgängig gemacht werden.</value>
+    <value>Das Konto «{0}» löschen? Es wird sofort abgemeldet und deaktiviert. Seine persönlichen Tresore bleiben {1} Tage erhalten — bis dahin stellt «Aktivieren» das Konto wieder her — und werden danach endgültig entfernt.</value>
   </data>
   <data name="Common.Copy" xml:space="preserve">
     <value>Kopieren</value>
@@ -1272,4 +1271,15 @@
   <data name="Common.Error.Unexpected" xml:space="preserve"><value>Etwas ist schiefgelaufen. Versuch es nochmals – wenn es wieder passiert, melde es deiner Administration.</value></data>
   <data name="Common.Error.Conflict" xml:space="preserve"><value>Das wurde in der Zwischenzeit geändert. Lade es neu und wiederhole deine Änderung.</value></data>
   <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Zu deiner Sicherheit verschwindet er nach 5 Minuten von dieser Seite.</value></data>
+  <data name="Email.Reveal.RenamedByAgent" xml:space="preserve"><value>Achtung: Dieser Agent hat den Eintrag selbst umbenannt — vorher hiess er «{0}». Prüfe, ob die Anfrage wirklich den Eintrag betrifft, den du meinst.</value></data>
+  <data name="Email.SecretExpiry.LineExpired" xml:space="preserve"><value>«{0}» ({1} / {2}) - abgelaufen am {3}.</value></data>
+  <data name="AgentTokens.Reveal.RenamedByAgent" xml:space="preserve"><value>Von diesem Agenten umbenannt — vorher hiess der Eintrag «{0}»</value></data>
+  <data name="AgentTokens.Reveal.ChangedSince" xml:space="preserve"><value>Seit der Anfrage geändert (jetzt: «{0}»)</value></data>
+  <data name="AgentTokens.LastUsed" xml:space="preserve"><value>Zuletzt benutzt</value></data>
+  <data name="AgentTokens.LastUsed.From" xml:space="preserve"><value>von {0}</value></data>
+  <data name="AgentTokens.LastUsed.Never" xml:space="preserve"><value>Noch nicht benutzt</value></data>
+  <data name="Monitor.MaxSilence.Minimum" xml:space="preserve"><value>Mindestens {0} Minuten: Diese Installation prüft Heartbeats und hält Zugriffe nur in Abständen fest, eine kürzere Stille liesse sich nicht von einem Heartbeat unterscheiden, der noch unterwegs ist.</value></data>
+  <data name="Monitor.Error.SilenceTooShort" xml:space="preserve"><value>Die maximale Stille muss mindestens {0} Minuten betragen.</value></data>
+  <data name="Admin.Users.State.Deleted" xml:space="preserve"><value>Gelöscht</value></data>
+  <data name="Admin.Users.RetainedUntil" xml:space="preserve"><value>Persönliche Tresore bleiben bis</value></data>
 </root>

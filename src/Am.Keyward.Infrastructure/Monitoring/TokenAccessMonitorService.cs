@@ -69,12 +69,14 @@ public sealed class TokenAccessMonitorService(
             .ToList();
     }
 
+    public int MinimumMaxSilenceMinutes => HeartbeatTiming.MinimumMaxSilenceMinutes(options.Value, tokenAccessOptions.Value);
+
     public async Task UpsertAsync(UpsertTokenMonitorCommand cmd, CancellationToken ct = default)
     {
         EnsureTenantScope(cmd.TenantId);
 
         // Below this the evaluator cannot tell a late heartbeat from a flush that has not run yet (see HeartbeatTiming).
-        var minimum = HeartbeatTiming.MinimumMaxSilenceMinutes(options.Value, tokenAccessOptions.Value);
+        var minimum = MinimumMaxSilenceMinutes;
         if (cmd.MaxSilenceMinutes < minimum)
         {
             throw new ArgumentOutOfRangeException(

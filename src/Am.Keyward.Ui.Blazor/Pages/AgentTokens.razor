@@ -88,6 +88,22 @@
                                     <span>@Loc["AgentTokens.Reveal.By", request.TokenName]</span>
                                     <span>@Loc["AgentTokens.Reveal.Until"] <LocalTime Utc="request.ExpiresAt" /></span>
                                 </div>
+                                @* The name above is the snapshot taken when the agent asked. An agent that renamed the entry
+                                   itself, or a change after the request, must be visible before anyone approves. *@
+                                @if (!string.IsNullOrEmpty(request.ItemNameBeforeAgentRename))
+                                {
+                                    <p class="reveal-warning">
+                                        <KeywardIcon Name="alert" Size="15" />
+                                        <span>@Loc["AgentTokens.Reveal.RenamedByAgent", request.ItemNameBeforeAgentRename]</span>
+                                    </p>
+                                }
+                                @if (request.ItemChangedSinceRequest)
+                                {
+                                    <p class="reveal-warning">
+                                        <KeywardIcon Name="alert" Size="15" />
+                                        <span>@Loc["AgentTokens.Reveal.ChangedSince", request.CurrentItemName ?? request.ItemName]</span>
+                                    </p>
+                                }
                                 <blockquote class="reveal-reason">@request.Reason</blockquote>
                                 <div class="token-actions">
                                     <button class="btn-sm" @onclick="() => ApproveAsync(request.Id)" disabled="@busy">@Loc["AgentTokens.Reveal.Approve"]</button>
@@ -257,6 +273,21 @@
                                         <dd>@(string.IsNullOrEmpty(token.AllowedNetworks) ? Loc["AgentTokens.AnyNetwork"] : token.AllowedNetworks)</dd>
                                         <dt>@Loc["AgentTokens.Expires"]</dt>
                                         <dd><LocalTime Utc="token.ExpiresAt" /></dd>
+                                        <dt>@Loc["AgentTokens.LastUsed"]</dt>
+                                        <dd>
+                                            @if (token.LastUsedAt is { } lastUsed)
+                                            {
+                                                <LocalTime Utc="lastUsed" />
+                                                @if (!string.IsNullOrEmpty(token.LastUsedIp))
+                                                {
+                                                    <span class="last-used-ip">@Loc["AgentTokens.LastUsed.From", token.LastUsedIp]</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                @Loc["AgentTokens.LastUsed.Never"]
+                                            }
+                                        </dd>
                                     </dl>
                                     @if (!token.IsActive && extendTokenId != token.Id)
                                     {
@@ -335,6 +366,21 @@
                                     <dd>@string.Join(", ", AllScopes.Where(sc => entry.Token.Scopes.HasFlag(sc)).Select(ScopeLabel))</dd>
                                     <dt>@Loc["AgentTokens.Expires"]</dt>
                                     <dd><LocalTime Utc="entry.Token.ExpiresAt" /></dd>
+                                    <dt>@Loc["AgentTokens.LastUsed"]</dt>
+                                    <dd>
+                                        @if (entry.Token.LastUsedAt is { } lastUsed)
+                                        {
+                                            <LocalTime Utc="lastUsed" />
+                                            @if (!string.IsNullOrEmpty(entry.Token.LastUsedIp))
+                                            {
+                                                <span class="last-used-ip">@Loc["AgentTokens.LastUsed.From", entry.Token.LastUsedIp]</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            @Loc["AgentTokens.LastUsed.Never"]
+                                        }
+                                    </dd>
                                 </dl>
                                 @if (entry.Token.RevokedAt is null)
                                 {
@@ -640,7 +686,8 @@
                 {
                     var fresh = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
                     backoff = TimeSpan.Zero;
-                    if (!fresh.Select(r => r.Id).SequenceEqual(pending?.Select(r => r.Id) ?? []))
+                    // Whole records, not only ids: a pending request whose entry changes meanwhile must show it.
+                    if (!fresh.SequenceEqual(pending ?? []))
                     {
                         pending = fresh;
                         await InvokeAsync(StateHasChanged);

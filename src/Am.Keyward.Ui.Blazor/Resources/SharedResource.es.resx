@@ -77,7 +77,6 @@
   <data name="Login.RegisterLink" xml:space="preserve"><value>Registrarse</value></data>
   <data name="Login.FirstAdminHint" xml:space="preserve"><value>(la primera cuenta se convierte en administrador del sistema)</value></data>
   <data name="Login.Invalid" xml:space="preserve"><value>Correo o contraseña no válidos.</value></data>
-  <data name="Login.LockedOut" xml:space="preserve"><value>Esta cuenta está bloqueada temporalmente tras demasiados intentos fallidos. Inténtalo más tarde.</value></data>
   <data name="Login.Unconfirmed.Resent" xml:space="preserve"><value>Tu cuenta aún no está confirmada. Te hemos enviado un nuevo enlace de confirmación — revisa tu correo.</value></data>
   <data name="Register.Title" xml:space="preserve"><value>Registrarse</value></data>
   <data name="Register.FirstAdmin" xml:space="preserve"><value>La primera cuenta creada se convierte en el administrador del sistema.</value></data>
@@ -377,7 +376,7 @@
     <value>Hacer miembro</value>
   </data>
   <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
-    <value>¿Eliminar permanentemente la cuenta «{0}»? Se quitarán sus cajas fuertes personales y sus accesos. No se puede deshacer.</value>
+    <value>¿Eliminar la cuenta «{0}»? Se cierra su sesión y se desactiva de inmediato. Sus cajas fuertes personales se conservan {1} días — hasta entonces, «Activar» restaura la cuenta — y después se eliminan definitivamente.</value>
   </data>
   <data name="Common.Copy" xml:space="preserve">
     <value>Copiar</value>
@@ -1148,4 +1147,15 @@
   <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Por tu seguridad, desaparece de esta página a los 5 minutos.</value></data>
   <data name="Secret.Note.Add" xml:space="preserve"><value>Añadir una nota …</value></data>
   <data name="Secret.Note.Edit" xml:space="preserve"><value>Editar nota</value></data>
+  <data name="Email.Reveal.RenamedByAgent" xml:space="preserve"><value>Atención: este agente cambió el nombre de la entrada él mismo — antes se llamaba «{0}». Comprueba que la solicitud se refiere de verdad a la entrada que crees.</value></data>
+  <data name="Email.SecretExpiry.LineExpired" xml:space="preserve"><value>«{0}» ({1} / {2}): caducó el {3}.</value></data>
+  <data name="AgentTokens.Reveal.RenamedByAgent" xml:space="preserve"><value>Renombrado por este agente — antes se llamaba «{0}»</value></data>
+  <data name="AgentTokens.Reveal.ChangedSince" xml:space="preserve"><value>Cambiado desde la solicitud (ahora: «{0}»)</value></data>
+  <data name="AgentTokens.LastUsed" xml:space="preserve"><value>Último uso</value></data>
+  <data name="AgentTokens.LastUsed.From" xml:space="preserve"><value>desde {0}</value></data>
+  <data name="AgentTokens.LastUsed.Never" xml:space="preserve"><value>Aún sin usar</value></data>
+  <data name="Monitor.MaxSilence.Minimum" xml:space="preserve"><value>Al menos {0} minutos: esta instalación comprueba los latidos y registra los accesos solo a intervalos, así que un silencio más corto no se distinguiría de un latido que aún está en camino.</value></data>
+  <data name="Monitor.Error.SilenceTooShort" xml:space="preserve"><value>El silencio máximo debe ser de al menos {0} minutos.</value></data>
+  <data name="Admin.Users.State.Deleted" xml:space="preserve"><value>Eliminado</value></data>
+  <data name="Admin.Users.RetainedUntil" xml:space="preserve"><value>Cajas fuertes personales conservadas hasta el</value></data>
 </root>

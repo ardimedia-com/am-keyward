@@ -18,7 +18,7 @@
     <Authorized>
         <div class="card" style="max-width:32rem;">
             <div class="field">
-                <label>@Loc["Profile.Email"]</label>
+                <span class="field-caption">@Loc["Profile.Email"]</span>
                 <div>@context.User.Identity?.Name</div>
             </div>
             @if (context.User.HasClaim(KeywardClaims.SystemAdmin, "true"))

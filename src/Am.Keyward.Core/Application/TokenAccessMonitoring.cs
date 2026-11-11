@@ -37,6 +37,13 @@ public sealed record UpsertTokenMonitorCommand(
 /// </summary>
 public interface ITokenAccessMonitorService
 {
+    /// <summary>
+    /// The smallest allowed silence this installation can resolve, in minutes (check interval + statistics flush
+    /// interval + one minute of margin; 3 with the defaults). <see cref="UpsertAsync"/> refuses anything shorter, so an
+    /// editor should enforce and explain it up front.
+    /// </summary>
+    int MinimumMaxSilenceMinutes { get; }
+
     /// <summary>The monitors of the application's tokens (tokens without a monitor have no entry).</summary>
     Task<IReadOnlyList<TokenMonitorInfo>> ListAsync(Guid tenantId, Guid projectId, CancellationToken ct = default);
 

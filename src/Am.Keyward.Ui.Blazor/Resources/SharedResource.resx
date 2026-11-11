@@ -77,7 +77,6 @@
   <data name="Login.RegisterLink" xml:space="preserve"><value>Register</value></data>
   <data name="Login.FirstAdminHint" xml:space="preserve"><value>(the first account becomes the system admin)</value></data>
   <data name="Login.Invalid" xml:space="preserve"><value>Invalid email or password.</value></data>
-  <data name="Login.LockedOut" xml:space="preserve"><value>This account is temporarily locked after too many failed attempts. Try again later.</value></data>
   <data name="Login.Unconfirmed.Resent" xml:space="preserve"><value>Your account is not confirmed yet. We have sent a new confirmation link — please check your e-mail.</value></data>
   <data name="Register.Title" xml:space="preserve"><value>Register</value></data>
   <data name="Register.FirstAdmin" xml:space="preserve"><value>The first account created becomes the system administrator.</value></data>
@@ -379,7 +378,7 @@
     <value>Make member</value>
   </data>
   <data name="Admin.Users.ConfirmDelete" xml:space="preserve">
-    <value>Delete the account “{0}” permanently? Their personal vaults and access are removed. This cannot be undone.</value>
+    <value>Delete the account “{0}”? It is signed out and disabled at once. Its personal vaults are kept for {1} days — «Enable» restores the account until then — and are removed for good afterwards.</value>
   </data>
   <data name="Common.Copy" xml:space="preserve">
     <value>Copy</value>
@@ -1272,4 +1271,15 @@
   <data name="Common.Error.Unexpected" xml:space="preserve"><value>Something went wrong. Please try again — if it keeps happening, tell your administrator.</value></data>
   <data name="Common.Error.Conflict" xml:space="preserve"><value>This was changed in the meantime. Reload it and apply your change again.</value></data>
   <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>For your safety it disappears from this page after 5 minutes.</value></data>
+  <data name="Email.Reveal.RenamedByAgent" xml:space="preserve"><value>Careful: this agent renamed the entry itself — before that it was called «{0}». Check that the request really concerns the entry you think it does.</value></data>
+  <data name="Email.SecretExpiry.LineExpired" xml:space="preserve"><value>&quot;{0}&quot; ({1} / {2}) - expired on {3}.</value></data>
+  <data name="AgentTokens.Reveal.RenamedByAgent" xml:space="preserve"><value>Renamed by this agent — before it was called «{0}»</value></data>
+  <data name="AgentTokens.Reveal.ChangedSince" xml:space="preserve"><value>Changed since the request (now: «{0}»)</value></data>
+  <data name="AgentTokens.LastUsed" xml:space="preserve"><value>Last used</value></data>
+  <data name="AgentTokens.LastUsed.From" xml:space="preserve"><value>from {0}</value></data>
+  <data name="AgentTokens.LastUsed.Never" xml:space="preserve"><value>Not used yet</value></data>
+  <data name="Monitor.MaxSilence.Minimum" xml:space="preserve"><value>At least {0} minutes: this installation checks heartbeats and records accesses only at intervals, so a shorter silence cannot be told apart from a heartbeat that is still on its way.</value></data>
+  <data name="Monitor.Error.SilenceTooShort" xml:space="preserve"><value>The maximum silence must be at least {0} minutes.</value></data>
+  <data name="Admin.Users.State.Deleted" xml:space="preserve"><value>Deleted</value></data>
+  <data name="Admin.Users.RetainedUntil" xml:space="preserve"><value>Personal vaults kept until</value></data>
 </root>

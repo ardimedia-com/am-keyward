@@ -307,3 +307,25 @@
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 }
+
+/* A rename by the requesting agent, or a change after the request: must stand out before anyone approves. */
+.reveal-warning {
+    display: flex;
+    align-items: flex-start;
+    gap: .4rem;
+    margin: 0;
+    color: var(--kw-warning);
+    font-size: .85rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.reveal-warning span {
+    color: var(--kw-text);
+}
+
+/* «from 10.0.0.1» after the last-use time. */
+.last-used-ip {
+    margin-left: .4rem;
+    overflow-wrap: anywhere;
+}

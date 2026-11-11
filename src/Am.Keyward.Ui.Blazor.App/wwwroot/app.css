@@ -162,7 +162,8 @@ button.btn-danger:hover { background: color-mix(in srgb, var(--danger) 10%, tran
 .btn-sm, button.btn-sm { padding: .4rem .75rem; font-size: .85rem; }
 
 /* Forms */
-label { font-size: .85rem; font-weight: 500; color: var(--text); }
+/* .field-caption: the same look for a caption over read-only text, which has no control to label. */
+label, .field-caption { font-size: .85rem; font-weight: 500; color: var(--text); }
 
 input:not([type="checkbox"], [type="radio"]), select, textarea {
     width: 100%;
