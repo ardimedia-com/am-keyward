@@ -6,6 +6,7 @@
 @inject ITokenAccessMonitorService MonitorService
 @inject IStringLocalizer<SharedResource> Loc
 @inject BrowserTimeService Time
+@inject ILogger<MonitoringPanel> Logger
 @implements IDisposable
 
 @* Heartbeat monitoring for ONE application, rendered inside the Applications page's «Monitoring» tab.
@@ -15,7 +16,14 @@
    order. Times are shown in the viewer's local time zone (stored UTC), matching the statistics tab. *@
 @if (tokens is null || monitors is null || environments is null)
 {
-    <p class="muted">@Loc["Common.Loading"]</p>
+    @if (status is { IsError: true } loadError)
+    {
+        <div class="notice notice-error" role="alert">@loadError.Text</div>
+    }
+    else
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
 }
 else if (tokens.Count == 0)
 {
@@ -28,21 +36,21 @@ else if (tokens.Count == 0)
 }
 else
 {
-    <div class="notice" style="margin-bottom:.75rem;">@Loc["Monitor.UsageNote"]</div>
+    <div class="notice usage-note">@Loc["Monitor.UsageNote"]</div>
 
     @if (SelectedToken is { } selected)
     {
-        <div class="card" style="margin-bottom:.75rem;">
-            <h3 style="margin:0 0 .25rem; display:flex; align-items:center; gap:.5rem;">
+        <div class="card editor-card">
+            <h3 class="editor-title">
                 <KeywardIcon Name="activity" Size="18" />@Loc["Monitor.Edit.Title", selected.Name]
             </h3>
-            <p class="muted" style="margin:0 0 .75rem;">@Loc["Monitor.Edit.Desc"]</p>
+            <p class="muted editor-desc">@Loc["Monitor.Edit.Desc"]</p>
 
             <div class="field">
-                <label>@Loc["Monitor.MaxSilence.Label"]</label>
-                <div style="display:flex; gap:.5rem; align-items:center;">
-                    <input type="number" min="1" style="width:6rem;" @bind="silenceValue" />
-                    <select style="width:auto;" @bind="silenceUnit">
+                <label for="kw-monitor-silence">@Loc["Monitor.MaxSilence.Label"]</label>
+                <div class="inline-controls">
+                    <input id="kw-monitor-silence" type="number" min="1" class="silence-value" @bind="silenceValue" />
+                    <select class="auto-width" @bind="silenceUnit" aria-label="@Loc["Monitor.MaxSilence.Label"]">
                         <option value="m">@Loc["Monitor.Unit.Minutes"]</option>
                         <option value="h">@Loc["Monitor.Unit.Hours"]</option>
                         <option value="d">@Loc["Monitor.Unit.Days"]</option>
@@ -50,13 +58,13 @@ else
                 </div>
             </div>
 
-            <div class="field">
-                <label>@Loc["Monitor.Window.Days"]</label>
-                <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+            <div class="field" role="group" aria-labelledby="kw-monitor-days">
+                <span id="kw-monitor-days" class="group-label">@Loc["Monitor.Window.Days"]</span>
+                <div class="day-choices">
                     @for (var i = 0; i < 7; i++)
                     {
                         var index = i;
-                        <label style="display:flex; gap:.3rem; align-items:center; font-weight:400; cursor:pointer;">
+                        <label class="day-choice">
                             <input type="checkbox" checked="@dayFlags[index]"
                                    @onchange="e => dayFlags[index] = e.Value is true" />
                             <span>@DayLabel(index)</span>
@@ -66,21 +74,21 @@ else
             </div>
 
             <div class="field">
-                <label>@Loc["Monitor.Window.Hours"]</label>
-                <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-                    <input type="time" style="width:auto;" @bind="windowStart" />
+                <label for="kw-monitor-start">@Loc["Monitor.Window.Hours"]</label>
+                <div class="inline-controls inline-wrap">
+                    <input id="kw-monitor-start" type="time" class="auto-width" @bind="windowStart" />
                     <span class="muted">–</span>
-                    <input type="time" style="width:auto;" @bind="windowEnd" />
+                    <input type="time" class="auto-width" @bind="windowEnd" aria-label="@Loc["Monitor.Window.Hours"]" />
                 </div>
-                <p class="muted" style="margin:.25rem 0 0; font-size:.78rem;">@Loc["Monitor.Window.Hint"]</p>
+                <p class="muted window-hint">@Loc["Monitor.Window.Hint"]</p>
             </div>
 
-            <label style="display:flex; gap:.5rem; align-items:flex-start; font-weight:400; cursor:pointer; margin:.25rem 0 .75rem;">
-                <input type="checkbox" style="margin-top:.2rem;" @bind="notifyRecovery" />
+            <label class="recovery-choice">
+                <input type="checkbox" class="recovery-check" @bind="notifyRecovery" />
                 <span>@Loc["Monitor.Recovery.Label"]</span>
             </label>
 
-            <div class="row" style="gap:.5rem; flex-wrap:wrap;">
+            <div class="row">
                 <button class="btn-sm" @onclick="SaveAsync" disabled="@busy">@Loc["Common.Save"]</button>
                 @if (MonitorOf(selected.Id) is { } existing)
                 {
@@ -98,10 +106,10 @@ else
 
             @if (MonitorOf(selected.Id) is { } snoozable)
             {
-                <div class="field" style="margin-top:.75rem;">
-                    <label>@Loc["Monitor.Snooze.Label"]</label>
-                    <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
-                        <input type="datetime-local" style="width:auto;" @bind="snoozeUntilLocal" />
+                <div class="field snooze-field">
+                    <label for="kw-monitor-snooze">@Loc["Monitor.Snooze.Label"]</label>
+                    <div class="inline-controls inline-wrap">
+                        <input id="kw-monitor-snooze" type="datetime-local" class="auto-width" @bind="snoozeUntilLocal" />
                         <button class="btn-ghost btn-sm" @onclick="SnoozeAsync" disabled="@busy">@Loc["Monitor.Snooze.Set"]</button>
                         @if (snoozable.SnoozeUntil is not null)
                         {
@@ -115,8 +123,8 @@ else
 
     <div class="card list-card">
         <div class="list-head">
-            <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="activity" Size="18" />@Loc["Monitor.Title"]</h3>
-            <p class="muted" style="margin:.25rem 0 0;">@Loc["Monitor.Desc"]</p>
+            <h3 class="monitor-title"><KeywardIcon Name="activity" Size="18" />@Loc["Monitor.Title"]</h3>
+            <p class="muted monitor-desc">@Loc["Monitor.Desc"]</p>
         </div>
         <div class="list-rows">
             @foreach (var token in tokens.OrderBy(t => EnvironmentOrderOf(t.EnvironmentId)).ThenBy(t => t.Name))
@@ -128,7 +136,7 @@ else
                     <span class="badge">@EnvironmentNameOf(token.EnvironmentId)</span>
                     @StateBadge(monitor)
                     <span class="list-row-meta">
-                        <span class="muted" style="font-size:.78rem;">
+                        <span class="muted row-facts">
                             @(token.LastAccessAt is { } lastAccess
                                 ? Loc["Token.LastAccess.Value", Time.Format(lastAccess, TimeFormat)]
                                 : Loc["Token.LastAccess.Never"])
@@ -157,7 +165,7 @@ else
 
     @if (status is not null)
     {
-        <div class="notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")" style="margin-top:.75rem;">
+        <div class="notice status-notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">
             @status.Value.Text
         </div>
     }
@@ -234,15 +242,30 @@ else
             loadedProjectId = ProjectId;
             selectedTokenId = null;
             status = null;
-            await LoadAsync();
+            try
+            {
+                await LoadAsync(ProjectId);
+            }
+            catch (Exception ex)
+            {
+                status = (UserFacingError.Describe(ex, Loc, Logger), true);
+            }
         }
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(Guid projectId)
     {
-        environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
-        tokens = await TokenService.ListAsync(TenantId, ProjectId);
-        monitors = await MonitorService.ListAsync(TenantId, ProjectId);
+        var loadedEnvironments = await SecretService.ListEnvironmentsAsync(TenantId, projectId);
+        var loadedTokens = await TokenService.ListAsync(TenantId, projectId);
+        var loadedMonitors = await MonitorService.ListAsync(TenantId, projectId);
+        if (projectId != loadedProjectId)
+        {
+            return; // another application was picked meanwhile; its own load wins
+        }
+
+        environments = loadedEnvironments;
+        tokens = loadedTokens;
+        monitors = loadedMonitors;
     }
 
     private TokenMonitorInfo? MonitorOf(Guid tokenId) => monitors?.FirstOrDefault(m => m.TokenId == tokenId);
@@ -353,7 +376,7 @@ else
         }
         catch (Exception ex)
         {
-            status = (ex.Message, true);
+            status = (UserFacingError.Describe(ex, Loc, Logger), true);
         }
         finally
         {
@@ -377,7 +400,7 @@ else
         }
         catch (Exception ex)
         {
-            status = (ex.Message, true);
+            status = (UserFacingError.Describe(ex, Loc, Logger), true);
         }
         finally
         {
@@ -403,7 +426,7 @@ else
         }
         catch (Exception ex)
         {
-            status = (ex.Message, true);
+            status = (UserFacingError.Describe(ex, Loc, Logger), true);
         }
         finally
         {
@@ -427,7 +450,7 @@ else
         }
         catch (Exception ex)
         {
-            status = (ex.Message, true);
+            status = (UserFacingError.Describe(ex, Loc, Logger), true);
         }
         finally
         {

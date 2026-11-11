@@ -11,7 +11,7 @@
             <code class="totp-code">@Grouped(code.Code)</code>
             <span class="totp-left @(SecondsLeft(code) <= 5 ? "ending" : null)">@Loc["Vault.Totp.SecondsLeft", SecondsLeft(code)]</span>
         </span>
-        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyAsync(code.Code)"><KeywardIcon Name="@(copied ? "check" : "copy")" Size="15" /></button>
+        <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick="() => CopyAsync(code.Code)"><KeywardIcon Name="@(copied ? "check" : "copy")" Size="15" /></button>
     }
     else
     {

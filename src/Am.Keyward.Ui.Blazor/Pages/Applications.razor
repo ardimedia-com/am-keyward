@@ -9,6 +9,7 @@
 @inject IStringLocalizer<SharedResource> Loc
 @using Am.Keyward.Ui.Blazor.Software
 @inject KeywardUiOptions KeywardOptions
+@inject ILogger<Applications> Logger
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -45,7 +46,7 @@
             <input value="@search" @oninput="OnSearchInputAsync" placeholder="@(canManage ? Loc["App.Search.Placeholder"] : Loc["App.Search.PlaceholderReadOnly"])" aria-label="@(canManage ? Loc["App.Search.Placeholder"] : Loc["App.Search.PlaceholderReadOnly"])" />
             @if (search.Length > 0)
             {
-                <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
+                <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" aria-label="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
             }
         </div>
 
@@ -55,7 +56,7 @@
 
                 @foreach (var a in apps)
                 {
-                    <button class="tree-node @(a.Id == selectedAppId ? "active" : "")" title="@a.Name" @onclick="() => SelectAppAsync(a.Id)">
+                    <button class="tree-node @(a.Id == selectedAppId ? "active" : "")" title="@a.Name" @onclick="() => OnAppClickAsync(a.Id)">
                         <KeywardIcon Name="package" /><span class="tree-label">@a.Name</span>
                         <span class="tree-count">@a.SecretCount</span>
                     </button>
@@ -341,10 +342,12 @@
 
     private bool SearchActive => search.Trim().Length >= 2;
 
+    // Debounced; not behind the busy flag (typing is never blocked), but a result that arrives after a newer keystroke
+    // is dropped and a failure shows as an error.
     private async Task OnSearchInputAsync(ChangeEventArgs e)
     {
         search = e.Value?.ToString() ?? "";
-        searchCts?.Cancel();
+        CancelSearch();
         if (!SearchActive)
         {
             searchHits = null;
@@ -352,25 +355,45 @@
         }
 
         var cts = searchCts = new CancellationTokenSource();
+        var query = search;
         try
         {
             await Task.Delay(300, cts.Token);
-            searchHits = await ProjectService.SearchAsync(tenantId, actorUserId, search, cts.Token);
+            var hits = await ProjectService.SearchAsync(tenantId, actorUserId, query, cts.Token);
+            if (ReferenceEquals(cts, searchCts) && !cts.IsCancellationRequested)
+            {
+                searchHits = hits;
+            }
         }
         catch (OperationCanceledException)
         {
             // superseded by a newer keystroke
         }
+        catch (Exception ex)
+        {
+            if (ReferenceEquals(cts, searchCts))
+            {
+                searchHits = [];
+                status = (UserFacingError.Describe(ex, Loc, Logger), true);
+            }
+        }
+    }
+
+    private void CancelSearch()
+    {
+        var cts = searchCts;
+        searchCts = null;
+        cts?.Cancel();
     }
 
     private void ClearSearch()
     {
-        searchCts?.Cancel();
+        CancelSearch();
         search = "";
         searchHits = null;
     }
 
-    private async Task OpenSearchHitAsync(ApplicationSearchHit hit)
+    private Task OpenSearchHitAsync(ApplicationSearchHit hit) => RunAsync(async () =>
     {
         ClearSearch();
         await SelectAppAsync(hit.ApplicationId);
@@ -389,7 +412,7 @@
             ApplicationSearchField.Token => "tokens",
             _ => "application",
         };
-    }
+    }, true);
 
     private static string HitIcon(ApplicationSearchField field) => field switch
     {
@@ -472,13 +495,21 @@
         status = null;
     }
 
+    // The import itself ran in the panel; this only reloads the list (guarded like every other load).
     private async Task OnImportedAsync(string message)
     {
         importing = false;
-        status = (message, false);
-        await ReloadAppsAsync();
+        await RunAsync(ReloadAppsAsync, true);
+        if (status is not { IsError: true })
+        {
+            status = (message, false);
+        }
     }
 
+    private Task OnAppClickAsync(Guid appId) => RunAsync(() => SelectAppAsync(appId), true);
+
+    /// <summary>Selects an application and loads its environments. Unguarded: callers run it inside
+    /// <see cref="RunAsync"/> (a click, a search hit, a create) or during initialization.</summary>
     private async Task SelectAppAsync(Guid appId)
     {
         importing = false;
@@ -560,7 +591,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

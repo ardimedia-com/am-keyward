@@ -12,6 +12,7 @@
 @inject IJSRuntime JS
 @inject IKeywardNotifier Notifier
 @inject NavigationManager Nav
+@inject ILogger<VaultWorkspace> Logger
 @implements IAsyncDisposable
 
 @if (noAccount)
@@ -30,7 +31,7 @@ else
         <input value="@globalSearch" @oninput="OnSearchInputAsync" placeholder="@(Loc["Vault.Search.Placeholder"])" aria-label="@(Loc["Vault.Search.Placeholder"])" />
         @if (globalSearch.Length > 0)
         {
-            <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
+            <button class="icon-btn ws-search-clear" title="@Loc["Common.Cancel"]" aria-label="@Loc["Common.Cancel"]" @onclick="ClearSearch"><KeywardIcon Name="x" Size="15" /></button>
         }
     </div>
 
@@ -49,7 +50,7 @@ else
 
             <div class="tree-create">
                 <input @bind="newVaultName" @bind:event="oninput" placeholder="@(newVaultForTeam ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" aria-label="@(newVaultForTeam ? Loc["Vault.NewNameTeam"] : Loc["Vault.NewNamePersonal"])" />
-                <button class="btn-sm" @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))" title="@Loc["Vault.Create"]"><KeywardIcon Name="plus" /></button>
+                <button class="btn-sm" @onclick="CreateVaultAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newVaultName))" title="@Loc["Vault.Create"]" aria-label="@Loc["Vault.Create"]"><KeywardIcon Name="plus" /></button>
             </div>
             @VaultKindSwitch
         </KeywardTreePane>
@@ -378,12 +379,11 @@ else
                 {
                     <KeywardArea Title="@Loc["Vault.Export.Title"]" Icon="download" RememberKey="keyward.vaults.export">
                         <p class="muted">@Loc["Vault.Export.Desc"]</p>
+                        @* The CSV goes straight to the browser as a download (a Blob whose object URL is revoked at once);
+                           it is never kept in the page, where a data: link used to hold every password until another
+                           vault was selected. *@
                         <div class="row">
-                            <button class="btn-ghost btn-sm" @onclick="PrepareExportAsync" disabled="@busy">@Loc["Vault.Export.Create"]</button>
-                            @if (exportDataUrl is not null)
-                            {
-                                <a class="btn btn-sm" download="@exportFileName" href="@exportDataUrl"><KeywardIcon Name="download" />@Loc["Vault.Export.Download"]</a>
-                            }
+                            <button class="btn-ghost btn-sm" @onclick="ExportAsync" disabled="@busy"><KeywardIcon Name="download" />@Loc["Vault.Export.Download"]</button>
                         </div>
                     </KeywardArea>
                 }
@@ -429,7 +429,7 @@ else
         {
             <button class="tree-node @(v.Id == selectedVaultId && treeSel == "vault" ? "active" : "") @(dragOverKey == v.Id.ToString() ? "drag-over" : "")"
                     title="@v.Name"
-                    @onclick="() => SelectVaultAsync(v.Id)"
+                    @onclick="() => OnVaultClickAsync(v.Id)"
                     @ondragover:preventDefault="true" @ondragenter="() => dragOverKey = v.Id.ToString()" @ondragleave="() => dragOverKey = null"
                     @ondrop="() => DropOnVaultAsync(v.Id)">
                 <KeywardIcon Name="@(team ? "users" : "lock")" /><span class="tree-label">@v.Name</span>
@@ -545,8 +545,15 @@ else
     private string fFolderId = "";
     private string fUrl = "", fUser = "", fPwd = "", fNote = "", fContent = "", fTotp = "";
 
-    // The QR reader (VaultWorkspace.razor.js) and its document listeners, for the component's lifetime.
-    private IJSObjectReference? qrModule;
+    // The form masks its secrets (password, 2FA key, value) until the eye beside one is pressed.
+    private bool showPwd, showTotp, showContent;
+
+    // A revealed secret in the detail view is masked again after SecretExposure.RevealVisible.
+    private readonly DelayedAction revealTimer = new();
+
+    // The page's JS module (VaultWorkspace.razor.js: QR reader, CSV download) and the QR reader's document listeners,
+    // for the component's lifetime.
+    private IJSObjectReference? module;
     private IJSObjectReference? qrListener;
     private DotNetObjectReference<VaultWorkspace>? selfRef;
 
@@ -565,11 +572,9 @@ else
     private string sharePrincipalId = "";
     private Permission sharePermission = Permission.Read;
 
-    // export (Edge/Chrome-compatible CSV as a data-URL download; team vaults: tenant admins only)
+    // export (Edge/Chrome-compatible CSV, downloaded straight away; team vaults: tenant admins only)
     private bool canExportTeam;
     private bool canExport => !SelectedIsTeam || canExportTeam;
-    private string? exportDataUrl;
-    private string exportFileName = "";
 
     // The inline status bar (.notice) is reserved for ERRORS (persistent, near the action). Success feedback
     // goes to the toast notifier instead (transient, out of the layout) — see Ok(). IsError is therefore
@@ -636,7 +641,7 @@ else
                     <div class="bulk-bar">
                         <span>@Loc["Vault.Select.Count", selectedItemIds.Count]</span>
                         <span class="muted small-label">@Loc["Vault.Move.Label"]</span>
-                        <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="bulk-select">
+                        <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="bulk-select" disabled="@busy">
                             @MoveVaultOptions
                         </select>
                         <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" class="bulk-select">
@@ -693,7 +698,7 @@ else
                 <h3 class="item-detail-title"><KeywardIcon Name="@TypeIcon(detail!.Type)" Size="18" />@detail.Name</h3>
                 <div class="row">
                     <button class="btn-sm" @onclick="StartAddItem" disabled="@busy"><KeywardIcon Name="plus" />@Loc["Vault.Items.Add"]</button>
-                    <button class="icon-btn" title="@Loc["Vault.CopyLink"]" @onclick="CopyItemLinkAsync"><KeywardIcon Name="@(copiedKey == "link" ? "check" : "link")" Size="15" /></button>
+                    <button class="icon-btn" title="@Loc["Vault.CopyLink"]" aria-label="@Loc["Vault.CopyLink"]" @onclick="CopyItemLinkAsync"><KeywardIcon Name="@(copiedKey == "link" ? "check" : "link")" Size="15" /></button>
                     <button class="btn-ghost btn-sm" @onclick="() => EditItemAsync(detail.Id)" disabled="@busy">@Loc["Common.Edit"]</button>
                     <button class="btn-danger btn-sm" @onclick="() => confirmDeleteItem = true" disabled="@busy">@Loc["Common.DeleteEllipsis"]</button>
                 </div>
@@ -715,50 +720,54 @@ else
                 @if (detail.Type == ItemType.Login)
                 {
                     var f = LoginContent.Parse(detail.Content);
+                    @* Read-only fields: the caption is a plain element tied to its value box by aria-labelledby (a <label>
+                       needs a form control to label). *@
                     <div class="detail-grid">
                         <div class="detail-field">
-                            <label>@Loc["Vault.Field.Username"]</label>
-                            <div class="detail-value">
+                            <span class="detail-label" id="kw-detail-user">@Loc["Vault.Field.Username"]</span>
+                            <div class="detail-value" role="group" aria-labelledby="kw-detail-user">
                                 <span class="grow">@(string.IsNullOrWhiteSpace(f.Username) ? "—" : f.Username)</span>
                                 @if (!string.IsNullOrWhiteSpace(f.Username))
                                 {
-                                    <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("user", f.Username)'><KeywardIcon Name="@(copiedKey == "user" ? "check" : "copy")" Size="15" /></button>
+                                    <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick='() => CopyAsync("user", f.Username, secret: false)'><KeywardIcon Name="@(copiedKey == "user" ? "check" : "copy")" Size="15" /></button>
                                 }
                             </div>
                         </div>
                         <div class="detail-field">
-                            <label>@Loc["Vault.Field.Url"]</label>
-                            <div class="detail-value">
+                            <span class="detail-label" id="kw-detail-url">@Loc["Vault.Field.Url"]</span>
+                            <div class="detail-value" role="group" aria-labelledby="kw-detail-url">
                                 <span class="grow">@(string.IsNullOrWhiteSpace(f.Url) ? "—" : f.Url)</span>
-                                @if (!string.IsNullOrWhiteSpace(f.Url))
+                                @* Only an absolute http(s) address becomes a link: a stored «javascript:» or «data:» URL must
+                                   never be one click away. Anything else stays plain text. *@
+                                @if (SafeLink(f.Url) is { } link)
                                 {
-                                    <a class="icon-btn" href="@f.Url" target="_blank" rel="noreferrer" title="@Loc["Common.Open"]"><KeywardIcon Name="external-link" Size="15" /></a>
+                                    <a class="icon-btn" href="@link" target="_blank" rel="noopener noreferrer" title="@Loc["Common.Open"]" aria-label="@Loc["Common.Open"]"><KeywardIcon Name="external-link" Size="15" /></a>
                                 }
                             </div>
                         </div>
                         <div class="detail-field">
-                            <label>@Loc["Vault.Field.Password"]</label>
-                            <div class="detail-value">
+                            <span class="detail-label" id="kw-detail-pwd">@Loc["Vault.Field.Password"]</span>
+                            <div class="detail-value" role="group" aria-labelledby="kw-detail-pwd">
                                 <span class="grow"><code>@(reveal ? (f.Password is { Length: > 0 } ? f.Password : "—") : "••••••••")</code></span>
-                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
+                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" aria-label="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="ToggleReveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
                                 @if (f.Password is { Length: > 0 })
                                 {
-                                    <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("pwd", f.Password)'><KeywardIcon Name="@(copiedKey == "pwd" ? "check" : "copy")" Size="15" /></button>
+                                    <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick='() => CopyAsync("pwd", f.Password, secret: true)'><KeywardIcon Name="@(copiedKey == "pwd" ? "check" : "copy")" Size="15" /></button>
                                 }
                             </div>
                         </div>
                         @if (f.Totp.Length > 0)
                         {
                             @* 2FA (decision T15 A): the current one-time code, refreshed every second; the key itself stays hidden. *@
-                            <div class="detail-field">
-                                <label>@Loc["Vault.Field.TotpCode"]</label>
+                            <div class="detail-field" role="group" aria-labelledby="kw-detail-totp">
+                                <span class="detail-label" id="kw-detail-totp">@Loc["Vault.Field.TotpCode"]</span>
                                 <TotpCodeView Key="@f.Totp" />
                             </div>
                         }
                         @* The note runs below the password across the full width and wraps, so all of it can be read. *@
                         <div class="detail-field wide">
-                            <label>@Loc["Vault.Field.Note"]</label>
-                            <div class="detail-value multiline"><span class="grow">@(string.IsNullOrWhiteSpace(f.Note) ? "—" : f.Note)</span></div>
+                            <span class="detail-label" id="kw-detail-note">@Loc["Vault.Field.Note"]</span>
+                            <div class="detail-value multiline" role="group" aria-labelledby="kw-detail-note"><span class="grow">@(string.IsNullOrWhiteSpace(f.Note) ? "—" : f.Note)</span></div>
                         </div>
                     </div>
                 }
@@ -766,21 +775,21 @@ else
                 {
                     <div class="detail-grid">
                         <div class="detail-field wide">
-                            <label>@Loc["Vault.Field.Value"]</label>
+                            <span class="detail-label" id="kw-detail-value">@Loc["Vault.Field.Value"]</span>
                             @* Revealed as a read-only text box: a value with several lines (recovery codes, a key file) stays
                                readable in full, line breaks included — the single line used to cut it off. *@
-                            <div class="detail-value @(reveal ? "multiline" : string.Empty)">
+                            <div class="detail-value @(reveal ? "multiline" : string.Empty)" role="group" aria-labelledby="kw-detail-value">
                                 @if (reveal)
                                 {
-                                    <textarea class="grow detail-text" readonly spellcheck="false" aria-label="@Loc["Vault.Field.Value"]"
+                                    <textarea class="grow detail-text" readonly spellcheck="false" aria-labelledby="kw-detail-value"
                                               rows="@(ValueRows(detail.Content))" value="@detail.Content"></textarea>
                                 }
                                 else
                                 {
                                     <span class="grow"><code>••••••••</code></span>
                                 }
-                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="() => reveal = !reveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
-                                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick='() => CopyAsync("value", detail.Content)'><KeywardIcon Name="@(copiedKey == "value" ? "check" : "copy")" Size="15" /></button>
+                                <button class="icon-btn" title="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" aria-label="@(reveal ? Loc["Common.Hide"] : Loc["Common.Reveal"])" @onclick="ToggleReveal"><KeywardIcon Name="@(reveal ? "eye-off" : "eye")" Size="15" /></button>
+                                <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick='() => CopyAsync("value", detail.Content, secret: true)'><KeywardIcon Name="@(copiedKey == "value" ? "check" : "copy")" Size="15" /></button>
                             </div>
                         </div>
                     </div>
@@ -791,7 +800,7 @@ else
             <KeywardArea Title="@Loc["Vault.Move.Action"]" Icon="folder" Class="item-move" RememberKey="keyward.vaults.item-move">
                 <div class="move-panel">
                     <span class="muted small-label">@Loc["Vault.Move.Label"]</span>
-                    <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="move-select">
+                    <select @bind="moveVaultId" @bind:after="LoadMoveFoldersAsync" aria-label="@(Loc["Vault.Move.Label"])" class="move-select" disabled="@busy">
                         @MoveVaultOptions
                     </select>
                     <select @bind="moveFolderId" aria-label="@(Loc["Vault.Field.Folder"])" class="move-select">
@@ -816,7 +825,7 @@ else
                 @ItemFormFields(false)
                 <div class="row wide">
                     <button @onclick="SaveItemAsync" disabled="@(busy || string.IsNullOrWhiteSpace(fName) || (fType == ItemType.Login && !TotpInputValid))">@Loc["Common.Save"]</button>
-                    <button class="btn-ghost" @onclick='() => itemMode = "view"'>@Loc["Common.Cancel"]</button>
+                    <button class="btn-ghost" @onclick="CancelEdit">@Loc["Common.Cancel"]</button>
                 </div>
             </div>
         </div>
@@ -852,24 +861,29 @@ else
         {
             <div class="field"><label for="kw-item-user">@Loc["Vault.Field.Username"]</label><input id="kw-item-user" @bind="fUser" autocomplete="off" /></div>
             <div class="field"><label for="kw-item-url">@Loc["Vault.Field.Url"]</label><input id="kw-item-url" @bind="fUrl" placeholder="https://example.com" /></div>
+            @* Secrets in the form are masked like in the detail view; the eye shows them while needed. «new-password»
+               keeps the browser from filling in the user's OWN saved password here. *@
             <div class="field">
                 <label for="kw-item-pwd">@Loc["Vault.Field.Password"]</label>
                 <div class="input-with-action">
-                    <input id="kw-item-pwd" @bind="fPwd" autocomplete="off" />
+                    <input id="kw-item-pwd" type="@(showPwd ? "text" : "password")" @bind="fPwd" autocomplete="new-password" spellcheck="false" />
+                    @RevealToggle(showPwd, () => showPwd = !showPwd)
                     @* Replaces the field with a fresh strong password (shown, so it can be checked and copied). *@
                     <button type="button" class="icon-btn" title="@Loc["Vault.Field.GeneratePassword"]" aria-label="@Loc["Vault.Field.GeneratePassword"]"
-                            @onclick="() => fPwd = PasswordGenerator.Generate()"><KeywardIcon Name="dices" Size="15" /></button>
+                            @onclick="GeneratePassword"><KeywardIcon Name="dices" Size="15" /></button>
                 </div>
             </div>
             @* 2FA key: the secret or the otpauth link — typed, pasted, or read from a QR screenshot (pasted here with
-               Ctrl+V or chosen as an image), decoded in the browser by VaultWorkspace.razor.js. *@
+               Ctrl+V or chosen as an image), decoded in the browser by VaultWorkspace.razor.js. The file input is only
+               visually hidden: it stays in the tab order, and its label next to it shows the focus. *@
             <div class="field" data-kw-qr>
                 <label for="kw-item-totp">@Loc["Vault.Field.Totp"]</label>
                 <div class="input-with-action">
-                    <input id="kw-item-totp" @bind="fTotp" @bind:event="oninput" autocomplete="off" spellcheck="false" placeholder="@(Loc["Vault.Totp.Placeholder"])" />
-                    <label class="icon-btn qr-pick" title="@Loc["Vault.Totp.FromImage"]" aria-label="@Loc["Vault.Totp.FromImage"]">
+                    <input id="kw-item-totp" type="@(showTotp ? "text" : "password")" @bind="fTotp" @bind:event="oninput" autocomplete="new-password" spellcheck="false" placeholder="@(Loc["Vault.Totp.Placeholder"])" />
+                    @RevealToggle(showTotp, () => showTotp = !showTotp)
+                    <input id="kw-item-totp-image" type="file" accept="image/*" data-kw-qr-file class="kw-visually-hidden" aria-label="@Loc["Vault.Totp.FromImage"]" />
+                    <label for="kw-item-totp-image" class="icon-btn qr-pick" title="@Loc["Vault.Totp.FromImage"]">
                         <KeywardIcon Name="upload" Size="15" />
-                        <input type="file" accept="image/*" data-kw-qr-file hidden />
                     </label>
                 </div>
                 <span class="field-help @(TotpInputValid ? "muted" : "field-error")">@TotpHelp</span>
@@ -878,7 +892,14 @@ else
         }
         else
         {
-            <div class="field wide"><label for="kw-item-content">@Loc["Vault.Field.ValueNote"]</label><textarea id="kw-item-content" rows="4" @bind="fContent" autocomplete="off" placeholder="@(Loc["Vault.Field.ValuePlaceholder"])"></textarea></div>
+            @* A text box cannot be a password field: masked with text-security (where the browser supports it). *@
+            <div class="field wide">
+                <label for="kw-item-content">@Loc["Vault.Field.ValueNote"]</label>
+                <div class="input-with-action">
+                    <textarea id="kw-item-content" class="@(showContent ? null : "kw-masked")" rows="4" @bind="fContent" autocomplete="off" spellcheck="false" placeholder="@(Loc["Vault.Field.ValuePlaceholder"])"></textarea>
+                    @RevealToggle(showContent, () => showContent = !showContent)
+                </div>
+            </div>
         }
     };
 
@@ -890,8 +911,8 @@ else
         }
 
         selfRef = DotNetObjectReference.Create(this);
-        qrModule = await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/Vaults/VaultWorkspace.razor.js");
-        qrListener = await qrModule.InvokeAsync<IJSObjectReference>("listen", selfRef);
+        module = await ImportModuleAsync();
+        qrListener = await module.InvokeAsync<IJSObjectReference>("listen", selfRef);
     }
 
     /// <summary>Called by the QR reader with the text of the QR code in a pasted or chosen image (null: none found).</summary>
@@ -916,8 +937,13 @@ else
         return Task.CompletedTask;
     }
 
+    private async Task<IJSObjectReference> ImportModuleAsync() =>
+        module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./_content/Am.Keyward.Ui.Blazor/Vaults/VaultWorkspace.razor.js");
+
     public async ValueTask DisposeAsync()
     {
+        revealTimer.Dispose();
+        CancelSearch();
         try
         {
             if (qrListener is not null)
@@ -926,9 +952,9 @@ else
                 await qrListener.DisposeAsync();
             }
 
-            if (qrModule is not null)
+            if (module is not null)
             {
-                await qrModule.DisposeAsync();
+                await module.DisposeAsync();
             }
         }
         catch (JSDisconnectedException)
@@ -994,19 +1020,22 @@ else
         vaults = [.. personalVaults, .. teamVaults];
     }
 
+    private Task OnVaultClickAsync(Guid vaultId) => RunAsync(() => SelectVaultAsync(vaultId), true);
+
+    /// <summary>Selects a vault and loads its contents. Unguarded: callers run it inside <see cref="RunAsync"/> (a click,
+    /// a search hit, a create) or during initialization.</summary>
     private async Task SelectVaultAsync(Guid vaultId)
     {
         selectedVaultId = vaultId;
         treeSel = "vault";
         itemMode = "list";
         detail = null;
-        reveal = false;
+        HideSecrets();
         confirmDeleteVault = false;
         confirmDeleteItem = false;
         confirmDeleteFolderId = null;
         itemFilter = "";
         vaultRenameValue = SelectedVaultName;
-        exportDataUrl = null;
         ClearSelection();
         ResetItemForm();
         await ReloadContentsAsync();
@@ -1024,7 +1053,7 @@ else
         ClearSelection();
         itemMode = "list";
         detail = null;
-        reveal = false;
+        HideSecrets();
         confirmDeleteFolderId = null;
         folderRenameValue = SelectedFolder?.Name ?? "";
         // Adding from a folder targets that folder by default.
@@ -1061,12 +1090,13 @@ else
         return CreateVaultAsync();
     }
 
-    private Task PrepareExportAsync() => RunAsync(async () =>
+    // The CSV holds every password in plain text: handed to the browser as a download at once (VaultWorkspace.razor.js
+    // revokes the object URL right after the click), never kept in a field or the page markup.
+    private Task ExportAsync() => RunAsync(async () =>
     {
         var logins = await VaultService.ExportVaultLoginsAsync(actorUserId!.Value, selectedVaultId!.Value);
-        var csv = EdgePasswordCsv.Write(logins);
-        exportFileName = $"{SelectedVaultName}-logins.csv";
-        exportDataUrl = "data:text/csv;charset=utf-8;base64," + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(csv));
+        var js = await ImportModuleAsync();
+        await js.InvokeVoidAsync("downloadText", $"{SelectedVaultName}-logins.csv", EdgePasswordCsv.Write(logins), "text/csv;charset=utf-8");
         Ok(Loc["Vault.Export.Ready", logins.Count]);
     }, selectedVaultId is not null);
 
@@ -1122,25 +1152,77 @@ else
         await ReloadContentsAsync();
     }, true);
 
+    /// <summary>Empties the add/edit form — the secrets in it included — and masks its fields again.</summary>
     private void ResetItemForm()
     {
         fName = ""; fType = ItemType.Login; fUrl = ""; fUser = ""; fPwd = ""; fNote = ""; fContent = ""; fTotp = "";
+        showPwd = false; showTotp = false; showContent = false;
         fFolderId = SelectedFolder?.Id.ToString() ?? "";
     }
 
-    private Task ViewItemAsync(Guid itemId) => RunAsync(async () =>
+    /// <summary>Leaves the edit form for the detail view; the form's copy of the secrets is dropped.</summary>
+    private void CancelEdit()
+    {
+        ResetItemForm();
+        itemMode = "view";
+    }
+
+    private void GeneratePassword()
+    {
+        fPwd = PasswordGenerator.Generate();
+        showPwd = true; // shown, so it can be checked and copied
+    }
+
+    // The eye beside a masked form field.
+    private RenderFragment RevealToggle(bool shown, Action toggle) => __builder =>
+    {
+        <button type="button" class="icon-btn" title="@(shown ? Loc["Common.Hide"] : Loc["Common.Reveal"])" aria-label="@(shown ? Loc["Common.Hide"] : Loc["Common.Reveal"])"
+                @onclick="toggle"><KeywardIcon Name="@(shown ? "eye-off" : "eye")" Size="15" /></button>
+    };
+
+    /// <summary>Shows or masks the secret in the detail view; a shown one is masked again after a short time.</summary>
+    private void ToggleReveal()
+    {
+        if (reveal)
+        {
+            HideSecrets();
+            return;
+        }
+
+        reveal = true;
+        revealTimer.Schedule(SecretExposure.RevealVisible, () => InvokeAsync(() =>
+        {
+            reveal = false;
+            StateHasChanged();
+        }));
+    }
+
+    private void HideSecrets()
+    {
+        reveal = false;
+        revealTimer.Cancel();
+    }
+
+    /// <summary>The stored login URL as a link target, or null when it is not an absolute http(s) address.</summary>
+    private static string? SafeLink(string? url) => SafeHttpLink.ForHref(url);
+
+    private Task ViewItemAsync(Guid itemId) => RunAsync(() => OpenItemAsync(itemId), true);
+
+    /// <summary>Loads an item into the detail pane. Unguarded: callers run it inside <see cref="RunAsync"/>.</summary>
+    private async Task OpenItemAsync(Guid itemId)
     {
         var d = await VaultService.GetItemAsync(actorUserId!.Value, itemId);
         if (d is null) return;
         ShowItemDetail(d);
         SyncItemUrl(d.PublicId); // reflect the open item in the address bar (shareable deep link)
-    }, true);
+    }
 
     /// <summary>Populates the detail pane for an already-loaded item and switches to view mode.</summary>
     private void ShowItemDetail(VaultItemDetail d)
     {
+        ResetItemForm(); // an edit left by picking another entry must not keep its secrets in the form
         detail = d;
-        reveal = false;
+        HideSecrets();
         confirmDeleteItem = false;
         copiedKey = null;
         moveVaultId = d.VaultId.ToString();
@@ -1154,7 +1236,7 @@ else
     private void StartAddItem()
     {
         detail = null;
-        reveal = false;
+        HideSecrets();
         confirmDeleteItem = false;
         ResetItemForm();
         itemMode = "add";
@@ -1295,7 +1377,7 @@ else
         var hadItem = detail is not null;
         itemMode = "list";
         detail = null;
-        reveal = false;
+        HideSecrets();
         confirmDeleteItem = false;
         ResetItemForm();
         if (hadItem)
@@ -1305,45 +1387,67 @@ else
     }
 
     /// <summary>Debounced global search: waits shortly after the last keystroke, then searches all
-    /// readable vaults server-side (the service decrypts and matches the content fields).</summary>
+    /// readable vaults server-side (the service decrypts and matches the content fields).
+    /// Not behind the busy flag — typing must never be blocked — but a result that arrives after a newer keystroke
+    /// is dropped, and a failure shows as an error instead of breaking the page.</summary>
     private async Task OnSearchInputAsync(ChangeEventArgs e)
     {
         globalSearch = e.Value?.ToString() ?? "";
-        searchCts?.Cancel();
-        if (!SearchActive)
+        CancelSearch();
+        if (!SearchActive || actorUserId is null)
         {
             searchHits = null;
             return;
         }
 
         var cts = searchCts = new CancellationTokenSource();
+        var query = globalSearch;
         try
         {
             await Task.Delay(350, cts.Token);
-            searchHits = await VaultService.SearchItemsAsync(actorUserId!.Value, tenantId, globalSearch, cts.Token);
+            var hits = await VaultService.SearchItemsAsync(actorUserId.Value, tenantId, query, cts.Token);
+            if (ReferenceEquals(cts, searchCts) && !cts.IsCancellationRequested)
+            {
+                searchHits = hits;
+            }
         }
         catch (OperationCanceledException)
         {
             // superseded by a newer keystroke
         }
+        catch (Exception ex)
+        {
+            if (ReferenceEquals(cts, searchCts))
+            {
+                searchHits = [];
+                status = (UserFacingError.Describe(ex, Loc, Logger), true);
+            }
+        }
+    }
+
+    private void CancelSearch()
+    {
+        var cts = searchCts;
+        searchCts = null;
+        cts?.Cancel();
     }
 
     private void ClearSearch()
     {
-        searchCts?.Cancel();
+        CancelSearch();
         globalSearch = "";
         searchHits = null;
     }
 
-    private async Task OpenSearchHitAsync(VaultItemSearchHit hit)
+    private Task OpenSearchHitAsync(VaultItemSearchHit hit) => RunAsync(async () =>
     {
         ClearSearch();
         if (selectedVaultId != hit.VaultId)
         {
             await SelectVaultAsync(hit.VaultId);
         }
-        await ViewItemAsync(hit.ItemId);
-    }
+        await OpenItemAsync(hit.ItemId);
+    }, true);
 
     private string MatchedFieldLabel(string matchedField) => matchedField switch
     {
@@ -1357,10 +1461,12 @@ else
     /// <summary>Rows of the revealed value's text box: one per line, at least 2, at most 16 (then it scrolls).</summary>
     private static int ValueRows(string? value) => Math.Clamp((value ?? string.Empty).Split('\n').Length, 2, 16);
 
-    /// <summary>Copies a secret to the clipboard and shows a short "copied" check on that field's button.</summary>
-    private async Task CopyAsync(string key, string value)
+    /// <summary>Copies a field to the clipboard and shows a short "copied" check on that field's button. A secret
+    /// (password, value) is cleared from the clipboard again after a short time.</summary>
+    private async Task CopyAsync(string key, string value, bool secret)
     {
-        if (!await JS.TryCopyToClipboardAsync(value)) return;
+        var copied = secret ? await JS.TryCopySecretToClipboardAsync(value) : await JS.TryCopyToClipboardAsync(value);
+        if (!copied) return;
         copiedKey = key;
         StateHasChanged();
         await Task.Delay(1500);
@@ -1376,18 +1482,19 @@ else
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 
-    /// <summary>Target-vault folders for the move panel (reloaded when the target vault changes).</summary>
-    private async Task LoadMoveFoldersAsync()
+    /// <summary>Target-vault folders for the move panel (reloaded when the target vault changes; the selects are
+    /// disabled while an action runs, so the guard never skips a reload).</summary>
+    private Task LoadMoveFoldersAsync() => RunAsync(async () =>
     {
         moveFolderId = "";
         moveFolders = Guid.TryParse(moveVaultId, out var vid)
             ? (vid == selectedVaultId ? folders : await VaultService.ListFoldersAsync(actorUserId!.Value, vid))
             : [];
-    }
+    }, true);
 
     private IEnumerable<(VaultFolderSummary Folder, int Depth)> FlattenedMoveFolders(Guid? parentId = null, int depth = 0)
     {

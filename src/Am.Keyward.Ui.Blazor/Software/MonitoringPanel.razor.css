@@ -1,0 +1,102 @@
+/* Heartbeat monitoring (MonitoringPanel): the editor card above the token list. The shared look comes from
+   KeywardUi.razor.css; rules that must outweigh a shared one (.notice, p, h3, label, input width) carry an extra
+   class or parent. */
+
+.notice.usage-note {
+    margin-bottom: .75rem;
+}
+
+.card.editor-card {
+    margin-bottom: .75rem;
+}
+
+.card > h3.editor-title {
+    margin: 0 0 .25rem;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.card > p.editor-desc {
+    margin: 0 0 .75rem;
+}
+
+/* A label for a group of controls (the weekday checkboxes): looks like the shared field label. */
+.group-label {
+    font-size: .85rem;
+    font-weight: 500;
+}
+
+.inline-controls {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}
+
+.inline-controls.inline-wrap {
+    flex-wrap: wrap;
+}
+
+/* The shared rule stretches every input/select to full width; these sit side by side. */
+.field .inline-controls > .silence-value {
+    width: 6rem;
+}
+
+.field .inline-controls > .auto-width {
+    width: auto;
+}
+
+.day-choices {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.day-choices > label.day-choice {
+    display: flex;
+    gap: .3rem;
+    align-items: center;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.field > p.window-hint {
+    margin: .25rem 0 0;
+    font-size: .78rem;
+}
+
+.card > label.recovery-choice {
+    display: flex;
+    gap: .5rem;
+    align-items: flex-start;
+    font-weight: 400;
+    cursor: pointer;
+    margin: .25rem 0 .75rem;
+}
+
+.recovery-choice > input.recovery-check {
+    margin-top: .2rem;
+}
+
+.field.snooze-field {
+    margin-top: .75rem;
+}
+
+.list-head > h3.monitor-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.list-head > p.monitor-desc {
+    margin: .25rem 0 0;
+}
+
+.row-facts {
+    font-size: .78rem;
+}
+
+.notice.status-notice {
+    margin-top: .75rem;
+}

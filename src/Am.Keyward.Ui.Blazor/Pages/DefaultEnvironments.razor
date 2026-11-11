@@ -7,6 +7,7 @@
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
 @inject KeywardUiOptions KeywardOptions
+@inject ILogger<DefaultEnvironments> Logger
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -29,22 +30,22 @@
     }
     else
     {
-        <div class="card" style="max-width:48rem;">
+        <div class="card envs-card">
             <h3>@Loc["Page.DefaultEnvs.Title"] (@EffectiveNames.Count)</h3>
 
             @if (rows.Count == 0)
             {
                 @* Built-in set — read-only until an admin customizes it. *@
-                <div class="list-rows" style="margin:.5rem 0;">
+                <div class="list-rows env-list">
                     @foreach (var name in EffectiveNames)
                     {
-                        <div class="list-row" style="cursor:default;">
+                        <div class="list-row list-row-static">
                             <KeywardIcon Name="layers" Size="17" />
                             <span class="list-row-name">@name</span>
                         </div>
                     }
                 </div>
-                <p class="muted" style="font-size:.85rem;">@Loc["DefaultEnvs.BuiltInHint"]</p>
+                <p class="muted builtin-hint">@Loc["DefaultEnvs.BuiltInHint"]</p>
                 @if (canManage)
                 {
                     <button @onclick="CustomizeAsync" disabled="@busy"><KeywardIcon Name="settings" />@Loc["DefaultEnvs.Customize"]</button>
@@ -52,14 +53,14 @@
             }
             else
             {
-                <div class="list-rows" style="margin:.5rem 0;">
+                <div class="list-rows env-list">
                     @foreach (var env in rows)
                     {
-                        <div class="list-row" style="cursor:default;">
+                        <div class="list-row list-row-static">
                             <KeywardIcon Name="layers" Size="17" />
                             @if (renamingId == env.Id)
                             {
-                                <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" style="max-width:14rem;" />
+                                <input @bind="renameValue" aria-label="@(Loc["Common.Rename"])" class="rename-input" />
                                 <button class="btn-sm" @onclick="() => RenameAsync(env.Id)" disabled="@(busy || string.IsNullOrWhiteSpace(renameValue))">@Loc["Common.Save"]</button>
                                 <button class="btn-ghost btn-sm" @onclick="() => renamingId = null">@Loc["Common.Cancel"]</button>
                             }
@@ -77,9 +78,9 @@
                         </div>
                         @if (confirmDeleteId == env.Id)
                         {
-                            <div class="notice notice-error" style="margin:.25rem 0;">
+                            <div class="notice notice-error delete-confirm">
                                 @Loc["DefaultEnvs.ConfirmDelete", env.Name]
-                                <div class="row" style="margin-top:.5rem;">
+                                <div class="row confirm-actions">
                                     <button class="btn-danger btn-sm" @onclick="() => DeleteAsync(env.Id)" disabled="@busy">@Loc["Common.Yes"]</button>
                                     <button class="btn-ghost btn-sm" @onclick="() => confirmDeleteId = null">@Loc["Common.Cancel"]</button>
                                 </div>
@@ -90,8 +91,8 @@
 
                 @if (canManage)
                 {
-                    <div class="row" style="margin-top:.75rem;">
-                        <input @bind="newName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" style="max-width:16rem;" />
+                    <div class="row add-row">
+                        <input @bind="newName" @bind:event="oninput" placeholder="@(Loc["Secret.Envs.NewName"])" aria-label="@(Loc["Secret.Envs.NewName"])" class="new-name" />
                         <button @onclick="AddAsync" disabled="@(busy || string.IsNullOrWhiteSpace(newName))"><KeywardIcon Name="plus" />@Loc["Secret.Envs.Add"]</button>
                     </div>
                 }
@@ -185,7 +186,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

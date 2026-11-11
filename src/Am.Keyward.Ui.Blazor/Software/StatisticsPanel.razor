@@ -5,6 +5,7 @@
 @inject ITokenAccessStatisticsService StatsService
 @inject IStringLocalizer<SharedResource> Loc
 @inject BrowserTimeService Time
+@inject ILogger<StatisticsPanel> Logger
 @implements IDisposable
 
 @* Access statistics for ONE application, rendered inside the Applications page's «Statistics» tab. Three
@@ -13,7 +14,14 @@
    by the background flush — nothing here is per-request. Reloads when ProjectId changes. *@
 @if (tokens is null || daily is null || ips is null || alerts is null)
 {
-    <p class="muted">@Loc["Common.Loading"]</p>
+    @if (loadError is not null)
+    {
+        <div class="notice notice-error" role="alert">@loadError</div>
+    }
+    else
+    {
+        <p class="muted">@Loc["Common.Loading"]</p>
+    }
 }
 else if (tokens.Count == 0)
 {
@@ -49,7 +57,7 @@ else
                             {
                                 var count = byDay.GetValueOrDefault(day);
                                 <span class="kw-bar @(count == 0 ? "kw-bar-empty" : "")"
-                                      style="height:@(BarHeightPercent(count, byDay))%"
+                                      style="--kw-bar-height:@(BarHeightPercent(count, byDay))%"
                                       title="@day.ToString("yyyy-MM-dd"): @count"></span>
                             }
                         </span>
@@ -128,6 +136,7 @@ else
     private IReadOnlyList<TokenAccessIpInfo>? ips;
     private IReadOnlyList<TokenAccessAlertInfo>? alerts;
     private DateOnly statisticsToday;
+    private string? loadError;
 
     // Timestamps inside localized strings can't use <LocalTime/> — refresh once the browser zone resolves.
     protected override void OnInitialized() => Time.Changed += OnTimeZoneResolved;
@@ -141,18 +150,37 @@ else
         if (ProjectId != loadedProjectId)
         {
             loadedProjectId = ProjectId;
-            await LoadAsync();
+            loadError = null;
+            try
+            {
+                await LoadAsync(ProjectId);
+            }
+            catch (Exception ex)
+            {
+                loadError = UserFacingError.Describe(ex, Loc, Logger);
+            }
         }
     }
 
-    private async Task LoadAsync()
+    private async Task LoadAsync(Guid projectId)
     {
-        environments = await SecretService.ListEnvironmentsAsync(TenantId, ProjectId);
-        tokens = await TokenService.ListAsync(TenantId, ProjectId);
-        statisticsToday = StatsService.CurrentStatisticsDay;
-        daily = await StatsService.ListDailyAsync(TenantId, ProjectId, LoadDays);
-        ips = await StatsService.ListIpsAsync(TenantId, ProjectId);
-        alerts = await StatsService.ListAlertsAsync(TenantId, ProjectId);
+        var loadedEnvironments = await SecretService.ListEnvironmentsAsync(TenantId, projectId);
+        var loadedTokens = await TokenService.ListAsync(TenantId, projectId);
+        var today = StatsService.CurrentStatisticsDay;
+        var loadedDaily = await StatsService.ListDailyAsync(TenantId, projectId, LoadDays);
+        var loadedIps = await StatsService.ListIpsAsync(TenantId, projectId);
+        var loadedAlerts = await StatsService.ListAlertsAsync(TenantId, projectId);
+        if (projectId != loadedProjectId)
+        {
+            return; // another application was picked meanwhile; its own load wins
+        }
+
+        environments = loadedEnvironments;
+        tokens = loadedTokens;
+        statisticsToday = today;
+        daily = loadedDaily;
+        ips = loadedIps;
+        alerts = loadedAlerts;
     }
 
     private string EnvironmentNameOf(Guid environmentId) =>

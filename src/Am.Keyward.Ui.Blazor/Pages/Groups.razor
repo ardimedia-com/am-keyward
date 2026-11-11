@@ -6,6 +6,7 @@
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
 @inject KeywardUiOptions KeywardOptions
+@inject ILogger<Groups> Logger
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -33,7 +34,7 @@
 
                 @foreach (var g in groups)
                 {
-                    <button class="tree-node @(g.Id == selectedGroupId ? "active" : "")" title="@g.Name" @onclick="() => SelectGroupAsync(g.Id)">
+                    <button class="tree-node @(g.Id == selectedGroupId ? "active" : "")" title="@g.Name" @onclick="() => OnGroupClickAsync(g.Id)">
                         <KeywardIcon Name="users-round" /><span class="tree-label">@g.Name</span>
                         <span class="tree-count">@g.MemberCount</span>
                     </button>
@@ -227,6 +228,10 @@
     private async Task ReloadGroupsAsync() =>
         groups = await GroupService.ListGroupsAsync(actorUserId!.Value, tenantId);
 
+    private Task OnGroupClickAsync(Guid groupId) => RunAsync(() => SelectGroupAsync(groupId), true);
+
+    /// <summary>Selects a group and loads its members. Unguarded: callers run it inside <see cref="RunAsync"/> (a click,
+    /// a create) or during initialization.</summary>
     private async Task SelectGroupAsync(Guid groupId)
     {
         selectedGroupId = groupId;
@@ -295,7 +300,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

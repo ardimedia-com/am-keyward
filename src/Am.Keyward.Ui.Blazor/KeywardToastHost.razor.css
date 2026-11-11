@@ -1,6 +1,7 @@
 /* Built-in Keyward toasts (standalone default). Deliberately mirrors BlazorBlueprint's toast look/behaviour
    — bottom-right, stacked, rounded card with shadow and a per-kind accent — so a standalone Keyward is
-   consistent with a BlazorBlueprint host (where BbToast is used instead). Styled against the --kw-* tokens. */
+   consistent with a BlazorBlueprint host (where BbToast is used instead). The host renders outside .keyward-ui, so
+   each colour falls back from the --kw-* token to the host's am.ui token, then to a fixed value. */
 .kw-toast-host {
     position: fixed;
     right: 1rem;
@@ -19,20 +20,20 @@
     align-items: flex-start;
     gap: .6rem;
     padding: .6rem .7rem .6rem .85rem;
-    background: var(--kw-surface, #fff);
-    color: var(--kw-text, #1a2233);
-    border: 1px solid var(--kw-border, #e4e7ec);
-    border-left: 3px solid var(--kw-primary, #2563eb);
-    border-radius: var(--kw-radius, .5rem);
+    background: var(--kw-surface, var(--card, #fff));
+    color: var(--kw-text, var(--foreground, #1a2233));
+    border: 1px solid var(--kw-border, var(--border, #e4e7ec));
+    border-left: 3px solid var(--kw-primary, var(--primary, #2563eb));
+    border-radius: var(--kw-radius, var(--radius, .5rem));
     box-shadow: 0 8px 24px rgba(0, 0, 0, .12);
     font-size: .85rem;
     line-height: 1.4;
     animation: kw-toast-in .16s ease-out;
 }
 
-.kw-toast-success { border-left-color: var(--kw-success, #16a34a); }
-.kw-toast-error   { border-left-color: var(--kw-danger, #dc2626); }
-.kw-toast-info    { border-left-color: var(--kw-primary, #2563eb); }
+.kw-toast-success { border-left-color: var(--kw-success, var(--success, #16a34a)); }
+.kw-toast-error   { border-left-color: var(--kw-danger, var(--destructive, #dc2626)); }
+.kw-toast-info    { border-left-color: var(--kw-primary, var(--primary, #2563eb)); }
 
 .kw-toast-msg { flex: 1; min-width: 0; }
 
@@ -45,11 +46,11 @@
     margin: -.1rem -.1rem 0 0;
     border: none;
     background: transparent;
-    color: var(--kw-muted-text, #667085);
+    color: var(--kw-muted-text, var(--muted-foreground, #667085));
     cursor: pointer;
     border-radius: 4px;
 }
-.kw-toast-close:hover { color: var(--kw-text, #1a2233); background: color-mix(in srgb, currentColor 12%, transparent); }
+.kw-toast-close:hover { color: var(--kw-text, var(--foreground, #1a2233)); background: color-mix(in srgb, currentColor 12%, transparent); }
 
 @keyframes kw-toast-in {
     from { opacity: 0; transform: translateY(6px); }
