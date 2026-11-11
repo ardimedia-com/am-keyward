@@ -136,10 +136,24 @@ var connectionString = builder.Configuration.GetConnectionString(ShellStartupVal
     ?? "Server=localhost;Database=amkeyward;Integrated Security=True;Encrypt=False";
 builder.Services.AddKeyward(connectionString, kek.Key, kek.KekId);
 
-// Break-glass: the non-repudiable, append-only trail lives outside the database. A real deployment points
-// SinkFilePath at storage the database admin cannot rewrite (separate host / restricted permissions).
+// Break-glass: the non-repudiable, append-only trail lives outside the database. Outside Development the library
+// refuses to start without a path, so default it NEXT TO the KEK file: outside the deploy folder, same custody.
+// A real deployment may point SinkFilePath at storage the database admin cannot rewrite; an explicit setting wins.
 builder.Services.Configure<Am.Keyward.Infrastructure.Auth.BreakGlassOptions>(
     builder.Configuration.GetSection(Am.Keyward.Infrastructure.Auth.BreakGlassOptions.SectionName));
+if (!builder.Environment.IsDevelopment())
+{
+    var breakGlassDirectory = builder.Configuration[ShellKek.DirectoryKey] is { Length: > 0 } configuredKekDirectory
+        ? configuredKekDirectory
+        : ShellKek.DefaultDirectory;
+    builder.Services.PostConfigure<Am.Keyward.Infrastructure.Auth.BreakGlassOptions>(o =>
+    {
+        if (string.IsNullOrWhiteSpace(o.SinkFilePath))
+        {
+            o.SinkFilePath = Path.Combine(breakGlassDirectory, "breakglass-audit.jsonl");
+        }
+    });
+}
 
 // --- ASP.NET Core Identity (shell-owned; the libraries stay identity-agnostic) ---
 builder.Services.AddDbContext<KeywardIdentityDbContext>(options =>
