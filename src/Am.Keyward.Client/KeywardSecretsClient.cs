@@ -131,11 +131,15 @@ public sealed class KeywardSecretsClient(HttpClient httpClient) : IDisposable
         response.EnsureSuccessStatusCode();
     }
 
-    /// <summary>Builds the standalone <see cref="HttpClient"/> the configuration provider uses (it owns and disposes it).</summary>
+    /// <summary>
+    /// Builds the standalone <see cref="HttpClient"/> the configuration provider and <see cref="Create"/> use (they own
+    /// and dispose it). A caller-supplied <see cref="KeywardSecretsOptions.HttpMessageHandler"/> stays the caller's and
+    /// is not disposed with it — it may be shared, and a reloading provider outlives the first client.
+    /// </summary>
     internal static HttpClient CreateHttpClient(KeywardSecretsOptions options, string token)
     {
         var http = options.HttpMessageHandler is { } handler
-            ? new HttpClient(handler, disposeHandler: true)
+            ? new HttpClient(handler, disposeHandler: false)
             : new HttpClient();
         http.BaseAddress = options.ResolveApiBaseUri();
         http.Timeout = options.RequestTimeout;

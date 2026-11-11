@@ -9,42 +9,45 @@ namespace Am.Keyward.Mcp;
 /// The MCP tools. Every answer is plain text for the assistant and NEVER contains a secret value: creating and
 /// updating send values without echoing them, and a revealed value goes to the clipboard only. The application
 /// tools set up an application for the software-client API and answer with the link where a person pastes the
-/// values and issues the app token.
+/// values and issues the app token. Everything KEYWARD's data holds (names, URLs, notes) is shown as
+/// <see cref="ToolText.Data">⟦data⟧</see>, never as free text the assistant could mistake for an instruction.
 /// </summary>
 [McpServerToolType]
 internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard clipboard)
 {
     public static readonly TimeSpan ClipboardLifetime = TimeSpan.FromSeconds(30);
 
-    [McpServerTool(Name = "list_vaults", ReadOnly = true), Description("Lists the KEYWARD vaults this agent token may reach.")]
+    private const string DataNotice = ToolText.DataNotice;
+
+    [McpServerTool(Name = "list_vaults", ReadOnly = true), Description("Lists the KEYWARD vaults this agent token may reach." + DataNotice)]
     public async Task<string> ListVaultsAsync(CancellationToken ct)
     {
         var result = await keyward.ListVaultsAsync(ct);
         if (!result.Ok) return result.Error!;
         return result.Value is { Count: > 0 } vaults
-            ? string.Join('\n', vaults.Select(v => $"{v.Id}  {v.Name}"))
+            ? string.Join('\n', vaults.Select(v => $"{v.Id}  {ToolText.Data(v.Name)}"))
             : "No vault is reachable with this token.";
     }
 
-    [McpServerTool(Name = "list_items", ReadOnly = true), Description("Lists the folders and entries (names and types only) of one vault.")]
+    [McpServerTool(Name = "list_items", ReadOnly = true), Description("Lists the folders and entries (names and types only) of one vault." + DataNotice)]
     public async Task<string> ListItemsAsync([Description("The vault id from list_vaults.")] Guid vaultId, CancellationToken ct)
     {
         var result = await keyward.TreeAsync(vaultId, ct);
         if (!result.Ok) return result.Error!;
 
         var tree = result.Value!;
-        var text = new StringBuilder($"Vault «{tree.VaultName}» ({tree.VaultId})\n");
+        var text = new StringBuilder($"Vault {ToolText.Data(tree.VaultName)} ({tree.VaultId})\n");
         void Write(Guid? folderId, string indent)
         {
             foreach (var folder in tree.Folders.Where(f => f.ParentFolderId == folderId).OrderBy(f => f.Name))
             {
-                text.AppendLine($"{indent}[folder] {folder.Name}  ({folder.Id})");
+                text.AppendLine($"{indent}[folder] {ToolText.Data(folder.Name)}  ({folder.Id})");
                 Write(folder.Id, indent + "  ");
             }
 
             foreach (var item in tree.Items.Where(i => i.FolderId == folderId).OrderBy(i => i.Name))
             {
-                text.AppendLine($"{indent}{item.Name}  [{item.Type}]  ({item.Id})");
+                text.AppendLine($"{indent}{ToolText.Data(item.Name)}  [{ToolText.Clean(item.Type)}]  ({item.Id})");
             }
         }
 
@@ -52,17 +55,17 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return text.ToString().TrimEnd();
     }
 
-    [McpServerTool(Name = "search", ReadOnly = true), Description("Finds entries by name across the reachable vaults (at least 2 characters).")]
+    [McpServerTool(Name = "search", ReadOnly = true), Description("Finds entries by name across the reachable vaults (at least 2 characters)." + DataNotice)]
     public async Task<string> SearchAsync([Description("Part of the entry name.")] string query, CancellationToken ct)
     {
         var result = await keyward.SearchAsync(query, ct);
         if (!result.Ok) return result.Error!;
         return result.Value is { Count: > 0 } hits
-            ? string.Join('\n', hits.Select(h => $"{h.Name}  [{h.Type}]  ({h.Id}, vault {h.VaultId})"))
+            ? string.Join('\n', hits.Select(h => $"{ToolText.Data(h.Name)}  [{ToolText.Clean(h.Type)}]  ({h.Id}, vault {h.VaultId})"))
             : "No entry matches.";
     }
 
-    [McpServerTool(Name = "get_item", ReadOnly = true), Description("Shows one entry without its secret: name, type, link, version and — for a Login — URL, user name and whether it has a 2FA key (one-time codes).")]
+    [McpServerTool(Name = "get_item", ReadOnly = true), Description("Shows one entry without its secret: name, type, link, version and — for a Login — URL, user name and whether it has a 2FA key (one-time codes)." + DataNotice)]
     public async Task<string> GetItemAsync([Description("The entry id.")] Guid itemId, CancellationToken ct)
     {
         var result = await keyward.GetItemAsync(itemId, ct);
@@ -70,11 +73,11 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         var item = result.Value!;
         var text = new StringBuilder()
-            .AppendLine($"{item.Name}  [{item.Type}]  ({item.Id})")
+            .AppendLine($"{ToolText.Data(item.Name)}  [{ToolText.Clean(item.Type)}]  ({item.Id})")
             .AppendLine($"Link: {keyward.AbsoluteLink(item.Link)}")
             .AppendLine($"Version: {item.VersionId}");
-        if (item.Url is not null) text.AppendLine($"URL: {item.Url}");
-        if (item.Username is not null) text.AppendLine($"User name: {item.Username}");
+        if (item.Url is not null) text.AppendLine($"URL: {ToolText.Data(item.Url)}");
+        if (item.Username is not null) text.AppendLine($"User name: {ToolText.Data(item.Username)}");
         if (item.HasTotp) text.AppendLine("2FA: yes — one-time codes via get_totp_code (if permitted) or request_reveal with field Totp.");
         return text.ToString().TrimEnd();
     }
@@ -108,10 +111,10 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? Written("Stored", result.Value!) : result.Error!;
     }
 
-    [McpServerTool(Name = "update_item"), Description("Changes an entry. A Login changes field by field (fields left out stay as they are); other types change their whole value. Pass the version from get_item so a change made in between is not overwritten.")]
+    [McpServerTool(Name = "update_item"), Description("Changes an entry. A Login changes field by field (fields left out stay as they are); other types change their whole value. Requires the version from get_item (or from the answer of the last create/update/move): if the entry was changed in between, the update is refused (412) — call get_item again, check the entry and retry with its new version.")]
     public async Task<string> UpdateItemAsync(
         [Description("The entry id.")] Guid itemId,
-        [Description("The version from get_item. If omitted, the current version is used.")] Guid? versionId = null,
+        [Description("The version from get_item (required), so a change made in between is not overwritten.")] Guid versionId,
         [Description("New name.")] string? name = null,
         [Description("Login: new URL.")] string? url = null,
         [Description("Login: new user name.")] string? username = null,
@@ -121,15 +124,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         [Description("Login: new 2FA key (secret or otpauth://totp/… link); an empty string removes it.")] string? totp = null,
         CancellationToken ct = default)
     {
-        var version = versionId;
-        if (version is null)
-        {
-            var current = await keyward.GetItemAsync(itemId, ct);
-            if (!current.Ok) return current.Error!;
-            version = current.Value!.VersionId;
-        }
-
-        var result = await keyward.UpdateItemAsync(itemId, version.Value, new AgentUpdateItemRequest(name, url, username, password, note, value, totp), ct);
+        var result = await keyward.UpdateItemAsync(itemId, versionId, new AgentUpdateItemRequest(name, url, username, password, note, value, totp), ct);
         return result.Ok ? Written("Updated", result.Value!) : result.Error!;
     }
 
@@ -192,15 +187,31 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             case "Approved":
                 break;
             default:
-                return $"The request is {state.Value.Status}; nothing to copy. Ask again with request_reveal if still needed, "
+                return $"The request is {ToolText.Clean(state.Value.Status)}; nothing to copy. Ask again with request_reveal if still needed, "
                     + $"or let the person copy the value from the entry: {keyward.AbsoluteLink(state.Value.ItemLink)}";
+        }
+
+        // The approval can be used once: make sure the value has somewhere to go before using it up.
+        if (clipboard.Probe() is { } problem)
+        {
+            return $"The clipboard cannot be used right now ({ToolText.Clean(problem)}). The approved request was NOT used: "
+                + "call consume_reveal again once the clipboard is free, before the approval expires.";
         }
 
         var result = await keyward.ConsumeRevealAsync(requestId, ct);
         if (!result.Ok) return result.Error!;
 
-        clipboard.CopyAndClearLater(result.Value!.Value, ClipboardLifetime);
-        var what = result.Value.Field == "Totp" ? "one-time code" : result.Value.Field.ToLowerInvariant();
+        try
+        {
+            clipboard.CopyAndClearLater(result.Value!.Value, ClipboardLifetime);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or PlatformNotSupportedException or System.Runtime.InteropServices.ExternalException)
+        {
+            return $"The value was fetched but could not be put on the clipboard ({ToolText.Clean(ex.Message)}); it was discarded and the request is used up. "
+                + $"Ask again with request_reveal, or let the person copy the value from the entry: {keyward.AbsoluteLink(state.Value.ItemLink)}";
+        }
+
+        var what = result.Value.Field == "Totp" ? "one-time code" : ToolText.Clean(result.Value.Field).ToLowerInvariant();
         return $"The {what} is on the clipboard for {ClipboardLifetime.TotalSeconds:0} seconds. "
             + "Tell the person to paste it now; the value was not shared with you.";
     }
@@ -214,7 +225,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return $"One-time code: {result.Value!.Code} (valid for {result.Value.SecondsLeft} more seconds).";
     }
 
-    [McpServerTool(Name = "list_applications", ReadOnly = true), Description("Lists the KEYWARD applications (software-client API) this agent token may manage: environments, keys and per environment whether a value is set. Never a value.")]
+    [McpServerTool(Name = "list_applications", ReadOnly = true), Description("Lists the KEYWARD applications (software-client API) this agent token may manage: environments, keys and per environment whether a value is set. Never a value." + DataNotice)]
     public async Task<string> ListApplicationsAsync(CancellationToken ct)
     {
         var result = await keyward.ListApplicationsAsync(ct);
@@ -224,7 +235,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             : "No application is reachable with this token.";
     }
 
-    [McpServerTool(Name = "create_application"), Description("Creates an application for the software-client API (the token needs «may create new applications»). It starts with the tenant's default environments; environments listed here are added. Answers with the link for the person.")]
+    [McpServerTool(Name = "create_application"), Description("Creates an application for the software-client API (the token needs «may create new applications»). It starts with the tenant's default environments; environments listed here are added. Answers with the link for the person." + DataNotice)]
     public async Task<string> CreateApplicationAsync(
         [Description("Application name, e.g. the program that reads the secrets (Am.PionexCom.Cmd.BotWatch).")] string name,
         [Description("Environments it needs, e.g. [\"Production\"].")] string[]? environments = null,
@@ -234,7 +245,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return result.Ok ? $"Created.\n{Describe(result.Value!)}" : result.Error!;
     }
 
-    [McpServerTool(Name = "add_environment"), Description("Adds an environment (e.g. Staging) to an application.")]
+    [McpServerTool(Name = "add_environment"), Description("Adds an environment (e.g. Staging) to an application." + DataNotice)]
     public async Task<string> AddEnvironmentAsync(
         [Description("The application id from list_applications.")] Guid applicationId,
         [Description("Environment name.")] string name,
@@ -252,7 +263,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
     {
         var result = await keyward.CreateSecretAsync(applicationId, new AgentCreateSecretRequest(key), ct);
         return result.Ok
-            ? $"Key {result.Value!.Key} created, not set yet. Link for the person to paste the value: {keyward.AbsoluteLink(result.Value.Link)}"
+            ? $"Key {ToolText.Data(result.Value!.Key)} created, not set yet. Link for the person to paste the value: {keyward.AbsoluteLink(result.Value.Link)}"
             : result.Error!;
     }
 
@@ -273,11 +284,11 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             : await keyward.SetSecretValueAsync(applicationId, existing.Key, new AgentSetSecretValueRequest(environment, value),
                 existing.Values.FirstOrDefault(v => string.Equals(v.Environment, environment, StringComparison.OrdinalIgnoreCase))?.VersionId, ct);
         return result.Ok
-            ? $"Value of {result.Value!.Key} in {result.Value.Environment} set (version {result.Value.VersionId}). Link for the person: {keyward.AbsoluteLink(result.Value.Link)}"
+            ? $"Value of {ToolText.Data(result.Value!.Key)} in {ToolText.Data(result.Value.Environment)} set (version {result.Value.VersionId}). Link for the person: {keyward.AbsoluteLink(result.Value.Link)}"
             : result.Error!;
     }
 
-    [McpServerTool(Name = "list_app_tokens", ReadOnly = true), Description("Lists an application's app tokens: name, environment, status, expiry, last access and heartbeat monitoring. Never a token value; issuing, rotating and revoking stay with people (link in list_applications).")]
+    [McpServerTool(Name = "list_app_tokens", ReadOnly = true), Description("Lists an application's app tokens: name, environment, status, expiry, last access and heartbeat monitoring. Never a token value; issuing, rotating and revoking stay with people (link in list_applications)." + DataNotice)]
     public async Task<string> ListAppTokensAsync([Description("The application id from list_applications.")] Guid applicationId, CancellationToken ct)
     {
         var result = await keyward.ListApplicationTokensAsync(applicationId, ct);
@@ -285,10 +296,10 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         if (result.Value is not { Count: > 0 } tokens) return "The application has no app tokens.";
 
         return string.Join('\n', tokens.Select(t =>
-            $"{t.Name}  [{t.Environment}, {t.Status}]  ({t.Id})"
+            $"{ToolText.Data(t.Name)}  [{ToolText.Data(t.Environment)}, {ToolText.Clean(t.Status)}]  ({t.Id})"
             + (t.ExpiresAt is { } expires ? $"  expires {expires:yyyy-MM-dd}" : "")
-            + (t.LastAccessAt is { } last ? $"  last access {last:yyyy-MM-dd HH:mm} UTC from {t.LastAccessIp ?? "?"}" : "  never used")
-            + (t.Monitor is { Enabled: true } m ? $"  monitor {m.State} (max silence {m.MaxSilenceMinutes} min)" : "")));
+            + (t.LastAccessAt is { } last ? $"  last access {last:yyyy-MM-dd HH:mm} UTC from {ToolText.Clean(t.LastAccessIp ?? "?")}" : "  never used")
+            + (t.Monitor is { Enabled: true } m ? $"  monitor {ToolText.Clean(m.State)} (max silence {m.MaxSilenceMinutes} min)" : "")));
     }
 
     [McpServerTool(Name = "get_app_statistics", ReadOnly = true), Description("Shows an application's app-token access statistics: requests per day, client addresses and access alerts.")]
@@ -309,18 +320,18 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         foreach (var address in stats.Addresses)
         {
-            text.AppendLine($"Token {address.TokenId}: {address.IpAddress} seen {address.FirstSeenAt:yyyy-MM-dd} – {address.LastSeenAt:yyyy-MM-dd}");
+            text.AppendLine($"Token {address.TokenId}: {ToolText.Clean(address.IpAddress)} seen {address.FirstSeenAt:yyyy-MM-dd} – {address.LastSeenAt:yyyy-MM-dd}");
         }
 
         foreach (var alert in stats.Alerts)
         {
-            text.AppendLine($"Alert {alert.Kind} for token {alert.TokenId} at {alert.CreatedAt:yyyy-MM-dd HH:mm} UTC{(alert.IpAddress is null ? "" : $" from {alert.IpAddress}")}");
+            text.AppendLine($"Alert {ToolText.Clean(alert.Kind)} for token {alert.TokenId} at {alert.CreatedAt:yyyy-MM-dd HH:mm} UTC{(alert.IpAddress is null ? "" : $" from {ToolText.Clean(alert.IpAddress)}")}");
         }
 
         return text.Length == 0 ? "No access recorded." : text.ToString().TrimEnd();
     }
 
-    [McpServerTool(Name = "list_expiring", ReadOnly = true), Description("Lists what runs out within the next days, soonest first: rotation dates of application values (overdue ones included), app-token expiries, and your own agent tokens. Each line has the link where a person renews it. Never a value.")]
+    [McpServerTool(Name = "list_expiring", ReadOnly = true), Description("Lists what runs out within the next days, soonest first: rotation dates of application values (overdue ones included), app-token expiries, and your own agent tokens. Each line has the link where a person renews it. Never a value." + DataNotice)]
     public async Task<string> ListExpiringAsync(
         [Description("How many days ahead (1–365).")] int days = 30,
         CancellationToken ct = default)
@@ -341,11 +352,11 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
             };
             var what = entry.Kind switch
             {
-                "SecretValue" => $"value {entry.Name} of {entry.Application} [{entry.Environment}]{(entry.ValueSet == false ? " (no value yet)" : "")}",
-                "AppToken" => $"app token «{entry.Name}» of {entry.Application} [{entry.Environment}]",
-                _ => $"your agent token «{entry.Name}»",
+                "SecretValue" => $"value {ToolText.Data(entry.Name)} of {ToolText.Data(entry.Application)} [{ToolText.Data(entry.Environment)}]{(entry.ValueSet == false ? " (no value yet)" : "")}",
+                "AppToken" => $"app token {ToolText.Data(entry.Name)} of {ToolText.Data(entry.Application)} [{ToolText.Data(entry.Environment)}]",
+                _ => $"your agent token {ToolText.Data(entry.Name)}",
             };
-            text.AppendLine($"{when}  {what}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $"  [note: {entry.Note}]")}  {keyward.AbsoluteLink(entry.Link)}");
+            text.AppendLine($"{when}  {what}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $"  note: {ToolText.Data(entry.Note)}")}  {keyward.AbsoluteLink(entry.Link)}");
         }
 
         if (text.Length == 0)
@@ -361,7 +372,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         return text.ToString().TrimEnd();
     }
 
-    [McpServerTool(Name = "set_rotation"), Description("Sets when a value of an application key must be renewed (advisory: it never blocks a read; KEYWARD sends notices 30/20/10 days ahead, then daily) and/or the rotation note — how a new value is obtained. Never put a secret into the note: every agent that reaches the application sees it. The value itself is not touched.")]
+    [McpServerTool(Name = "set_rotation"), Description("Sets when a value of an application key must be renewed (advisory: it never blocks a read; KEYWARD sends notices 30/20/10 days ahead, then daily) and/or the rotation note — how a new value is obtained. Never put a secret into the note: every agent that reaches the application sees it. The value itself is not touched." + DataNotice)]
     public async Task<string> SetRotationAsync(
         [Description("The application id from list_applications.")] Guid applicationId,
         [Description("The configuration key, e.g. SwissPost:ClientSecret.")] string key,
@@ -376,7 +387,7 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         {
             if (!DateOnly.TryParseExact(rotateBy.Trim(), "yyyy-MM-dd", out var parsed))
             {
-                return $"«{rotateBy}» is not a date; write yyyy-MM-dd, or none to remove the date.";
+                return $"{ToolText.Data(rotateBy)} is not a date; write yyyy-MM-dd, or none to remove the date.";
             }
 
             date = parsed;
@@ -386,17 +397,17 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
         if (!result.Ok) return result.Error!;
 
         var state = result.Value!;
-        return $"{key} [{state.Environment}]: "
+        return $"{ToolText.Data(key)} [{ToolText.Data(state.Environment)}]: "
             + (state.RotateBy is { } due ? $"renew by {due:yyyy-MM-dd}" : "no rotation date")
-            + (string.IsNullOrWhiteSpace(state.RotationNote) ? ", no note." : $", note: {state.RotationNote}");
+            + (string.IsNullOrWhiteSpace(state.RotationNote) ? ", no note." : $", note: {ToolText.Data(state.RotationNote)}");
     }
 
     // Names, environments and «set / not set» only — the API never sends a value, and neither does this text.
     private string Describe(AgentApplicationResponse application)
     {
         var text = new StringBuilder()
-            .AppendLine($"{application.Name}  ({application.Id}){(application.CreatedByThisToken ? "  [created by this token]" : "")}")
-            .AppendLine($"  Environments: {string.Join(", ", application.Environments)}");
+            .AppendLine($"{ToolText.Data(application.Name)}  ({application.Id}){(application.CreatedByThisToken ? "  [created by this token]" : "")}")
+            .AppendLine($"  Environments: {ToolText.DataList(application.Environments)}");
         if (application.Keys.Count == 0)
         {
             text.AppendLine("  Keys: none");
@@ -404,10 +415,10 @@ internal sealed class KeywardTools(KeywardAgentClient keyward, ISecretClipboard 
 
         foreach (var key in application.Keys)
         {
-            var states = key.Values.Select(v => $"{v.Environment}={(v.ValueSet ? "set" : "not set")}"
+            var states = key.Values.Select(v => $"{ToolText.Data(v.Environment)}={(v.ValueSet ? "set" : "not set")}"
                 + (v.RotateBy is { } rotateBy ? $" (renew by {rotateBy:yyyy-MM-dd})" : "")
-                + (string.IsNullOrWhiteSpace(v.RotationNote) ? "" : $" [note: {v.RotationNote}]"));
-            text.AppendLine($"  {key.Key}: {string.Join(", ", states)}");
+                + (string.IsNullOrWhiteSpace(v.RotationNote) ? "" : $" note: {ToolText.Data(v.RotationNote)}"));
+            text.AppendLine($"  {ToolText.Data(key.Key)}: {string.Join(", ", states)}");
         }
 
         text.AppendLine($"  Link (keys and values): {keyward.AbsoluteLink(application.Link)}")

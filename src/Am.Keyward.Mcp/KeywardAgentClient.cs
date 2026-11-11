@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Am.Keyward.Client;
 using Am.Keyward.Contracts;
 
 namespace Am.Keyward.Mcp;
@@ -14,11 +15,15 @@ internal sealed record AgentResult<T>(T? Value, string? Error, HttpStatusCode St
 
 /// <summary>
 /// Typed HTTP client for the KEYWARD agent API (<c>/keyward/api/v1/agent</c>). The bearer token and base address
-/// are set on the <see cref="HttpClient"/> by the host. Errors come back as the server's problem-details title,
-/// never as an exception, so a tool can hand them to the assistant as text.
+/// (the installation root, which may carry a sub-path such as <c>https://host/app</c>) are set on the
+/// <see cref="HttpClient"/> by the host. Errors come back as the server's problem-details title, never as an exception,
+/// so a tool can hand them to the assistant as text.
 /// </summary>
 internal sealed class KeywardAgentClient(HttpClient http)
 {
+    /// <summary>How long one call may take before the tool answers that KEYWARD did not respond.</summary>
+    public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+
     private const string Prefix = KeywardApiDefaults.BasePath + "/agent";
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -100,14 +105,18 @@ internal sealed class KeywardAgentClient(HttpClient http)
     public Task<AgentResult<AgentExpiringResponse>> ListExpiringAsync(int days, CancellationToken ct) =>
         SendAsync<AgentExpiringResponse>(HttpMethod.Get, $"/expiring?days={days}", null, null, ct);
 
-    /// <summary>The absolute deep link to an item, for handing to a person.</summary>
+    /// <summary>The absolute deep link to an item, for handing to a person — below the installation's sub-path, if any.</summary>
     public string AbsoluteLink(string link) =>
-        http.BaseAddress is null ? link : new Uri(http.BaseAddress, link).ToString();
+        http.BaseAddress is null ? link : KeywardServiceAddress.Resolve(http.BaseAddress, link).AbsoluteUri;
+
+    // Relative to the installation root, so a sub-path in the base address is kept.
+    private Uri RequestUri(string path) =>
+        http.BaseAddress is null ? new Uri(Prefix + path, UriKind.Relative) : KeywardServiceAddress.Resolve(http.BaseAddress, Prefix + path);
 
     private async Task<AgentResult<T>> SendAsync<T>(
         HttpMethod method, string path, object? body, Guid? ifMatch, CancellationToken ct, bool ifNoneMatchAny = false)
     {
-        using var request = new HttpRequestMessage(method, Prefix + path);
+        using var request = new HttpRequestMessage(method, RequestUri(path));
         if (body is not null)
         {
             request.Content = JsonContent.Create(body, options: Json);
@@ -130,17 +139,34 @@ internal sealed class KeywardAgentClient(HttpClient http)
         }
         catch (HttpRequestException ex)
         {
-            return new AgentResult<T>(default, $"KEYWARD is not reachable at {http.BaseAddress}: {ex.Message}", 0);
+            return new AgentResult<T>(default, $"KEYWARD is not reachable at {http.BaseAddress}: {ToolText.Clean(ex.Message)}", 0);
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return new AgentResult<T>(default, $"KEYWARD at {http.BaseAddress} did not answer within {http.Timeout.TotalSeconds:0} seconds. Try again later.", 0);
         }
 
         using (response)
         {
             if (response.IsSuccessStatusCode)
             {
-                var value = response.Content.Headers.ContentLength == 0 || response.StatusCode == HttpStatusCode.NoContent
-                    ? default
-                    : await response.Content.ReadFromJsonAsync<T>(Json, ct).ConfigureAwait(false);
-                return new AgentResult<T>(value, null, response.StatusCode);
+                try
+                {
+                    var value = response.Content.Headers.ContentLength == 0 || response.StatusCode == HttpStatusCode.NoContent
+                        ? default
+                        : await response.Content.ReadFromJsonAsync<T>(Json, ct).ConfigureAwait(false);
+                    return new AgentResult<T>(value, null, response.StatusCode);
+                }
+                catch (Exception ex) when (ex is JsonException or NotSupportedException)
+                {
+                    return new AgentResult<T>(default,
+                        $"KEYWARD at {http.BaseAddress} answered {(int)response.StatusCode} with something that is not the expected data — does {KeywardMcpHost.ServiceUriVariable} point to a KEYWARD installation, and is it up to date?",
+                        response.StatusCode);
+                }
+                catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    return new AgentResult<T>(default, $"KEYWARD at {http.BaseAddress} did not finish its answer within {http.Timeout.TotalSeconds:0} seconds. Try again later.", 0);
+                }
             }
 
             return new AgentResult<T>(default, await DescribeAsync(response, ct).ConfigureAwait(false), response.StatusCode);
@@ -164,14 +190,18 @@ internal sealed class KeywardAgentClient(HttpClient http)
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false));
             if (doc.RootElement.TryGetProperty("title", out var title) && title.GetString() is { Length: > 0 } text)
             {
-                return $"{status}: {text}";
+                return $"{status}: {ToolText.Clean(text)}";
             }
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException or HttpRequestException)
         {
             // Not a problem-details body.
         }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            // The error body did not arrive in time; the status says enough.
+        }
 
-        return $"{status}: {hint ?? response.ReasonPhrase}";
+        return $"{status}: {hint ?? ToolText.Clean(response.ReasonPhrase)}";
     }
 }

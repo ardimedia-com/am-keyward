@@ -17,7 +17,7 @@ internal sealed class KeywardCliContext
     public required TextReader In { get; init; }
     public required KeywardProfiles Profiles { get; init; }
 
-    /// <summary>An HTTP client for an installation with a Bearer token and a timeout; base address = installation root.</summary>
+    /// <summary>An HTTP client for an installation with a Bearer token and a timeout; base address = installation root (with its sub-path).</summary>
     public required Func<Uri, string, TimeSpan, HttpClient> HttpClientFor { get; init; }
 
     /// <summary>Reads a token typed or pasted at the console without echoing it.</summary>
@@ -26,8 +26,8 @@ internal sealed class KeywardCliContext
     /// <summary>True when stdin is a pipe or a file (then a token is read from it, not from the keyboard).</summary>
     public required bool InputRedirected { get; init; }
 
-    /// <summary>The agent token stored by `amkeyward-mcp setup` for an installation (for `import`), or null.</summary>
-    public required Func<Uri, string?> AgentTokenFor { get; init; }
+    /// <summary>The agent token stored by `amkeyward-mcp setup` for exactly this installation (for `import`), or why there is none.</summary>
+    public required Func<Uri, KeywardAgentTokenLookup> AgentTokenFor { get; init; }
 
     /// <summary>Starts a program and returns its exit code.</summary>
     public required Func<ProcessStartInfo, Task<int>> RunProcess { get; init; }
@@ -92,6 +92,22 @@ internal sealed class KeywardCli(KeywardCliContext context)
             context.Err.WriteLine($"keyward: Keyward answered {(int)ex.StatusCode!} ({ex.Message}).");
             return (int)KeywardExitCode.Failed;
         }
+        catch (Exception ex) when (ex is JsonException or NotSupportedException)
+        {
+            context.Err.WriteLine("keyward: the answer is not what Keyward sends - is the address a Keyward installation, and is it up to date?");
+            return (int)KeywardExitCode.Failed;
+        }
+        catch (RegexMatchTimeoutException)
+        {
+            context.Err.WriteLine("keyward: a mapping pattern took too long to match - simplify it (anchor it with ^ and $).");
+            return (int)KeywardExitCode.Usage;
+        }
+        catch (Exception ex)
+        {
+            // Never a stack trace: one line, exit code 1 (a credential store that refuses, a file that cannot be read, ...).
+            context.Err.WriteLine($"keyward: {ex.Message}");
+            return (int)KeywardExitCode.Failed;
+        }
     }
 
     // --- profiles ---
@@ -128,12 +144,12 @@ internal sealed class KeywardCli(KeywardCliContext context)
         context.Err.WriteLine($"Received {KeywardTokenInput.Mask(token)} ({token.Length} characters).");
 
         using var http = context.HttpClientFor(service, token, RequestTimeout);
-        using var response = await http.GetAsync(ClientPath("ping"));
+        using var response = await http.GetAsync(KeywardServiceAddress.Resolve(service, ClientPath("ping")));
         ThrowForAccess(response.StatusCode);
         response.EnsureSuccessStatusCode();
 
         var place = context.Profiles.Save(name, service, token);
-        context.Err.WriteLine($"Profile '{name.ToLowerInvariant()}' stored in {place} (for {service.GetLeftPart(UriPartial.Authority)}). Try: keyward keys {name.ToLowerInvariant()}");
+        context.Err.WriteLine($"Profile '{name.ToLowerInvariant()}' stored in {place} (for {KeywardProfiles.Display(service)}). Try: keyward keys {name.ToLowerInvariant()}");
         return KeywardExitCode.Ok;
     }
 
@@ -158,7 +174,7 @@ internal sealed class KeywardCli(KeywardCliContext context)
         foreach (var profile in profiles)
         {
             var token = context.Profiles.HasStoredToken(profile) ? "token stored" : "NO TOKEN";
-            context.Out.WriteLine($"{profile.Name}\t{profile.ServiceUri.GetLeftPart(UriPartial.Authority)}\t{token}");
+            context.Out.WriteLine($"{profile.Name}\t{KeywardProfiles.Display(profile.ServiceUri)}\t{token}");
         }
 
         return KeywardExitCode.Ok;
@@ -204,18 +220,21 @@ internal sealed class KeywardCli(KeywardCliContext context)
         if (separator < 0 || separator == args.Length - 1)
         {
             throw new KeywardCliException(KeywardExitCode.Usage,
-                "keyward run --env NAME=<profile>:<key> [--env ...] [--all <profile> [--prefix P_]] -- <program> [arguments]");
+                "keyward run --env NAME=<profile>:<key> [--env ...] [--all <profile> [--prefix P_] [--allow-name NAME ...]] -- <program> [arguments]");
         }
 
-        var options = Options.Parse(args[..separator], values: ["--all", "--prefix"], repeatable: ["--env"]);
+        var options = Options.Parse(args[..separator], values: ["--all", "--prefix"], repeatable: ["--env", "--allow-name"]);
         var variables = new Dictionary<string, string>(StringComparer.Ordinal);
 
         if (options.Value("--all") is { } allProfile)
         {
             var prefix = options.Value("--prefix") ?? "";
+            var allowed = AllowedNames(options);
             foreach (var (key, value) in await ReadAllAsync(allProfile))
             {
-                variables[SecretReference.VariableNameFor(key, prefix)] = value ?? "";
+                var name = SecretReference.VariableNameFor(key, prefix);
+                EnvironmentVariablePolicy.CheckFromKey(name, key, allowed);
+                variables[name] = value ?? "";
             }
         }
 
@@ -227,7 +246,9 @@ internal sealed class KeywardCli(KeywardCliContext context)
                 throw new KeywardCliException(KeywardExitCode.Usage, $"'{assignment}' is no assignment - write NAME=<profile>:<key>.");
             }
 
-            variables[assignment[..equals].Trim()] = await LookupAsync(SecretReference.Parse(assignment[(equals + 1)..]));
+            var name = assignment[..equals].Trim();
+            EnvironmentVariablePolicy.CheckChosen(name);
+            variables[name] = await LookupAsync(SecretReference.Parse(assignment[(equals + 1)..]));
         }
 
         if (variables.Count == 0)
@@ -277,8 +298,8 @@ internal sealed class KeywardCli(KeywardCliContext context)
 
     private async Task<KeywardExitCode> EnvAsync(string[] args)
     {
-        var options = Options.Parse(args, values: ["--shell", "--prefix"]);
-        var profile = options.Positional(0, "keyward env <profile> [--shell powershell|sh] [--prefix P_]");
+        var options = Options.Parse(args, values: ["--shell", "--prefix"], repeatable: ["--allow-name"]);
+        var profile = options.Positional(0, "keyward env <profile> [--shell powershell|sh] [--prefix P_] [--allow-name NAME ...]");
         var shell = options.Value("--shell") ?? (OperatingSystem.IsWindows() ? "powershell" : "sh");
         var prefix = options.Value("--prefix") ?? "";
         if (shell is not ("powershell" or "sh"))
@@ -286,7 +307,16 @@ internal sealed class KeywardCli(KeywardCliContext context)
             throw new KeywardCliException(KeywardExitCode.Usage, "--shell is powershell or sh.");
         }
 
-        foreach (var (key, value) in (await ReadAllAsync(profile)).OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase))
+        var allowed = AllowedNames(options);
+        var all = (await ReadAllAsync(profile)).OrderBy(p => p.Key, StringComparer.OrdinalIgnoreCase).ToList();
+
+        // Every name is checked before the first line is printed, so a refused key never leaves half a script.
+        foreach (var (key, _) in all)
+        {
+            EnvironmentVariablePolicy.CheckFromKey(SecretReference.VariableNameFor(key, prefix), key, allowed);
+        }
+
+        foreach (var (key, value) in all)
         {
             var name = SecretReference.VariableNameFor(key, prefix);
             var text = value ?? "";
@@ -308,7 +338,7 @@ internal sealed class KeywardCli(KeywardCliContext context)
         var mappingPath = options.Value("--mapping") ?? throw new KeywardCliException(KeywardExitCode.Usage, "--mapping <file.json> is required.");
         var sourcePath = options.Value("--source") ?? throw new KeywardCliException(KeywardExitCode.Usage, "--source <file> is required.");
 
-        var plan = SecretImport.Plan(ReadFile(mappingPath), File.ReadAllLines(sourcePath));
+        var plan = SecretImport.Plan(ReadFile(mappingPath), ReadLines(sourcePath));
         foreach (var problem in plan.Problems)
         {
             context.Err.WriteLine($"keyward: {problem}");
@@ -331,11 +361,12 @@ internal sealed class KeywardCli(KeywardCliContext context)
             return KeywardExitCode.Ok;
         }
 
-        var agentToken = context.AgentTokenFor(service) ?? throw new KeywardCliException(KeywardExitCode.NoProfile,
-            $"No AI agent token stored for {service.GetLeftPart(UriPartial.Authority)}. Store one with 'amkeyward-mcp setup {service.GetLeftPart(UriPartial.Authority)}' (it needs 'Manage applications').");
+        var lookup = context.AgentTokenFor(service);
+        var agentToken = lookup.Token ?? throw new KeywardCliException(KeywardExitCode.NoProfile,
+            $"{lookup.Problem} (The token needs 'Manage applications'.)");
 
         using var http = context.HttpClientFor(service, agentToken, ImportTimeout);
-        var written = await SecretImport.WriteAsync(http, plan.Rows, options.Has("--overwrite"), context.Out);
+        var written = await SecretImport.WriteAsync(http, KeywardServiceAddress.ApiBase(service, KeywardApiDefaults.BasePath + "/agent"), plan.Rows, options.Has("--overwrite"), context.Out);
         context.Err.WriteLine($"keyward: {written} value(s) written. Delete the plain-text file once every consumer reads from Keyward.");
         return KeywardExitCode.Ok;
     }
@@ -376,18 +407,20 @@ internal sealed class KeywardCli(KeywardCliContext context)
               keyward profiles                                           list profiles (never values)
               keyward get <profile>:<key> [--json]                       print one value
               keyward keys <profile> [--json]                            list the keys the token can read
-              keyward run --env NAME=<profile>:<key> [--all <profile> [--prefix P_]] -- <program> [arguments]
+              keyward run --env NAME=<profile>:<key> [--all <profile> [--prefix P_] [--allow-name NAME]] -- <program> [arguments]
                                                                          start a program with values as environment variables
               keyward headers --set "Authorization=Bearer {<profile>:<key>}"
                                                                          JSON for Claude Code's headersHelper
-              keyward env <profile> [--shell powershell|sh] [--prefix P_] assignments for this shell session
+              keyward env <profile> [--shell powershell|sh] [--prefix P_] [--allow-name NAME]
+                                                                         assignments for this shell session
               keyward import --service <url> --mapping <map.json> --source <file> [--dry-run] [--overwrite]
                                                                          move a plain-text secrets file into Keyward
               keyward powershell install [--windows-powershell]          add the PowerShell SecretManagement vault
 
             Never wrap an AI agent itself (keyward run -- claude): its shell could print the values. Wrap a single MCP
-            server, or use headersHelper. Exit codes: 0 ok, 2 usage, 3 no profile, 4 token rejected, 5 network not
-            allowed, 6 unknown key, 7 no value in this environment, 8 unreachable, 1 other.
+            server, or use headersHelper. Names made from keys (--all, env) never set PATH, LD_*, DOTNET_*, NODE_OPTIONS
+            and other loader/shell variables unless --allow-name lists them. Exit codes: 0 ok, 2 usage, 3 no profile,
+            4 token rejected, 5 network not allowed, 6 unknown key, 7 no value in this environment, 8 unreachable, 1 other.
             """);
         return KeywardExitCode.Ok;
     }
@@ -440,14 +473,17 @@ internal sealed class KeywardCli(KeywardCliContext context)
         return result;
     }
 
-    // KeywardSecretsClient expects the API base as its base address.
+    // KeywardSecretsClient expects the API base as its base address — below the installation's sub-path, if any.
     private static KeywardSecretsClient ClientFor(HttpClient http, KeywardProfile profile)
     {
-        http.BaseAddress = new Uri(profile.ServiceUri, ClientPath(""));
+        http.BaseAddress = KeywardServiceAddress.ApiBase(profile.ServiceUri, KeywardApiDefaults.BasePath);
         return new KeywardSecretsClient(http);
     }
 
-    private static string ClientPath(string relative) => $"{KeywardApiDefaults.BasePath.TrimEnd('/')}/{relative}";
+    private static string ClientPath(string relative) => $"{KeywardApiDefaults.BasePath.Trim('/')}/{relative}";
+
+    private static HashSet<string> AllowedNames(Options options) =>
+        new(options.Values("--allow-name").Select(n => n.Trim()), StringComparer.OrdinalIgnoreCase);
 
     private static void ThrowForAccess(HttpStatusCode status)
     {
@@ -464,13 +500,16 @@ internal sealed class KeywardCli(KeywardCliContext context)
     }
 
     private static KeywardCliException TokenRejected(KeywardProfile profile) => new(KeywardExitCode.TokenRejected,
-        $"Keyward rejected the app token of profile '{profile.Name}' (unknown, revoked or expired). Store a new one with: keyward login {profile.Name} --service {profile.ServiceUri.GetLeftPart(UriPartial.Authority)}");
+        $"Keyward rejected the app token of profile '{profile.Name}' (unknown, revoked or expired). Store a new one with: keyward login {profile.Name} --service {KeywardProfiles.Display(profile.ServiceUri)}");
 
     private static KeywardCliException NetworkNotAllowed(KeywardProfile profile) => new(KeywardExitCode.NetworkNotAllowed,
         $"This computer's network may not use the software-client API of {profile.ServiceUri.Host} (Keyward:Client:AllowedNetworks).");
 
     private static string ReadFile(string path) =>
         File.Exists(path) ? File.ReadAllText(path) : throw new KeywardCliException(KeywardExitCode.Usage, $"File not found: {path}");
+
+    private static string[] ReadLines(string path) =>
+        File.Exists(path) ? File.ReadAllLines(path) : throw new KeywardCliException(KeywardExitCode.Usage, $"File not found: {path}");
 
     /// <summary>
     /// A program without a path or extension, as a person types it («node», «npx»): Windows finds only .exe on its own,
@@ -499,10 +538,10 @@ internal sealed class KeywardCli(KeywardCliContext context)
         return program;
     }
 
-    /// <summary>The HTTP client the program uses: base address = installation root, Bearer token, timeout.</summary>
+    /// <summary>The HTTP client the program uses: base address = installation root (sub-path kept), Bearer token, timeout.</summary>
     public static HttpClient CreateHttpClient(Uri service, string token, TimeSpan timeout)
     {
-        var http = new HttpClient { BaseAddress = new Uri(service.GetLeftPart(UriPartial.Authority) + "/"), Timeout = timeout };
+        var http = new HttpClient { BaseAddress = KeywardServiceAddress.Root(service), Timeout = timeout };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return http;
     }

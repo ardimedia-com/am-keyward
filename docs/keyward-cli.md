@@ -35,6 +35,9 @@ keyward logout ops                                        # forgets profile and 
 `login` checks the token against `/ping` before it stores anything. For automation pipe the token in with
 `--token-stdin` (it is never accepted as an argument — arguments are visible in the process list).
 
+The address must be `https://` — plain `http://` is accepted for `localhost` only, so a token never travels
+unencrypted. An installation under a sub-path (`https://host/app`) is stored with its path.
+
 Where there is no OS store (Linux, a container) the profile comes from environment variables:
 `KEYWARD_PROFILE_<NAME>_SERVICE` and `KEYWARD_PROFILE_<NAME>_TOKEN` (`<NAME>` upper case, `-` and `.` as `_`).
 
@@ -58,6 +61,15 @@ keyward run --all ops --prefix OPS_ -- pwsh -File backup.ps1   # every key of th
 ```
 
 `keyward` waits for the program and returns its exit code; Ctrl+C reaches the program.
+
+Variable names made from keys (`--all`, and `keyward env`) are chosen by whoever can create keys in the application
+— a person, or an agent with «Manage applications» — so they may not set a variable that changes how a program or
+the shell starts: `PATH`, `PATHEXT`, `LD_*`, `DYLD_*`, `DOTNET_*`, `COR_*`, `CORECLR_*`, `NODE_OPTIONS`, `PYTHON*`,
+`PERL5*`, `RUBYOPT`, `JAVA_TOOL_OPTIONS`, `_JAVA_OPTIONS`, `BASH_ENV`, `ENV`, `PS1`–`PS4`, `PROMPT_COMMAND`, `COMSPEC`,
+`SHELL`, `HOME`, `USERPROFILE`, `TEMP`, `TMP`, `SystemRoot`, `windir` and similar (compared without regard to case).
+Such a key stops the command before anything starts or is printed; use `--prefix` (e.g. `--prefix APP_`), or name the
+variable with `--allow-name NAME` (repeatable) when the key is really meant to set it. Every name must also be
+portable — a letter or `_`, then letters, digits or `_` — and so must a name given with `--env NAME=…`.
 
 ### MCP servers in Claude Code
 
@@ -137,23 +149,25 @@ keyward import --service https://keyward.example.com --mapping map.json --source
 ```
 
 Each pattern must match **exactly one line** and capture the value in the group `value`; an entry matching no line
-or several lines stops the whole import before anything is written. `--dry-run` shows line, target and length,
-never the value. Existing values are kept unless `--overwrite` is given (the write uses `If-None-Match: *` /
-`If-Match`, so a concurrent change is not overwritten silently).
+or several lines, or a pattern that needs more than a second on a line, stops the whole import before anything is
+written. `--dry-run` shows line, target and length, never the value. Existing values are kept unless `--overwrite`
+is given (the write uses `If-None-Match: *` / `If-Match`, so a concurrent change is not overwritten silently). A new
+key may be mapped for several environments: the first row creates it, the others set its value.
 
-Writing goes through the agent API with the agent token `amkeyward-mcp setup` stored for that installation (or
-`KEYWARD_AGENT_TOKEN`); it needs the permission **«Manage applications»** and must reach the application. Delete the
-plain-text file once every consumer reads from Keyward.
+Writing goes through the agent API with the agent token `amkeyward-mcp setup` stored for exactly that installation's
+address (on Linux, without a credential store: `KEYWARD_AGENT_TOKEN`, which is not bound to an address; on Windows
+and macOS it is ignored); it needs the permission **«Manage applications»** and must reach the application. Delete
+the plain-text file once every consumer reads from Keyward.
 
 ## Exit codes and errors
 
-Errors go to stderr, prefixed `keyward:`; stdout carries only the requested output.
+Errors go to stderr as one line, prefixed `keyward:` — never a stack trace; stdout carries only the requested output.
 
 | Code | Meaning |
 |---|---|
 | 0 | OK (`run`: the program's own exit code) |
-| 1 | Other failure |
-| 2 | Usage — wrong arguments, or an import mapping with problems |
+| 1 | Other failure — e.g. Keyward answered with an error or with something that is not Keyward's answer (wrong address), the profile file cannot be read, a stored address is not https, or the credential store refused |
+| 2 | Usage — wrong arguments, a file that does not exist, a refused variable name, or an import mapping with problems |
 | 3 | No profile, or no token stored for it |
 | 4 | Token rejected (revoked, expired, wrong installation) |
 | 5 | Network not allowed (`Keyward:Client:AllowedNetworks`) |

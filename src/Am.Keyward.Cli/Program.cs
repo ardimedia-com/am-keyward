@@ -17,19 +17,13 @@ internal static class KeywardCliHost
             HttpClientFor = KeywardCli.CreateHttpClient,
             ReadHiddenToken = KeywardTokenInput.ReadHidden,
             InputRedirected = Console.IsInputRedirected,
-            AgentTokenFor = AgentToken,
+            AgentTokenFor = KeywardCredentialStore.FindAgentToken,
             RunProcess = RunAsync,
             PowerShellModulesFolder = PowerShellModule.DefaultModulesFolder,
         };
 
         return new KeywardCli(context).RunAsync(args);
     }
-
-    // The agent token `amkeyward-mcp setup` stored for this installation (for `keyward import`).
-    private static string? AgentToken(Uri service) =>
-        KeywardCredentialStore.For(KeywardCredentialStore.AgentTarget(service))?.Read() is { Length: > 0 } stored ? stored
-        : Environment.GetEnvironmentVariable("KEYWARD_AGENT_TOKEN") is { Length: > 0 } fromEnvironment ? fromEnvironment
-        : null;
 
     // The child shares this console: Ctrl+C reaches it directly, so keyward itself waits instead of dying first.
     private static async Task<int> RunAsync(ProcessStartInfo start)

@@ -34,7 +34,20 @@ public static class KeywardHeartbeat
         ArgumentNullException.ThrowIfNull(configuration);
 
         var configured = configuration[ServiceUriConfigurationKey];
-        var serviceUri = string.IsNullOrWhiteSpace(configured) ? null : new Uri(configured, UriKind.Absolute);
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            return SendAsync((Uri?)null, applicationName, logger, cancellationToken);
+        }
+
+        // A malformed address is a monitoring problem, not the job's: report it like any other heartbeat failure.
+        if (!Uri.TryCreate(configured.Trim(), UriKind.Absolute, out var serviceUri))
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(applicationName);
+            (logger ?? NullLogger.Instance).LogWarning(
+                "Keyward heartbeat failed for {Application} — {Key} is not an absolute URL; the run itself was not affected", applicationName, ServiceUriConfigurationKey);
+            return Task.FromResult(false);
+        }
+
         return SendAsync(serviceUri, applicationName, logger, cancellationToken);
     }
 

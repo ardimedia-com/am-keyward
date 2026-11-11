@@ -63,11 +63,12 @@ public class McpToolsTests
         StringAssert.Contains(await Say(tools.ListItemsAsync(vault, default)), "DHL key");
         StringAssert.StartsWith(await Say(tools.MoveItemAsync(itemId, vault)), "Moved: ");
         var item = await Say(tools.GetItemAsync(itemId, default));
-        StringAssert.Contains(item, "User name: bvd-client");
+        StringAssert.Contains(item, "User name: ⟦bvd-client⟧");
 
-        // Without a version the tool uses the current one; a stale version is refused.
-        StringAssert.StartsWith(await Say(tools.UpdateItemAsync(itemId, password: "second-secret")), "Updated: ");
-        StringAssert.Contains(await Say(tools.UpdateItemAsync(itemId, versionId: Guid.NewGuid(), password: "third")), "412");
+        // The version from get_item is required; a stale version is refused.
+        var version = Guid.Parse(item.Split("Version: ")[1].Split('\n')[0].Trim());
+        StringAssert.StartsWith(await Say(tools.UpdateItemAsync(itemId, version, password: "second-secret")), "Updated: ");
+        StringAssert.Contains(await Say(tools.UpdateItemAsync(itemId, Guid.NewGuid(), password: "third")), "412");
 
         // Reveal: pending until the person approves, then once — to the clipboard only.
         var requested = await Say(tools.RequestRevealAsync(itemId, "Password", "configure the CH-Post client", default));
@@ -149,9 +150,9 @@ public class McpToolsTests
         StringAssert.Contains(await Say(tools.SetSecretValueAsync(applicationId, "PionexOwnerBotWatch:ApiKey", "Nowhere", "x")), "400");
 
         var listed = await Say(tools.ListApplicationsAsync(default));
-        StringAssert.Contains(listed, "PionexOwnerBotWatch:ApiSecret: ");
-        StringAssert.Contains(listed, "Production=set");
-        StringAssert.Contains(listed, "Staging=not set");
+        StringAssert.Contains(listed, "⟦PionexOwnerBotWatch:ApiSecret⟧: ");
+        StringAssert.Contains(listed, "⟦Production⟧=set");
+        StringAssert.Contains(listed, "⟦Staging⟧=not set");
         StringAssert.Contains(await Say(tools.ListAppTokensAsync(applicationId, default)), "Pending");
         StringAssert.Contains(await Say(tools.GetAppStatisticsAsync(applicationId, 7)), "No access recorded");
 
@@ -209,18 +210,25 @@ public class McpToolsTests
         StringAssert.Contains(await tools.ConsumeRevealAsync(Guid.NewGuid(), default), "not available");
     }
 
-    private sealed class FakeClipboard : ISecretClipboard
+    internal sealed class FakeClipboard : ISecretClipboard
     {
         public string? Value { get; private set; }
 
         public TimeSpan? ClearAfter { get; private set; }
 
+        /// <summary>What <see cref="Probe"/> answers: null = usable.</summary>
+        public string? ProbeProblem { get; set; }
+
         public bool IsAvailable => true;
+
+        public string? Probe() => ProbeProblem;
 
         public void CopyAndClearLater(string value, TimeSpan clearAfter)
         {
             Value = value;
             ClearAfter = clearAfter;
         }
+
+        public void ClearPendingNow() => Value = null;
     }
 }

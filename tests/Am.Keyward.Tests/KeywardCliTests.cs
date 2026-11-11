@@ -192,10 +192,11 @@ public class KeywardCliTests
         Directory.CreateDirectory(folder);
         var source = Path.Combine(folder, "secrets.md");
         var mapping = Path.Combine(folder, "map.json");
-        File.WriteAllLines(source, ["Relay key: `relay-1`", "PRTG token: `tok-new`"]);
+        File.WriteAllLines(source, ["Relay key: `relay-1`", "Relay key test: `relay-t`", "PRTG token: `tok-new`"]);
         File.WriteAllText(mapping, """
             { "entries": [
               { "pattern": "^Relay key: `(?<value>[^`]+)`$", "application": "Ops.Prtg", "environment": "Production", "key": "Relay:Key" },
+              { "pattern": "^Relay key test: `(?<value>[^`]+)`$", "application": "Ops.Prtg", "environment": "Test", "key": "Relay:Key" },
               { "pattern": "^PRTG token: `(?<value>[^`]+)`$", "application": "Ops.Prtg", "environment": "Production", "key": "Prtg:Token" }
             ] }
             """);
@@ -208,12 +209,15 @@ public class KeywardCliTests
         (cli, output, err) = Cli(profiles, app, agentToken: seed.AgentToken);
         Assert.AreEqual(0, await cli.RunAsync(["import", "--service", Service.ToString(), "--mapping", mapping, "--source", source]), err.ToString());
         StringAssert.Contains(output.ToString(), "Relay:Key - created");
+        // The second environment of the key the import just created is set, not created a second time (review 3, M23).
+        StringAssert.Contains(output.ToString(), "Ops.Prtg / Test / Relay:Key - set");
         StringAssert.Contains(output.ToString(), "Prtg:Token - already has a value, skipped");
         Assert.DoesNotContain("relay-1", output.ToString() + err.ToString());
 
         using var scope = AgentApiTests.ScopeFor(app.Services, seed.TenantId, seed.Manager);
         var secrets = scope.ServiceProvider.GetRequiredService<ISoftwareSecretService>();
         Assert.AreEqual("relay-1", await secrets.ReadAsync(new ReadSoftwareSecretQuery(seed.TenantId, seed.ProjectId, "Production", "Relay:Key", seed.Manager)));
+        Assert.AreEqual("relay-t", await secrets.ReadAsync(new ReadSoftwareSecretQuery(seed.TenantId, seed.ProjectId, "Test", "Relay:Key", seed.Manager)));
         Assert.AreEqual("tok-123", await secrets.ReadAsync(new ReadSoftwareSecretQuery(seed.TenantId, seed.ProjectId, "Production", "Prtg:Token", seed.Manager)));
         Directory.Delete(folder, recursive: true);
     }
@@ -234,13 +238,13 @@ public class KeywardCliTests
             HttpClientFor = (service, token, _) =>
             {
                 var client = app?.GetTestClient() ?? throw new InvalidOperationException("No server in this test.");
-                client.BaseAddress = new Uri(service.GetLeftPart(UriPartial.Authority) + "/");
+                client.BaseAddress = KeywardServiceAddress.Root(service);
                 client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 return client;
             },
             ReadHiddenToken = () => throw new InvalidOperationException("No console in a test."),
             InputRedirected = true,
-            AgentTokenFor = _ => agentToken,
+            AgentTokenFor = _ => new KeywardAgentTokenLookup(agentToken, agentToken is null ? "No agent token stored." : null),
             RunProcess = start => Task.FromResult(run?.Invoke(start) ?? 0),
             PowerShellModulesFolder = _ => Path.GetTempPath(),
         };

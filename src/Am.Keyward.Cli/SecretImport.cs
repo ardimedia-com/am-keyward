@@ -72,10 +72,18 @@ internal static class SecretImport
                 continue;
             }
 
-            var matches = sourceLines
-                .Select((line, index) => (Line: index + 1, Match: regex.Match(line)))
-                .Where(m => m.Match.Success)
-                .ToList();
+            List<(int Line, Match Match)> matches;
+            try
+            {
+                matches = [.. sourceLines
+                    .Select((line, index) => (Line: index + 1, Match: regex.Match(line)))
+                    .Where(m => m.Match.Success)];
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                problems.Add($"{label}: the pattern takes too long to match (over 1 second on a line) - simplify it, e.g. anchor it with ^ and $.");
+                continue;
+            }
             if (matches.Count != 1)
             {
                 problems.Add(matches.Count == 0
@@ -103,10 +111,15 @@ internal static class SecretImport
         return new ImportPlan(rows, problems);
     }
 
-    /// <summary>Writes the rows through the agent API; prints one line per row (never a value). Returns how many were written.</summary>
-    public static async Task<int> WriteAsync(HttpClient http, IReadOnlyList<ImportRow> rows, bool overwrite, TextWriter output)
+    /// <summary>
+    /// Writes the rows through the agent API at <paramref name="agentApi"/> (slash-terminated); prints one line per row
+    /// (never a value). Returns how many were written. After each write the application is read again, so a later row
+    /// for the same key (another environment of a key the import just created) sees the key and its versions.
+    /// </summary>
+    public static async Task<int> WriteAsync(HttpClient http, Uri agentApi, IReadOnlyList<ImportRow> rows, bool overwrite, TextWriter output)
     {
-        var applications = await GetApplicationsAsync(http);
+        Uri Agent(string relative) => new(agentApi, relative);
+        var applications = await GetApplicationsAsync(http, Agent("applications"));
         var written = 0;
         foreach (var row in rows)
         {
@@ -121,10 +134,11 @@ internal static class SecretImport
             if (key is null)
             {
                 using var response = await http.PostAsJsonAsync(
-                    AgentPath($"applications/{application.Id}/secrets"), new AgentCreateSecretRequest(row.Key, row.Environment, row.Value), Json);
+                    Agent($"applications/{application.Id}/secrets"), new AgentCreateSecretRequest(row.Key, row.Environment, row.Value), Json);
                 await EnsureAsync(response, row);
                 output.WriteLine($"line {row.Line}: {target} - created");
                 written++;
+                await RefreshAsync(http, Agent($"applications/{application.Id}"), applications, application);
                 continue;
             }
 
@@ -134,7 +148,7 @@ internal static class SecretImport
                 continue;
             }
 
-            using var request = new HttpRequestMessage(HttpMethod.Put, AgentPath($"applications/{application.Id}/secrets/{Uri.EscapeDataString(key.Key)}"))
+            using var request = new HttpRequestMessage(HttpMethod.Put, Agent($"applications/{application.Id}/secrets/{Uri.EscapeDataString(key.Key)}"))
             {
                 Content = JsonContent.Create(new AgentSetSecretValueRequest(row.Environment, row.Value), options: Json),
             };
@@ -151,14 +165,25 @@ internal static class SecretImport
             await EnsureAsync(put, row);
             output.WriteLine($"line {row.Line}: {target} - {(state is { ValueSet: true } ? "replaced" : "set")}");
             written++;
+            await RefreshAsync(http, Agent($"applications/{application.Id}"), applications, application);
         }
 
         return written;
     }
 
-    private static async Task<List<AgentApplicationResponse>> GetApplicationsAsync(HttpClient http)
+    // Replaces the snapshot of one application with its current state (keys and value versions after a write).
+    private static async Task RefreshAsync(HttpClient http, Uri applicationUri, List<AgentApplicationResponse> applications, AgentApplicationResponse stale)
     {
-        using var response = await http.GetAsync(AgentPath("applications"));
+        using var response = await http.GetAsync(applicationUri);
+        response.EnsureSuccessStatusCode();
+        var fresh = await response.Content.ReadFromJsonAsync<AgentApplicationResponse>(Json)
+            ?? throw new KeywardCliException(KeywardExitCode.Failed, $"Keyward sent no data for application '{stale.Name}'.");
+        applications[applications.IndexOf(stale)] = fresh;
+    }
+
+    private static async Task<List<AgentApplicationResponse>> GetApplicationsAsync(HttpClient http, Uri applicationsUri)
+    {
+        using var response = await http.GetAsync(applicationsUri);
         if (response.StatusCode == HttpStatusCode.Unauthorized)
         {
             throw new KeywardCliException(KeywardExitCode.TokenRejected, "Keyward rejected the AI agent token (unknown, revoked or expired).");
@@ -198,8 +223,6 @@ internal static class SecretImport
             return "";
         }
     }
-
-    private static string AgentPath(string relative) => $"{KeywardApiDefaults.BasePath.TrimEnd('/')}/agent/{relative}";
 
     private sealed record Mapping(List<MappingEntry>? Entries);
 

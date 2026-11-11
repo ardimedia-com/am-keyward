@@ -27,20 +27,19 @@ internal sealed class KeywardProfiles(string filePath, Func<string, IKeywardCred
         new(DefaultFilePath, KeywardCredentialStore.For, Environment.GetEnvironmentVariable);
 
     public IReadOnlyList<KeywardProfile> List() =>
-        [.. Load().Select(p => new KeywardProfile(p.Key, new Uri(p.Value)))];
+        [.. Load().Select(p => new KeywardProfile(p.Key, Address(p.Key, p.Value, filePath)))];
 
     public KeywardProfile Find(string name)
     {
         var key = Normalize(name);
         if (Load().TryGetValue(key, out var service))
         {
-            return new KeywardProfile(key, new Uri(service));
+            return new KeywardProfile(key, Address(key, service, filePath));
         }
 
-        if (environment(VariableFor(key, "SERVICE")) is { Length: > 0 } fromEnvironment
-            && Uri.TryCreate(fromEnvironment, UriKind.Absolute, out var uri))
+        if (environment(VariableFor(key, "SERVICE")) is { Length: > 0 } fromEnvironment)
         {
-            return new KeywardProfile(key, uri);
+            return new KeywardProfile(key, Address(key, fromEnvironment, VariableFor(key, "SERVICE")));
         }
 
         throw new KeywardCliException(KeywardExitCode.NoProfile,
@@ -57,7 +56,7 @@ internal sealed class KeywardProfiles(string filePath, Func<string, IKeywardCred
         return environment(VariableFor(profile.Name, "TOKEN")) is { Length: > 0 } fromEnvironment
             ? fromEnvironment
             : throw new KeywardCliException(KeywardExitCode.NoProfile,
-                $"No app token stored for profile '{profile.Name}'. Store it with: keyward login {profile.Name} --service {profile.ServiceUri.GetLeftPart(UriPartial.Authority)}");
+                $"No app token stored for profile '{profile.Name}'. Store it with: keyward login {profile.Name} --service {Display(profile.ServiceUri)}");
     }
 
     /// <summary>Stores the token in the OS store and the profile in the file. Returns where the token went.</summary>
@@ -70,7 +69,7 @@ internal sealed class KeywardProfiles(string filePath, Func<string, IKeywardCred
         store.Write(token);
 
         var profiles = Load();
-        profiles[key] = serviceUri.GetLeftPart(UriPartial.Authority);
+        profiles[key] = Display(serviceUri); // the root with its sub-path (https://host/app), never only the host
         Write(profiles);
         return store.Place;
     }
@@ -94,6 +93,15 @@ internal sealed class KeywardProfiles(string filePath, Func<string, IKeywardCred
         storeFor(KeywardCredentialStore.AppProfileTarget(profile.Name))?.Read() is { Length: > 0 }
         || environment(VariableFor(profile.Name, "TOKEN")) is { Length: > 0 };
 
+    /// <summary>An installation address as shown and stored: its root with a sub-path, without the trailing slash.</summary>
+    internal static string Display(Uri serviceUri) => KeywardServiceAddress.Root(serviceUri).AbsoluteUri.TrimEnd('/');
+
+    // A stored address must still be acceptable: https, or http to localhost only.
+    private static Uri Address(string profile, string text, string source) =>
+        KeywardServiceAddress.TryParse(text, out var address, out var error)
+            ? address!
+            : throw new KeywardCliException(KeywardExitCode.Failed, $"Profile '{profile}' ({source}): {error}");
+
     internal static string VariableFor(string profile, string what) =>
         $"KEYWARD_PROFILE_{SecretReference.VariableNameFor(profile).ToUpperInvariant()}_{what}";
 
@@ -115,7 +123,17 @@ internal sealed class KeywardProfiles(string filePath, Func<string, IKeywardCred
             return new Dictionary<string, string>(StringComparer.Ordinal);
         }
 
-        var file = JsonSerializer.Deserialize<ProfilesFile>(File.ReadAllText(filePath), Json);
+        ProfilesFile? file;
+        try
+        {
+            file = JsonSerializer.Deserialize<ProfilesFile>(File.ReadAllText(filePath), Json);
+        }
+        catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
+        {
+            throw new KeywardCliException(KeywardExitCode.Failed,
+                $"The profile file {filePath} cannot be read ({ex.Message}). Fix it, or delete it and run 'keyward login' again.");
+        }
+
         return file?.Profiles is { } stored ? new Dictionary<string, string>(stored, StringComparer.Ordinal) : new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
