@@ -1,6 +1,7 @@
 @namespace Am.Keyward.Ui.Blazor.Software
 @inject IApplicationImportService ImportService
 @inject IStringLocalizer<SharedResource> Loc
+@inject ILogger<ImportPanel> Logger
 
 @* Bulk import of applications + secret KEYS (never values), rendered in the Applications page's right
    pane. Two-step flow: Check parses the pasted text (indented list, JSON application map, or an
@@ -8,30 +9,30 @@
    Import executes exactly that preview. Additive and idempotent: existing applications are reused,
    existing keys skipped — re-importing the same text is harmless. *@
 <div class="card">
-    <div class="row" style="justify-content:space-between;">
-        <h3 style="margin:0; display:flex; align-items:center; gap:.5rem;"><KeywardIcon Name="upload" Size="18" />@Loc["Import.Title"]</h3>
+    <div class="row import-head">
+        <h3 class="import-title"><KeywardIcon Name="upload" Size="18" />@Loc["Import.Title"]</h3>
         <button class="btn-ghost btn-sm" @onclick="OnClose" disabled="@busy"><KeywardIcon Name="x" Size="14" /> @Loc["Common.Close"]</button>
     </div>
     <p class="muted">@Loc["Import.Desc"]</p>
     <details class="help">
         <summary>@Loc["Common.HowItWorks"]</summary>
-        <div><p style="white-space:pre-line;">@Loc["Import.Help"]</p></div>
+        <div><p class="help-text">@Loc["Import.Help"]</p></div>
     </details>
 
-    <div class="field" style="margin-top:.75rem;">
+    <div class="field source-field">
         <label for="kw-import-source">@Loc["Import.Source"]</label>
         <textarea id="kw-import-source" rows="12" @bind="Source" @bind:event="oninput"
                   placeholder="@(Loc["Import.Placeholder"])" spellcheck="false" autocomplete="off"
-                  style="font-family:ui-monospace,Consolas,monospace; white-space:pre; width:100%;"></textarea>
+                  class="source-input"></textarea>
     </div>
-    <div class="field" style="max-width:24rem;">
+    <div class="field appname-field">
         <label for="kw-import-appname">@Loc["Import.AppName"]</label>
         <input id="kw-import-appname" @bind="TargetAppName" @bind:event="oninput" autocomplete="off"
                placeholder="@(Loc["Import.AppName.Placeholder"])" />
-        <p class="muted" style="margin:.25rem 0 0; font-size:.8rem;">@Loc["Import.AppName.Hint"]</p>
+        <p class="muted appname-hint">@Loc["Import.AppName.Hint"]</p>
     </div>
 
-    <div class="row" style="margin-top:.75rem;">
+    <div class="row import-actions">
         <button @onclick="CheckAsync" disabled="@(busy || string.IsNullOrWhiteSpace(source))"><KeywardIcon Name="search" Size="15" /> @Loc["Import.Check"]</button>
         <button @onclick="RunImportAsync" disabled="@(busy || !CanImport)"><KeywardIcon Name="upload" Size="15" /> @Loc["Import.Run"]</button>
         <button class="btn-ghost" @onclick="OnClose" disabled="@busy">@Loc["Common.Cancel"]</button>
@@ -39,9 +40,9 @@
 
     @if (plan is { IsValid: false })
     {
-        <div class="notice notice-error" style="margin-top:.75rem;" role="alert">
+        <div class="notice notice-error import-errors" role="alert">
             <strong>@Loc["Import.Errors.Title"]</strong>
-            <ul style="margin:.35rem 0 0; padding-left:1.25rem;">
+            <ul class="error-list">
                 @foreach (var error in plan.Errors)
                 {
                     <li>@(error.Line > 0 ? Loc["Import.Errors.Line", error.Line, error.Message] : error.Message)</li>
@@ -51,11 +52,11 @@
     }
     else if (preview is not null)
     {
-        <div style="margin-top:.75rem;">
+        <div class="import-preview">
             <div class="list-head">
-                <h3 style="margin:0;">@Loc["Import.Preview.Title"]</h3>
+                <h3 class="preview-title">@Loc["Import.Preview.Title"]</h3>
             </div>
-            <p class="muted" style="margin:.25rem 0 .5rem;">
+            <p class="muted preview-summary">
                 @(CanImport
                     ? Loc["Import.Preview.Summary", preview.NewApplications, preview.NewKeys, preview.SkippedKeys]
                     : Loc["Import.Preview.Empty"])
@@ -63,7 +64,7 @@
             <div class="list-rows">
                 @foreach (var application in preview.Applications)
                 {
-                    <div class="list-row" style="cursor:default;">
+                    <div class="list-row list-row-static">
                         <KeywardIcon Name="package" Size="17" />
                         <span class="list-row-name">@application.Name</span>
                         <span class="list-row-meta">
@@ -72,7 +73,7 @@
                     </div>
                     @foreach (var key in application.Keys)
                     {
-                        <div class="list-row" style="cursor:default; padding-left:1.75rem;">
+                        <div class="list-row list-row-static key-row">
                             <KeywardIcon Name="key" Size="15" />
                             <span class="list-row-name"><code>@key.Key</code></span>
                             <span class="list-row-meta">
@@ -87,7 +88,7 @@
 
     @if (status is not null)
     {
-        <div class="notice @(status.Value.IsError ? "notice-error" : "")" style="margin-top:.75rem;" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
+        <div class="notice status-notice @(status.Value.IsError ? "notice-error" : "")" role="@(status.Value.IsError ? "alert" : "status")">@status.Value.Text</div>
     }
 </div>
 
@@ -153,7 +154,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

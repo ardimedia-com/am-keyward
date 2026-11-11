@@ -532,14 +532,11 @@
   <data name="Vault.Export.Desc" xml:space="preserve">
     <value>Descarrega as entradas LOGIN deste cofre como CSV compatível com browsers (name, url, username, password, note) — reimportável aqui ou no Microsoft Edge / Google Chrome. O ficheiro contém as palavras-passe em TEXTO SIMPLES: guarda-o em segurança e elimina-o após o uso. Os outros tipos de entrada (notas, valores) não fazem parte deste formato. As chaves 2FA também não são exportadas.</value>
   </data>
-  <data name="Vault.Export.Create" xml:space="preserve">
-    <value>Criar CSV</value>
-  </data>
   <data name="Vault.Export.Download" xml:space="preserve">
     <value>Transferir CSV</value>
   </data>
   <data name="Vault.Export.Ready" xml:space="preserve">
-    <value>{0} login(s) prontos para transferir.</value>
+    <value>{0} login(s) exportados.</value>
   </data>
   <data name="Secret.SelectHint" xml:space="preserve">
     <value>Escolhe uma entrada à esquerda para ver e definir os seus valores por ambiente.</value>
@@ -1146,4 +1143,9 @@
   <data name="App.Search.Field.Key" xml:space="preserve"><value>Chave</value></data>
   <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Nota</value></data>
   <data name="App.Search.Field.Token" xml:space="preserve"><value>Token de aplicação</value></data>
+  <data name="Common.Error.Unexpected" xml:space="preserve"><value>Algo correu mal. Tente novamente — se voltar a acontecer, avise o seu administrador.</value></data>
+  <data name="Common.Error.Conflict" xml:space="preserve"><value>Foi alterado entretanto. Recarregue-o e repita a sua alteração.</value></data>
+  <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Por segurança, desaparece desta página após 5 minutos.</value></data>
+  <data name="Secret.Note.Add" xml:space="preserve"><value>Adicionar uma nota …</value></data>
+  <data name="Secret.Note.Edit" xml:space="preserve"><value>Editar nota</value></data>
 </root>

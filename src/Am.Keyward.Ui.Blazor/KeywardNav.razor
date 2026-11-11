@@ -1,9 +1,18 @@
 @* Reusable navigation for the embedded Keyward sections. Identity-aware (only shown when signed in) and
    localized; uses the KeywardRoutes constants so a host never hardcodes Keyward's route strings. Links are
    grouped by purpose (vaults for people / software credentials for machines) with small section labels; the
-   host decides WHERE to place it (its own layout) and styles .nav-link / .nav-group-label to taste.
+   host decides WHERE to place it (its own layout).
    The Groups page (KeywardRoutes.Groups) is deliberately NOT listed here — it is management, so the host
-   places it in its administration section (see the reference shell's NavMenu). *@
+   places it in its administration section (see the reference shell's NavMenu).
+
+   HOST CONTRACT — this component is the one deliberate exception to "every component styles itself": navigation
+   belongs to the host's shell, so it renders in the host's navigation vocabulary and ships NO styling of its own.
+   The host must style these class names (globally, or with ::deep from its nav container):
+     · .nav-group-label — the small section heading above each group (a <div>);
+     · .nav-link        — each entry (Blazor's NavLink: an <a> that gets the class "active" on the current page),
+                          holding a KeywardIcon (svg.kw-icon) followed by a <span> with the text — a collapsed
+                          icon-only sidebar can hide the span; the title attribute carries the text as a tooltip.
+   Unstyled, the links still work and read as a plain list. *@
 @inject IStringLocalizer<SharedResource> Loc
 
 <AuthorizeView>

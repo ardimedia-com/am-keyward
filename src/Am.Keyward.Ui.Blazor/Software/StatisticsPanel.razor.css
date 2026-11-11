@@ -9,6 +9,8 @@
 .kw-bar {
     width: 7px;
     border-radius: 2px 2px 0 0;
+    /* The day's share of the busiest day, set per bar from the data (--kw-bar-height). */
+    height: var(--kw-bar-height, 4%);
     background: var(--kw-primary, #4f46e5);
 }
 

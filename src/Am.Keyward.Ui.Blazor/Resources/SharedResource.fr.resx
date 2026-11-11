@@ -532,14 +532,11 @@
   <data name="Vault.Export.Desc" xml:space="preserve">
     <value>Télécharge les entrées LOGIN de ce coffre en CSV compatible navigateur (name, url, username, password, note) — réimportable ici ou dans Microsoft Edge / Google Chrome. Le fichier contient les mots de passe EN CLAIR : conservez-le en lieu sûr et supprimez-le après usage. Les autres types d'entrées (notes, valeurs) ne font pas partie de ce format. Les clés 2FA ne sont pas exportées non plus.</value>
   </data>
-  <data name="Vault.Export.Create" xml:space="preserve">
-    <value>Créer le CSV</value>
-  </data>
   <data name="Vault.Export.Download" xml:space="preserve">
     <value>Télécharger le CSV</value>
   </data>
   <data name="Vault.Export.Ready" xml:space="preserve">
-    <value>{0} identifiant(s) prêt(s) à télécharger.</value>
+    <value>{0} identifiant(s) exporté(s).</value>
   </data>
   <data name="Secret.SelectHint" xml:space="preserve">
     <value>Choisissez une entrée à gauche pour voir et définir ses valeurs par environnement.</value>
@@ -1146,4 +1143,9 @@
   <data name="App.Search.Field.Key" xml:space="preserve"><value>Clé</value></data>
   <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Note</value></data>
   <data name="App.Search.Field.Token" xml:space="preserve"><value>Jeton d'application</value></data>
+  <data name="Common.Error.Unexpected" xml:space="preserve"><value>Une erreur s'est produite. Veuillez réessayer — si elle se reproduit, prévenez votre administrateur.</value></data>
+  <data name="Common.Error.Conflict" xml:space="preserve"><value>Cet élément a été modifié entre-temps. Rechargez-le et refaites votre modification.</value></data>
+  <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Pour votre sécurité, il disparaît de cette page après 5 minutes.</value></data>
+  <data name="Secret.Note.Add" xml:space="preserve"><value>Ajouter une note …</value></data>
+  <data name="Secret.Note.Edit" xml:space="preserve"><value>Modifier la note</value></data>
 </root>

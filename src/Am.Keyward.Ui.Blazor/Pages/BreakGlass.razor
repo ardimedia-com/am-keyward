@@ -5,6 +5,7 @@
 @inject ICurrentUser CurrentUser
 @inject IKeywardWorkspaceContext Workspace
 @inject IStringLocalizer<SharedResource> Loc
+@inject ILogger<BreakGlass> Logger
 @inject BrowserTimeService Time
 @implements IDisposable
 @inject KeywardUiOptions KeywardOptions
@@ -243,7 +244,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

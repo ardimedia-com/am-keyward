@@ -1,0 +1,71 @@
+/* Bulk import of applications + keys (ImportPanel). The shared look comes from KeywardUi.razor.css; rules that
+   must outweigh a shared one (headings, paragraphs, notices, list rows) carry an extra class or parent. */
+
+.row.import-head {
+    justify-content: space-between;
+}
+
+.import-head > h3.import-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* The help text keeps the line breaks of its resource. */
+.help-text {
+    white-space: pre-line;
+}
+
+.field.source-field {
+    margin-top: .75rem;
+}
+
+textarea.source-input {
+    width: 100%;
+    font-family: ui-monospace, Consolas, monospace;
+    white-space: pre;
+}
+
+.field.appname-field {
+    max-width: 24rem;
+}
+
+.field > p.appname-hint {
+    margin: .25rem 0 0;
+    font-size: .8rem;
+}
+
+.row.import-actions {
+    margin-top: .75rem;
+}
+
+.notice.import-errors {
+    margin-top: .75rem;
+}
+
+ul.error-list {
+    margin: .35rem 0 0;
+    padding-left: 1.25rem;
+}
+
+.import-preview {
+    margin-top: .75rem;
+}
+
+.list-head > h3.preview-title {
+    margin: 0;
+}
+
+.import-preview > p.preview-summary {
+    margin: .25rem 0 .5rem;
+}
+
+/* A key under its application: indented one step. */
+.list-rows > div.list-row.key-row {
+    padding-left: 1.75rem;
+}
+
+.notice.status-notice {
+    margin-top: .75rem;
+}

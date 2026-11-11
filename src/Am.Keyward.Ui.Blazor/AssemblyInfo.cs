@@ -4,3 +4,6 @@ using Microsoft.Extensions.Localization;
 // localizer find them regardless of the HOST's LocalizationOptions.ResourcesPath — an embedding host must
 // not have to configure its own resource path around ours.
 [assembly: ResourceLocation("Resources")]
+
+// The tests exercise the internal helpers (error classification, delayed actions) directly.
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Am.Keyward.Tests")]

@@ -1,0 +1,34 @@
+/* Default environments (administration page). The shared look comes from KeywardUi.razor.css; rules that must
+   outweigh a shared one (list spacing, notice margins) carry an extra class. */
+
+.card.envs-card {
+    max-width: 48rem;
+}
+
+.list-rows.env-list {
+    margin: .5rem 0;
+}
+
+.builtin-hint {
+    font-size: .85rem;
+}
+
+.list-row > input.rename-input {
+    max-width: 14rem;
+}
+
+.notice.delete-confirm {
+    margin: .25rem 0;
+}
+
+.row.confirm-actions {
+    margin-top: .5rem;
+}
+
+.row.add-row {
+    margin-top: .75rem;
+}
+
+.add-row > input.new-name {
+    max-width: 16rem;
+}

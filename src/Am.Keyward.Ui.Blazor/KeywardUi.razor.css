@@ -1,27 +1,43 @@
 /* Component-scoped theme for the embedded Keyward UI. Because this is RCL scoped CSS, the framework folds
    it into the consuming app's {Assembly}.styles.css automatically — no manual <link> needed. The root
    .keyward-ui carries the CSS variables (which inherit to descendants); ::deep reaches the page markup the
-   child components render. Override the look by redefining the --kw-* variables on .keyward-ui in the host. */
+   child components render.
+
+   Design tokens (decision T1063 A): every --kw-* colour reads the HOST's token from the am.ui design-token
+   contract first (--background, --card, --primary, --destructive, --success, …, as Am.Blazor.BlazorBlueprint's
+   theme.css defines them, light and dark) and falls back to Keyward's own value only when the host defines none.
+   A host on that contract therefore themes Keyward completely — dark mode included, because its tokens are
+   dark-aware themselves — and a host without it keeps Keyward's default look. To restyle only Keyward, redefine the
+   --kw-* variables on .keyward-ui in the host instead.
+
+   Mapping: --kw-bg ← --background · --kw-surface ← --card · --kw-muted ← --muted · --kw-text ← --foreground ·
+   --kw-muted-text ← --muted-foreground · --kw-border ← --border · --kw-primary ← --primary ·
+   --kw-primary-foreground ← --primary-foreground · --kw-danger ← --destructive · --kw-success ← --success ·
+   --kw-warning ← --warning · --kw-info ← --info · --kw-ring ← --ring · --kw-radius ← --radius.
+   --kw-primary-hover is not part of the contract: it reads an optional --primary-hover, else is derived from
+   --kw-primary. */
 
 .keyward-ui {
     color-scheme: light;
 
-    --kw-bg: #f6f7f9;
-    --kw-surface: #ffffff;
-    --kw-muted: #f1f3f5;
-    --kw-text: #1c2024;
-    --kw-muted-text: #6b7280;
-    --kw-border: #e3e6ea;
+    --kw-bg: var(--background, #f6f7f9);
+    --kw-surface: var(--card, #ffffff);
+    --kw-muted: var(--muted, #f1f3f5);
+    --kw-text: var(--foreground, #1c2024);
+    --kw-muted-text: var(--muted-foreground, #6b7280);
+    --kw-border: var(--border, #e3e6ea);
 
-    --kw-primary: #4f46e5;
-    --kw-primary-hover: #4338ca;
-    --kw-primary-foreground: #ffffff;
+    --kw-primary: var(--primary, #4f46e5);
+    --kw-primary-hover: var(--primary-hover, color-mix(in srgb, var(--kw-primary) 85%, #000));
+    --kw-primary-foreground: var(--primary-foreground, #ffffff);
 
-    --kw-success: #15803d;
-    --kw-danger: #b91c1c;
-    --kw-warning: #b45309;
+    --kw-success: var(--success, #15803d);
+    --kw-danger: var(--destructive, #b91c1c);
+    --kw-warning: var(--warning, #b45309);
+    --kw-info: var(--info, #0369a1);
 
-    --kw-radius: 8px;
+    --kw-ring: var(--ring, color-mix(in srgb, var(--kw-primary) 45%, transparent));
+    --kw-radius: var(--radius, 8px);
     --kw-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.10);
 
     color: var(--kw-text);
@@ -30,45 +46,48 @@
 }
 
 /* Dark mode + colour themes: the HOST toggles .dark / [data-theme] on <html> (see the reference shell's
-   keyward-theme.js) and these rules re-tint the embedded UI to match. A host without a theme switcher
-   simply never sets them and gets the light indigo default. */
+   keyward-theme.js). A host on the am.ui contract switches its own tokens and they win here too; these dark
+   values are only the fallbacks for a host without them. A host without a theme switcher never sets .dark and
+   gets the light default. */
 .dark .keyward-ui {
     color-scheme: dark;
 
-    --kw-bg: #12151a;
-    --kw-surface: #1a1f27;
-    --kw-muted: #242b35;
-    --kw-text: #e7eaee;
-    --kw-muted-text: #98a1ad;
-    --kw-border: #2d3541;
+    --kw-bg: var(--background, #12151a);
+    --kw-surface: var(--card, #1a1f27);
+    --kw-muted: var(--muted, #242b35);
+    --kw-text: var(--foreground, #e7eaee);
+    --kw-muted-text: var(--muted-foreground, #98a1ad);
+    --kw-border: var(--border, #2d3541);
 
-    --kw-primary: #6366f1;
-    --kw-primary-hover: #818cf8;
+    --kw-primary: var(--primary, #6366f1);
+    --kw-primary-hover: var(--primary-hover, color-mix(in srgb, var(--kw-primary) 80%, #fff));
 
-    --kw-success: #34d399;
-    --kw-danger: #f87171;
-    --kw-warning: #fbbf24;
+    --kw-success: var(--success, #34d399);
+    --kw-danger: var(--destructive, #f87171);
+    --kw-warning: var(--warning, #fbbf24);
+    --kw-info: var(--info, #38bdf8);
 
     --kw-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-[data-theme="mono"] .keyward-ui { --kw-primary: #52525b; --kw-primary-hover: #3f3f46; }
-.dark[data-theme="mono"] .keyward-ui { --kw-primary: #a1a1aa; --kw-primary-hover: #d4d4d8; --kw-primary-foreground: #18181b; }
+/* Colour themes (accent only) for a host that switches [data-theme] without providing --primary itself. */
+[data-theme="mono"] .keyward-ui { --kw-primary: var(--primary, #52525b); }
+.dark[data-theme="mono"] .keyward-ui { --kw-primary: var(--primary, #a1a1aa); --kw-primary-foreground: var(--primary-foreground, #18181b); }
 
-[data-theme="storm"] .keyward-ui { --kw-primary: #64748b; --kw-primary-hover: #475569; }
-.dark[data-theme="storm"] .keyward-ui { --kw-primary: #94a3b8; --kw-primary-hover: #cbd5e1; --kw-primary-foreground: #0f172a; }
+[data-theme="storm"] .keyward-ui { --kw-primary: var(--primary, #64748b); }
+.dark[data-theme="storm"] .keyward-ui { --kw-primary: var(--primary, #94a3b8); --kw-primary-foreground: var(--primary-foreground, #0f172a); }
 
-[data-theme="midnight"] .keyward-ui { --kw-primary: #18181b; --kw-primary-hover: #333338; }
-.dark[data-theme="midnight"] .keyward-ui { --kw-primary: #e4e4e7; --kw-primary-hover: #f4f4f5; --kw-primary-foreground: #18181b; }
+[data-theme="midnight"] .keyward-ui { --kw-primary: var(--primary, #18181b); }
+.dark[data-theme="midnight"] .keyward-ui { --kw-primary: var(--primary, #e4e4e7); --kw-primary-foreground: var(--primary-foreground, #18181b); }
 
-[data-theme="pastel"] .keyward-ui { --kw-primary: #a78bfa; --kw-primary-hover: #8b5cf6; }
-.dark[data-theme="pastel"] .keyward-ui { --kw-primary: #c4b5fd; --kw-primary-hover: #ddd6fe; --kw-primary-foreground: #312e81; }
+[data-theme="pastel"] .keyward-ui { --kw-primary: var(--primary, #a78bfa); }
+.dark[data-theme="pastel"] .keyward-ui { --kw-primary: var(--primary, #c4b5fd); --kw-primary-foreground: var(--primary-foreground, #312e81); }
 
-[data-theme="amber"] .keyward-ui { --kw-primary: #d97706; --kw-primary-hover: #b45309; }
-.dark[data-theme="amber"] .keyward-ui { --kw-primary: #f59e0b; --kw-primary-hover: #fbbf24; --kw-primary-foreground: #451a03; }
+[data-theme="amber"] .keyward-ui { --kw-primary: var(--primary, #d97706); }
+.dark[data-theme="amber"] .keyward-ui { --kw-primary: var(--primary, #f59e0b); --kw-primary-foreground: var(--primary-foreground, #451a03); }
 
-[data-theme="ocean"] .keyward-ui { --kw-primary: #0284c7; --kw-primary-hover: #0369a1; }
-.dark[data-theme="ocean"] .keyward-ui { --kw-primary: #38bdf8; --kw-primary-hover: #7dd3fc; --kw-primary-foreground: #082f49; }
+[data-theme="ocean"] .keyward-ui { --kw-primary: var(--primary, #0284c7); }
+.dark[data-theme="ocean"] .keyward-ui { --kw-primary: var(--primary, #38bdf8); --kw-primary-foreground: var(--primary-foreground, #082f49); }
 
 .keyward-ui ::deep h1, .keyward-ui ::deep h2, .keyward-ui ::deep h3 {
     color: var(--kw-text);
@@ -174,7 +193,7 @@
     border-radius: var(--kw-radius);
 }
 .keyward-ui ::deep input:focus, .keyward-ui ::deep select:focus, .keyward-ui ::deep textarea:focus {
-    outline: 2px solid color-mix(in srgb, var(--kw-primary) 45%, transparent);
+    outline: 2px solid var(--kw-ring);
     outline-offset: 1px;
     border-color: var(--kw-primary);
 }
@@ -261,7 +280,7 @@
 
 /* Rotation state chips — quiet until the value actually needs attention. */
 .keyward-ui ::deep .kw-rot-ok { color: var(--kw-muted-text); }
-.keyward-ui ::deep .kw-rot-due { color: var(--kw-warning, #b45309); font-weight: 600; }
+.keyward-ui ::deep .kw-rot-due { color: var(--kw-warning); font-weight: 600; }
 .keyward-ui ::deep .kw-rot-overdue { color: var(--kw-danger); font-weight: 600; }
 
 /* Badges */
@@ -280,6 +299,7 @@
 .keyward-ui ::deep .badge-success { background: color-mix(in srgb, var(--kw-success) 12%, transparent); color: var(--kw-success); border-color: color-mix(in srgb, var(--kw-success) 30%, transparent); }
 .keyward-ui ::deep .badge-danger  { background: color-mix(in srgb, var(--kw-danger) 12%, transparent);  color: var(--kw-danger);  border-color: color-mix(in srgb, var(--kw-danger) 30%, transparent); }
 .keyward-ui ::deep .badge-warning { background: color-mix(in srgb, var(--kw-warning) 14%, transparent); color: var(--kw-warning); border-color: color-mix(in srgb, var(--kw-warning) 30%, transparent); }
+.keyward-ui ::deep .badge-info    { background: color-mix(in srgb, var(--kw-info) 12%, transparent);    color: var(--kw-info);    border-color: color-mix(in srgb, var(--kw-info) 30%, transparent); }
 
 /* Inline notices */
 .keyward-ui ::deep .notice { padding: .6rem .8rem; border-radius: var(--kw-radius); font-size: .85rem; margin: .5rem 0; border: 1px solid var(--kw-border); background: var(--kw-muted); }
@@ -546,6 +566,8 @@
     .keyward-ui ::deep .detail-grid { grid-template-columns: 1fr; }
 }
 .keyward-ui ::deep .detail-field { display: flex; flex-direction: column; gap: .3rem; }
+/* The caption of a read-only detail value — styled like a form label, but not a <label> (nothing to label). */
+.keyward-ui ::deep .detail-label { font-size: .85rem; font-weight: 500; color: var(--kw-text); }
 .keyward-ui ::deep .detail-grid > .wide { grid-column: 1 / -1; }
 .keyward-ui ::deep .detail-grid > .field { margin-bottom: 0; }
 .keyward-ui ::deep .detail-value {

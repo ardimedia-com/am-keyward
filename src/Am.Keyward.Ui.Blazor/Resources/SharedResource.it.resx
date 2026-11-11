@@ -532,14 +532,11 @@
   <data name="Vault.Export.Desc" xml:space="preserve">
     <value>Scarica le voci LOGIN di questa cassaforte come CSV compatibile con i browser (name, url, username, password, note) — reimportabile qui o in Microsoft Edge / Google Chrome. Il file contiene le password in CHIARO: conservalo al sicuro ed eliminalo dopo l'uso. Gli altri tipi di voce (note, valori) non fanno parte di questo formato. Nemmeno le chiavi 2FA vengono esportate.</value>
   </data>
-  <data name="Vault.Export.Create" xml:space="preserve">
-    <value>Crea CSV</value>
-  </data>
   <data name="Vault.Export.Download" xml:space="preserve">
     <value>Scarica CSV</value>
   </data>
   <data name="Vault.Export.Ready" xml:space="preserve">
-    <value>{0} accessi pronti per il download.</value>
+    <value>{0} accessi esportati.</value>
   </data>
   <data name="Secret.SelectHint" xml:space="preserve">
     <value>Scegli una voce a sinistra per vedere e impostare i suoi valori per ambiente.</value>
@@ -1146,4 +1143,9 @@
   <data name="App.Search.Field.Key" xml:space="preserve"><value>Chiave</value></data>
   <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Nota</value></data>
   <data name="App.Search.Field.Token" xml:space="preserve"><value>Token applicazione</value></data>
+  <data name="Common.Error.Unexpected" xml:space="preserve"><value>Qualcosa è andato storto. Riprova — se succede di nuovo, avvisa il tuo amministratore.</value></data>
+  <data name="Common.Error.Conflict" xml:space="preserve"><value>Nel frattempo è stato modificato. Ricaricalo e ripeti la modifica.</value></data>
+  <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Per sicurezza scompare da questa pagina dopo 5 minuti.</value></data>
+  <data name="Secret.Note.Add" xml:space="preserve"><value>Aggiungi una nota …</value></data>
+  <data name="Secret.Note.Edit" xml:space="preserve"><value>Modifica nota</value></data>
 </root>

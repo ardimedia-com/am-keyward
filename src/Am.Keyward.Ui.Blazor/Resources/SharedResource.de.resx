@@ -534,14 +534,11 @@
   <data name="Vault.Export.Desc" xml:space="preserve">
     <value>Lädt die LOGIN-Einträge dieses Tresors als browser-kompatible CSV herunter (name, url, username, password, note) — wieder importierbar hier oder in Microsoft Edge / Google Chrome. Die Datei enthält die Passwörter im KLARTEXT: sicher aufbewahren und nach Gebrauch löschen. Andere Eintragstypen (Notizen, Werte) sind nicht Teil dieses Formats. Auch 2FA-Schlüssel werden nicht exportiert.</value>
   </data>
-  <data name="Vault.Export.Create" xml:space="preserve">
-    <value>CSV erstellen</value>
-  </data>
   <data name="Vault.Export.Download" xml:space="preserve">
     <value>CSV herunterladen</value>
   </data>
   <data name="Vault.Export.Ready" xml:space="preserve">
-    <value>{0} Login(s) zum Herunterladen bereit.</value>
+    <value>{0} Login(s) exportiert.</value>
   </data>
   <data name="Secret.SelectHint" xml:space="preserve">
     <value>Wähle links einen Eintrag, um seine Werte pro Umgebung zu sehen und zu setzen.</value>
@@ -1272,4 +1269,7 @@
   <data name="App.Search.Field.Key" xml:space="preserve"><value>Schlüssel</value></data>
   <data name="App.Search.Field.RotationNote" xml:space="preserve"><value>Notiz</value></data>
   <data name="App.Search.Field.Token" xml:space="preserve"><value>App-Token</value></data>
+  <data name="Common.Error.Unexpected" xml:space="preserve"><value>Etwas ist schiefgelaufen. Versuch es nochmals – wenn es wieder passiert, melde es deiner Administration.</value></data>
+  <data name="Common.Error.Conflict" xml:space="preserve"><value>Das wurde in der Zwischenzeit geändert. Lade es neu und wiederhole deine Änderung.</value></data>
+  <data name="Common.ShownOnce.AutoClear" xml:space="preserve"><value>Zu deiner Sicherheit verschwindet er nach 5 Minuten von dieser Seite.</value></data>
 </root>

@@ -28,3 +28,80 @@
 .token-use-hint {
     margin: .35rem 0 0;
 }
+
+/* Card head: title + per-environment hint. Outweighs the shared h3 / p margins. */
+.list-head > h3.tokens-title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+.list-head > p.tokens-desc {
+    margin: .25rem 0 0;
+}
+
+/* The token's validity choice next to a row's action (rendered by ExpirySelect). */
+select.kw-expiry {
+    max-width: 8.5rem;
+}
+
+.list-row-meta > code.token-prefix {
+    font-size: .8rem;
+}
+
+.row-facts {
+    font-size: .78rem;
+}
+
+/* The selected token's detail card, opened under its row. */
+.list-rows > .card.token-detail {
+    margin: .25rem 0 .75rem;
+}
+
+.row.detail-head {
+    justify-content: space-between;
+}
+
+.row.edit-row {
+    flex: 1;
+    min-width: min(20rem, 100%);
+    flex-wrap: nowrap;
+}
+
+.edit-row > input.edit-name {
+    max-width: 14rem;
+    font-weight: 600;
+}
+
+.edit-row > input.edit-note {
+    max-width: 18rem;
+}
+
+.notice.detail-notice {
+    margin-top: .5rem;
+}
+
+button.confirm-yes {
+    margin-left: .5rem;
+}
+
+.detail-grid.token-facts {
+    margin-top: .5rem;
+}
+
+/* The freshly issued value (shown once). */
+.notice.issued-notice {
+    margin-top: 1rem;
+}
+
+.row.issued-row {
+    flex-wrap: nowrap;
+    margin-top: .3rem;
+}
+
+.issued-row > code.issued-value {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}

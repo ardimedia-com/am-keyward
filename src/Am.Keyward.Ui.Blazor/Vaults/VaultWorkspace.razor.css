@@ -103,9 +103,46 @@
     gap: .4rem;
 }
 
-.input-with-action input {
+.input-with-action input,
+.input-with-action textarea {
     flex: 1;
     min-width: 0;
+}
+
+/* Beside a multi-line value the buttons keep their size at the top instead of stretching to its height. */
+.input-with-action:has(textarea) {
+    align-items: flex-start;
+}
+
+.input-with-action:has(textarea) button {
+    align-self: flex-start;
+    padding: .45rem .6rem;
+}
+
+/* A masked value in the form: a text box cannot be type=password, so its characters are drawn as discs where the
+   browser supports it; elsewhere the field shows as plain text, as before. */
+textarea.kw-masked {
+    -webkit-text-security: disc;
+}
+
+/* The QR image input is only visually hidden — it stays focusable and in the tab order; its label (the upload
+   icon next to it) shows the keyboard focus. The attribute selector out-weighs the shared input rule in KeywardUi. */
+.input-with-action input[type="file"].kw-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+    flex: none;
+}
+
+.input-with-action input[type="file"].kw-visually-hidden:focus-visible + .qr-pick {
+    outline: 2px solid var(--kw-ring);
+    outline-offset: 1px;
 }
 
 /* As tall as the input beside it, so the pair reads as one control. */
@@ -240,7 +277,7 @@
     gap: .4rem;
 }
 
-/* The QR image picker looks like the other icon buttons; the file input inside it stays hidden. */
+/* The QR image picker (the label of the visually hidden file input) looks like the other icon buttons. */
 .qr-pick {
     display: inline-flex;
     align-items: center;

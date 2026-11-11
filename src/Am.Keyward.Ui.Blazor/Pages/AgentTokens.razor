@@ -13,6 +13,8 @@
 @inject KeywardUiOptions KeywardOptions
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject BrowserTimeService Time
+@inject ILogger<AgentTokens> Logger
 
 <PageTitle>@KeywardOptions.ProductName</PageTitle>
 
@@ -38,11 +40,17 @@
         <div class="agent-tokens">
             @if (issuedToken is not null)
             {
+                @* Shown once, then gone: «Close» drops it, and it leaves the page by itself after a few minutes or when the
+                   user navigates away — a token must not sit in an unattended browser tab. *@
                 <div class="notice notice-reveal" role="status">
                     @Loc["AgentTokens.New"]
                     <div class="issued-token">
                         <code>@issuedToken</code>
-                        <button @ref="issuedCopyButton" class="icon-btn" title="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
+                        <button @ref="issuedCopyButton" class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick="CopyIssuedAsync"><KeywardIcon Name="@(issuedCopied ? "check" : "copy")" Size="15" /></button>
+                    </div>
+                    <div class="issued-dismiss">
+                        <span class="muted">@Loc["Common.ShownOnce.AutoClear"]</span>
+                        <button class="btn-ghost btn-sm" @onclick="ClearIssued">@Loc["Common.Close"]</button>
                     </div>
                     @* Right where the token is copied: everything to run on the agent's computer, as one PowerShell block.
                        «setup» asks for the token (hidden input), so it never lands in the shell history. *@
@@ -51,7 +59,7 @@
                     @DotNetPrerequisite
                     <div class="usage-script">
                         <pre><code>@SetupScript</code></pre>
-                        <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(SetupScript)"><KeywardIcon Name="@(copiedCommand == SetupScript ? "check" : "copy")" Size="15" /></button>
+                        <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(SetupScript)"><KeywardIcon Name="@(copiedCommand == SetupScript ? "check" : "copy")" Size="15" /></button>
                     </div>
                 </div>
             }
@@ -389,7 +397,7 @@
                     {
                         <div class="usage-command">
                             <code>@command</code>
-                            <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
+                            <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(command)"><KeywardIcon Name="@(copiedCommand == command ? "check" : "copy")" Size="15" /></button>
                         </div>
                     }
                 </li>
@@ -413,7 +421,7 @@
             <span>@Loc["AgentTokens.Usage.DotNet"]</span>
             <div class="usage-command">
                 <code>@DotNetCommand</code>
-                <button class="icon-btn" title="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(DotNetCommand)"><KeywardIcon Name="@(copiedCommand == DotNetCommand ? "check" : "copy")" Size="15" /></button>
+                <button class="icon-btn" title="@Loc["Common.Copy"]" aria-label="@Loc["Common.Copy"]" @onclick="() => CopyCommandAsync(DotNetCommand)"><KeywardIcon Name="@(copiedCommand == DotNetCommand ? "check" : "copy")" Size="15" /></button>
             </div>
             @if (mac)
             {
@@ -428,6 +436,9 @@
     private static readonly AgentScopes[] AllScopes = [.. OfferedScopes, AgentScopes.ManageApplications];
 
     private static readonly TimeSpan PendingRefresh = TimeSpan.FromSeconds(5);
+
+    // After a failed refresh the next attempt waits longer (doubling up to this), so a database outage is not hammered.
+    private static readonly TimeSpan PendingRefreshMaxBackoff = TimeSpan.FromMinutes(1);
 
     private static readonly int MaxDays = (int)AgentTokenLifetime.Maximum.TotalDays;
 
@@ -453,6 +464,14 @@
 
     private string? issuedToken;
     private bool issuedCopied;
+
+    // Drops the issued token from the page after SecretExposure.IssuedTokenVisible.
+    private readonly DelayedAction issuedTimer = new();
+
+    // Focus requested by an action, applied after the next render (the target exists only then).
+    private enum PendingFocus { None, Name, IssuedToken }
+
+    private PendingFocus pendingFocus;
     private string? copiedCommand;
 
     // The address the MCP server talks to: the configured public address, else the one this page was opened on.
@@ -564,20 +583,75 @@
 
         refreshTimer = new PeriodicTimer(PendingRefresh);
         _ = RefreshPendingLoopAsync(refreshTimer);
+        Nav.LocationChanged += OnLocationChanged;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var focus = pendingFocus;
+        pendingFocus = PendingFocus.None;
+        switch (focus)
+        {
+            case PendingFocus.Name:
+                await TryFocusAsync(nameInput);
+                break;
+            case PendingFocus.IssuedToken:
+                await TryFocusAsync(issuedCopyButton);
+                break;
+        }
+    }
+
+    /// <summary>Focuses an element if it was rendered; a missing element or a closing circuit is not an error.</summary>
+    private static async Task TryFocusAsync(ElementReference element)
+    {
+        if (string.IsNullOrEmpty(element.Id))
+        {
+            return;
+        }
+
+        try
+        {
+            await element.FocusAsync();
+        }
+        catch (Exception ex) when (ex is JSException or JSDisconnectedException or InvalidOperationException)
+        {
+            // Not rendered (any more) or the circuit is gone — focus is a convenience only.
+        }
+    }
+
+    /// <summary>
+    /// Keeps the pending reveal requests current while the page is open. A failed refresh is logged and retried with a
+    /// growing pause; the loop ends only when the page is left (the timer is disposed).
+    /// </summary>
     private async Task RefreshPendingLoopAsync(PeriodicTimer timer)
     {
+        var backoff = TimeSpan.Zero;
         try
         {
             while (await timer.WaitForNextTickAsync())
             {
-                if (busy) continue;
-                var fresh = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
-                if (!fresh.Select(r => r.Id).SequenceEqual(pending?.Select(r => r.Id) ?? []))
+                if (backoff > TimeSpan.Zero)
                 {
-                    pending = fresh;
-                    await InvokeAsync(StateHasChanged);
+                    await Task.Delay(backoff);
+                }
+
+                if (busy) continue;
+                try
+                {
+                    var fresh = await RevealRequests.ListPendingAsync(actorUserId, tenantId);
+                    backoff = TimeSpan.Zero;
+                    if (!fresh.Select(r => r.Id).SequenceEqual(pending?.Select(r => r.Id) ?? []))
+                    {
+                        pending = fresh;
+                        await InvokeAsync(StateHasChanged);
+                    }
+                }
+                catch (Exception ex) when (ex is not ObjectDisposedException)
+                {
+                    backoff = backoff == TimeSpan.Zero
+                        ? PendingRefresh
+                        : TimeSpan.FromTicks(Math.Min(backoff.Ticks * 2, PendingRefreshMaxBackoff.Ticks));
+                    Logger.LogWarning(ex, "Refreshing the pending reveal requests failed; retrying in {Backoff}", backoff + PendingRefresh);
                 }
             }
         }
@@ -585,16 +659,25 @@
         {
             // The page was left.
         }
-        catch (Exception ex)
-        {
-            status = (Loc["Common.Error"] + ex.Message, true);
-            await InvokeAsync(StateHasChanged);
-        }
     }
+
+    // Leaving the page (or changing its address) takes an issued token off it.
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        _ = InvokeAsync(() =>
+        {
+            if (issuedToken is not null)
+            {
+                ClearIssued();
+                StateHasChanged();
+            }
+        });
 
     public ValueTask DisposeAsync()
     {
+        Nav.LocationChanged -= OnLocationChanged;
         refreshTimer?.Dispose();
+        issuedTimer.Dispose();
+        issuedToken = null;
         return ValueTask.CompletedTask;
     }
 
@@ -686,7 +769,7 @@
         showForm = false;
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Issued"], false);
-        await BringIssuedIntoViewAsync();
+        BringIssuedIntoView();
     }, CanIssue);
 
     private async Task StartIssueAsync()
@@ -695,9 +778,7 @@
         showForm = true;
         status = null;
         await OpenTokensAreaAsync();
-        StateHasChanged();
-        await Task.Yield();
-        await nameInput.FocusAsync();
+        pendingFocus = PendingFocus.Name; // the form renders on the next pass; focusing its name brings it into view
     }
 
     private async Task StartEditAsync(AgentTokenSummary token)
@@ -717,9 +798,7 @@
         status = null;
         await OpenTokensAreaAsync();
         // The form renders on the next pass; focusing its name then brings it into view.
-        StateHasChanged();
-        await Task.Yield();
-        await nameInput.FocusAsync();
+        pendingFocus = PendingFocus.Name;
     }
 
     // The form renders inside the tokens area, which may be collapsed.
@@ -771,7 +850,7 @@
         ShowIssued(rotated.Token);
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Rotated"], false);
-        await BringIssuedIntoViewAsync();
+        BringIssuedIntoView();
     }, true);
 
     private void StartExtend(Guid tokenId)
@@ -786,7 +865,8 @@
         var until = await AgentTokenService.ExtendAsync(actorUserId, tenantId, tokenId, DateTimeOffset.UtcNow.AddDays(extendDays));
         extendTokenId = null;
         await ReloadAsync();
-        status = (Loc["AgentTokens.Msg.Extended", until.ToLocalTime().ToString("d")], false);
+        // The viewer's local date (the browser's zone), not the server's.
+        status = (Loc["AgentTokens.Msg.Extended", Time.Format(until, "d")], false);
     }, extendDays is >= 1 && extendDays <= MaxDays);
 
     private Task AdminRevokeAsync(Guid tokenId) => RunAsync(async () =>
@@ -809,22 +889,30 @@
     {
         await AgentTokenService.RevokeAsync(actorUserId, tenantId, tokenId);
         confirmRevokeId = null;
-        issuedToken = null;
+        ClearIssued();
         await ReloadAsync();
         status = (Loc["AgentTokens.Msg.Revoked"], false);
     }, true);
 
-    // The new token is shown at the top of the page, far from the button that issued it: move focus (and the view) there.
-    private async Task BringIssuedIntoViewAsync()
-    {
-        StateHasChanged();
-        await Task.Yield();
-        await issuedCopyButton.FocusAsync();
-    }
+    // The new token is shown at the top of the page, far from the button that issued it: move focus (and the view) there
+    // once it has rendered.
+    private void BringIssuedIntoView() => pendingFocus = PendingFocus.IssuedToken;
 
     private void ShowIssued(string token)
     {
         issuedToken = token;
+        issuedCopied = false;
+        issuedTimer.Schedule(SecretExposure.IssuedTokenVisible, () => InvokeAsync(() =>
+        {
+            ClearIssued();
+            StateHasChanged();
+        }));
+    }
+
+    private void ClearIssued()
+    {
+        issuedTimer.Cancel();
+        issuedToken = null;
         issuedCopied = false;
     }
 
@@ -837,7 +925,7 @@
     private async Task CopyIssuedAsync()
     {
         if (issuedToken is null) return;
-        if (!await JS.TryCopyToClipboardAsync(issuedToken)) return;
+        if (!await JS.TryCopySecretToClipboardAsync(issuedToken)) return;
         issuedCopied = true;
     }
 
@@ -848,7 +936,7 @@
         busy = true;
         status = null;
         try { await action(); }
-        catch (Exception ex) { status = (Loc["Common.Error"] + ex.Message, true); }
+        catch (Exception ex) { status = (UserFacingError.Describe(ex, Loc, Logger), true); }
         finally { busy = false; }
     }
 }

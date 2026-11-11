@@ -84,3 +84,20 @@ export function listen(dotnet) {
         },
     };
 }
+
+// Hands text (the CSV export) to the browser as a file download. The Blob's object URL is revoked right after the
+// click, so the passwords in it are not left reachable from the page.
+export function downloadText(fileName, text, mimeType) {
+    const url = URL.createObjectURL(new Blob([text], { type: mimeType }));
+    try {
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        link.rel = "noopener";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    } finally {
+        setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+}

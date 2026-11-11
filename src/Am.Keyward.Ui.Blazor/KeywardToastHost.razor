@@ -1,6 +1,7 @@
 @namespace Am.Keyward.Ui.Blazor
 @implements IDisposable
 @inject KeywardToastState State
+@inject IStringLocalizer<SharedResource> Loc
 
 @* Built-in toast host for the DEFAULT notifier (standalone). Mimics BlazorBlueprint's toast: bottom-right,
    stacked, auto-dismissing card with a per-kind accent. A BlazorBlueprint host overrides IKeywardNotifier to
@@ -13,7 +14,7 @@
             <div class="kw-toast kw-toast-@(toast.Kind.ToString().ToLowerInvariant())"
                  role="@(toast.Kind == KeywardNotifyKind.Error ? "alert" : "status")">
                 <span class="kw-toast-msg">@toast.Message</span>
-                <button type="button" class="kw-toast-close" @onclick="() => State.Remove(toast.Id)" aria-label="Close">
+                <button type="button" class="kw-toast-close" @onclick="() => State.Remove(toast.Id)" aria-label="@Loc["Common.Close"]" title="@Loc["Common.Close"]">
                     <KeywardIcon Name="x" Size="14" />
                 </button>
             </div>
